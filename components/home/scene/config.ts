@@ -1,23 +1,53 @@
+export type SceneMode = 'A' | 'B';
+
 export const SCENE_CONFIG = {
-  camera: {
-    position: [0, 0, 10] as const,
-    fov: 45,
-  },
+  // Shared globe settings
   globe: {
     radius: 5,
-    // Shifted down on the Y axis so the globe appears in the bottom half of the screen
-    position: [0, -5, 0] as const,
     segments: 64,
-    color: '#1e3a8a', // A deep blue
+    color: '#ffffff',
   },
-  controls: {
-    enablePan: false,
-    enableZoom: true,
-    enableRotate: true,
-    minDistance: 6,
-    maxDistance: 20,
-    // Restrict vertical rotation to keep the camera generally looking down/forward
-    minPolarAngle: Math.PI / 4,
-    maxPolarAngle: Math.PI / 1.5,
+  modes: {
+    A: {
+      camera: {
+        position: [0, 0, 12] as const,
+        fov: 45,
+        target: [0, 0, 0] as const,
+      },
+      globe: {
+        position: [0, 0, 0] as const,
+      },
+      controls: {
+        orbitEnabled: true,
+        enablePan: true,
+        enableZoom: true,
+        enableRotate: true, // Orbit controls manage globe rotation
+        minDistance: 6,
+        maxDistance: 20,
+        minPolarAngle: Math.PI / 4,
+        maxPolarAngle: Math.PI / 1.5,
+      }
+    },
+    B: {
+      camera: {
+        position: [0, 0, 10] as const, // Fixed cinematic perspective
+        fov: 45,
+        target: [0, 0, 0] as const, // Looking down slightly towards the horizon
+      },
+      globe: {
+        // Shifted down heavily so only the top arc/horizon is visible
+        position: [0, -5, 0] as const, 
+      },
+      controls: {
+        orbitEnabled: false, // We disable built-in OrbitControls camera movement
+        enablePan: false,
+        enableZoom: false,
+        enableRotate: false, 
+        minDistance: 6,
+        maxDistance: 20,
+        minPolarAngle: Math.PI / 4,
+        maxPolarAngle: Math.PI / 1.5,
+      }
+    }
   }
 };
