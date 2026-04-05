@@ -6,6 +6,12 @@ export const GLOBE_CONFIG = {
   color: '#ffffff',
 } as const;
 
+export const TRANSITION_CONFIG = {
+  wheelSensitivity: 0.001,
+  damping: 0.05,
+  handoffThreshold: 0.7,
+} as const;
+
 export const SCENE_PRESETS = {
   A: {
     cameraPosition: [0, 0, 30] as const,
@@ -16,7 +22,7 @@ export const SCENE_PRESETS = {
 
     interaction: {
       type: 'orbit' as const,
-      enablePan: true,
+      enablePan: false,
       rotateSpeed: 0.5,
       zoomSpeed: 0.05,
       panSpeed: 0.3,

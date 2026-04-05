@@ -5,42 +5,40 @@ import { SceneLights } from './scene/SceneLights';
 import { Globe } from './scene/Globe';
 import { SceneController } from './scene/SceneController';
 import { SceneInteractionController } from './scene/SceneInteractionController';
-import { SceneMode } from './scene/config';
-import { useState, useRef } from 'react';
+import { TRANSITION_CONFIG } from './scene/config';
+import { useRef } from 'react';
 import { Mesh } from 'three';
 
 export function HomeScene() {
-  const [mode, setMode] = useState<SceneMode>('A');
+  const targetProgress = useRef(0);
+  const progress = useRef(0);
   const globeRef = useRef<Mesh>(null);
 
-  // Temporary function to toggle modes
-  const handleToggleMode = () => {
-    setMode((prev) => (prev === 'A' ? 'B' : 'A'));
+  const handleWheel = (e: React.WheelEvent) => {
+    e.stopPropagation();
+    const delta = e.deltaY;
+    targetProgress.current = Math.max(
+      0,
+      Math.min(1, targetProgress.current + (delta * TRANSITION_CONFIG.wheelSensitivity))
+    );
   };
 
   return (
-    <div className="absolute inset-0 z-0">
-      {/* 
-        Temporary Debug UI 
-        Removing standard HTML overlays could be handled better later
-      */}
-      <button 
-        className="absolute top-4 left-4 z-10 text-white bg-black/50 px-4 py-2 rounded-md cursor-pointer select-none"
-        onClick={handleToggleMode}
-      >
-        Current Mode: {mode}. Click to switch.
-      </button>
-
+    <div className="absolute inset-0 z-0" onWheel={handleWheel}>
       <Canvas gl={{ alpha: true }}>
-        <SceneController mode={mode} />
-        <SceneInteractionController mode={mode} globeRef={globeRef} />
+        <SceneController 
+          progress={progress} 
+          targetProgress={targetProgress} 
+          globeRef={globeRef} 
+        />
+        <SceneInteractionController 
+          progress={progress} 
+          globeRef={globeRef} 
+        />
     
         <SceneLights />
         
-        <Globe 
-          ref={globeRef} 
-          mode={mode} 
-        />
+        <Globe ref={globeRef} />
       </Canvas>
     </div>
   );

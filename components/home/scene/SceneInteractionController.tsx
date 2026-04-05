@@ -1,46 +1,47 @@
-import { useThree, useFrame } from '@react-three/fiber';
-import { OrbitControls, TrackballControls } from '@react-three/drei';
-import { useRef, useEffect } from 'react';
+import { useFrame } from '@react-three/fiber';
+import { OrbitControls } from '@react-three/drei';
+import { useRef, useState } from 'react';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
-import { Vector3 } from 'three';
-import { SCENE_PRESETS, SceneMode } from './config';
+import { Vector3, Mesh, MathUtils } from 'three';
+import { SCENE_PRESETS, TRANSITION_CONFIG } from './config';
 import { GlobeDragController } from './GlobeDragController';
 
+const V_POS_A = new Vector3(...SCENE_PRESETS.A.cameraPosition);
+const V_TARGET_A = new Vector3(...SCENE_PRESETS.A.cameraTarget);
+const V_POS_B = new Vector3(...SCENE_PRESETS.B.cameraPosition);
+const V_TARGET_B = new Vector3(...SCENE_PRESETS.B.cameraTarget);
+const RADIUS_A = V_POS_A.distanceTo(V_TARGET_A);
+const RADIUS_B = V_POS_B.distanceTo(V_TARGET_B);
+
 interface SceneInteractionControllerProps {
-  mode: SceneMode;
-  globeRef: React.RefObject<any>;
+  progress: React.RefObject<number>;
+  globeRef: React.RefObject<Mesh | null>;
 }
 
-export function SceneInteractionController({ mode, globeRef }: SceneInteractionControllerProps) {
+export function SceneInteractionController({ progress, globeRef }: SceneInteractionControllerProps) {
   const orbitRef = useRef<OrbitControlsImpl>(null);
-  const targetPos = useRef(new Vector3());
-  const { camera: defaultCamera } = useThree();
-
-  useEffect(() => {
-    // For fixed B view, orbit rotation/zoom shouldn't carry over
-    if (orbitRef.current && mode === 'B') {
-      orbitRef.current.reset();
-    }
-  }, [mode]);
+  const [activeMode, setActiveMode] = useState<'A' | 'B'>('A');
 
   useFrame(() => {
-    if (mode === 'A' && orbitRef.current) {
-      const modeConfig = SCENE_PRESETS.A;
-      const target = modeConfig.cameraTarget;
-      targetPos.current.set(target[0], target[1], target[2]);
+    // Determine active mode by progress threshold
+    const p = progress.current || 0;
+    const newMode = p < TRANSITION_CONFIG.handoffThreshold ? 'A' : 'B';
+    
+    if (newMode !== activeMode) {
+      setActiveMode(newMode);
+    }
 
-      // In Scene A, OrbitControls exclusively owns camera position and lookAt.
-      // We only gently guide its *orbit target* during early transitions.
-      orbitRef.current.target.lerp(targetPos.current, 0.05);
-
-      const interaction = modeConfig.interaction;
-      if (interaction.type === 'orbit' && interaction.minDistance && interaction.maxDistance && interaction.rotateSpeed) {
-        const dist = defaultCamera.position.distanceTo(orbitRef.current.target);
-        
-        const distanceRatio = Math.max(0, Math.min(1, (dist - interaction.minDistance) / (interaction.maxDistance - interaction.minDistance)));
-        
-        orbitRef.current.rotateSpeed = interaction.rotateSpeed * (0.5 + 0.8 * distanceRatio);
+    if (newMode === 'A' && orbitRef.current) {
+      // While OrbitControls is active, its true orbital focus point must perfectly 
+      // track the globe's physical position as it sinks downward into Scene B's layout.
+      if (globeRef.current) {
+        orbitRef.current.target.copy(globeRef.current.position);
       }
+
+      // Linearly interpolate current radius constraint
+      const currentRadius = MathUtils.lerp(RADIUS_A, RADIUS_B, p);
+      orbitRef.current.minDistance = currentRadius;
+      orbitRef.current.maxDistance = currentRadius;
 
       orbitRef.current.update();
     }
@@ -48,39 +49,23 @@ export function SceneInteractionController({ mode, globeRef }: SceneInteractionC
 
   return (
     <>
-      {mode === 'A' && SCENE_PRESETS.A.interaction.type === 'orbit' && (
-        <>
-          <OrbitControls
-            ref={orbitRef}
-            makeDefault
-            enablePan={SCENE_PRESETS.A.interaction.enablePan}
-            enableZoom={false} // trackball will handle zoom with damping
-            rotateSpeed={SCENE_PRESETS.A.interaction.rotateSpeed}
-            panSpeed={SCENE_PRESETS.A.interaction.panSpeed}
-            minDistance={SCENE_PRESETS.A.interaction.minDistance}
-            maxDistance={SCENE_PRESETS.A.interaction.maxDistance}
-            minPolarAngle={SCENE_PRESETS.A.interaction.minPolarAngle}
-            maxPolarAngle={SCENE_PRESETS.A.interaction.maxPolarAngle}
-            enableDamping
-            dampingFactor={SCENE_PRESETS.A.interaction.dampingFactor}
-            target={SCENE_PRESETS.A.cameraTarget}
-          />
-          <TrackballControls
-            noRotate
-            noPan
-            noZoom={false}
-            zoomSpeed={SCENE_PRESETS.A.interaction.zoomSpeed}
-            dynamicDampingFactor={SCENE_PRESETS.A.interaction.dampingFactor * 2} // higher damping for zoom
-            minDistance={SCENE_PRESETS.A.interaction.minDistance}
-            maxDistance={SCENE_PRESETS.A.interaction.maxDistance}
-            target={SCENE_PRESETS.A.cameraTarget}
-          />
-        </>
+      {activeMode === 'A' && SCENE_PRESETS.A.interaction.type === 'orbit' && (
+        <OrbitControls
+          ref={orbitRef}
+          makeDefault
+          enablePan={SCENE_PRESETS.A.interaction.enablePan}
+          enableZoom={false} // Zoom is purely driven by wheel transition progress
+          rotateSpeed={SCENE_PRESETS.A.interaction.rotateSpeed}
+          minPolarAngle={SCENE_PRESETS.A.interaction.minPolarAngle}
+          maxPolarAngle={SCENE_PRESETS.A.interaction.maxPolarAngle}
+          enableDamping
+          dampingFactor={SCENE_PRESETS.A.interaction.dampingFactor}
+        />
       )}
 
-      {mode === 'B' && SCENE_PRESETS.B.interaction.type === 'horizonDrag' && (
+      {activeMode === 'B' && SCENE_PRESETS.B.interaction.type === 'horizonDrag' && globeRef && (
         <GlobeDragController 
-          globeRef={globeRef} 
+          globeRef={globeRef as any} 
           config={SCENE_PRESETS.B.interaction}
         />
       )}

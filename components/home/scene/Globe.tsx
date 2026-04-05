@@ -1,43 +1,24 @@
 import { forwardRef, useRef } from 'react';
-import { Mesh, Vector3 } from 'three';
-import { useFrame } from '@react-three/fiber';
+import { Mesh } from 'three';
 import { useTexture } from '@react-three/drei';
-import { GLOBE_CONFIG, SCENE_PRESETS, SceneMode } from './config';
+import { GLOBE_CONFIG, SCENE_PRESETS } from './config';
 
 interface GlobeProps {
-  mode: SceneMode;
   onClick?: () => void;
 }
 
-export const Globe = forwardRef<Mesh, GlobeProps>(({ mode, onClick }, forwardedRef) => {
+export const Globe = forwardRef<Mesh, GlobeProps>(({ onClick }, forwardedRef) => {
   const { radius, segments, color } = GLOBE_CONFIG;
-  const config = SCENE_PRESETS[mode];
-
   const texture = useTexture('/textures/2k_earth_daymap.jpg');
   
   // Default ref in case the user doesn't provide one
   const defaultRef = useRef<Mesh>(null);
-  
-  // We expect forwardRef to be a MutableRefObject from the parent
-  const globeRef = (forwardedRef as React.MutableRefObject<Mesh>) || defaultRef;
-  
-  // Create a target position vector derived from the current scene mode config
-  const targetPos = useRef(new Vector3(...config.globePosition));
-
-  useFrame(() => {
-    const mesh = globeRef.current;
-    if (mesh) {
-      const pos = SCENE_PRESETS[mode].globePosition;
-      targetPos.current.set(pos[0], pos[1], pos[2]);
-      // Softly lerp to target position over time
-      mesh.position.lerp(targetPos.current, 0.05);
-    }
-  });
+  const globeRef = (forwardedRef as React.RefObject<Mesh | null>) || defaultRef;
 
   return (
     <mesh 
       ref={globeRef}
-      position={config.globePosition}
+      position={SCENE_PRESETS.A.globePosition}
       onClick={(e) => {
         // Stop propagation and call handler if provided
         e.stopPropagation();
