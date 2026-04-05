@@ -4,6 +4,7 @@ import { Mesh } from 'three';
 
 interface GlobeDragControllerProps {
   globeRef: React.RefObject<Mesh | null>;
+  rotateSpeed: number;
 }
 
 /**
@@ -15,7 +16,7 @@ interface GlobeDragControllerProps {
  * It ensures that if the user drags quickly and the cursor leaves the canvas or 
  * browser window bounds, we don't lose the "pointerup" event or interrupt the drag rotation.
  */
-export function GlobeDragController({ globeRef }: GlobeDragControllerProps) {
+export function GlobeDragController({ globeRef, rotateSpeed }: GlobeDragControllerProps) {
   const { gl } = useThree();
   const isDragging = useRef(false);
   const previousX = useRef(0);
@@ -33,8 +34,8 @@ export function GlobeDragController({ globeRef }: GlobeDragControllerProps) {
       if (!isDragging.current || !globeRef.current) return;
       
       const deltaX = e.clientX - previousX.current;
-      // Use delta for rotation. Adjust speed multiplier as desired.
-      globeRef.current.rotation.y += deltaX * 0.005;
+      // Multiply the base rotation increment 0.005 by the configured rotateSpeed.
+      globeRef.current.rotation.y += deltaX * 0.005 * rotateSpeed;
       
       previousX.current = e.clientX;
     };
@@ -57,7 +58,7 @@ export function GlobeDragController({ globeRef }: GlobeDragControllerProps) {
       domElement.removeEventListener('pointerup', onPointerUp);
       domElement.removeEventListener('pointercancel', onPointerUp);
     };
-  }, [gl, globeRef]);
+  }, [gl, globeRef, rotateSpeed]);
 
   return null;
 }

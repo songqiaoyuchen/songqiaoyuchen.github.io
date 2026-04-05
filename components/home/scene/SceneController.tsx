@@ -1,5 +1,5 @@
 import { useThree, useFrame } from '@react-three/fiber';
-import { OrbitControls, PerspectiveCamera } from '@react-three/drei';
+import { OrbitControls, PerspectiveCamera, TrackballControls } from '@react-three/drei';
 import { SCENE_CONFIG, SceneMode } from './config';
 import { Vector3 } from 'three';
 import { useRef, useEffect } from 'react';
@@ -38,6 +38,21 @@ export function SceneController({ mode }: SceneControllerProps) {
       // In Scene A, OrbitControls exclusively owns camera position and lookAt.
       // We only gently guide its *orbit target* during early transitions.
       orbitRef.current.target.lerp(targetPos.current, 0.05);
+
+      // Dynamically scale rotateSpeed based on camera distance (zoom level)
+      // Closer zoom = lower rotateSpeed = finer rotation control
+      if (controlsConfig.minDistance && controlsConfig.maxDistance && controlsConfig.rotateSpeed) {
+        const dist = defaultCamera.position.distanceTo(orbitRef.current.target);
+        const { minDistance, maxDistance, rotateSpeed } = controlsConfig;
+        
+        // Ratio moves from 0 (closest zoom) to 1 (furthest zoom)
+        const distanceRatio = Math.max(0, Math.min(1, (dist - minDistance) / (maxDistance - minDistance)));
+        
+        // At closest zoom, it scales down to 50% of the config rotateSpeed. 
+        // At max distance, it acts at 100% config rotateSpeed.
+        orbitRef.current.rotateSpeed = rotateSpeed * (0.5 + 0.8 * distanceRatio);
+      }
+
       orbitRef.current.update();
     } else {
       // In Scene B, no OrbitControls exists, so we explicitly own the camera here.
@@ -59,20 +74,35 @@ export function SceneController({ mode }: SceneControllerProps) {
       <PerspectiveCamera makeDefault fov={camera.fov} position={camera.position} />
 
       {controlsConfig.orbitEnabled && (
-        <OrbitControls
-          ref={orbitRef}
-          makeDefault
-          enablePan={controlsConfig.enablePan}
-          enableZoom={controlsConfig.enableZoom}
-          enableRotate={controlsConfig.enableRotate}
-          minDistance={controlsConfig.minDistance}
-          maxDistance={controlsConfig.maxDistance}
-          minPolarAngle={controlsConfig.minPolarAngle}
-          maxPolarAngle={controlsConfig.maxPolarAngle}
-          enableDamping
-          dampingFactor={0.05}
-          target={camera.target}
-        />
+        <>
+          <OrbitControls
+            ref={orbitRef}
+            makeDefault
+            enablePan={controlsConfig.enablePan}
+            // OrbitControls zoom disabled, Trackball handles it
+            enableZoom={false}
+            rotateSpeed={controlsConfig.rotateSpeed}
+            panSpeed={controlsConfig.panSpeed}
+            minDistance={controlsConfig.minDistance}
+            maxDistance={controlsConfig.maxDistance}
+            minPolarAngle={controlsConfig.minPolarAngle}
+            maxPolarAngle={controlsConfig.maxPolarAngle}
+            enableDamping
+            dampingFactor={controlsConfig.dampingFactor}
+            target={camera.target}
+          />
+          {/* TrackballControls for zoom damping */}
+          <TrackballControls
+            noRotate
+            noPan
+            noZoom={false}
+            zoomSpeed={controlsConfig.zoomSpeed ? controlsConfig.zoomSpeed * 2.5 : 1}
+            dynamicDampingFactor={controlsConfig.dampingFactor * 2} // higher damping for zoom
+            minDistance={controlsConfig.minDistance}
+            maxDistance={controlsConfig.maxDistance}
+            target={camera.target}
+          />
+        </>
       )}
     </>
   );

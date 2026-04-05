@@ -5,7 +5,7 @@ import { SceneLights } from './scene/SceneLights';
 import { Globe } from './scene/Globe';
 import { SceneController } from './scene/SceneController';
 import { GlobeDragController } from './scene/GlobeDragController';
-import { SceneMode } from './scene/config';
+import { SceneMode, SCENE_CONFIG } from './scene/config';
 import { useState, useRef } from 'react';
 import { Mesh } from 'three';
 
@@ -42,7 +42,10 @@ export function HomeScene() {
         />
         
         {mode === 'B' && (
-          <GlobeDragController globeRef={globeRef} />
+          <GlobeDragController 
+            globeRef={globeRef} 
+            rotateSpeed={SCENE_CONFIG.modes.B.controls.rotateSpeed}
+          />
         )}
       </Canvas>
     </div>
