@@ -9,7 +9,7 @@ interface GlobeProps {
 
 export const Globe = forwardRef<Mesh, GlobeProps>(({ onClick }, forwardedRef) => {
   const { radius, segments, color } = GLOBE_CONFIG;
-  const texture = useTexture('/textures/2k_earth_daymap.jpg');
+  const texture = useTexture('/textures/8k_earth_daymap.jpg');
   
   // Default ref in case the user doesn't provide one
   const defaultRef = useRef<Mesh>(null);
@@ -29,8 +29,6 @@ export const Globe = forwardRef<Mesh, GlobeProps>(({ onClick }, forwardedRef) =>
       <meshStandardMaterial 
         map={texture}
         color={color} 
-        roughness={0.6} 
-        metalness={0.2} 
       />
     </mesh>
   );
