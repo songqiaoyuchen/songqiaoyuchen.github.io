@@ -31,7 +31,7 @@ export function HomeScene() {
         Current Mode: {mode}. Click to switch.
       </button>
 
-      <Canvas>
+      <Canvas gl={{ alpha: true }}>
         <SceneController mode={mode} />
         
         <SceneLights />
