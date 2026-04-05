@@ -4,8 +4,8 @@ import { Canvas } from '@react-three/fiber';
 import { SceneLights } from './scene/SceneLights';
 import { Globe } from './scene/Globe';
 import { SceneController } from './scene/SceneController';
-import { GlobeDragController } from './scene/GlobeDragController';
-import { SceneMode, SCENE_CONFIG } from './scene/config';
+import { SceneInteractionController } from './scene/SceneInteractionController';
+import { SceneMode } from './scene/config';
 import { useState, useRef } from 'react';
 import { Mesh } from 'three';
 
@@ -33,20 +33,14 @@ export function HomeScene() {
 
       <Canvas gl={{ alpha: true }}>
         <SceneController mode={mode} />
-        
+        <SceneInteractionController mode={mode} globeRef={globeRef} />
+    
         <SceneLights />
         
         <Globe 
           ref={globeRef} 
           mode={mode} 
         />
-        
-        {mode === 'B' && (
-          <GlobeDragController 
-            globeRef={globeRef} 
-            rotateSpeed={SCENE_CONFIG.modes.B.controls.rotateSpeed}
-          />
-        )}
       </Canvas>
     </div>
   );

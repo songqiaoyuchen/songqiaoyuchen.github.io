@@ -2,7 +2,7 @@ import { forwardRef, useRef } from 'react';
 import { Mesh, Vector3 } from 'three';
 import { useFrame } from '@react-three/fiber';
 import { useTexture } from '@react-three/drei';
-import { SCENE_CONFIG, SceneMode } from './config';
+import { GLOBE_CONFIG, SCENE_PRESETS, SceneMode } from './config';
 
 interface GlobeProps {
   mode: SceneMode;
@@ -10,8 +10,8 @@ interface GlobeProps {
 }
 
 export const Globe = forwardRef<Mesh, GlobeProps>(({ mode, onClick }, forwardedRef) => {
-  const { radius, segments, color } = SCENE_CONFIG.globe;
-  const config = SCENE_CONFIG.modes[mode].globe;
+  const { radius, segments, color } = GLOBE_CONFIG;
+  const config = SCENE_PRESETS[mode];
 
   const texture = useTexture('/textures/2k_earth_daymap.jpg');
   
@@ -22,12 +22,12 @@ export const Globe = forwardRef<Mesh, GlobeProps>(({ mode, onClick }, forwardedR
   const globeRef = (forwardedRef as React.MutableRefObject<Mesh>) || defaultRef;
   
   // Create a target position vector derived from the current scene mode config
-  const targetPos = useRef(new Vector3(...config.position));
+  const targetPos = useRef(new Vector3(...config.globePosition));
 
   useFrame(() => {
     const mesh = globeRef.current;
     if (mesh) {
-      const pos = SCENE_CONFIG.modes[mode].globe.position;
+      const pos = SCENE_PRESETS[mode].globePosition;
       targetPos.current.set(pos[0], pos[1], pos[2]);
       // Softly lerp to target position over time
       mesh.position.lerp(targetPos.current, 0.05);
@@ -37,7 +37,7 @@ export const Globe = forwardRef<Mesh, GlobeProps>(({ mode, onClick }, forwardedR
   return (
     <mesh 
       ref={globeRef}
-      position={config.position}
+      position={config.globePosition}
       onClick={(e) => {
         // Stop propagation and call handler if provided
         e.stopPropagation();

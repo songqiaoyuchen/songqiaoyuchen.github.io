@@ -1,10 +1,13 @@
 import { useEffect, useRef } from 'react';
-import { useThree } from '@react-three/fiber';
+import { useThree, useFrame } from '@react-three/fiber';
 import { Mesh } from 'three';
 
 interface GlobeDragControllerProps {
   globeRef: React.RefObject<Mesh | null>;
-  rotateSpeed: number;
+  config: {
+    rotateSpeed: number;
+    dampingFactor: number;
+  };
 }
 
 /**
@@ -16,10 +19,18 @@ interface GlobeDragControllerProps {
  * It ensures that if the user drags quickly and the cursor leaves the canvas or 
  * browser window bounds, we don't lose the "pointerup" event or interrupt the drag rotation.
  */
-export function GlobeDragController({ globeRef, rotateSpeed }: GlobeDragControllerProps) {
+export function GlobeDragController({ globeRef, config }: GlobeDragControllerProps) {
   const { gl } = useThree();
   const isDragging = useRef(false);
   const previousX = useRef(0);
+  const targetRotationY = useRef(0);
+
+  // Initialize target rotation to current globe rotation on mount
+  useEffect(() => {
+    if (globeRef.current) {
+      targetRotationY.current = globeRef.current.rotation.y;
+    }
+  }, [globeRef]);
 
   useEffect(() => {
     const domElement = gl.domElement;
@@ -31,11 +42,11 @@ export function GlobeDragController({ globeRef, rotateSpeed }: GlobeDragControll
     };
     
     const onPointerMove = (e: PointerEvent) => {
-      if (!isDragging.current || !globeRef.current) return;
+      if (!isDragging.current) return;
       
       const deltaX = e.clientX - previousX.current;
-      // Multiply the base rotation increment 0.005 by the configured rotateSpeed.
-      globeRef.current.rotation.y += deltaX * 0.005 * rotateSpeed;
+      // Update the target rotation instead of directly mutating the mesh
+      targetRotationY.current += deltaX * 0.005 * config.rotateSpeed;
       
       previousX.current = e.clientX;
     };
@@ -58,7 +69,16 @@ export function GlobeDragController({ globeRef, rotateSpeed }: GlobeDragControll
       domElement.removeEventListener('pointerup', onPointerUp);
       domElement.removeEventListener('pointercancel', onPointerUp);
     };
-  }, [gl, globeRef, rotateSpeed]);
+  }, [gl, config.rotateSpeed]);
+
+  useFrame(() => {
+    if (globeRef.current) {
+      const damping = config.dampingFactor;
+      // Smoothly interpolate the globe's actual rotation toward the target
+      const diff = targetRotationY.current - globeRef.current.rotation.y;
+      globeRef.current.rotation.y += diff * damping;
+    }
+  });
 
   return null;
 }
