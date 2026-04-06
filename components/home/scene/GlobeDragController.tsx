@@ -11,13 +11,7 @@ interface GlobeDragControllerProps {
 }
 
 /**
- * Attaching pointer events directly to `gl.domElement` is appropriate here 
- * because we want drag operations originating *anywhere* on the canvas to turn the globe,
- * identical to how standard OrbitControls behaves. 
- *
- * Using `setPointerCapture` is a standard web practice for dragging implementations. 
- * It ensures that if the user drags quickly and the cursor leaves the canvas or 
- * browser window bounds, we don't lose the "pointerup" event or interrupt the drag rotation.
+ * GlobeDragController is a custom controller that allows users to click and drag the globe to rotate it horizontally.
  */
 export function GlobeDragController({ globeRef, config }: GlobeDragControllerProps) {
   const { gl } = useThree();
@@ -26,6 +20,7 @@ export function GlobeDragController({ globeRef, config }: GlobeDragControllerPro
   const targetRotationY = useRef(0);
 
   // Initialize target rotation to current globe rotation on mount
+  // This sync is needed in case the globe starts with a non-zero rotation in the future
   useEffect(() => {
     if (globeRef.current) {
       targetRotationY.current = globeRef.current.rotation.y;
@@ -34,8 +29,16 @@ export function GlobeDragController({ globeRef, config }: GlobeDragControllerPro
 
   useEffect(() => {
     const domElement = gl.domElement;
+
+    const stopDragging = (pointerId?: number) => {
+      isDragging.current = false;
+      if (pointerId != null && domElement.hasPointerCapture(pointerId)) {
+        domElement.releasePointerCapture(pointerId);
+      }
+    };
     
     const onPointerDown = (e: PointerEvent) => {
+      if (e.button !== 0) return;
       isDragging.current = true;
       previousX.current = e.clientX;
       domElement.setPointerCapture(e.pointerId);
@@ -51,23 +54,23 @@ export function GlobeDragController({ globeRef, config }: GlobeDragControllerPro
       previousX.current = e.clientX;
     };
     
-    const onPointerUp = (e: PointerEvent) => {
-      isDragging.current = false;
-      if (domElement.hasPointerCapture(e.pointerId)) {
-        domElement.releasePointerCapture(e.pointerId);
-      }
-    };
+    const onPointerUp = (e: PointerEvent) => stopDragging(e.pointerId);
+    const onPointerCancel = (e: PointerEvent) => stopDragging(e.pointerId);
+    const onLostPointerCapture = () => stopDragging();
 
     domElement.addEventListener('pointerdown', onPointerDown);
-    domElement.addEventListener('pointermove', onPointerMove);
-    domElement.addEventListener('pointerup', onPointerUp);
-    domElement.addEventListener('pointercancel', onPointerUp);
+    domElement.addEventListener('lostpointercapture', onLostPointerCapture);
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+    window.addEventListener('pointercancel', onPointerCancel);
 
     return () => {
       domElement.removeEventListener('pointerdown', onPointerDown);
-      domElement.removeEventListener('pointermove', onPointerMove);
-      domElement.removeEventListener('pointerup', onPointerUp);
-      domElement.removeEventListener('pointercancel', onPointerUp);
+      domElement.removeEventListener('lostpointercapture', onLostPointerCapture);
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('pointercancel', onPointerCancel);
+      stopDragging();
     };
   }, [gl, config.rotateSpeed]);
 
