@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useThree, useFrame } from '@react-three/fiber';
 import { Mesh } from 'three';
 
-interface GlobeDragControllerProps {
+interface HomeGlobeNavControllerProps {
   globeRef: React.RefObject<Mesh | null>;
   config: {
     rotateSpeed: number;
@@ -11,9 +11,9 @@ interface GlobeDragControllerProps {
 }
 
 /**
- * GlobeDragController is a custom controller that allows users to click and drag the globe to rotate it horizontally.
+ * A custom controller that allows users to click and drag the globe to rotate it horizontally.
  */
-export function GlobeDragController({ globeRef, config }: GlobeDragControllerProps) {
+export function HomeGlobeNavController({ globeRef, config }: HomeGlobeNavControllerProps) {
   const { gl } = useThree();
   const isDragging = useRef(false);
   const previousX = useRef(0);

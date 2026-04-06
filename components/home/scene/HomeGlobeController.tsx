@@ -4,7 +4,7 @@ import { useRef, useState } from 'react';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { Vector3, Mesh, MathUtils } from 'three';
 import { SCENE_PRESETS, TRANSITION_CONFIG } from './config';
-import { GlobeDragController } from './GlobeDragController';
+import { HomeGlobeNavController } from './HomeGlobeNavController';
 
 const V_POS_A = new Vector3(...SCENE_PRESETS.A.cameraPosition);
 const V_TARGET_A = new Vector3(...SCENE_PRESETS.A.cameraTarget);
@@ -13,12 +13,12 @@ const V_TARGET_B = new Vector3(...SCENE_PRESETS.B.cameraTarget);
 const RADIUS_A = V_POS_A.distanceTo(V_TARGET_A);
 const RADIUS_B = V_POS_B.distanceTo(V_TARGET_B);
 
-interface SceneInteractionControllerProps {
+interface HomeGlobeControllerProps {
   progress: React.RefObject<number>;
   globeRef: React.RefObject<Mesh | null>;
 }
 
-export function SceneInteractionController({ progress, globeRef }: SceneInteractionControllerProps) {
+export function HomeGlobeController({ progress, globeRef }: HomeGlobeControllerProps) {
   const orbitRef = useRef<OrbitControlsImpl>(null);
   const [activeMode, setActiveMode] = useState<'A' | 'B'>('A');
 
@@ -64,7 +64,7 @@ export function SceneInteractionController({ progress, globeRef }: SceneInteract
       )}
 
       {activeMode === 'B' && SCENE_PRESETS.B.interaction.type === 'horizonDrag' && globeRef && (
-        <GlobeDragController 
+        <HomeGlobeNavController 
           globeRef={globeRef as any} 
           config={SCENE_PRESETS.B.interaction}
         />

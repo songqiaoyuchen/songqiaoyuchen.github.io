@@ -4,9 +4,9 @@ import { useTexture } from '@react-three/drei';
 import { GLOBE_CONFIG, SCENE_PRESETS } from './config';
 
 // no props for now
-type GlobeProps = {};
+type HomeGlobeProps = {};
 
-export const Globe = forwardRef<Mesh, GlobeProps>((_, ref) => {
+export const HomeGlobe = forwardRef<Mesh, HomeGlobeProps>((_, ref) => {
   const { radius, segments, color } = GLOBE_CONFIG;
   const texture = useTexture('/textures/8k_earth_daymap.jpg');
 
@@ -18,4 +18,4 @@ export const Globe = forwardRef<Mesh, GlobeProps>((_, ref) => {
   );
 });
 
-Globe.displayName = 'Globe';
+HomeGlobe.displayName = 'HomeGlobe';

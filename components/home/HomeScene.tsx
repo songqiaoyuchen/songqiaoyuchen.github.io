@@ -2,9 +2,9 @@
 
 import { Canvas } from '@react-three/fiber';
 import { SceneLights } from './scene/SceneLights';
-import { Globe } from './scene/Globe';
+import { HomeGlobe } from './scene/HomeGlobe';
 import { SceneController } from './scene/SceneController';
-import { SceneInteractionController } from './scene/SceneInteractionController';
+import { HomeGlobeController } from './scene/HomeGlobeController';
 import { TRANSITION_CONFIG } from './scene/config';
 import { useRef } from 'react';
 import { Mesh } from 'three';
@@ -31,14 +31,14 @@ export function HomeScene() {
           targetProgress={targetProgress} 
           globeRef={globeRef} 
         />
-        <SceneInteractionController 
+        <HomeGlobeController 
           progress={progress} 
           globeRef={globeRef} 
         />
     
         <SceneLights />
         
-        <Globe ref={globeRef} />
+        <HomeGlobe ref={globeRef} />
       </Canvas>
     </div>
   );
