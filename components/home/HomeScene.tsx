@@ -3,7 +3,8 @@
 import { Canvas } from '@react-three/fiber';
 import { SceneLights } from './scene/SceneLights';
 import { HomeGlobe } from './scene/HomeGlobe';
-import { SceneController } from './scene/SceneController';
+import { HomeGlobeTransition } from './scene/HomeGlobeTransition';
+import { HomeCameraRig } from './scene/HomeCameraRig';
 import { HomeGlobeController } from './scene/HomeGlobeController';
 import { TRANSITION_CONFIG } from './scene/config';
 import { useRef } from 'react';
@@ -26,19 +27,26 @@ export function HomeScene() {
   return (
     <div className="absolute inset-0 z-0" onWheel={handleWheel}>
       <Canvas gl={{ alpha: true }}>
-        <SceneController 
+
+        <HomeGlobe ref={globeRef} />
+
+        <SceneLights />
+
+        <HomeGlobeTransition
           progress={progress} 
           targetProgress={targetProgress} 
           globeRef={globeRef} 
         />
+
+        <HomeCameraRig
+          progress={progress}
+          globeRef={globeRef}
+        />
+        
         <HomeGlobeController 
           progress={progress} 
           globeRef={globeRef} 
         />
-    
-        <SceneLights />
-        
-        <HomeGlobe ref={globeRef} />
       </Canvas>
     </div>
   );
