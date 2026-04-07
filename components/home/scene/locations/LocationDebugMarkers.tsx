@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Html } from '@react-three/drei';
 import { HOME_LOCATIONS } from './homeLocations';
 import type { HomeLocation } from './homeLocations';
-import { GLOBE_CONFIG } from './config';
+import { GLOBE_CONFIG } from '../config';
 import { homeLocationToSpherePosition, latLngToSpherePosition } from './homeLocationUtils';
 
 const MARKER_OFFSET = 0.06;

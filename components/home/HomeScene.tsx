@@ -2,10 +2,10 @@
 
 import { Canvas } from '@react-three/fiber';
 import { SceneLights } from './scene/SceneLights';
-import { HomeGlobe } from './scene/HomeGlobe';
-import { HomeGlobeTransition } from './scene/HomeGlobeTransition';
+import { HomeGlobe } from './scene/globe/HomeGlobe';
+import { HomeGlobeTransition } from './scene/globe/HomeGlobeTransition';
 import { HomeCameraRig } from './scene/HomeCameraRig';
-import { HomeGlobeController } from './scene/HomeGlobeController';
+import { HomeGlobeController } from './scene/globe/HomeGlobeController';
 import { TRANSITION_CONFIG } from './scene/config';
 import { useRef } from 'react';
 import { Mesh } from 'three';

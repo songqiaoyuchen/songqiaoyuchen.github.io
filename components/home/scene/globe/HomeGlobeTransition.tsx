@@ -1,5 +1,5 @@
 import { useFrame } from '@react-three/fiber';
-import { TRANSITION_CONFIG, SCENE_PRESETS } from './config';
+import { TRANSITION_CONFIG, SCENE_PRESETS } from '../config';
 import { Vector3, Mesh } from 'three';
 
 const V_GLOBE_A = new Vector3(...SCENE_PRESETS.A.globePosition);

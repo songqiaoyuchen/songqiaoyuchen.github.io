@@ -3,7 +3,7 @@ import { OrbitControls } from '@react-three/drei';
 import { useRef, useState } from 'react';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { Vector3, Mesh, MathUtils } from 'three';
-import { SCENE_PRESETS, TRANSITION_CONFIG } from './config';
+import { SCENE_PRESETS, TRANSITION_CONFIG } from '../config';
 import { HomeGlobeNavController } from './HomeGlobeNavController';
 
 const V_POS_A = new Vector3(...SCENE_PRESETS.A.cameraPosition);
