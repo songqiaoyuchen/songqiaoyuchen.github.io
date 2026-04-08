@@ -38,7 +38,7 @@ export const SCENE_PRESETS = {
     cameraFov: 45,
     cameraTarget: [0, 0, 0] as const,
 
-    globePosition: [0, -5, 0] as const,
+    globePosition: [0, 0, 0] as const,
 
     interaction: {
       type: 'horizonDrag' as const,

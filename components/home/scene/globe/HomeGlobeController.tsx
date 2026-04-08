@@ -4,7 +4,8 @@ import { useRef, useState } from 'react';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { Vector3, Mesh, MathUtils } from 'three';
 import { SCENE_PRESETS, TRANSITION_CONFIG } from '../config';
-import { HomeGlobeNavController } from './HomeGlobeNavController';
+import { HomeGlobeOriController } from './HomeGlobeOriController';
+import type { HomeLocation } from '../locations/homeLocations';
 
 const V_POS_A = new Vector3(...SCENE_PRESETS.A.cameraPosition);
 const V_TARGET_A = new Vector3(...SCENE_PRESETS.A.cameraTarget);
@@ -16,9 +17,10 @@ const RADIUS_B = V_POS_B.distanceTo(V_TARGET_B);
 interface HomeGlobeControllerProps {
   progress: React.RefObject<number>;
   globeRef: React.RefObject<Mesh | null>;
+  activeLocation: HomeLocation;
 }
 
-export function HomeGlobeController({ progress, globeRef }: HomeGlobeControllerProps) {
+export function HomeGlobeController({ progress, globeRef, activeLocation }: HomeGlobeControllerProps) {
   const orbitRef = useRef<OrbitControlsImpl>(null);
   const [activeMode, setActiveMode] = useState<'A' | 'B'>('A');
 
@@ -64,8 +66,9 @@ export function HomeGlobeController({ progress, globeRef }: HomeGlobeControllerP
       )}
 
       {activeMode === 'B' && SCENE_PRESETS.B.interaction.type === 'horizonDrag' && globeRef && (
-        <HomeGlobeNavController 
+        <HomeGlobeOriController
           globeRef={globeRef as any} 
+          activeLocation={activeLocation}
           config={SCENE_PRESETS.B.interaction}
         />
       )}

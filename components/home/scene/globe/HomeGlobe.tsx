@@ -15,7 +15,7 @@ export const HomeGlobe = forwardRef<Mesh, HomeGlobeProps>((_, ref) => {
     <mesh ref={ref} position={SCENE_PRESETS.A.globePosition}>
       <sphereGeometry args={[radius, segments, segments]} />
       <meshStandardMaterial map={texture} color={color} />
-      {/* <LocationDebugMarkers /> */}
+      <LocationDebugMarkers />
     </mesh>
   );
 });

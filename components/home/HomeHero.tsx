@@ -10,6 +10,7 @@ export function HomeHero() {
   return (
     <section className="relative w-full h-screen overflow-hidden bg-neutral-950">
       <HomeScene
+        activeLocation={navState.activeLocation}
         activeLocationIndex={navState.activeLocationIndex}
         isTransitioning={navState.isTransitioning}
       />

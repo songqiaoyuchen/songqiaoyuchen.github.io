@@ -7,20 +7,20 @@ import { HomeGlobeTransition } from './scene/globe/HomeGlobeTransition';
 import { HomeCameraRig } from './scene/HomeCameraRig';
 import { HomeGlobeController } from './scene/globe/HomeGlobeController';
 import { TRANSITION_CONFIG } from './scene/config';
-import { HOME_LOCATIONS } from './scene/locations/homeLocations';
 import { useRef } from 'react';
 import { Mesh } from 'three';
+import type { HomeLocation } from './scene/locations/homeLocations';
 
 interface HomeSceneProps {
+  activeLocation: HomeLocation;
   activeLocationIndex: number;
   isTransitioning: boolean;
 }
 
-export function HomeScene({ activeLocationIndex, isTransitioning }: HomeSceneProps) {
+export function HomeScene({ activeLocation, activeLocationIndex, isTransitioning }: HomeSceneProps) {
   const targetProgress = useRef(0);
   const progress = useRef(0);
   const globeRef = useRef<Mesh>(null);
-  const activeLocation = HOME_LOCATIONS[activeLocationIndex] ?? HOME_LOCATIONS[0];
 
   const handleWheel = (e: React.WheelEvent) => {
     e.stopPropagation();
@@ -57,6 +57,7 @@ export function HomeScene({ activeLocationIndex, isTransitioning }: HomeScenePro
         
         <HomeGlobeController 
           progress={progress} 
+          activeLocation={activeLocation}
           globeRef={globeRef} 
         />
       </Canvas>
