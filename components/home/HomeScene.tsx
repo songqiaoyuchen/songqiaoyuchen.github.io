@@ -23,6 +23,9 @@ export function HomeScene({ activeLocation, activeLocationIndex, isTransitioning
   const globeRef = useRef<Mesh>(null);
 
   const handleWheel = (e: React.WheelEvent) => {
+    // Locked in Phase A: don't advance the Phase-A → Phase-B transition.
+    if (!TRANSITION_CONFIG.enabled) return;
+
     e.stopPropagation();
     const delta = e.deltaY;
     targetProgress.current = Math.max(

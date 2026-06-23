@@ -1,5 +1,6 @@
 import { useThree, useFrame } from '@react-three/fiber';
 import { PerspectiveCamera } from '@react-three/drei';
+import { useControls } from 'leva';
 import { SCENE_PRESETS, TRANSITION_CONFIG } from './config';
 import { Vector3, PerspectiveCamera as PerspectiveCameraImpl, Spherical, MathUtils, Mesh } from 'three';
 import { useRef } from 'react';
@@ -14,7 +15,12 @@ interface HomeCameraRigProps {
 }
 
 export function HomeCameraRig({ progress, globeRef }: HomeCameraRigProps) {
-  const { camera: defaultCamera } = useThree();
+  const { camera: defaultCamera, size } = useThree();
+
+  const { shiftRight, shiftDown } = useControls('Globe', {
+    shiftRight: { value: SCENE_PRESETS.A.lensShift.right, min: -0.6, max: 2, step: 0.01 },
+    shiftDown: { value: SCENE_PRESETS.A.lensShift.down, min: -0.6, max: 2, step: 0.01 },
+  });
 
   /**
    * phase A: OrbitControls owns transform, rig only adjusts FOV
@@ -38,6 +44,26 @@ export function HomeCameraRig({ progress, globeRef }: HomeCameraRigProps) {
 
     camera.fov = MathUtils.lerp(SCENE_PRESETS.A.cameraFov, SCENE_PRESETS.B.cameraFov, p);
     camera.updateProjectionMatrix();
+
+    // Phase-A lens shift: render the centered globe toward the bottom-right.
+    // Fades to zero by the handoff threshold so Phase B stays centered.
+    const fade = MathUtils.clamp(
+      (TRANSITION_CONFIG.handoffThreshold - p) / TRANSITION_CONFIG.handoffThreshold,
+      0,
+      1
+    );
+    if (fade > 0.001) {
+      camera.setViewOffset(
+        size.width,
+        size.height,
+        -shiftRight * size.width * fade,
+        -shiftDown * size.height * fade,
+        size.width,
+        size.height
+      );
+    } else if (camera.view?.enabled) {
+      camera.clearViewOffset();
+    }
 
     if (p < TRANSITION_CONFIG.handoffThreshold) {
       needsHandoffInit.current = true;
