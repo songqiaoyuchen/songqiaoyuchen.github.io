@@ -2,7 +2,7 @@
 
 :root {
   --background: #0a0a0a;
-  --foreground: #ededed;
+  --foreground: rgb(237, 237, 237);
 }
 
 @theme inline {
@@ -10,6 +10,16 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --color-surface: rgba(8, 8, 6, 0.76);
+  --color-surface-strong: rgba(8, 8, 6, 0.92);
+  --color-text: #f2eee6;
+  --color-muted: #b8afa2;
+  --color-dim: rgba(242, 238, 230, 0.38);
+  --color-line: rgba(242, 238, 230, 0.16);
+  --color-line-hover: rgba(242, 238, 230, 0.50);
+  --color-accent: #e8c77a;
+  --color-accent-dim: rgba(232, 199, 122, 0.22);
+  --font-serif: var(--font-cormorant);
 }
 
 html,
