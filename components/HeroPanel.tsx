@@ -18,9 +18,6 @@ export function HeroPanel({ activeSection }: Props) {
       role="region"
       aria-label={section ? `${section.label} overview` : 'Introduction'}
     >
-      <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-full border border-[rgba(232,199,122,0.30)] bg-accent-dim font-mono text-[13px] tracking-[0.04em] text-accent" aria-hidden="true">
-        S
-      </div>
 
       <h1 className="mb-2.5 font-serif text-[26px] font-normal italic leading-[1.2] text-text">
         Hello, I&apos;m Sophon.
@@ -28,9 +25,6 @@ export function HeroPanel({ activeSection }: Props) {
 
       {section ? (
         <div className="mt-3">
-          <p className="mb-1.5 font-mono text-[9px] uppercase tracking-[0.22em] text-accent">
-            {section.subtitle}
-          </p>
           <h2 className="mb-3.5 font-serif text-[30px] font-normal italic leading-[1.1] text-text">
             {section.label}
           </h2>
