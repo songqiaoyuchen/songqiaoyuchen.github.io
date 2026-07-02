@@ -1,59 +1,15 @@
 'use client';
 
 import { Suspense, useEffect, useMemo, useRef } from 'react';
-import { Canvas, useLoader, useThree } from '@react-three/fiber';
+import { Canvas, useLoader } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { useControls } from 'leva';
 import { TextureLoader, PlaneGeometry, ShaderMaterial, Color, UniformsLib, UniformsUtils, Vector3 } from 'three';
 import { TERRAIN_CONFIG } from '@/config/terrain';
-
-const vertexShader = /* glsl */ `
-  #include <fog_pars_vertex>
-
-  uniform sampler2D heightmap;
-  uniform float elevation;
-  uniform float contrast;
-
-  void main() {
-    float h = texture2D(heightmap, uv).r;
-    h = pow(h, contrast);
-    vec3 pos = position;
-    pos.z += h * elevation;
-    vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
-    gl_Position = projectionMatrix * mvPosition;
-    #include <fog_vertex>
-  }
-`;
-
-const fragmentShader = /* glsl */ `
-  #include <fog_pars_fragment>
-
-  uniform vec3 color;
-  uniform float opacity;
-
-  void main() {
-    gl_FragColor = vec4(color, opacity);
-    #include <fog_fragment>
-  }
-`;
-
-function CameraLogger() {
-  const { camera } = useThree();
-  const controlsRef = useRef<any>(null);
-  useEffect(() => {
-    camera.lookAt(...TERRAIN_CONFIG.camera.lookAt);
-    (window as any).logCam = () => {
-      const p = camera.position;
-      const d = camera.getWorldDirection(new Vector3());
-      const t = controlsRef.current?.target;
-      console.log(`position: [${p.x.toFixed(3)}, ${p.y.toFixed(3)}, ${p.z.toFixed(3)}]`);
-      console.log(`direction: [${d.x.toFixed(3)}, ${d.y.toFixed(3)}, ${d.z.toFixed(3)}]`);
-      console.log(`zoom: ${camera.zoom.toFixed(3)}`);
-      if (t) console.log(`target: [${t.x.toFixed(3)}, ${t.y.toFixed(3)}, ${t.z.toFixed(3)}]`);
-    };
-  }, [camera]);
-  return <OrbitControls ref={controlsRef} target={TERRAIN_CONFIG.camera.target} makeDefault />;
-}
+import vertexShader from '@/shaders/terrain.vert';
+import fragmentShader from '@/shaders/terrain.frag';
+import { CameraLogger } from './debug/CameraLogger';
+import type { OrbitControls as OrbitControlsInstance } from 'three-stdlib'
 
 function FogController() {
   const { near, far } = useControls('Fog', {
@@ -68,14 +24,29 @@ function TerrainMesh() {
   const texture = useLoader(TextureLoader, '/textures/heightmap.png');
   const matRef = useRef<ShaderMaterial>(null);
 
-  const { elevation } = useControls('Terrain', {
-    elevation: { value: TERRAIN_CONFIG.material.elevation, min: 0.5, max: 40, step: 0.1, label: 'Elevation' },
-  });
+  const { elevation, seaLevel } = useControls('Terrain', {
+    elevation: {
+      value: TERRAIN_CONFIG.material.elevation,
+      min: 0.5,
+      max: 40,
+      step: 0.1,
+      label: 'Elevation',
+    },
+    seaLevel: {
+      value: TERRAIN_CONFIG.material.seaLevel,
+      min: 0,
+      max: 1,
+      step: 0.01,
+      label: 'Sea Level',
+    },
+  })
 
   useEffect(() => {
-    if (!matRef.current) return;
-    matRef.current.uniforms.elevation.value = elevation;
-  }, [elevation]);
+    if (!matRef.current) return
+
+    matRef.current.uniforms.elevation.value = elevation
+    matRef.current.uniforms.seaLevel.value = seaLevel
+  }, [elevation, seaLevel])
 
   const uniforms = useMemo(() => UniformsUtils.merge([
     UniformsLib.fog,
@@ -83,6 +54,7 @@ function TerrainMesh() {
       heightmap: { value: texture },
       elevation: { value: TERRAIN_CONFIG.material.elevation },
       contrast:  { value: TERRAIN_CONFIG.material.contrast },
+      seaLevel:  { value: TERRAIN_CONFIG.material.seaLevel },
       color:     { value: new Color(TERRAIN_CONFIG.material.color) },
       opacity:   { value: TERRAIN_CONFIG.material.opacity },
     },
@@ -109,6 +81,9 @@ function TerrainMesh() {
 }
 
 export function TerrainBackground() {
+
+  const orbitcontrolsRef = useRef<OrbitControlsInstance>(null);
+
   return (
     <div className="absolute bottom-0 left-0 w-full h-full" style={{ zIndex: 0 }}>
       <Canvas
@@ -116,7 +91,8 @@ export function TerrainBackground() {
         gl={{ alpha: true, antialias: true }}
         style={{ background: 'transparent' }}
       >
-        <CameraLogger />
+        <OrbitControls ref={orbitcontrolsRef} target={TERRAIN_CONFIG.camera.target} makeDefault />
+        <CameraLogger controlsRef={orbitcontrolsRef} />
         <FogController />
         <Suspense fallback={null}>
           <TerrainMesh />

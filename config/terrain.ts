@@ -24,6 +24,7 @@ export const TERRAIN_CONFIG = {
   material: {
     elevation: 20,
     contrast: 1.8,
+    seaLevel: 0.00,
     color: '#e8c77a',
     opacity: 0.17,
   },
