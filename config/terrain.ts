@@ -11,8 +11,8 @@ export const TERRAIN_CONFIG = {
 
   fog: {
     color: '#0a0a0a',
-    near: 5,
-    far: 25,
+    near: 8.5,
+    far: 24,
   },
 
   mesh: {
@@ -25,7 +25,10 @@ export const TERRAIN_CONFIG = {
     elevation: 20,
     contrast: 1.8,
     seaLevel: 0.00,
-    color: '#e8c77a',
-    opacity: 0.17,
+    baseColor:      '#080d17',
+    ridgeColor:     '#7a8a99',
+    lightAzimuth:   225,
+    lightElevation: 35,
+    lightIntensity: 0.8,
   },
 }

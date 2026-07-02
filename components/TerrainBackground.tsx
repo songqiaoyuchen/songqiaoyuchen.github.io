@@ -4,7 +4,7 @@ import { Suspense, useEffect, useMemo, useRef } from 'react';
 import { Canvas, useLoader } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { useControls } from 'leva';
-import { TextureLoader, PlaneGeometry, ShaderMaterial, Color, UniformsLib, UniformsUtils, Vector3 } from 'three';
+import { TextureLoader, PlaneGeometry, ShaderMaterial, Color, Vector3, UniformsLib, UniformsUtils } from 'three';
 import { TERRAIN_CONFIG } from '@/config/terrain';
 import vertexShader from '@/shaders/terrain.vert';
 import fragmentShader from '@/shaders/terrain.frag';
@@ -20,43 +20,72 @@ function FogController() {
   return <fog attach="fog" args={[TERRAIN_CONFIG.fog.color, near, far]} />;
 }
 
+function azElToDir(azimuthDeg: number, elevationDeg: number): Vector3 {
+  const az = (azimuthDeg * Math.PI) / 180;
+  const el = (elevationDeg * Math.PI) / 180;
+  return new Vector3(
+    Math.cos(el) * Math.sin(az),
+    Math.sin(el),
+    Math.cos(el) * Math.cos(az),
+  ).normalize();
+}
+
 function TerrainMesh() {
   const texture = useLoader(TextureLoader, '/textures/heightmap.png');
-  const matRef = useRef<ShaderMaterial>(null);
+  const surfaceMatRef = useRef<ShaderMaterial>(null);
 
-  const { elevation, seaLevel } = useControls('Terrain', {
+  const { elevation, seaLevel, baseColor, ridgeColor, lightAzimuth, lightElevation, lightIntensity } = useControls('Terrain', {
     elevation: {
       value: TERRAIN_CONFIG.material.elevation,
-      min: 0.5,
-      max: 40,
-      step: 0.1,
+      min: 0.5, max: 40, step: 0.1,
       label: 'Elevation',
     },
     seaLevel: {
       value: TERRAIN_CONFIG.material.seaLevel,
-      min: 0,
-      max: 1,
-      step: 0.01,
+      min: 0, max: 1, step: 0.01,
       label: 'Sea Level',
     },
-  })
+    baseColor:  { value: TERRAIN_CONFIG.material.baseColor,  label: 'Base Color'  },
+    ridgeColor: { value: TERRAIN_CONFIG.material.ridgeColor, label: 'Ridge Color' },
+    lightAzimuth: {
+      value: TERRAIN_CONFIG.material.lightAzimuth,
+      min: 0, max: 360, step: 1,
+      label: 'Light Azimuth',
+    },
+    lightElevation: {
+      value: TERRAIN_CONFIG.material.lightElevation,
+      min: 0, max: 90, step: 1,
+      label: 'Light Elevation',
+    },
+    lightIntensity: {
+      value: TERRAIN_CONFIG.material.lightIntensity,
+      min: 0, max: 50, step: 0.05,
+      label: 'Light Intensity',
+    },
+  });
 
   useEffect(() => {
-    if (!matRef.current) return
-
-    matRef.current.uniforms.elevation.value = elevation
-    matRef.current.uniforms.seaLevel.value = seaLevel
-  }, [elevation, seaLevel])
+    const mat = surfaceMatRef.current;
+    if (!mat) return;
+    mat.uniforms.elevation.value     = elevation;
+    mat.uniforms.seaLevel.value      = seaLevel;
+    mat.uniforms.baseColor.value.set(baseColor);
+    mat.uniforms.ridgeColor.value.set(ridgeColor);
+    mat.uniforms.lightDir.value.copy(azElToDir(lightAzimuth, lightElevation));
+    mat.uniforms.lightIntensity.value = lightIntensity;
+  }, [elevation, seaLevel, baseColor, ridgeColor, lightAzimuth, lightElevation, lightIntensity]);
 
   const uniforms = useMemo(() => UniformsUtils.merge([
     UniformsLib.fog,
     {
-      heightmap: { value: texture },
-      elevation: { value: TERRAIN_CONFIG.material.elevation },
-      contrast:  { value: TERRAIN_CONFIG.material.contrast },
-      seaLevel:  { value: TERRAIN_CONFIG.material.seaLevel },
-      color:     { value: new Color(TERRAIN_CONFIG.material.color) },
-      opacity:   { value: TERRAIN_CONFIG.material.opacity },
+      heightmap:      { value: texture },
+      elevation:      { value: TERRAIN_CONFIG.material.elevation },
+      contrast:       { value: TERRAIN_CONFIG.material.contrast },
+      seaLevel:       { value: TERRAIN_CONFIG.material.seaLevel },
+      baseColor:      { value: new Color(TERRAIN_CONFIG.material.baseColor) },
+      ridgeColor:     { value: new Color(TERRAIN_CONFIG.material.ridgeColor) },
+      lightDir:       { value: azElToDir(TERRAIN_CONFIG.material.lightAzimuth, TERRAIN_CONFIG.material.lightElevation) },
+      lightIntensity: { value: TERRAIN_CONFIG.material.lightIntensity },
     },
   ]), [texture]);
 
@@ -68,11 +97,10 @@ function TerrainMesh() {
   return (
     <mesh geometry={geometry} rotation={[-Math.PI / 2, 0, 0]} position={TERRAIN_CONFIG.mesh.position}>
       <shaderMaterial
-        ref={matRef}
+        ref={surfaceMatRef}
         vertexShader={vertexShader}
         fragmentShader={fragmentShader}
         uniforms={uniforms}
-        wireframe
         transparent
         fog
       />
