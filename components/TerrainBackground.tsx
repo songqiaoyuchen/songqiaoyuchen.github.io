@@ -34,7 +34,7 @@ function TerrainMesh() {
   const texture = useLoader(TextureLoader, '/textures/heightmap.png');
   const surfaceMatRef = useRef<ShaderMaterial>(null);
 
-  const { elevation, seaLevel, baseColor, ridgeColor, lightAzimuth, lightElevation, lightIntensity } = useControls('Terrain', {
+  const { elevation, seaLevel, fadeEnabled, fadeHeight, fadeFalloff, baseColor, ridgeColor, lightAzimuth, lightElevation, lightIntensity } = useControls('Terrain', {
     elevation: {
       value: TERRAIN_CONFIG.material.elevation,
       min: 0.5, max: 40, step: 0.1,
@@ -44,6 +44,20 @@ function TerrainMesh() {
       value: TERRAIN_CONFIG.material.seaLevel,
       min: 0, max: 1, step: 0.01,
       label: 'Sea Level',
+    },
+    fadeEnabled: {
+      value: TERRAIN_CONFIG.material.fadeEnabled,
+      label: 'Fade Enabled',
+    },
+    fadeHeight: {
+      value: TERRAIN_CONFIG.material.fadeHeight,
+      min: 0, max: 1, step: 0.01,
+      label: 'Fade Height',
+    },
+    fadeFalloff: {
+      value: TERRAIN_CONFIG.material.fadeFalloff,
+      min: 0.5, max: 100, step: 0.1,
+      label: 'Fade Falloff',
     },
     baseColor:  { value: TERRAIN_CONFIG.material.baseColor,  label: 'Base Color'  },
     ridgeColor: { value: TERRAIN_CONFIG.material.ridgeColor, label: 'Ridge Color' },
@@ -69,11 +83,14 @@ function TerrainMesh() {
     if (!mat) return;
     mat.uniforms.elevation.value     = elevation;
     mat.uniforms.seaLevel.value      = seaLevel;
+    mat.uniforms.fadeEnabled.value   = fadeEnabled;
+    mat.uniforms.fadeHeight.value    = fadeHeight;
+    mat.uniforms.fadeFalloff.value   = fadeFalloff;
     mat.uniforms.baseColor.value.set(baseColor);
     mat.uniforms.ridgeColor.value.set(ridgeColor);
     mat.uniforms.lightDir.value.copy(azElToDir(lightAzimuth, lightElevation));
     mat.uniforms.lightIntensity.value = lightIntensity;
-  }, [elevation, seaLevel, baseColor, ridgeColor, lightAzimuth, lightElevation, lightIntensity]);
+  }, [elevation, seaLevel, fadeEnabled, fadeHeight, fadeFalloff, baseColor, ridgeColor, lightAzimuth, lightElevation, lightIntensity]);
 
   const uniforms = useMemo(() => UniformsUtils.merge([
     UniformsLib.fog,
@@ -82,6 +99,9 @@ function TerrainMesh() {
       elevation:      { value: TERRAIN_CONFIG.material.elevation },
       contrast:       { value: TERRAIN_CONFIG.material.contrast },
       seaLevel:       { value: TERRAIN_CONFIG.material.seaLevel },
+      fadeEnabled:    { value: TERRAIN_CONFIG.material.fadeEnabled },
+      fadeHeight:     { value: TERRAIN_CONFIG.material.fadeHeight },
+      fadeFalloff:    { value: TERRAIN_CONFIG.material.fadeFalloff },
       baseColor:      { value: new Color(TERRAIN_CONFIG.material.baseColor) },
       ridgeColor:     { value: new Color(TERRAIN_CONFIG.material.ridgeColor) },
       lightDir:       { value: azElToDir(TERRAIN_CONFIG.material.lightAzimuth, TERRAIN_CONFIG.material.lightElevation) },

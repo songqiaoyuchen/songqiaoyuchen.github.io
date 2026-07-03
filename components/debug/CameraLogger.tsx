@@ -12,19 +12,13 @@ function getCameraSnapshot(
   controls: OrbitControlsInstance | null
 ) {
   const position = camera.position
-  const direction = camera.getWorldDirection(new Vector3())
+  const lookAt = camera.getWorldDirection(new Vector3())
   const target = controls?.target
-
-  const zoom =
-    'zoom' in camera && typeof camera.zoom === 'number'
-      ? camera.zoom.toFixed(3)
-      : 'n/a'
 
   return {
     position: formatVec3(position),
-    direction: formatVec3(direction),
+    lookAt: formatVec3(lookAt),
     target: target ? formatVec3(target) : 'n/a',
-    zoom,
   }
 }
 
@@ -41,9 +35,8 @@ export function CameraLogger({
 
       const text = `camera: {
         position: ${snapshot.position},
+        lookAt: ${snapshot.lookAt},
         target: ${snapshot.target},
-        direction: ${snapshot.direction},
-        zoom: ${snapshot.zoom},
         }`
 
       console.log(text)

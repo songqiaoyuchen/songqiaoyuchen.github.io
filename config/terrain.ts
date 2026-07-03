@@ -3,9 +3,9 @@ import type { Vector3Tuple } from 'three';
 
 export const TERRAIN_CONFIG = {
   camera: {
-    position: [-7.525, 2.423, 11.453] as Vector3Tuple,
-    lookAt: [-7.139, 2.526, 10.536] as Vector3Tuple,
-    target: [-3.636, 3.458, 2.205] as Vector3Tuple,
+    position: [-7.431, 3.544, 11.618] as Vector3Tuple,
+    lookAt: [0.386, 0.103, -0.917] as Vector3Tuple,
+    target: [-3.542, 4.579, 2.370]as Vector3Tuple,
     fov: 50,
   },
 
@@ -17,7 +17,7 @@ export const TERRAIN_CONFIG = {
 
   mesh: {
     position: [0, -0.5, 0] as Vector3Tuple,
-    segments: 160,
+    segments: 1024,
     planeSize: 22,
   },
 
@@ -25,10 +25,13 @@ export const TERRAIN_CONFIG = {
     elevation: 20,
     contrast: 1.8,
     seaLevel: 0.00,
-    baseColor:      '#080d17',
-    ridgeColor:     '#7a8a99',
-    lightAzimuth:   225,
-    lightElevation: 35,
-    lightIntensity: 0.8,
+    fadeEnabled: true,
+    fadeHeight: 0.07,
+    fadeFalloff: 100,
+    baseColor:      '#080b17',
+    ridgeColor:     '#a39144',
+    lightAzimuth:   0,
+    lightElevation: 70,
+    lightIntensity: 35,
   },
 }
