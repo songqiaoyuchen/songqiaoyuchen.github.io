@@ -3,8 +3,8 @@ import type { Vector3Tuple } from 'three';
 
 export const TERRAIN_CONFIG = {
   camera: {
-    position: [-7.431, 3.544, 11.618] as Vector3Tuple,
-    lookAt: [0.386, 0.103, -0.917] as Vector3Tuple,
+    position: [-7.387, 4.220, 11.687] as Vector3Tuple,
+    lookAt: [0.381, 0.036, -0.924] as Vector3Tuple,
     target: [-3.542, 4.579, 2.370]as Vector3Tuple,
     fov: 50,
   },
@@ -17,7 +17,7 @@ export const TERRAIN_CONFIG = {
 
   mesh: {
     position: [0, -0.5, 0] as Vector3Tuple,
-    segments: 1024,
+    segments: 512,
     planeSize: 22,
   },
 
