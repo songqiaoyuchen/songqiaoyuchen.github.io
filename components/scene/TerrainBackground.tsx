@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useRef } from 'react';
+import { Suspense, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import type { OrbitControls as OrbitControlsInstance } from 'three-stdlib';
@@ -8,12 +8,19 @@ import { TERRAIN_CONFIG } from '@/config/terrain';
 import { CameraLogger } from '@/components/debug/CameraLogger';
 import { SceneFog } from './SceneFog';
 import { TerrainMesh } from './TerrainMesh';
+import { Contour } from './Contour';
 
 export function TerrainBackground() {
   const orbitcontrolsRef = useRef<OrbitControlsInstance>(null);
+  const [hovered, setHovered] = useState(false);
 
   return (
-    <div className="absolute bottom-0 left-0 w-full h-full" style={{ zIndex: 0 }}>
+    <div
+      className="absolute bottom-0 left-0 w-full h-full"
+      style={{ zIndex: 0 }}
+      onPointerEnter={() => setHovered(true)}
+      onPointerLeave={() => setHovered(false)}
+    >
       <Canvas
         camera={{ position: TERRAIN_CONFIG.camera.position, fov: TERRAIN_CONFIG.camera.fov }}
         gl={{ alpha: true, antialias: false }}
@@ -24,6 +31,7 @@ export function TerrainBackground() {
         <SceneFog />
         <Suspense fallback={null}>
           <TerrainMesh />
+          <Contour hovered={hovered} />
         </Suspense>
       </Canvas>
     </div>

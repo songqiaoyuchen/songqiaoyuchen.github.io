@@ -13,20 +13,6 @@ export function useTerrainControls() {
       min: 0, max: 1, step: 0.01,
       label: 'Sea Level',
     },
-    fadeEnabled: {
-      value: TERRAIN_CONFIG.material.fadeEnabled,
-      label: 'Fade Enabled',
-    },
-    fadeHeight: {
-      value: TERRAIN_CONFIG.material.fadeHeight,
-      min: 0, max: 1, step: 0.01,
-      label: 'Fade Height',
-    },
-    fadeFalloff: {
-      value: TERRAIN_CONFIG.material.fadeFalloff,
-      min: 0.5, max: 100, step: 0.1,
-      label: 'Fade Falloff',
-    },
     baseColor:  { value: TERRAIN_CONFIG.material.baseColor,  label: 'Base Color'  },
     ridgeColor: { value: TERRAIN_CONFIG.material.ridgeColor, label: 'Ridge Color' },
     lightAzimuth: {

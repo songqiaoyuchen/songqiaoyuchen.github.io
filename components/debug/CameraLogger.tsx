@@ -33,11 +33,12 @@ export function CameraLogger({
     copyCameraConfig: button(() => {
       const snapshot = getCameraSnapshot(camera, controlsRef.current)
 
-      const text = `camera: {
-        position: ${snapshot.position},
-        lookAt: ${snapshot.lookAt},
-        target: ${snapshot.target},
-        }`
+      const text = 
+      `
+        position: ${snapshot.position} as Vector3Tuple,
+        lookAt: ${snapshot.lookAt} as Vector3Tuple,
+        target: ${snapshot.target} as Vector3Tuple,
+      `
 
       console.log(text)
       navigator.clipboard?.writeText(text)

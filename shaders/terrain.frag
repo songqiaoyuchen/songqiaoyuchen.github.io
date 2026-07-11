@@ -7,23 +7,11 @@ uniform vec3  baseColor;
 uniform vec3  ridgeColor;
 uniform vec3  lightDir;
 uniform float lightIntensity;
-uniform bool  fadeEnabled;
-uniform float fadeHeight;
-uniform float fadeFalloff;
 
 varying float vHeight;
 varying vec2  vUv;
 
 void main() {
-  float alpha = 1.0;
-  if (fadeEnabled) {
-    // Everything <= fadeHeight will not be rendered
-    if (vHeight <= fadeHeight) discard;
-
-    alpha = smoothstep(0.0, 1.0, (vHeight - fadeHeight) * fadeFalloff);
-    if (alpha <= 0.001) discard;
-  }
-
   // gradientMap stores d(pow(height, contrast)) per world unit along the local
   // plane axes, baked at full heightmap resolution. seaLevel and elevation are
   // applied here so the Leva controls stay live for lighting.
@@ -47,6 +35,6 @@ void main() {
   float ambient = 0.3;
   color *= ambient + (1.0 - ambient) * diffuse * lightIntensity;
 
-  gl_FragColor = vec4(color, alpha);
+  gl_FragColor = vec4(color, 1.0);
   #include <fog_fragment>
 }
