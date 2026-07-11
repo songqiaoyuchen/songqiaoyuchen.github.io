@@ -29,6 +29,7 @@ export const TERRAIN_CONFIG = {
     smoothFactor: 1.0,    // ≈ Blender Laplacian Smooth factor
     alpha: 1.0,
     introDuration: 3.2,   // seconds
+    introScanSpeed: 0.5,
 
     thinDensity: 100,      // contour bands across full normalized height
     thinWidth: 0.06,      // line half-width as fraction of one band

@@ -27,7 +27,8 @@ export function useContourControls() {
     },
     thickWidth: {
       value: S.thickWidth,
-      min: 0.005, max: 0.45, step: 0.005,
+      min: 0.0005, max: 0.020, step: 0.0001,
+      pad: 4,
       label: 'Thick Width',
     },
     thickIntensity: {
@@ -43,7 +44,8 @@ export function useContourControls() {
     },
     thinWidth: {
       value: S.thinWidth,
-      min: 0.005, max: 0.45, step: 0.005,
+      min: 0.0005, max: 0.020, step: 0.0001,
+      pad: 4,
       label: 'Thin Width',
     },
     thinIntensity: {
@@ -61,6 +63,11 @@ export function useContourControls() {
       value: S.flowSpeed,
       min: 0, max: 1, step: 0.005,
       label: 'Flow Speed',
+    },
+    introScanSpeed: {
+      value: S.introScanSpeed,
+      min: 0.1, max: 2, step: 0.05,
+      label: 'Intro Scan Speed',
     },
     flowColor: { value: S.flowColor, label: 'Flow Color' },
     hoverBoost: {

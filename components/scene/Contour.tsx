@@ -25,6 +25,7 @@ export function Contour({ hovered }: { hovered: boolean }) {
   const exr = useLoader(EXRLoader, '/textures/hm.exr');
   const matRef = useRef<ShaderMaterial>(null);
   const introStart = useRef<number | null>(null);
+  const introScanProgress = useRef(0);
 
   const { elevation, seaLevel } = useTerrainControls();
   const shell = useContourControls();
@@ -51,6 +52,7 @@ export function Contour({ hovered }: { hovered: boolean }) {
       uTime:          { value: 0 },
       uHover:         { value: 0 },
       uIntroProgress: { value: 0 },
+      uIntroScanProgress: { value: 0 },
       uShellAlpha:    { value: S.alpha },
 
       uMajorEvery:          { value: S.majorEvery },
@@ -111,6 +113,14 @@ export function Contour({ hovered }: { hovered: boolean }) {
     if (introStart.current === null) introStart.current = state.clock.elapsedTime;
     const t = MathUtils.clamp((state.clock.elapsedTime - introStart.current) / S.introDuration, 0, 1);
     mat.uniforms.uIntroProgress.value = t * t * (3 - 2 * t);
+
+    introScanProgress.current = MathUtils.clamp(
+      introScanProgress.current + delta * shell.introScanSpeed / S.introDuration,
+      0,
+      1,
+    );
+    const scanT = introScanProgress.current;
+    mat.uniforms.uIntroScanProgress.value = scanT * scanT * (3 - 2 * scanT);
   });
 
   // Same vertex grid as the base mesh: with identical triangulation and shell
