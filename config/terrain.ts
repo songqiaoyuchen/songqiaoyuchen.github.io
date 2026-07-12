@@ -3,7 +3,7 @@ import type { Vector3Tuple } from 'three';
 
 export const TERRAIN_CONFIG = {
   camera: {
-    position: [5.295, 10.370, -7.092] as Vector3Tuple,
+    position: [5.295, 10.37, -7.092] as Vector3Tuple,
     lookAt: [-0.238, -0.032, 0.971] as Vector3Tuple,
     target: [2.771, 10.028, 3.214] as Vector3Tuple,
     fov: 50,
@@ -25,12 +25,12 @@ export const TERRAIN_CONFIG = {
   // field (marching squares) and expanded into thin tubes, Lusion-style.
   // Lines float above the terrain via lift + a screen-space depth bias.
   contours: {
-    lift: 0.06,           // world-units raised above the base surface
+    lift: 0,           // world-units raised above the base surface
     smoothIterations: 8,  // Laplacian passes on the shell field (≈ Blender repeat)
     smoothFactor: 1.0,    // ≈ Blender Laplacian Smooth factor
 
     // extraction / geometry (changes rebuild the tube geometry)
-    levels: 40,           // contour elevations across normalized height
+    levels: 25,           // contour elevations across normalized height
     downsample: 2,        // extraction grid downsample vs the shell grid
     rdpEpsilon: 0.012,    // simplification tolerance, world units
     chaikinIterations: 3, // corner-cutting passes — the smoothness knob
@@ -42,10 +42,10 @@ export const TERRAIN_CONFIG = {
     majorRadius: 0.01,
     depthBias: 0.06,      // clip-space pull toward the camera
 
-    minorColor: '#ffefbb',
+    minorColor: '#cda84d',
     minorIntensity: 0.65,
     minorBase: 0.3,       // resting brightness of thin lines under the pulse
-    majorColor: '#f9f8d0',
+    majorColor: '#ffe4a4',
     majorIntensity: 0.95,
 
     // pulse: hard-edged highlight running along each thin line
@@ -65,14 +65,22 @@ export const TERRAIN_CONFIG = {
     revealEdge: 1.2,      // soft width of the reveal front, world units
   },
 
+  // Post-processing: bloom is what gives the lines their hot flat cores and
+  // organic glow falloff (Lusion pushes bloom hard — up to ~12 in map mode).
+  post: {
+    bloomIntensity: 1.2,
+    bloomThreshold: 0.45,  // luminance below this doesn't glow
+    bloomSmoothing: 0.3,   // softness of the threshold knee
+  },
+
   material: {
     elevation: 24,
     contrast: 1.8,
-    seaLevel: 0.00,
+    seaLevel: 0,
     baseColor:      '#080b17',
     ridgeColor:     '#a39144',
     lightAzimuth:   0,
     lightElevation: 70,
-    lightIntensity: 4,
+    lightIntensity: 0.65,
   },
 }

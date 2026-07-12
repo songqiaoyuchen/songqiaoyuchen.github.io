@@ -1,27 +1,20 @@
 import { useThree } from '@react-three/fiber'
 import { button, useControls } from 'leva'
-import { Vector3, type Camera } from 'three'
+import { Vector3, PerspectiveCamera } from 'three'
 import type { OrbitControls as OrbitControlsInstance } from 'three-stdlib'
+import { postConfigValues } from '@/lib/debug/saveConfig'
 
-function formatVec3(v: Vector3) {
-  return `[${v.x.toFixed(3)}, ${v.y.toFixed(3)}, ${v.z.toFixed(3)}]`
+const round3 = (v: number) => Math.round(v * 1000) / 1000
+
+function toTuple(v: Vector3): [number, number, number] {
+  return [round3(v.x), round3(v.y), round3(v.z)]
 }
 
-function getCameraSnapshot(
-  camera: Camera,
-  controls: OrbitControlsInstance | null
-) {
-  const position = camera.position
-  const lookAt = camera.getWorldDirection(new Vector3())
-  const target = controls?.target
-
-  return {
-    position: formatVec3(position),
-    lookAt: formatVec3(lookAt),
-    target: target ? formatVec3(target) : 'n/a',
-  }
-}
-
+/**
+ * "Save Camera" Leva button (grouped with Save Config): writes ONLY the
+ * current camera pose — position, look direction, orbit target, fov — into
+ * the `camera:` block of config/terrain.ts via block-scoped keys.
+ */
 export function CameraLogger({
   controlsRef,
 }: {
@@ -29,19 +22,17 @@ export function CameraLogger({
 }) {
   const { camera } = useThree()
 
-  useControls('Camera Debug', {
-    copyCameraConfig: button(() => {
-      const snapshot = getCameraSnapshot(camera, controlsRef.current)
-
-      const text = 
-      `
-        position: ${snapshot.position} as Vector3Tuple,
-        lookAt: ${snapshot.lookAt} as Vector3Tuple,
-        target: ${snapshot.target} as Vector3Tuple,
-      `
-
-      console.log(text)
-      navigator.clipboard?.writeText(text)
+  useControls('Config', {
+    // eslint-disable-next-line react-hooks/refs -- ref is read in the click handler, not during render
+    'Save Camera': button(() => {
+      const values: Record<string, unknown> = {
+        'camera.position': toTuple(camera.position),
+        'camera.lookAt': toTuple(camera.getWorldDirection(new Vector3())),
+      }
+      const target = controlsRef.current?.target
+      if (target) values['camera.target'] = toTuple(target)
+      if (camera instanceof PerspectiveCamera) values['camera.fov'] = round3(camera.fov)
+      void postConfigValues('Save Camera', values)
     }),
   })
 
