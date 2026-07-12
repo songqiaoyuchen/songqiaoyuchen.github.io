@@ -21,31 +21,48 @@ export const TERRAIN_CONFIG = {
     planeSize: 22,
   },
 
-  // Holographic contour shell: a smoothed, slightly enlarged copy of the
-  // terrain that floats above the base mesh and carries the glowing lines.
-  shell: {
-    lift: 0.06,           // world-units raised above the base surface (no XY scaling)
-    smoothIterations: 8, // Laplacian passes (≈ Blender Laplacian Smooth repeat)
+  // Contour lines: real polylines extracted from the smoothed shell height
+  // field (marching squares) and expanded into thin tubes, Lusion-style.
+  // Lines float above the terrain via lift + a screen-space depth bias.
+  contours: {
+    lift: 0.06,           // world-units raised above the base surface
+    smoothIterations: 8,  // Laplacian passes on the shell field (≈ Blender repeat)
     smoothFactor: 1.0,    // ≈ Blender Laplacian Smooth factor
-    alpha: 1.0,
-    introDuration: 3.2,   // seconds
-    introScanSpeed: 0.5,
 
-    thinDensity: 100,      // contour bands across full normalized height
-    thinWidth: 0.06,      // line half-width as fraction of one band
-    thinIntensity: 0.45,
-    thinColor: '#593fd9',
+    // extraction / geometry (changes rebuild the tube geometry)
+    levels: 40,           // contour elevations across normalized height
+    downsample: 2,        // extraction grid downsample vs the shell grid
+    rdpEpsilon: 0.012,    // simplification tolerance, world units
+    chaikinIterations: 3, // corner-cutting passes — the smoothness knob
+    resampleSpacing: 0.06,// uniform point spacing, world units
+    minLength: 0.5,       // drop lines shorter than this, world units
 
-    majorEvery: 3,        // every Nth contour line is the bright major one
-    thickWidth: 0.01,     // major line half-width as fraction of one major band
-    thickIntensity: 1.6,
-    thickColor: '#fffd7d',
+    majorEvery: 3,        // every Nth contour level is the bright major one
+    minorRadius: 0.008,   // tube radius, world units
+    majorRadius: 0.01,
+    depthBias: 0.06,      // clip-space pull toward the camera
 
-    flowStrength: 1.2,
-    flowSpeed: 0.12,
-    flowColor: '#bfeaff',
+    minorColor: '#ffefbb',
+    minorIntensity: 0.65,
+    minorBase: 0.3,       // resting brightness of thin lines under the pulse
+    majorColor: '#f9f8d0',
+    majorIntensity: 0.95,
 
-    hoverBoost: 1.0,      // extra brightness multiplier at full hover
+    // pulse: hard-edged highlight running along each thin line
+    pulseColor: '#ffe2bf',
+    pulseTint: 0.4,       // how much the pulse recolors the line
+    pulseSpeed: 0.7,      // world units per second along the line
+    pulseScale: 1,     // noise frequency along arc length
+    pulseSharpness: 0.25, // 1 = distinct borders, 0 = smooth gradient
+
+    // halo: second, wider low-alpha pass emulating Lusion's bloom glow
+    haloScale: 1,      // radius multiplier vs the core pass
+    haloAlpha: 0.7,
+
+    // intro: reveal front expanding radially outward/downhill from the peak
+    introDuration: 10,   // seconds
+    revealStagger: 0.65,  // per-level head start for higher contours (0..1)
+    revealEdge: 1.2,      // soft width of the reveal front, world units
   },
 
   material: {

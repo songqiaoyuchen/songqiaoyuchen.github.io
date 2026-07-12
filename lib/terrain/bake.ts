@@ -236,19 +236,25 @@ function dilate(grid: HeightGrid, radius: number): HeightGrid {
 }
 
 /**
- * Smoothed height texture the contour shell displaces with. Shrink-wrap
- * construction: dilate up to local maxima, smooth that freely, then clamp to
- * the base heights as a safety net — the shell wraps the landform from
- * outside with a rounded silhouette instead of sinking into ridges (plain
- * smoothing lowers peaks below the base surface).
+ * Smoothed shell height field. Shrink-wrap construction: dilate up to local
+ * maxima, smooth that freely, then clamp to the base heights as a safety
+ * net — the shell wraps the landform from outside with a rounded silhouette
+ * instead of sinking into ridges (plain smoothing lowers peaks below the
+ * base surface). Contour polylines are extracted from this grid.
  */
-export function bakeShellHeightMap(grid: HeightGrid, iterations: number, factor: number): DataTexture {
+export function bakeShellGrid(grid: HeightGrid, iterations: number, factor: number): HeightGrid {
   // Dilation radius scales with how far the smoothing diffuses (sigma ≈ √(it/2)).
   const radius = Math.ceil(Math.sqrt(Math.max(iterations, 1))) + 1;
   const smoothed = laplacianSmooth(dilate(grid, radius), iterations, factor);
   for (let i = 0; i < smoothed.length; i++) {
     if (smoothed[i] < grid.data[i]) smoothed[i] = grid.data[i];
   }
+  return { data: smoothed, width: grid.width, height: grid.height };
+}
+
+/** Smoothed height texture the legacy contour shell mesh displaces with. */
+export function bakeShellHeightMap(grid: HeightGrid, iterations: number, factor: number): DataTexture {
+  const smoothed = bakeShellGrid(grid, iterations, factor).data;
   const half = new Uint16Array(smoothed.length);
   for (let i = 0; i < smoothed.length; i++) half[i] = DataUtils.toHalfFloat(smoothed[i]);
   const tex = new DataTexture(half, grid.width, grid.height, RedFormat, HalfFloatType);
