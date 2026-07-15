@@ -19,8 +19,6 @@ uniform float uPulseSpeed;
 uniform float uPulseScale;
 uniform float uPulseSharpness;
 
-uniform float uPassAlpha;
-
 varying float vT;
 varying float vTotalLength;
 varying float vLineId;
@@ -93,7 +91,7 @@ void main() {
   vec3 major = uMajorColor * uMajorIntensity;
   vec3 color = mix(minor, major, vMajor);
 
-  color *= reveal * uPassAlpha;
+  color *= reveal;
 
   #ifdef USE_FOG
     color *= 1.0 - smoothstep(fogNear, fogFar, vFogDepth);

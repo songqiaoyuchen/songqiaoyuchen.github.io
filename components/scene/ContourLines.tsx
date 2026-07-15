@@ -26,8 +26,7 @@ const MESH = TERRAIN_CONFIG.mesh;
 
 export function ContourLines() {
   const exr = useLoader(EXRLoader, '/textures/hm.exr');
-  const coreRef = useRef<ShaderMaterial>(null);
-  const haloRef = useRef<ShaderMaterial>(null);
+  const matRef = useRef<ShaderMaterial>(null);
   const introStart = useRef<number | null>(null);
 
   const { elevation, seaLevel } = useTerrainControls();
@@ -71,9 +70,9 @@ export function ContourLines() {
 
   useEffect(() => () => geometry.dispose(), [geometry]);
 
-  // One set of uniform value-objects shared by the core and halo materials
-  // (Lusion's sharedUniforms pattern) — per-frame updates write once.
-  const shared = useMemo(() => ({
+  // Glow comes from the bloom post-pass, so a single line pass suffices.
+  const uniforms = useMemo(() => ({
+    ...UniformsUtils.clone(UniformsLib.fog),
     uTime:          { value: 0 },
     uIntroProgress: { value: 0 },
 
@@ -104,28 +103,10 @@ export function ContourLines() {
     uPulseSharpness: { value: C.pulseSharpness },
   }), []);
 
-  const coreUniforms = useMemo(() => ({
-    ...UniformsUtils.clone(UniformsLib.fog),
-    ...shared,
-    uRadiusScale: { value: 1 },
-    uPassAlpha:   { value: 1 },
-  }), [shared]);
-
-  const haloUniforms = useMemo(() => ({
-    ...UniformsUtils.clone(UniformsLib.fog),
-    ...shared,
-    uRadiusScale: { value: C.haloScale },
-    uPassAlpha:   { value: C.haloAlpha },
-  }), [shared]);
-
-  // The two materials share the same uniform value-objects, so writing
-  // through the core ref updates the halo pass too (except its own
-  // per-pass uRadiusScale/uPassAlpha).
   useEffect(() => {
-    const core = coreRef.current;
-    const halo = haloRef.current;
-    if (!core || !halo) return;
-    const u = core.uniforms;
+    const mat = matRef.current;
+    if (!mat) return;
+    const u = mat.uniforms;
     u.uElevation.value = elevation;
     u.uLift.value = lines.lift;
     u.uMajorEvery.value = lines.majorEvery;
@@ -147,14 +128,12 @@ export function ContourLines() {
     u.uPulseSpeed.value = lines.pulseSpeed;
     u.uPulseScale.value = lines.pulseScale;
     u.uPulseSharpness.value = lines.pulseSharpness;
-    halo.uniforms.uRadiusScale.value = lines.haloScale;
-    halo.uniforms.uPassAlpha.value = lines.haloAlpha;
   }, [elevation, peak, revealMaxRadius, lines]);
 
   useFrame((state, delta) => {
-    const core = coreRef.current;
-    if (!core) return;
-    core.uniforms.uTime.value += delta;
+    const mat = matRef.current;
+    if (!mat) return;
+    mat.uniforms.uTime.value += delta;
 
     // Intro plays once from mount; after it completes, the only thing that
     // still animates is the pulse phase.
@@ -162,38 +141,23 @@ export function ContourLines() {
     const t = MathUtils.clamp(
       (state.clock.elapsedTime - introStart.current) / lines.introDuration, 0, 1,
     );
-    core.uniforms.uIntroProgress.value = t * t * (3 - 2 * t);
+    mat.uniforms.uIntroProgress.value = t * t * (3 - 2 * t);
   });
 
   // Geometry positions are already in world space (y = normalized height,
-  // scaled live in the vertex shader) — no mesh transform. Halo renders
-  // first as a wide faint glow, the saturated core on top.
+  // scaled live in the vertex shader) — no mesh transform.
   return (
-    <group>
-      <mesh geometry={geometry} frustumCulled={false} renderOrder={1}>
-        <shaderMaterial
-          ref={haloRef}
-          vertexShader={vertexShader}
-          fragmentShader={fragmentShader}
-          uniforms={haloUniforms}
-          transparent
-          depthWrite={false}
-          blending={AdditiveBlending}
-          fog
-        />
-      </mesh>
-      <mesh geometry={geometry} frustumCulled={false} renderOrder={2}>
-        <shaderMaterial
-          ref={coreRef}
-          vertexShader={vertexShader}
-          fragmentShader={fragmentShader}
-          uniforms={coreUniforms}
-          transparent
-          depthWrite={false}
-          blending={AdditiveBlending}
-          fog
-        />
-      </mesh>
-    </group>
+    <mesh geometry={geometry} frustumCulled={false} renderOrder={1}>
+      <shaderMaterial
+        ref={matRef}
+        vertexShader={vertexShader}
+        fragmentShader={fragmentShader}
+        uniforms={uniforms}
+        transparent
+        depthWrite={false}
+        blending={AdditiveBlending}
+        fog
+      />
+    </mesh>
   );
 }

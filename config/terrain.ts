@@ -55,10 +55,6 @@ export const TERRAIN_CONFIG = {
     pulseScale: 1,     // noise frequency along arc length
     pulseSharpness: 0.25, // 1 = distinct borders, 0 = smooth gradient
 
-    // halo: second, wider low-alpha pass emulating Lusion's bloom glow
-    haloScale: 1,      // radius multiplier vs the core pass
-    haloAlpha: 0.7,
-
     // intro: reveal front expanding radially outward/downhill from the peak
     introDuration: 10,   // seconds
     revealStagger: 0.65,  // per-level head start for higher contours (0..1)
@@ -68,7 +64,7 @@ export const TERRAIN_CONFIG = {
   // Post-processing: bloom is what gives the lines their hot flat cores and
   // organic glow falloff (Lusion pushes bloom hard — up to ~12 in map mode).
   post: {
-    bloomIntensity: 1.2,
+    bloomIntensity: 4.5,
     bloomThreshold: 0.45,  // luminance below this doesn't glow
     bloomSmoothing: 0.3,   // softness of the threshold knee
   },

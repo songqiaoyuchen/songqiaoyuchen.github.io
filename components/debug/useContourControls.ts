@@ -105,19 +105,6 @@ export function useContourControls() {
       },
     }, { collapsed: true }),
 
-    Halo: folder({
-      haloScale: {
-        value: C.haloScale,
-        min: 1, max: 8, step: 0.05,
-        label: 'Scale',
-      },
-      haloAlpha: {
-        value: C.haloAlpha,
-        min: 0, max: 1, step: 0.01,
-        label: 'Alpha',
-      },
-    }, { collapsed: true }),
-
     Intro: folder({
       introDuration: {
         value: C.introDuration,

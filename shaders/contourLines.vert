@@ -11,7 +11,6 @@ uniform float uMeshY;
 uniform float uMajorEvery;
 uniform float uMinorRadius;
 uniform float uMajorRadius;
-uniform float uRadiusScale;
 uniform float uDepthBias;
 uniform float uLevels;
 
@@ -33,7 +32,7 @@ void main() {
   // world elevation here so terrain controls stay live without a rebuild,
   // then inflate along the radial normal (the Lusion tube trick).
   vec3 center = vec3(position.x, position.y * uElevation + uLift + uMeshY, position.z);
-  float radius = mix(uMinorRadius, uMajorRadius, vMajor) * uRadiusScale;
+  float radius = mix(uMinorRadius, uMajorRadius, vMajor);
   vec3 pos = center + normal * radius;
   vWorldPos = pos;
 
