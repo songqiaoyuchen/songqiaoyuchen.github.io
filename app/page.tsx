@@ -1,7 +1,6 @@
 'use client';
 
 import { useHomeState } from '@/components/useHomeState';
-import { HeroPanel } from '@/components/HeroPanel';
 import { TopNav } from '@/components/TopNav';
 import { TerrainBackground } from '@/components/scene/TerrainBackground';
 

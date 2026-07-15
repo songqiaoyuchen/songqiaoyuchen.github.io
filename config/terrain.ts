@@ -40,7 +40,7 @@ export const TERRAIN_CONFIG = {
     majorEvery: 3,        // every Nth contour level is the bright major one
     minorRadius: 0.008,   // tube radius, world units
     majorRadius: 0.01,
-    depthBias: 0.06,      // clip-space pull toward the camera
+    depthBias: 0.001,     // constant normalized-device-depth pull
 
     minorColor: '#cda84d',
     minorIntensity: 0.65,

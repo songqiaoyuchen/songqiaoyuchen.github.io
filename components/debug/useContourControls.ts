@@ -36,7 +36,8 @@ export function useContourControls() {
       },
       depthBias: {
         value: C.depthBias,
-        min: 0, max: 0.3, step: 0.005,
+        min: 0, max: 0.01, step: 0.0001,
+        pad: 4,
         label: 'Depth Bias',
       },
     }, { collapsed: true }),

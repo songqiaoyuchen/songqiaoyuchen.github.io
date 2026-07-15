@@ -39,9 +39,9 @@ void main() {
   vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
   gl_Position = projectionMatrix * mvPosition;
 
-  // pull lines slightly toward the camera so they always float above the
-  // base terrain surface without needing a lifted shell mesh
-  gl_Position.z -= uDepthBias / gl_Position.w;
+  // Convert a constant normalized-device-depth offset back to clip space.
+  // Never divide by w here: vertices crossing the eye plane have w near zero.
+  gl_Position.z -= uDepthBias * gl_Position.w;
 
   #include <fog_vertex>
 }

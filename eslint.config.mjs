@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Local reverse-engineering/reference captures are not application code.
+    ".agents/**",
   ]),
 ]);
 

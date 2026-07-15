@@ -4,9 +4,11 @@ import { Suspense, useRef } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { Bloom, EffectComposer } from '@react-three/postprocessing';
+import { SMAAPreset } from 'postprocessing';
 import type { OrbitControls as OrbitControlsInstance } from 'three-stdlib';
 import { TERRAIN_CONFIG } from '@/config/terrain';
 import { CameraLogger } from '@/components/debug/CameraLogger';
+import { ColorOnlySMAA } from '@/components/effects/ColorOnlySMAA';
 import { SaveConfigButton } from '@/components/debug/SaveConfigButton';
 import { usePostControls } from '@/components/debug/usePostControls';
 import { SceneFog } from './SceneFog';
@@ -22,7 +24,7 @@ export function TerrainBackground() {
       <SaveConfigButton />
       <Canvas
         camera={{ position: TERRAIN_CONFIG.camera.position, fov: TERRAIN_CONFIG.camera.fov }}
-        gl={{ antialias: false }}
+        gl={{ antialias: false, powerPreference: 'high-performance' }}
       >
         {/* Opaque canvas matching the page --background: the EffectComposer
             doesn't have to deal with alpha, and bloom composites correctly. */}
@@ -34,7 +36,11 @@ export function TerrainBackground() {
           <TerrainMesh />
           <ContourLines />
         </Suspense>
-        <EffectComposer multisampling={4}>
+        {/* Keep the composer single-sampled: MSAA resolve blits intermittently
+            present empty frames on some GPUs. Color-only SMAA smooths edges
+            without requesting the composer's sampled depth texture. */}
+        <EffectComposer multisampling={0}>
+          <ColorOnlySMAA preset={SMAAPreset.MEDIUM} />
           <Bloom
             mipmapBlur
             intensity={post.bloomIntensity}

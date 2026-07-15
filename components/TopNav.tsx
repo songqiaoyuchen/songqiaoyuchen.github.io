@@ -1,5 +1,6 @@
-﻿'use client';
+'use client';
 
+import Link from 'next/link';
 import { HOME_SECTIONS } from '@/data/homeSections';
 import type { SectionId } from '@/data/homeSections';
 
@@ -14,12 +15,12 @@ export function TopNav({ activeSection, onSectionClick }: Props) {
       className="absolute left-0 right-0 top-0 z-50 flex items-center justify-between px-10 pt-7"
       aria-label="Site navigation"
     >
-      <a
+      <Link
         href="/"
-        className="font-mono text-[12px] uppercase tracking-[0.2em] text-muted  hover:text-accent transition-colors"
+        className="font-mono text-[12px] uppercase tracking-[0.2em] text-muted hover:text-accent transition-colors"
       >
         Solaris
-      </a>
+      </Link>
 
       <ul className="flex list-none gap-8 p-0 m-0">
         {HOME_SECTIONS.map((s) => (
@@ -34,12 +35,12 @@ export function TopNav({ activeSection, onSectionClick }: Props) {
           </li>
         ))}
         <li>
-          <a
+          <Link
             href="/about"
             className="font-mono text-[11px] uppercase tracking-[0.14em] text-muted transition-colors hover:text-text"
           >
             About
-          </a>
+          </Link>
         </li>
       </ul>
     </nav>

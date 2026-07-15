@@ -72,8 +72,9 @@ void main() {
   // gradient by uPulseSharpness (1.0 = pure hard edges).
   float tt = mod(vT - uTime * uPulseSpeed, vTotalLength);
   float n = pnoise(vec2(tt * uPulseScale, vLineId * 7.31), vec2(vTotalLength * uPulseScale, 100.0));
-  float hard = smoothstep(0.0, -max(fwidth(n), 0.015), n);
-  float soft = smoothstep(0.45, -0.45, n);
+  float hardWidth = max(fwidth(n), 0.015);
+  float hard = 1.0 - smoothstep(-hardWidth, 0.0, n);
+  float soft = 1.0 - smoothstep(-0.45, 0.45, n);
   float pulse = mix(soft, hard, uPulseSharpness);
 
   // Intro reveal: a front expanding radially from the summit, higher
