@@ -13,6 +13,12 @@ export interface Isoline {
   level: number;
   /** Normalized height of this contour in visual (post-contrast) space. */
   levelValue: number;
+  /** True for bright major lines (every-Nth cadence gated by min height). */
+  major: boolean;
+  /** True for the faint companion line running just below a major level. */
+  shadow: boolean;
+  /** Intro trace direction (+1/−1), alternating in groups of 2-3 levels. */
+  travelDirection: number;
   closed: boolean;
   /** World-space arc length of the whole line. */
   totalLength: number;
@@ -37,6 +43,16 @@ export interface IsolineOptions {
   resampleSpacing?: number;
   /** Drop lines shorter than this after smoothing (world units). */
   minLength?: number;
+  /** Every Nth level is a bright major line. */
+  majorEvery?: number;
+  /** Levels below this normalized visual height never render as major. */
+  majorMinHeight?: number;
+  /** ± fraction of the base gap each level's slot may vary by (0 = uniform). */
+  spacingJitter?: number;
+  /** Shadow companion distance below a major, as a fraction of its slot (0 = off). */
+  shadowOffset?: number;
+  /** Probability that a given major gets a shadow companion. */
+  shadowChance?: number;
 }
 
 /**
@@ -57,6 +73,11 @@ export function extractIsolines(grid: HeightGrid, options: IsolineOptions): Isol
     chaikinIterations = 3,
     resampleSpacing = 0.06,
     minLength = 0.5,
+    majorEvery = 3,
+    majorMinHeight = 0,
+    spacingJitter = 0,
+    shadowOffset = 0,
+    shadowChance = 1,
   } = options;
 
   const field = downsampleGrid(grid, downsample);
@@ -80,10 +101,54 @@ export function extractIsolines(grid: HeightGrid, options: IsolineOptions): Isol
     0), 1);
   const visMin = toVisual(rawMin);
   const visMax = toVisual(rawMax);
+  const span = visMax - visMin;
+
+  // Each level sits at the center of its own slot; slot widths are jittered
+  // by ±spacingJitter around the uniform gap (seeded, stable across renders),
+  // so spacing reads organic yet a gap can never exceed (1+jitter)× the base
+  // gap — no wide voids. At jitter 0 this reduces to the old even spacing.
+  const rand = mulberry32(0x51ab7e);
+  const gaps = new Float64Array(levels);
+  let gapTotal = 0;
+  for (let i = 0; i < levels; i++) {
+    gaps[i] = 1 + spacingJitter * (rand() * 2 - 1);
+    gapTotal += gaps[i];
+  }
+
+  // Some majors (shadowChance) get a faint "shadow" companion a bit below;
+  // the gap varies ±25% around shadowOffset so the pairing isn't mechanical.
+  // A companion shares its major's level index, so it reveals alongside it.
+  const entries: { levelValue: number; level: number; major: boolean; shadow: boolean }[] = [];
+  let acc = 0;
+  for (let i = 0; i < levels; i++) {
+    const levelValue = visMin + span * ((acc + gaps[i] * 0.5) / gapTotal);
+    // Regular every-Nth cadence, but never below the height floor.
+    const major = i % majorEvery === 0 && levelValue >= majorMinHeight;
+    entries.push({ levelValue, level: i, major, shadow: false });
+    if (shadowOffset > 0 && major && rand() < shadowChance) {
+      const offset = shadowOffset * (0.75 + rand() * 0.5);
+      const companion = levelValue - span * (gaps[i] / gapTotal) * offset;
+      if (companion > visMin) {
+        entries.push({ levelValue: companion, level: i, major: false, shadow: true });
+      }
+    }
+    acc += gaps[i];
+  }
+
+  // Intro directions alternate by small groups of adjacent levels (2-4 each)
+  // so neighboring fronts mostly move together and the reveal reads calmer. 
+  // Shadows share their parent's level, so a companion always travels with its group. 
+  // (Drawn after the layout rands so direction grouping never reshuffles spacing or shadow placement.)
+  const travelDir = new Int8Array(levels);
+  let dir = 1;
+  for (let i = 0; i < levels; ) {
+    const size = 2 + Math.floor(rand() * 3); // 2, 3, or 4 contours per group
+    for (const end = Math.min(i + size, levels); i < end; i++) travelDir[i] = dir;
+    dir = -dir;
+  }
 
   const result: Isoline[] = [];
-  for (let level = 0; level < levels; level++) {
-    const levelValue = visMin + (visMax - visMin) * ((level + 0.5) / levels);
+  for (const { levelValue, level, major, shadow } of entries) {
     const rawThreshold = Math.pow(
       seaLevel + levelValue * Math.max(1 - seaLevel, 0.0001),
       1 / contrast,
@@ -110,23 +175,25 @@ export function extractIsolines(grid: HeightGrid, options: IsolineOptions): Isol
       }
       if (totalLength < minLength) continue;
 
-      result.push({ points, level, levelValue, closed: line.closed, totalLength });
+      result.push({
+        points, level, levelValue, major, shadow,
+        travelDirection: travelDir[level],
+        closed: line.closed, totalLength,
+      });
     }
   }
   return result;
 }
 
-/** World-space XZ of the grid's highest sample — the intro reveal origin. */
-export function findPeakOrigin(grid: HeightGrid, planeSize: number): [number, number] {
-  const { data, width, height } = grid;
-  let best = 0;
-  for (let i = 1; i < data.length; i++) if (data[i] > data[best]) best = i;
-  const gx = best % width;
-  const gy = (best - gx) / width;
-  return [
-    ((gx + 0.5) / width - 0.5) * planeSize,
-    -(((gy + 0.5) / height - 0.5) * planeSize),
-  ];
+/** Seeded PRNG (mulberry32) so jittered spacing is stable across renders. */
+function mulberry32(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
 }
 
 function downsampleGrid(grid: HeightGrid, factor: number): HeightGrid {

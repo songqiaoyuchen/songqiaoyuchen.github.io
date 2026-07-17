@@ -26,7 +26,30 @@ export function useContourControls() {
         min: 0.02, max: 0.25, step: 0.005,
         label: 'Point Spacing',
       },
+      spacingJitter: {
+        value: C.spacingJitter,
+        min: 0, max: 0.9, step: 0.05,
+        label: 'Spacing Jitter',
+      },
     }, { collapsed: true }),
+
+    'Shadow Lines': folder({
+      shadowChance: {
+        value: C.shadowChance,
+        min: 0, max: 1, step: 0.05,
+        label: 'Chance',
+      },
+      shadowOffset: {
+        value: C.shadowOffset,
+        min: 0, max: 0.5, step: 0.01,
+        label: 'Offset',
+      },
+      shadowIntensity: {
+        value: C.shadowIntensity,
+        min: 0, max: 1, step: 0.01,
+        label: 'Intensity',
+      },
+    }),
 
     Placement: folder({
       lift: {
@@ -47,6 +70,11 @@ export function useContourControls() {
         value: C.majorEvery,
         min: 2, max: 10, step: 1,
         label: 'Major Every Nth',
+      },
+      majorMinHeight: {
+        value: C.majorMinHeight,
+        min: 0, max: 1, step: 0.01,
+        label: 'Major Min Height',
       },
       minorRadius: {
         value: C.minorRadius,
@@ -106,22 +134,5 @@ export function useContourControls() {
       },
     }, { collapsed: true }),
 
-    Intro: folder({
-      introDuration: {
-        value: C.introDuration,
-        min: 0.5, max: 15, step: 0.1,
-        label: 'Duration',
-      },
-      revealStagger: {
-        value: C.revealStagger,
-        min: 0, max: 1, step: 0.01,
-        label: 'Stagger',
-      },
-      revealEdge: {
-        value: C.revealEdge,
-        min: 0.1, max: 6, step: 0.05,
-        label: 'Front Softness',
-      },
-    }, { collapsed: true }),
   });
 }

@@ -15,8 +15,7 @@ const SEGMENT_COUNT = 3;
  * vertex shader scales y by elevation and inflates by normal * radius, so
  * elevation, lift, and thickness all stay live-tunable without a rebuild.
  *
- * Per-vertex attributes: t (world arc length), totalLength (of that line),
- * lineId, levelId — everything the pulse and reveal animations key on.
+ * Arc length and total path length drive the pulse and global intro reveal.
  */
 export function buildContourTubeGeometry(lines: Isoline[]): BufferGeometry {
   let vertexCount = 0;
@@ -32,7 +31,9 @@ export function buildContourTubeGeometry(lines: Isoline[]): BufferGeometry {
   const t = new Float32Array(vertexCount);
   const totalLength = new Float32Array(vertexCount);
   const lineId = new Float32Array(vertexCount);
-  const levelId = new Float32Array(vertexCount);
+  const major = new Float32Array(vertexCount);
+  const travelDirection = new Float32Array(vertexCount);
+  const shadow = new Float32Array(vertexCount);
   const index = new Uint32Array(indexCount);
 
   let v = 0; // vertex cursor
@@ -87,7 +88,9 @@ export function buildContourTubeGeometry(lines: Isoline[]): BufferGeometry {
         t[v] = arc;
         totalLength[v] = line.totalLength;
         lineId[v] = li;
-        levelId[v] = line.level;
+        major[v] = line.major ? 1 : 0;
+        travelDirection[v] = line.travelDirection;
+        shadow[v] = line.shadow ? 1 : 0;
 
         if (i < n - 1) {
           const wrap = k === SEGMENT_COUNT - 1 ? 1 - SEGMENT_COUNT : 1;
@@ -109,7 +112,9 @@ export function buildContourTubeGeometry(lines: Isoline[]): BufferGeometry {
   geometry.setAttribute('t', new BufferAttribute(t, 1));
   geometry.setAttribute('totalLength', new BufferAttribute(totalLength, 1));
   geometry.setAttribute('lineId', new BufferAttribute(lineId, 1));
-  geometry.setAttribute('levelId', new BufferAttribute(levelId, 1));
+  geometry.setAttribute('major', new BufferAttribute(major, 1));
+  geometry.setAttribute('travelDirection', new BufferAttribute(travelDirection, 1));
+  geometry.setAttribute('shadow', new BufferAttribute(shadow, 1));
   geometry.setIndex(new BufferAttribute(index, 1));
   return geometry;
 }

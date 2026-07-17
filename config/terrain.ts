@@ -1,6 +1,5 @@
 import type { Vector3Tuple } from 'three';
 
-
 export const TERRAIN_CONFIG = {
   camera: {
     position: [5.295, 10.37, -7.092] as Vector3Tuple,
@@ -26,18 +25,28 @@ export const TERRAIN_CONFIG = {
   // Lines float above the terrain via lift + a screen-space depth bias.
   contours: {
     lift: 0,           // world-units raised above the base surface
-    smoothIterations: 8,  // Laplacian passes on the shell field (≈ Blender repeat)
-    smoothFactor: 1.0,    // ≈ Blender Laplacian Smooth factor
+    smoothIterations: 8,  // Laplacian passes on the shell field
+    smoothFactor: 1.0,    // Laplacian smoothing strength
 
     // extraction / geometry (changes rebuild the tube geometry)
     levels: 25,           // contour elevations across normalized height
     downsample: 2,        // extraction grid downsample vs the shell grid
     rdpEpsilon: 0.012,    // simplification tolerance, world units
-    chaikinIterations: 3, // corner-cutting passes — the smoothness knob
-    resampleSpacing: 0.06,// uniform point spacing, world units
+    chaikinIterations: 3, // corner-cutting smoothing passes
+    resampleSpacing: 0.06, // uniform point spacing, world units
     minLength: 0.5,       // drop lines shorter than this, world units
 
+    // Irregular spacing (Blender-reference feel): level gaps are jittered but
+    // bounded — a gap never exceeds (1+jitter)× the base gap, so spacing
+    // varies without wide voids — and some majors get a faint "shadow"
+    // companion a bit below.
+    spacingJitter: 0.5,    // ± fraction of the base gap between levels
+    shadowChance: 0.6,     // probability a major gets a shadow companion
+    shadowOffset: 0.3,     // companion gap below a major, fraction of its slot (±25% varied)
+    shadowIntensity: 0.55, // companion brightness (live uniform, no rebuild)
+
     majorEvery: 3,        // every Nth contour level is the bright major one
+    majorMinHeight: 0.15, // no major lines below this normalized height
     minorRadius: 0.008,   // tube radius, world units
     majorRadius: 0.01,
     depthBias: 0.001,     // constant normalized-device-depth pull
@@ -52,13 +61,12 @@ export const TERRAIN_CONFIG = {
     pulseColor: '#ffe2bf',
     pulseTint: 0.4,       // how much the pulse recolors the line
     pulseSpeed: 0.7,      // world units per second along the line
-    pulseScale: 1,     // noise frequency along arc length
+    pulseScale: 1,        // noise frequency along arc length
     pulseSharpness: 0.25, // 1 = distinct borders, 0 = smooth gradient
 
-    // intro: reveal front expanding radially outward/downhill from the peak
-    introDuration: 10,   // seconds
-    revealStagger: 0.65,  // per-level head start for higher contours (0..1)
-    revealEdge: 1.2,      // soft width of the reveal front, world units
+    // Intro: all contours start together and alternate path direction by
+    // elevation. The front moves at the same world-space speed on every line.
+    introTravelSpeed: 4,  // world units per second
   },
 
   // Post-processing: bloom is what gives the lines their hot flat cores and

@@ -183,7 +183,7 @@ function bakeDisplacementMap(
  * left untouched so the grid edge stays pinned.
  *
  */
-export function laplacianSmooth(grid: HeightGrid, iterations: number, factor: number): Float32Array {
+function laplacianSmooth(grid: HeightGrid, iterations: number, factor: number): Float32Array {
   const { width, height } = grid;
   let src = Float32Array.from(grid.data);
   if (iterations <= 0 || factor === 0) return src;
@@ -250,21 +250,6 @@ export function bakeShellGrid(grid: HeightGrid, iterations: number, factor: numb
     if (smoothed[i] < grid.data[i]) smoothed[i] = grid.data[i];
   }
   return { data: smoothed, width: grid.width, height: grid.height };
-}
-
-/** Smoothed height texture the legacy contour shell mesh displaces with. */
-export function bakeShellHeightMap(grid: HeightGrid, iterations: number, factor: number): DataTexture {
-  const smoothed = bakeShellGrid(grid, iterations, factor).data;
-  const half = new Uint16Array(smoothed.length);
-  for (let i = 0; i < smoothed.length; i++) half[i] = DataUtils.toHalfFloat(smoothed[i]);
-  const tex = new DataTexture(half, grid.width, grid.height, RedFormat, HalfFloatType);
-  tex.minFilter = LinearFilter;
-  tex.magFilter = LinearFilter;
-  tex.wrapS = ClampToEdgeWrapping;
-  tex.wrapT = ClampToEdgeWrapping;
-  tex.generateMipmaps = false;
-  tex.needsUpdate = true;
-  return tex;
 }
 
 /**

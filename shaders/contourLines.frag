@@ -1,17 +1,15 @@
 #include <fog_pars_fragment>
 
 uniform float uTime;
-uniform float uIntroProgress;
-uniform vec2 uPeakOrigin;
-uniform float uRevealMaxRadius;
-uniform float uRevealEdge;
-uniform float uRevealStagger;
+uniform float uIntroTime;
+uniform float uIntroTravelSpeed;
 
 uniform vec3 uMajorColor;
 uniform float uMajorIntensity;
 uniform vec3 uMinorColor;
 uniform float uMinorIntensity;
 uniform float uMinorBase;
+uniform float uShadowIntensity;
 
 uniform vec3 uPulseColor;
 uniform float uPulseTint;
@@ -23,11 +21,10 @@ varying float vT;
 varying float vTotalLength;
 varying float vLineId;
 varying float vMajor;
-varying float vLevelRank;
-varying vec3 vWorldPos;
+varying float vTravelDirection;
+varying float vShadow;
 
-// Periodic classic Perlin noise (Stefan Gustavson / webgl-noise, MIT) — the
-// same generator Lusion pulses their contour lines with.
+// Periodic classic Perlin noise (Stefan Gustavson / webgl-noise, MIT).
 vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
 vec4 permute(vec4 x) { return mod289(((x * 34.0) + 1.0) * x); }
 vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
@@ -60,46 +57,43 @@ float pnoise(vec2 P, vec2 rep) {
   float n10 = dot(g10, vec2(fx.y, fy.y));
   float n01 = dot(g01, vec2(fx.z, fy.z));
   float n11 = dot(g11, vec2(fx.w, fy.w));
-  vec2 fade_xy = fade(Pf.xy);
-  vec2 n_x = mix(vec2(n00, n01), vec2(n10, n11), fade_xy.x);
-  float n_xy = mix(n_x.x, n_x.y, fade_xy.y);
-  return 2.3 * n_xy;
+  vec2 fadeXY = fade(Pf.xy);
+  vec2 nx = mix(vec2(n00, n01), vec2(n10, n11), fadeXY.x);
+  return 2.3 * mix(nx.x, nx.y, fadeXY.y);
 }
 
 void main() {
-  // Pulse: periodic noise scrolling along arc length, hard-thresholded at 0
-  // with fwidth AA — Lusion's distinct-bordered dashes — mixed with a soft
-  // gradient by uPulseSharpness (1.0 = pure hard edges).
-  float tt = mod(vT - uTime * uPulseSpeed, vTotalLength);
-  float n = pnoise(vec2(tt * uPulseScale, vLineId * 7.31), vec2(vTotalLength * uPulseScale, 100.0));
+  float totalLength = max(vTotalLength, 0.0001);
+  float tt = mod(vT - uTime * uPulseSpeed, totalLength);
+  float n = pnoise(
+    vec2(tt * uPulseScale, vLineId * 7.31),
+    vec2(totalLength * uPulseScale, 100.0)
+  );
   float hardWidth = max(fwidth(n), 0.015);
   float hard = 1.0 - smoothstep(-hardWidth, 0.0, n);
   float soft = 1.0 - smoothstep(-0.45, 0.45, n);
   float pulse = mix(soft, hard, uPulseSharpness);
 
-  // Intro reveal: a front expanding radially from the summit, higher
-  // contours leading, so lines spread outward and downhill from the peak.
-  // At uIntroProgress = 1 every fragment is fully revealed and static.
-  float delay = (1.0 - vLevelRank) * uRevealStagger;
-  float local = clamp(uIntroProgress * (1.0 + uRevealStagger) - delay, 0.0, 1.0);
-  float front = local * uRevealMaxRadius;
-  float reveal = 1.0 - smoothstep(front - uRevealEdge, front, distance(vWorldPos.xz, uPeakOrigin));
+  // Elevation levels trace in alternating groups of 2-3 (direction decided
+  // at extraction). Arc length keeps the front's world-space speed identical
+  // on every contour.
+  float pathDistance = vTravelDirection > 0.0 ? vT : totalLength - vT;
+  float travelled = uIntroTime * uIntroTravelSpeed;
+  float reveal = step(pathDistance, travelled);
 
-  // Majors are flat full brightness (Lusion); only thin lines pulse.
   vec3 minorColor = mix(uMinorColor, uPulseColor, pulse * uPulseTint);
   float minorBrightness = uMinorBase + (1.0 - uMinorBase) * pulse;
   vec3 minor = minorColor * minorBrightness * uMinorIntensity;
   vec3 major = uMajorColor * uMajorIntensity;
   vec3 color = mix(minor, major, vMajor);
-
+  // Shadow companions: a calm faint echo of the minor color, no pulse.
+  color = mix(color, uMinorColor * uShadowIntensity, vShadow);
   color *= reveal;
 
   #ifdef USE_FOG
     color *= 1.0 - smoothstep(fogNear, fogFar, vFogDepth);
   #endif
 
-  // Match alpha to additive brightness so unlit areas stay transparent
-  // against the page background.
   float alpha = clamp(max(color.r, max(color.g, color.b)), 0.0, 1.0);
   gl_FragColor = vec4(color, alpha);
 }
