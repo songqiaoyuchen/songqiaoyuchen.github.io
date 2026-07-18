@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef } from 'react';
+import { forwardRef, useEffect, useMemo, useRef } from 'react';
 import { useFrame, useLoader } from '@react-three/fiber';
 import {
   AdditiveBlending,
@@ -9,6 +9,7 @@ import {
   UniformsLib,
   UniformsUtils,
 } from 'three';
+import type { Mesh } from 'three';
 import { EXRLoader } from 'three-stdlib';
 import { TERRAIN_CONFIG } from '@/config/terrain';
 import { bakeTerrainMaps, bakeShellGrid, type HeightmapImage } from '@/lib/terrain/bake';
@@ -22,7 +23,7 @@ import { useContourControls } from '../debug/useContourControls';
 const C = TERRAIN_CONFIG.contours;
 const MESH = TERRAIN_CONFIG.mesh;
 
-export function ContourLines() {
+export const ContourLines = forwardRef<Mesh>(function ContourLines(_, forwardedRef) {
   const exr = useLoader(EXRLoader, '/textures/hm.exr');
   const matRef = useRef<ShaderMaterial>(null);
   const introStart = useRef<number | null>(null);
@@ -132,7 +133,7 @@ export function ContourLines() {
   });
 
   return (
-    <mesh geometry={geometry} frustumCulled={false} renderOrder={1}>
+    <mesh ref={forwardedRef} geometry={geometry} frustumCulled={false} renderOrder={1}>
       <shaderMaterial
         ref={matRef}
         vertexShader={vertexShader}
@@ -145,4 +146,4 @@ export function ContourLines() {
       />
     </mesh>
   );
-}
+});

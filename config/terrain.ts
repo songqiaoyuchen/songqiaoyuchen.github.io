@@ -2,8 +2,8 @@ import type { Vector3Tuple } from 'three';
 
 export const TERRAIN_CONFIG = {
   camera: {
-    position: [5.295, 10.37, -7.092] as Vector3Tuple,
-    lookAt: [-0.238, -0.032, 0.971] as Vector3Tuple,
+    position: [8.005, 10.251, -6.019] as Vector3Tuple,
+    lookAt: [-0.493, -0.021, 0.87] as Vector3Tuple,
     target: [2.771, 10.028, 3.214] as Vector3Tuple,
     fov: 50,
   },
@@ -11,7 +11,7 @@ export const TERRAIN_CONFIG = {
   fog: {
     color: '#0a0a0a',
     near: 8.5,
-    far: 12,
+    far: 13.5,
   },
 
   mesh: {
@@ -29,7 +29,7 @@ export const TERRAIN_CONFIG = {
     smoothFactor: 1.0,    // Laplacian smoothing strength
 
     // extraction / geometry (changes rebuild the tube geometry)
-    levels: 25,           // contour elevations across normalized height
+    levels: 24,           // contour elevations across normalized height
     downsample: 2,        // extraction grid downsample vs the shell grid
     rdpEpsilon: 0.012,    // simplification tolerance, world units
     chaikinIterations: 3, // corner-cutting smoothing passes
@@ -72,9 +72,9 @@ export const TERRAIN_CONFIG = {
   // Post-processing: bloom is what gives the lines their hot flat cores and
   // organic glow falloff (Lusion pushes bloom hard — up to ~12 in map mode).
   post: {
-    bloomIntensity: 4.5,
-    bloomThreshold: 0.45,  // luminance below this doesn't glow
-    bloomSmoothing: 0.3,   // softness of the threshold knee
+    bloomIntensity: 3,
+    bloomThreshold: 0.4,   // only the selected contour pass is allowed to glow
+    bloomSmoothing: 0.12,  // a tighter knee preserves the dark terrain around it
   },
 
   material: {
@@ -83,8 +83,27 @@ export const TERRAIN_CONFIG = {
     seaLevel: 0,
     baseColor:      '#080b17',
     ridgeColor:     '#a39144',
-    lightAzimuth:   0,
-    lightElevation: 70,
-    lightIntensity: 0.65,
+
+    // Primary point source. Coordinates are world-space with Y up.
+    lightX: 1.6,
+    lightY: 7.3,
+    lightZ: -0.2,
+    lightColor: '#fef2ff',
+    lightIntensity: 2.45,
+    lightFalloff: 0.053,  // tighter pool of light with a faster fall into black
+
+    // Independently tuned counter light. It uses the same hard diffuse
+    // response and terrain-shadow model as the primary.
+    light2X: 7.6,
+    light2Y: 7.8,
+    light2Z: 1.1,
+    light2Color: '#fef2ff',
+    light2Intensity: 2.45,
+    light2Falloff: 0.065,
+
+    // Height-field ray shadow. These stay as uniforms so future section looks
+    // can animate them without replacing or recompiling the material.
+    shadowStrength: 0.81,
+    shadowBias: 0.09,
   },
 }
