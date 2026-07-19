@@ -1,15 +1,13 @@
 'use client';
 
-import { forwardRef, useEffect, useMemo } from 'react';
-import { useFrame, useLoader, useThree } from '@react-three/fiber';
+import { forwardRef, useEffect, useMemo, useRef } from 'react';
+import { useLoader, useThree } from '@react-three/fiber';
 import {
   AddEquation,
   Color,
   CustomBlending,
   DoubleSide,
-  Mesh,
   OneFactor,
-  PlaneGeometry,
   ShaderMaterial,
   TextureLoader,
 } from 'three';
@@ -20,12 +18,9 @@ import { toHeightmapImage } from '@/lib/terrain/bake';
 import {
   buildDecorativeStreamGeometry,
   DECORATIVE_ATLAS_COLUMNS,
-  generateDecorativeStreamLayers,
+  generateDecorativeStreams,
 } from '@/lib/text/decorativeStreamGeometry';
-import { DecorativeStreamCompositor } from '@/lib/text/decorativeStreamCompositor';
 import { configureBitmapAtlas, getTerrainTextMaps } from '@/lib/text/terrainTextShared';
-import compositeVertexShader from '@/shaders/decorativeComposite.vert';
-import compositeFragmentShader from '@/shaders/decorativeComposite.frag';
 import vertexShader from '@/shaders/decorativeStream.vert';
 import fragmentShader from '@/shaders/decorativeStream.frag';
 import { useTerrainControls } from '../debug/useTerrainControls';
@@ -37,13 +32,14 @@ export const DecorativeStreams = forwardRef<MeshType>(function DecorativeStreams
   const exr = useLoader(EXRLoader, '/textures/terrain/heightmap.exr');
   const atlas = useLoader(TextureLoader, '/textures/text/decorative-atlas.png');
   const size = useThree((state) => state.size);
+  const materialRef = useRef<ShaderMaterial>(null);
   const { elevation, seaLevel } = useTerrainControls();
   const { displacementMap, shellBase } = useMemo(
     () => getTerrainTextMaps(toHeightmapImage(exr.image)),
     [exr],
   );
 
-  const layers = useMemo(() => generateDecorativeStreamLayers({
+  const instances = useMemo(() => generateDecorativeStreams({
     count: TEXT_COUNT,
     bounds: TEXT_BOUNDS,
     seed: 17,
@@ -53,80 +49,46 @@ export const DecorativeStreams = forwardRef<MeshType>(function DecorativeStreams
     seaLevel,
   }), [elevation, seaLevel, shellBase, size.height, size.width]);
 
-  const material = useMemo(() => new ShaderMaterial({
-    vertexShader,
-    fragmentShader,
-    uniforms: {
-      heightmap: { value: displacementMap },
-      elevation: { value: elevation },
-      contrast: { value: TERRAIN_CONFIG.material.contrast },
-      seaLevel: { value: seaLevel },
-      planeSize: { value: TERRAIN_CONFIG.mesh.planeSize },
-      meshY: { value: TERRAIN_CONFIG.mesh.position[1] },
-      uLift: { value: 0.075 },
-      uAtlas: { value: atlas },
-      uAtlasColumns: { value: DECORATIVE_ATLAS_COLUMNS },
-      uColor: { value: new Color(TERRAIN_CONFIG.contours.minorColor) },
-      uHotColor: { value: new Color(TERRAIN_CONFIG.contours.majorColor) },
-      uEnergy: { value: 0.62 },
-    },
-    transparent: true,
-    depthTest: false,
-    depthWrite: false,
-    side: DoubleSide,
-    blending: CustomBlending,
-    blendEquation: AddEquation,
-    blendSrc: OneFactor,
-    blendDst: OneFactor,
-    blendEquationAlpha: AddEquation,
-    blendSrcAlpha: OneFactor,
-    blendDstAlpha: OneFactor,
-    toneMapped: false,
-  }), [atlas, displacementMap, elevation, seaLevel]);
-
-  const geometries = useMemo(
-    () => layers.map(buildDecorativeStreamGeometry),
-    [layers],
+  const geometry = useMemo(
+    () => buildDecorativeStreamGeometry(instances),
+    [instances],
   );
-  const meshes = useMemo(
-    () => geometries.map((geometry) => {
-      const mesh = new Mesh(geometry, material);
-      // Instance anchors are applied in the vertex shader, so Three.js cannot
-      // derive their real world-space bounds from the base plane geometry.
-      mesh.frustumCulled = false;
-      return mesh;
-    }),
-    [geometries, material],
-  );
-  const compositor = useMemo(
-    () => new DecorativeStreamCompositor(meshes, size.width, size.height),
-    [meshes, size.height, size.width],
-  );
-  const compositeGeometry = useMemo(() => new PlaneGeometry(2, 2), []);
-  const compositeUniforms = useMemo(
-    () => ({ uTexture: { value: compositor.texture } }),
-    [compositor],
-  );
+  const uniforms = useMemo(() => ({
+    heightmap: { value: displacementMap },
+    elevation: { value: TERRAIN_CONFIG.material.elevation },
+    contrast: { value: TERRAIN_CONFIG.material.contrast },
+    seaLevel: { value: TERRAIN_CONFIG.material.seaLevel },
+    planeSize: { value: TERRAIN_CONFIG.mesh.planeSize },
+    meshY: { value: TERRAIN_CONFIG.mesh.position[1] },
+    uLift: { value: 0.075 },
+    uAtlas: { value: atlas },
+    uAtlasColumns: { value: DECORATIVE_ATLAS_COLUMNS },
+    uColor: { value: new Color(TERRAIN_CONFIG.contours.minorColor) },
+    uHotColor: { value: new Color(TERRAIN_CONFIG.contours.majorColor) },
+    // Direct drawing skips the old blur accumulation, which also stacked up
+    // brightness; a higher energy keeps the streams at comparable presence.
+    uEnergy: { value: 1.0 },
+  }), [atlas, displacementMap]);
 
   useEffect(() => configureBitmapAtlas(atlas), [atlas]);
-  useEffect(() => () => compositor.dispose(), [compositor]);
-  useEffect(() => () => geometries.forEach((geometry) => geometry.dispose()), [geometries]);
-  useEffect(() => () => material.dispose(), [material]);
-  useEffect(() => () => compositeGeometry.dispose(), [compositeGeometry]);
-
-  useFrame((state, delta) => {
-    compositor.render(state.gl, state.camera, delta);
-  }, -1);
+  useEffect(() => () => geometry.dispose(), [geometry]);
+  useEffect(() => {
+    if (!materialRef.current) return;
+    materialRef.current.uniforms.elevation.value = elevation;
+    materialRef.current.uniforms.seaLevel.value = seaLevel;
+  }, [elevation, seaLevel]);
 
   return (
-    <mesh ref={forwardedRef} geometry={compositeGeometry} frustumCulled={false} renderOrder={3}>
+    <mesh ref={forwardedRef} geometry={geometry} frustumCulled={false} renderOrder={3}>
       <shaderMaterial
-        vertexShader={compositeVertexShader}
-        fragmentShader={compositeFragmentShader}
-        uniforms={compositeUniforms}
+        ref={materialRef}
+        vertexShader={vertexShader}
+        fragmentShader={fragmentShader}
+        uniforms={uniforms}
         transparent
         depthTest={false}
         depthWrite={false}
+        side={DoubleSide}
         blending={CustomBlending}
         blendEquation={AddEquation}
         blendSrc={OneFactor}

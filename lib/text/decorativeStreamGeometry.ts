@@ -10,7 +10,6 @@ import type { HeightGrid } from '@/lib/terrain/bake';
 import { random01, randomBetween, sampleTerrainHeight } from './terrainTextShared';
 
 export const DECORATIVE_ATLAS_COLUMNS = 42;
-export const DECORATIVE_DEPTH_LAYERS = 4;
 
 export type DecorativeStreamBounds = {
   x: readonly [number, number];
@@ -24,7 +23,6 @@ type DecorativeStreamInstance = {
   bottomOffset: number;
   density: number;
   random: [number, number, number, number];
-  viewDepth: number;
   screenX: number;
 };
 
@@ -51,7 +49,7 @@ function makeLayoutCamera(aspect: number) {
  * in projected X. The source distribution stays random over the terrain, while
  * streams can no longer collapse into camera-space clumps or overlap columns.
  */
-export function generateDecorativeStreamLayers({
+export function generateDecorativeStreams({
   count,
   bounds,
   seed,
@@ -59,11 +57,10 @@ export function generateDecorativeStreamLayers({
   heightGrid,
   elevation,
   seaLevel,
-}: LayoutOptions): DecorativeStreamInstance[][] {
+}: LayoutOptions): DecorativeStreamInstance[] {
   const camera = makeLayoutCamera(aspect);
   const candidates: DecorativeStreamInstance[] = [];
   const projected = new Vector3();
-  const viewPosition = new Vector3();
 
   for (let attempt = 0; attempt < count * 160; attempt++) {
     const x = randomBetween(bounds.x[0], bounds.x[1], random01(attempt, 1, seed));
@@ -72,7 +69,6 @@ export function generateDecorativeStreamLayers({
     const y = sampleTerrainHeight(heightGrid, x, z, elevation, seaLevel) + bottomOffset;
 
     projected.set(x, y, z).project(camera);
-    viewPosition.set(x, y, z).applyMatrix4(camera.matrixWorldInverse);
     if (
       projected.z < -1 || projected.z > 1
       || projected.x < -1.02 || projected.x > 1.02
@@ -91,7 +87,6 @@ export function generateDecorativeStreamLayers({
         random01(attempt, 9, seed),
         random01(attempt, 10, seed),
       ],
-      viewDepth: -viewPosition.z,
       screenX: projected.x,
     });
   }
@@ -118,22 +113,7 @@ export function generateDecorativeStreamLayers({
     selected.push(remaining.splice(bestIndex, 1)[0]);
   }
 
-  // Lusion's four meshes are depth groups. Sorting before splitting makes the
-  // progressive blur correspond to actual camera depth instead of an arbitrary
-  // instance index.
-  selected.sort((a, b) => b.viewDepth - a.viewDepth);
-  const layers = Array.from(
-    { length: DECORATIVE_DEPTH_LAYERS },
-    () => [] as DecorativeStreamInstance[],
-  );
-  selected.forEach((instance, index) => {
-    const layer = Math.min(
-      DECORATIVE_DEPTH_LAYERS - 1,
-      Math.floor(index * DECORATIVE_DEPTH_LAYERS / selected.length),
-    );
-    layers[layer].push(instance);
-  });
-  return layers;
+  return selected;
 }
 
 export function buildDecorativeStreamGeometry(

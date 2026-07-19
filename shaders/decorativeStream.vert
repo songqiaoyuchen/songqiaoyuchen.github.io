@@ -16,6 +16,7 @@ varying float vCharCount;
 varying float vDensity;
 varying float vViewDepth;
 varying float vScreenY;
+varying float vSoft;
 
 float processH(float raw) {
   float h = pow(max(raw, 0.0), contrast);
@@ -33,6 +34,12 @@ void main() {
   vec3 toCamera = normalize(cameraPosition - center);
   vec3 right = normalize(cross(vec3(0.0, 1.0, 0.0), toCamera));
 
+  // Cheap depth-of-field stand-in for the removed blur compositor: distant
+  // streams get a wider quad (the fragment shader melts their glyphs into
+  // soft dashes and renormalizes the added area).
+  float soft = smoothstep(8.0, 13.0, distance(cameraPosition, center));
+  glyphWidth *= 1.0 + soft * 0.9;
+
   vec3 worldPosition = center;
   worldPosition += right * ((uv.x - 0.5) * glyphWidth);
   worldPosition.y += uv.y * streamHeight;
@@ -45,4 +52,5 @@ void main() {
   vDensity = aParams.w;
   vViewDepth = -mvPosition.z;
   vScreenY = gl_Position.y / gl_Position.w;
+  vSoft = soft;
 }
