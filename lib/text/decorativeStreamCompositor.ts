@@ -15,12 +15,17 @@ import {
 
 const CLEAR = new Color(0x000000);
 
+// The streams are soft additive glow, so the whole far-to-near accumulation
+// can run at reduced resolution and upsample linearly in the composite pass:
+// quarter the fill cost of every render and blur with no visible loss.
+const RESOLUTION_SCALE = 0.5;
+
+// Overall blur strength multiplier：lower -> sharper
+const BLUR_SCALE = 0.2;
+
 function makeTarget(width: number, height: number) {
   const target = new WebGLRenderTarget(width, height, {
-    // Additive blending into floating-point targets requires EXT_float_blend,
-    // which is not guaranteed even on WebGL2. The reference effect does not
-    // need HDR storage here; its glow comes from staged blur accumulation.
-    type: UnsignedByteType,
+    type: UnsignedByteType, // Additive blending into float buffer may not be supported
     format: RGBAFormat,
     depthBuffer: false,
     stencilBuffer: false,
@@ -32,7 +37,11 @@ function makeTarget(width: number, height: number) {
   return target;
 }
 
-/** Lusion-style far-to-near accumulation: 16px-ish, 8px-ish, 4px-ish, sharp. */
+/**
+ * Far-to-near blur accumulation over the three depth groups (16px-ish, 8px-ish, 4px-ish). 
+ * The nearest group is not part of this pipeline to stay crisp
+ * while the blurred stack runs at RESOLUTION_SCALE.
+ */
 export class DecorativeStreamCompositor {
   readonly texture;
   private readonly meshes: Mesh[];
@@ -45,8 +54,8 @@ export class DecorativeStreamCompositor {
   private height: number;
 
   constructor(meshes: Mesh[], width: number, height: number) {
-    this.width = Math.max(1, Math.round(width));
-    this.height = Math.max(1, Math.round(height));
+    this.width = Math.max(1, Math.round(width * RESOLUTION_SCALE));
+    this.height = Math.max(1, Math.round(height * RESOLUTION_SCALE));
     this.meshes = meshes;
     this.scenes = meshes.map((mesh) => {
       const scene = new Scene();
@@ -57,16 +66,19 @@ export class DecorativeStreamCompositor {
     this.targetB = makeTarget(this.width, this.height);
     this.texture = this.targetB.texture;
 
-    // 35/15/7-tap Kawase kernels correspond closely to the reference's
-    // approximately 16/8/4 pixel blur stages.
-    this.blurs = [KernelSize.LARGE, KernelSize.SMALL, KernelSize.VERY_SMALL]
-      .map((kernelSize) => new KawaseBlurPass({ kernelSize, resolutionScale: 1 }));
-    this.setSize(this.width, this.height);
+    this.blurs = [0.25, 0.5, 1].map((resolutionScale) => {
+      const pass = new KawaseBlurPass({
+        kernelSize: KernelSize.VERY_SMALL,
+        resolutionScale,
+      });
+      pass.scale = BLUR_SCALE;
+      return pass;
+    });
   }
 
   setSize(width: number, height: number) {
-    const nextWidth = Math.max(1, Math.round(width));
-    const nextHeight = Math.max(1, Math.round(height));
+    const nextWidth = Math.max(1, Math.round(width * RESOLUTION_SCALE));
+    const nextHeight = Math.max(1, Math.round(height * RESOLUTION_SCALE));
     if (nextWidth === this.width && nextHeight === this.height) return;
     this.width = nextWidth;
     this.height = nextHeight;
@@ -114,8 +126,6 @@ export class DecorativeStreamCompositor {
     renderer.render(this.scenes[2], camera);
 
     this.blurs[2].render(renderer, this.targetA, this.targetB, delta, false);
-    renderer.setRenderTarget(this.targetB);
-    renderer.render(this.scenes[3], camera);
 
     renderer.setRenderTarget(previousTarget);
     renderer.setViewport(previousViewport);

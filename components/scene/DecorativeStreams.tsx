@@ -94,12 +94,17 @@ export const DecorativeStreams = forwardRef<MeshType>(function DecorativeStreams
       // Instance anchors are applied in the vertex shader, so Three.js cannot
       // derive their real world-space bounds from the base plane geometry.
       mesh.frustumCulled = false;
+      mesh.renderOrder = 3;
       return mesh;
     }),
     [geometries, material],
   );
+  // The nearest depth group skips the blur pipeline: it renders straight into
+  // the main scene at native resolution so front streams stay crisp while the
+  // blurred stack runs at reduced resolution.
+  const nearMesh = meshes[meshes.length - 1];
   const compositor = useMemo(
-    () => new DecorativeStreamCompositor(meshes, size.width, size.height),
+    () => new DecorativeStreamCompositor(meshes.slice(0, -1), size.width, size.height),
     [meshes, size.height, size.width],
   );
   const compositeGeometry = useMemo(() => new PlaneGeometry(2, 2), []);
@@ -119,23 +124,26 @@ export const DecorativeStreams = forwardRef<MeshType>(function DecorativeStreams
   }, -1);
 
   return (
-    <mesh ref={forwardedRef} geometry={compositeGeometry} frustumCulled={false} renderOrder={3}>
-      <shaderMaterial
-        vertexShader={compositeVertexShader}
-        fragmentShader={compositeFragmentShader}
-        uniforms={compositeUniforms}
-        transparent
-        depthTest={false}
-        depthWrite={false}
-        blending={CustomBlending}
-        blendEquation={AddEquation}
-        blendSrc={OneFactor}
-        blendDst={OneFactor}
-        blendEquationAlpha={AddEquation}
-        blendSrcAlpha={OneFactor}
-        blendDstAlpha={OneFactor}
-        toneMapped={false}
-      />
-    </mesh>
+    <>
+      <primitive object={nearMesh} />
+      <mesh ref={forwardedRef} geometry={compositeGeometry} frustumCulled={false} renderOrder={3}>
+        <shaderMaterial
+          vertexShader={compositeVertexShader}
+          fragmentShader={compositeFragmentShader}
+          uniforms={compositeUniforms}
+          transparent
+          depthTest={false}
+          depthWrite={false}
+          blending={CustomBlending}
+          blendEquation={AddEquation}
+          blendSrc={OneFactor}
+          blendDst={OneFactor}
+          blendEquationAlpha={AddEquation}
+          blendSrcAlpha={OneFactor}
+          blendDstAlpha={OneFactor}
+          toneMapped={false}
+        />
+      </mesh>
+    </>
   );
 });
