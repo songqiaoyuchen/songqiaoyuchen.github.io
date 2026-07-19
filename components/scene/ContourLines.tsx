@@ -12,7 +12,7 @@ import {
 import type { Mesh } from 'three';
 import { EXRLoader } from 'three-stdlib';
 import { TERRAIN_CONFIG } from '@/config/terrain';
-import { bakeTerrainMaps, bakeShellGrid, type HeightmapImage } from '@/lib/terrain/bake';
+import { bakeTerrainMaps, bakeShellGrid, toHeightmapImage } from '@/lib/terrain/bake';
 import { extractIsolines } from '@/lib/terrain/isolines';
 import { buildContourTubeGeometry } from '@/lib/terrain/lineTube';
 import vertexShader from '@/shaders/contourLines.vert';
@@ -24,7 +24,7 @@ const C = TERRAIN_CONFIG.contours;
 const MESH = TERRAIN_CONFIG.mesh;
 
 export const ContourLines = forwardRef<Mesh>(function ContourLines(_, forwardedRef) {
-  const exr = useLoader(EXRLoader, '/textures/hm.exr');
+  const exr = useLoader(EXRLoader, '/textures/terrain/heightmap.exr');
   const matRef = useRef<ShaderMaterial>(null);
   const introStart = useRef<number | null>(null);
 
@@ -32,7 +32,7 @@ export const ContourLines = forwardRef<Mesh>(function ContourLines(_, forwardedR
   const lines = useContourControls();
 
   const { shellBase } = useMemo(
-    () => bakeTerrainMaps(exr.image as unknown as HeightmapImage),
+    () => bakeTerrainMaps(toHeightmapImage(exr.image)),
     [exr],
   );
 

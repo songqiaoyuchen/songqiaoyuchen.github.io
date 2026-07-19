@@ -2,16 +2,16 @@ import type { Vector3Tuple } from 'three';
 
 export const TERRAIN_CONFIG = {
   camera: {
-    position: [8.005, 10.251, -6.019] as Vector3Tuple,
-    lookAt: [-0.493, -0.021, 0.87] as Vector3Tuple,
+    position: [5.097, 13.444, -6.564] as Vector3Tuple,
+    lookAt: [-0.219, -0.322, 0.921] as Vector3Tuple,
     target: [2.771, 10.028, 3.214] as Vector3Tuple,
     fov: 50,
   },
 
   fog: {
     color: '#0a0a0a',
-    near: 8.5,
-    far: 13.5,
+    near: 7.5,
+    far: 16.5,
   },
 
   mesh: {
@@ -78,7 +78,7 @@ export const TERRAIN_CONFIG = {
   },
 
   material: {
-    elevation: 24,
+    elevation: 24.3,
     contrast: 1.8,
     seaLevel: 0,
     baseColor:      '#080b17',

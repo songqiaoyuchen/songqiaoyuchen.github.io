@@ -5,17 +5,17 @@ import { useLoader } from '@react-three/fiber';
 import { Color, PlaneGeometry, ShaderMaterial, UniformsLib, UniformsUtils, Vector3 } from 'three';
 import { EXRLoader } from 'three-stdlib';
 import { TERRAIN_CONFIG } from '@/config/terrain';
-import { bakeTerrainMaps, type HeightmapImage } from '@/lib/terrain/bake';
+import { bakeTerrainMaps, toHeightmapImage } from '@/lib/terrain/bake';
 import vertexShader from '@/shaders/terrain.vert';
 import fragmentShader from '@/shaders/terrain.frag';
 import { useTerrainControls } from '../debug/useTerrainControls';
 
 export function TerrainMesh() {
-  const exr = useLoader(EXRLoader, '/textures/hm.exr');
+  const exr = useLoader(EXRLoader, '/textures/terrain/heightmap.exr');
   const surfaceMatRef = useRef<ShaderMaterial>(null);
 
   const { displacementMap, gradientMap } = useMemo(
-    () => bakeTerrainMaps(exr.image as unknown as HeightmapImage),
+    () => bakeTerrainMaps(toHeightmapImage(exr.image)),
     [exr],
   );
 

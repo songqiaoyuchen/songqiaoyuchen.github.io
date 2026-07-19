@@ -1,0 +1,10 @@
+{
+  "type": "bitmap",
+  "font": "monospace_krypton.ttf",
+  "characters": "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ+-*/<>",
+  "cellWidth": 6,
+  "cellHeight": 8,
+  "columns": 42,
+  "width": 252,
+  "height": 8
+}

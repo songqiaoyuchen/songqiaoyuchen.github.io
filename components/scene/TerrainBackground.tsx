@@ -15,11 +15,15 @@ import { usePostControls } from '@/components/debug/usePostControls';
 import { SceneFog } from './SceneFog';
 import { TerrainMesh } from './TerrainMesh';
 import { ContourLines } from './ContourLines';
+import { DecorativeStreams } from './DecorativeStreams';
+import { LinkStreams } from './LinkStreams';
 
 export function TerrainBackground() {
   const orbitcontrolsRef = useRef<OrbitControlsInstance>(null);
   const [bloomLight, setBloomLight] = useState<AmbientLight | null>(null);
   const [contourMesh, setContourMesh] = useState<Mesh | null>(null);
+  const [decorativeStreamsMesh, setDecorativeStreamsMesh] = useState<Mesh | null>(null);
+  const [linkStreamsMesh, setLinkStreamsMesh] = useState<Mesh | null>(null);
   const post = usePostControls();
 
   return (
@@ -29,12 +33,8 @@ export function TerrainBackground() {
         camera={{ position: TERRAIN_CONFIG.camera.position, fov: TERRAIN_CONFIG.camera.fov }}
         gl={{ antialias: false, powerPreference: 'high-performance' }}
       >
-        {/* Opaque canvas matching the page --background: the EffectComposer
-            doesn't have to deal with alpha, and bloom composites correctly. */}
         <color attach="background" args={[TERRAIN_CONFIG.fog.color]} />
-        {/* SelectiveBloom expects a light for its isolated render. The contour
-            shader is emissive and ignores it; keeping this at zero preserves
-            the scene while satisfying that pass. */}
+        {/* SelectiveBloom expects a light for its isolated render. */}
         <ambientLight ref={setBloomLight} intensity={0} />
         <OrbitControls ref={orbitcontrolsRef} target={TERRAIN_CONFIG.camera.target} makeDefault />
         <CameraLogger controlsRef={orbitcontrolsRef} />
@@ -42,16 +42,18 @@ export function TerrainBackground() {
         <Suspense fallback={null}>
           <TerrainMesh />
           <ContourLines ref={setContourMesh} />
+          <DecorativeStreams ref={setDecorativeStreamsMesh} />
+          <LinkStreams ref={setLinkStreamsMesh} />
         </Suspense>
         {/* Keep the composer single-sampled: MSAA resolve blits intermittently
             present empty frames on some GPUs. Color-only SMAA smooths edges
             without requesting the composer's sampled depth texture. */}
-        {contourMesh && bloomLight ? (
+        {contourMesh && decorativeStreamsMesh && linkStreamsMesh && bloomLight ? (
           <EffectComposer multisampling={0}>
             <ColorOnlySMAA preset={SMAAPreset.MEDIUM} />
             <SelectiveBloom
               lights={[bloomLight]}
-              selection={[contourMesh]}
+              selection={[contourMesh, linkStreamsMesh]}
               mipmapBlur
               intensity={post.bloomIntensity}
               luminanceThreshold={post.bloomThreshold}

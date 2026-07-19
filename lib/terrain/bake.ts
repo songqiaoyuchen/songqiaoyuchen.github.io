@@ -15,6 +15,26 @@ export interface HeightmapImage {
   height: number;
 }
 
+type HeightmapImageInput = {
+  data?: unknown;
+  width?: unknown;
+  height?: unknown;
+};
+
+export function toHeightmapImage(input: unknown): HeightmapImage {
+  if (!input || typeof input !== 'object') {
+    throw new Error('Invalid EXR image: expected object with data/width/height');
+  }
+  const { data, width, height } = input as HeightmapImageInput;
+  const validData = data instanceof Uint16Array || data instanceof Float32Array;
+  const validWidth = typeof width === 'number' && Number.isFinite(width) && width > 0;
+  const validHeight = typeof height === 'number' && Number.isFinite(height) && height > 0;
+  if (!validData || !validWidth || !validHeight) {
+    throw new Error('Invalid EXR image: expected typed array data and positive width/height');
+  }
+  return { data, width, height };
+}
+
 export interface HeightGrid {
   data: Float32Array;
   width: number;

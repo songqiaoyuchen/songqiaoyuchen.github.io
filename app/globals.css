@@ -30,3 +30,35 @@ body {
   padding: 0;
   overflow: hidden; /* Avoid scrollbars for full-screen hero */
 }
+
+.stream-hit-target {
+  display: block;
+  width: clamp(84px, 10vw, 156px);
+  height: 44px;
+  margin: 0;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  background: transparent;
+  color: transparent;
+  font-size: 0;
+  outline: none;
+  touch-action: manipulation;
+}
+
+.stream-hit-target--vertical {
+  width: 62px;
+  height: clamp(210px, 48vh, 360px);
+}
+
+@media (max-width: 720px) {
+  .stream-hit-target {
+    width: 92px;
+    height: 38px;
+  }
+
+
+  .stream-hit-target--vertical {
+    width: 52px;
+    height: 240px;
+  }
+}
