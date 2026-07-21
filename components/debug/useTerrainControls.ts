@@ -13,6 +13,11 @@ export function useTerrainControls() {
       min: 0, max: 1, step: 0.01,
       label: 'Sea Level',
     },
+    edgeFadeWidth: {
+      value: TERRAIN_CONFIG.mesh.edgeFadeWidth,
+      min: 0.01, max: 0.3, step: 0.01,
+      label: 'Edge Fade',
+    },
     baseColor:  { value: TERRAIN_CONFIG.material.baseColor,  label: 'Base Color'  },
     ridgeColor: { value: TERRAIN_CONFIG.material.ridgeColor, label: 'Ridge Color' },
     shadowStrength: {

@@ -3,6 +3,7 @@
 uniform float uTime;
 uniform float uIntroTime;
 uniform float uIntroTravelSpeed;
+uniform float uEdgeFadeWidth;
 
 uniform vec3 uMajorColor;
 uniform float uMajorIntensity;
@@ -23,6 +24,7 @@ varying float vLineId;
 varying float vMajor;
 varying float vTravelDirection;
 varying float vShadow;
+varying vec2 vTerrainUv;
 
 // Periodic classic Perlin noise (Stefan Gustavson / webgl-noise, MIT).
 vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
@@ -89,6 +91,12 @@ void main() {
   // Shadow companions: a calm faint echo of the minor color, no pulse.
   color = mix(color, uMinorColor * uShadowIntensity, vShadow);
   color *= reveal;
+
+  float edgeDistance = min(
+    min(vTerrainUv.x, 1.0 - vTerrainUv.x),
+    min(vTerrainUv.y, 1.0 - vTerrainUv.y)
+  );
+  color *= smoothstep(0.0, uEdgeFadeWidth, edgeDistance);
 
   #ifdef USE_FOG
     color *= 1.0 - smoothstep(fogNear, fogFar, vFogDepth);

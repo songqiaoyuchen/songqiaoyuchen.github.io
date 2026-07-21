@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Tool-specific worktrees contain their own generated Next.js output and
+    // are not part of this application workspace.
+    ".claude/**",
     // Local reverse-engineering/reference captures are not application code.
     ".agents/**",
   ]),

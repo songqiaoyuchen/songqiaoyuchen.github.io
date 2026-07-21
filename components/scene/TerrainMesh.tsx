@@ -20,7 +20,7 @@ export function TerrainMesh() {
   );
 
   const {
-    elevation, seaLevel,
+    elevation, seaLevel, edgeFadeWidth,
     baseColor, ridgeColor,
     lightColor, lightX, lightY, lightZ, lightIntensity, lightFalloff,
     light2Color, light2X, light2Y, light2Z, light2Intensity, light2Falloff,
@@ -32,6 +32,7 @@ export function TerrainMesh() {
     if (!mat) return;
     mat.uniforms.elevation.value     = elevation;
     mat.uniforms.seaLevel.value      = seaLevel;
+    mat.uniforms.edgeFadeWidth.value = edgeFadeWidth;
     mat.uniforms.baseColor.value.set(baseColor);
     mat.uniforms.ridgeColor.value.set(ridgeColor);
     mat.uniforms.lightColor.value.set(lightColor);
@@ -44,7 +45,7 @@ export function TerrainMesh() {
     mat.uniforms.light2Falloff.value   = light2Falloff;
     mat.uniforms.shadowStrength.value = shadowStrength;
     mat.uniforms.shadowBias.value = shadowBias;
-  }, [elevation, seaLevel, baseColor, ridgeColor, lightColor, lightX, lightY, lightZ,
+  }, [elevation, seaLevel, edgeFadeWidth, baseColor, ridgeColor, lightColor, lightX, lightY, lightZ,
       lightIntensity, lightFalloff, light2Color, light2X, light2Y, light2Z,
       light2Intensity, light2Falloff, shadowStrength, shadowBias]);
 
@@ -70,6 +71,7 @@ export function TerrainMesh() {
       shadowBias:     { value: TERRAIN_CONFIG.material.shadowBias },
       planeSize:      { value: TERRAIN_CONFIG.mesh.planeSize },
       meshY:          { value: TERRAIN_CONFIG.mesh.position[1] },
+      edgeFadeWidth:  { value: TERRAIN_CONFIG.mesh.edgeFadeWidth },
     },
   ]), [displacementMap, gradientMap]);
 

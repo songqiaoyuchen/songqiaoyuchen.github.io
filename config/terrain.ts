@@ -2,8 +2,8 @@ import type { Vector3Tuple } from 'three';
 
 export const TERRAIN_CONFIG = {
   camera: {
-    position: [5.097, 13.444, -6.564] as Vector3Tuple,
-    lookAt: [-0.219, -0.322, 0.921] as Vector3Tuple,
+    position: [5.799, 13.579, -6.321] as Vector3Tuple,
+    lookAt: [-0.285, -0.334, 0.898] as Vector3Tuple,
     target: [2.771, 10.028, 3.214] as Vector3Tuple,
     fov: 50,
   },
@@ -18,6 +18,9 @@ export const TERRAIN_CONFIG = {
     position: [0, -0.5, 0] as Vector3Tuple,
     segments: 512,
     planeSize: 22,
+    // Fraction of the terrain width feathered into the scene background at
+    // each physical edge. Applied to both the surface and contour geometry.
+    edgeFadeWidth: 0.12,
   },
 
   // Contour lines: real polylines extracted from the smoothed shell height
@@ -69,6 +72,44 @@ export const TERRAIN_CONFIG = {
     introTravelSpeed: 4,  // world units per second
   },
 
+  // Descent (H-007): GSAP ScrollTrigger owns the scroll-bound transition from
+  // the hero pose to a near-orthographic top-down map.
+  descent: {
+    scrollSvh: 180,  // scroll distance (svh) that plays the full descent
+    // Fully flattened, unwashed stage-2 runway reserved for the experience
+    // timeline DOM/SVG overlay. Stage 3 must remain below the viewport here.
+    mapHoldSvh: 100,
+    // One viewport keeps stage 3 below the fold until the wash starts, then
+    // brings it to the top exactly as the canvas becomes fully covered.
+    washSvh: 100,
+    // The flat artwork composition occupies one viewport before it gives way
+    // to the normally scrolling frog and colophon.
+    projectSvh: 100,
+
+    // Stage-2 framing: X/Z choose the terrain point at the centre of the map,
+    // Y and FOV choose its scale, and heading rotates the map in the viewport.
+    // The camera still looks straight down; this preserves the map-like read.
+    descentEndX: 4.8,
+    descentEndY: 21.6,
+    descentEndZ: 0.3,
+    descentEndFov: 50, // matches hero FOV; retained as a Leva framing control
+    descentEndHeading: -93, // degrees clockwise from map-north (+Z) up
+    // Reach the top-down crop before the final rise clears the wider map fog.
+    mapPoseCompleteAt: 0.82,
+    descentBow: -2.9,     // sideways (+X) bulge of the rise path midpoint
+    scrollScrubSeconds: 0.3, // GSAP catch-up time behind native scroll
+
+    // Fog widens as the camera rises so the map isn't swallowed by the
+    // stage-1 fog band (far 16.5 hides everything past ~12 units).
+    fogNearEnd: 12,
+    fogFarEnd: 56,
+    fogRevealPower: 4,
+
+    // Stage-1 text streams fade out early in the descent.
+    streamFadeStart: 0.34,
+    streamFadeEnd: 0.58,
+  },
+
   // Post-processing: bloom is what gives the lines their hot flat cores and
   // organic glow falloff (Lusion pushes bloom hard — up to ~12 in map mode).
   post: {
@@ -89,7 +130,7 @@ export const TERRAIN_CONFIG = {
     lightY: 7.3,
     lightZ: -0.2,
     lightColor: '#fef2ff',
-    lightIntensity: 2.45,
+    lightIntensity: 0.8,
     lightFalloff: 0.053,  // tighter pool of light with a faster fall into black
 
     // Independently tuned counter light. It uses the same hard diffuse
@@ -98,7 +139,7 @@ export const TERRAIN_CONFIG = {
     light2Y: 7.8,
     light2Z: 1.1,
     light2Color: '#fef2ff',
-    light2Intensity: 2.45,
+    light2Intensity: 1.2,
     light2Falloff: 0.065,
 
     // Height-field ray shadow. These stay as uniforms so future section looks

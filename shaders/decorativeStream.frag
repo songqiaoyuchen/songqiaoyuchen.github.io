@@ -3,6 +3,7 @@ uniform vec3 uColor;
 uniform vec3 uHotColor;
 uniform float uAtlasColumns;
 uniform float uEnergy;
+uniform float uFade;
 
 varying vec2 vStreamUv;
 varying vec4 vRandom;
@@ -39,7 +40,7 @@ void main() {
   float hotness = pow(randomA * randomB, 1.35);
   float characterBrightness = mix(0.08, 1.15, hotness);
   float brightness = shade * endpointFade * topSafeFade * depthFade
-    * vDensity * characterBrightness * uEnergy;
+    * vDensity * characterBrightness * uEnergy * uFade;
   vec3 color = mix(uColor, uHotColor, hotness * 0.7);
 
   if (brightness < 0.004) discard;

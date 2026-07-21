@@ -33,6 +33,10 @@ type LinkStream = LinkStreamRun & {
   id: string;
 };
 
+type Props = {
+  onMaterialReady?: (material: ShaderMaterial | null) => void;
+};
+
 const LINK_STREAMS: LinkStream[] = [
   { id: 'projects', text: 'PROJECTS',
     navRange: [0, 8], anchor: [7.05, 4.05],
@@ -52,7 +56,10 @@ const LINK_STREAMS: LinkStream[] = [
     linkId: 3, intensity: 1.1, seed: 18.3 },
 ];
 
-export const LinkStreams = forwardRef<Mesh>(function LinkStreams(_props, forwardedRef) {
+export const LinkStreams = forwardRef<Mesh, Props>(function LinkStreams(
+  { onMaterialReady },
+  forwardedRef,
+) {
   const exr = useLoader(EXRLoader, '/textures/terrain/heightmap.exr');
   const atlas = useLoader(TextureLoader, '/textures/text/stream-atlas.png');
   const materialRef = useRef<ShaderMaterial>(null);
@@ -74,6 +81,7 @@ export const LinkStreams = forwardRef<Mesh>(function LinkStreams(_props, forward
     meshY: { value: TERRAIN_CONFIG.mesh.position[1] },
     uLift: { value: 0.075 },
     uTime: { value: 0 },
+    uFade: { value: 1 },
     uHover: { value: new Vector4() },
     uGlitch: { value: new Vector4() },
     uAtlas: { value: atlas },
@@ -84,6 +92,10 @@ export const LinkStreams = forwardRef<Mesh>(function LinkStreams(_props, forward
 
   useEffect(() => configureSdfAtlas(atlas), [atlas]);
   useEffect(() => () => geometry.dispose(), [geometry]);
+  useEffect(() => {
+    onMaterialReady?.(materialRef.current);
+    return () => onMaterialReady?.(null);
+  }, [onMaterialReady]);
   useEffect(() => {
     if (!materialRef.current) return;
     materialRef.current.uniforms.elevation.value = elevation;

@@ -26,9 +26,9 @@ const MESH = TERRAIN_CONFIG.mesh;
 export const ContourLines = forwardRef<Mesh>(function ContourLines(_, forwardedRef) {
   const exr = useLoader(EXRLoader, '/textures/terrain/heightmap.exr');
   const matRef = useRef<ShaderMaterial>(null);
-  const introStart = useRef<number | null>(null);
+  const introElapsed = useRef(0);
 
-  const { elevation, seaLevel } = useTerrainControls();
+  const { elevation, seaLevel, edgeFadeWidth } = useTerrainControls();
   const lines = useContourControls();
 
   const { shellBase } = useMemo(
@@ -82,6 +82,8 @@ export const ContourLines = forwardRef<Mesh>(function ContourLines(_, forwardedR
     uMinorRadius: { value: C.minorRadius },
     uMajorRadius: { value: C.majorRadius },
     uDepthBias:   { value: C.depthBias },
+    uPlaneSize:   { value: MESH.planeSize },
+    uEdgeFadeWidth: { value: MESH.edgeFadeWidth },
 
     uMajorColor:     { value: new Color(C.majorColor) },
     uMajorIntensity: { value: C.majorIntensity },
@@ -106,6 +108,7 @@ export const ContourLines = forwardRef<Mesh>(function ContourLines(_, forwardedR
     u.uMinorRadius.value = lines.minorRadius;
     u.uMajorRadius.value = lines.majorRadius;
     u.uDepthBias.value = lines.depthBias;
+    u.uEdgeFadeWidth.value = edgeFadeWidth;
     u.uMajorColor.value.set(lines.majorColor);
     u.uMajorIntensity.value = lines.majorIntensity;
     u.uMinorColor.value.set(lines.minorColor);
@@ -117,19 +120,22 @@ export const ContourLines = forwardRef<Mesh>(function ContourLines(_, forwardedR
     u.uPulseSpeed.value = lines.pulseSpeed;
     u.uPulseScale.value = lines.pulseScale;
     u.uPulseSharpness.value = lines.pulseSharpness;
-  }, [elevation, lines]);
+  }, [edgeFadeWidth, elevation, lines]);
 
   useEffect(() => {
-    introStart.current = null;
+    introElapsed.current = 0;
     if (matRef.current) matRef.current.uniforms.uIntroTime.value = 0;
   }, [geometry]);
 
-  useFrame((state, delta) => {
+  useFrame((_, delta) => {
     const mat = matRef.current;
     if (!mat) return;
     mat.uniforms.uTime.value += delta;
-    if (introStart.current === null) introStart.current = state.clock.elapsedTime;
-    mat.uniforms.uIntroTime.value = state.clock.elapsedTime - introStart.current;
+    // Accumulate independently of R3F's clock, which restarts when the canvas
+    // wakes from demand mode. Reverse scrolling therefore reveals completed
+    // contours immediately instead of replaying their intro animation.
+    introElapsed.current += delta;
+    mat.uniforms.uIntroTime.value = introElapsed.current;
   });
 
   return (

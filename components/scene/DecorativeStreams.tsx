@@ -33,7 +33,14 @@ import { useTerrainControls } from '../debug/useTerrainControls';
 const TEXT_COUNT = 36;
 const TEXT_BOUNDS = { x: [-9.5, 9.5], z: [-0.5, 9.5] } as const;
 
-export const DecorativeStreams = forwardRef<MeshType>(function DecorativeStreams(_, forwardedRef) {
+type Props = {
+  onMaterialReady?: (material: ShaderMaterial | null) => void;
+};
+
+export const DecorativeStreams = forwardRef<MeshType, Props>(function DecorativeStreams(
+  { onMaterialReady },
+  forwardedRef,
+) {
   const exr = useLoader(EXRLoader, '/textures/terrain/heightmap.exr');
   const atlas = useLoader(TextureLoader, '/textures/text/decorative-atlas.png');
   const size = useThree((state) => state.size);
@@ -69,6 +76,7 @@ export const DecorativeStreams = forwardRef<MeshType>(function DecorativeStreams
       uColor: { value: new Color(TERRAIN_CONFIG.contours.minorColor) },
       uHotColor: { value: new Color(TERRAIN_CONFIG.contours.majorColor) },
       uEnergy: { value: 0.62 },
+      uFade: { value: 1 },
     },
     transparent: true,
     depthTest: false,
@@ -113,6 +121,10 @@ export const DecorativeStreams = forwardRef<MeshType>(function DecorativeStreams
     [compositor],
   );
 
+  useEffect(() => {
+    onMaterialReady?.(material);
+    return () => onMaterialReady?.(null);
+  }, [material, onMaterialReady]);
   useEffect(() => configureBitmapAtlas(atlas), [atlas]);
   useEffect(() => () => compositor.dispose(), [compositor]);
   useEffect(() => () => geometries.forEach((geometry) => geometry.dispose()), [geometries]);
@@ -120,7 +132,10 @@ export const DecorativeStreams = forwardRef<MeshType>(function DecorativeStreams
   useEffect(() => () => compositeGeometry.dispose(), [compositeGeometry]);
 
   useFrame((state, delta) => {
-    compositor.render(state.gl, state.camera, delta);
+    const fade = material.uniforms.uFade.value as number;
+    // Once the streams are fully faded the blur ladder is pure waste; the
+    // composite quad then shows the last (already black) target.
+    if (fade > 0.001) compositor.render(state.gl, state.camera, delta);
   }, -1);
 
   return (

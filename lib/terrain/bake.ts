@@ -15,17 +15,15 @@ export interface HeightmapImage {
   height: number;
 }
 
-type HeightmapImageInput = {
-  data?: unknown;
-  width?: unknown;
-  height?: unknown;
-};
-
+/**
+ * Validates and wraps an EXR image for terrain baking.
+ * @throws If the input is not a valid EXR image object 
+ * */
 export function toHeightmapImage(input: unknown): HeightmapImage {
   if (!input || typeof input !== 'object') {
-    throw new Error('Invalid EXR image: expected object with data/width/height');
+    throw new Error('Invalid EXR image: expected object');
   }
-  const { data, width, height } = input as HeightmapImageInput;
+  const { data, width, height } = input as HeightmapImage;
   const validData = data instanceof Uint16Array || data instanceof Float32Array;
   const validWidth = typeof width === 'number' && Number.isFinite(width) && width > 0;
   const validHeight = typeof height === 'number' && Number.isFinite(height) && height > 0;
@@ -280,7 +278,11 @@ export function bakeShellGrid(grid: HeightGrid, iterations: number, factor: numb
  *    independent of mesh density.
  */
 export function bakeTerrainMaps(image: HeightmapImage): TerrainMaps {
-  const cached = bakeCache.get(image);
+  // `toHeightmapImage` validates and wraps the EXR image for each consumer.
+  // Cache by the shared pixel buffer rather than that short-lived wrapper;
+  // otherwise TerrainMesh, ContourLines, and both stream systems each repeat
+  // the full source-grid decode, gradient bake, and six blur passes.
+  const cached = bakeCache.get(image.data);
   if (cached) return cached;
 
   const heights = decodeHeights(image);
@@ -296,10 +298,10 @@ export function bakeTerrainMaps(image: HeightmapImage): TerrainMaps {
     tex.needsUpdate = true;
   }
   const maps = { displacementMap, gradientMap, shellBase };
-  bakeCache.set(image, maps);
+  bakeCache.set(image.data, maps);
   return maps;
 }
 
 // Both the base terrain and the contour shell bake from the same EXR image,
 // so the decode/blur/gradient work is shared across meshes.
-const bakeCache = new WeakMap<HeightmapImage, TerrainMaps>();
+const bakeCache = new WeakMap<HeightmapImage['data'], TerrainMaps>();

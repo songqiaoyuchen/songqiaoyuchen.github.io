@@ -1,8 +1,19 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: "Krypton Mono";
+  src: url("/fonts/monospace_krypton.ttf") format("truetype");
+  font-display: swap;
+  font-style: normal;
+  font-weight: 400;
+}
+
 :root {
   --background: #0a0a0a;
   --foreground: rgb(237, 237, 237);
+  --font-geist-sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-geist-mono: "Krypton Mono", "IBM Plex Mono", Consolas, monospace;
+  --font-cormorant: Iowan Old Style, Baskerville, "Times New Roman", serif;
 }
 
 @theme inline {
@@ -28,7 +39,37 @@ body {
   color: var(--foreground);
   margin: 0;
   padding: 0;
-  overflow: hidden; /* Avoid scrollbars for full-screen hero */
+}
+
+a:focus-visible,
+button:focus-visible {
+  outline: 1px solid var(--color-accent);
+  outline-offset: 4px;
+}
+
+.experience-ripple {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: experience-ripple 2.8s ease-out infinite;
+}
+
+@keyframes experience-ripple {
+  0% {
+    opacity: 0.72;
+    transform: scale(0.25);
+  }
+  72%,
+  100% {
+    opacity: 0;
+    transform: scale(2.35);
+  }
+}
+
+/* R3F sets inline touch-action: none on its canvas for pointer events. With
+   the scroll runway pointer-transparent the canvas is the topmost hit target,
+   so it must keep native vertical touch scrolling alive. */
+.terrain-canvas-host canvas {
+  touch-action: pan-y !important;
 }
 
 .stream-hit-target {
@@ -51,6 +92,14 @@ body {
 }
 
 @media (max-width: 720px) {
+  .experience-station text:first-of-type {
+    font-size: 24px;
+  }
+
+  .experience-station text:last-of-type {
+    font-size: 19px;
+  }
+
   .stream-hit-target {
     width: 92px;
     height: 38px;
@@ -60,5 +109,16 @@ body {
   .stream-hit-target--vertical {
     width: 52px;
     height: 240px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

@@ -12,7 +12,7 @@ type Props = {
 export function TopNav({ activeSection, onSectionClick }: Props) {
   return (
     <nav
-      className="absolute left-0 right-0 top-0 z-50 flex items-center justify-between px-10 pt-7"
+      className="fixed left-0 right-0 top-0 z-50 flex items-start justify-between gap-5 px-5 pt-5 md:items-center md:px-10 md:pt-7"
       aria-label="Site navigation"
     >
       <Link
@@ -22,11 +22,11 @@ export function TopNav({ activeSection, onSectionClick }: Props) {
         Solaris
       </Link>
 
-      <ul className="flex list-none gap-8 p-0 m-0">
+      <ul className="m-0 flex max-w-[250px] list-none flex-wrap justify-end gap-x-4 gap-y-2 p-0 md:max-w-none md:flex-nowrap md:gap-8">
         {HOME_SECTIONS.map((s) => (
           <li key={s.id}>
             <button
-              className="border-0 bg-transparent px-0 py-1 font-mono text-[11px] uppercase tracking-[0.14em] text-muted hover:text-accent transition-colors"
+              className="border-0 bg-transparent px-0 py-1 font-mono text-[9px] uppercase tracking-[0.12em] text-muted transition-colors hover:text-accent md:text-[11px] md:tracking-[0.14em]"
               onClick={() => onSectionClick(s.id)}
               aria-pressed={activeSection === s.id}
             >
@@ -37,7 +37,7 @@ export function TopNav({ activeSection, onSectionClick }: Props) {
         <li>
           <Link
             href="/about"
-            className="font-mono text-[11px] uppercase tracking-[0.14em] text-muted transition-colors hover:text-text"
+            className="font-mono text-[9px] uppercase tracking-[0.12em] text-muted transition-colors hover:text-text md:text-[11px] md:tracking-[0.14em]"
           >
             About
           </Link>

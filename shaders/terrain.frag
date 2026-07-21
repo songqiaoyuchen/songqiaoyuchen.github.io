@@ -19,6 +19,7 @@ uniform float shadowStrength;
 uniform float shadowBias;
 uniform float planeSize;
 uniform float meshY;
+uniform float edgeFadeWidth;
 
 varying float vHeight;
 varying vec2  vUv;
@@ -99,6 +100,11 @@ void main() {
             light2Pos, light2Color, light2Intensity, light2Falloff, normal, color
           );
 
-  gl_FragColor = vec4(color, 1.0);
+  float edgeDistance = min(
+    min(vUv.x, 1.0 - vUv.x),
+    min(vUv.y, 1.0 - vUv.y)
+  );
+  float edgeFade = smoothstep(0.0, edgeFadeWidth, edgeDistance);
+  gl_FragColor = vec4(color, edgeFade);
   #include <fog_fragment>
 }

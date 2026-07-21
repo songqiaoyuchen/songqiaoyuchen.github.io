@@ -3,6 +3,7 @@ uniform vec3 uDecorationColor;
 uniform vec3 uLinkColor;
 uniform vec3 uHotColor;
 uniform float uTime;
+uniform float uFade;
 
 varying vec2 vAtlasUv;
 varying vec2 vLocalUv;
@@ -31,7 +32,7 @@ void main() {
 
   float scan = 0.8 + 0.2 * sin(gl_FragCoord.y * 1.45 + uTime * 2.2 + vSeed);
   float roleStrength = mix(0.32, 1.0, vNavGlyph);
-  float alpha = glyph * vIntensity * scan * roleStrength;
+  float alpha = glyph * vIntensity * scan * roleStrength * uFade;
   vec3 color = mix(uDecorationColor, uLinkColor, vNavGlyph);
   color = mix(color, uHotColor, vHover * (0.25 + vNavGlyph * 0.42) + vGlitch * 0.16);
 
