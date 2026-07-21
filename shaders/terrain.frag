@@ -18,6 +18,7 @@ uniform float light2Falloff;
 uniform float shadowStrength;
 uniform float shadowBias;
 uniform float planeSize;
+uniform float edgeFeather;
 uniform float meshY;
 
 varying float vHeight;
@@ -74,6 +75,13 @@ vec3 pointLightContribution(
 }
 
 void main() {
+  vec2 edgeDistance = min(vUv, 1.0 - vUv);
+  float edgeOpacity = smoothstep(
+    0.0,
+    edgeFeather,
+    min(edgeDistance.x, edgeDistance.y)
+  );
+
   // gradientMap stores d(pow(height, contrast)) per world unit along the local
   // plane axes, baked at full heightmap resolution. seaLevel and elevation are
   // applied here so the Leva controls stay live for lighting.
@@ -99,6 +107,6 @@ void main() {
             light2Pos, light2Color, light2Intensity, light2Falloff, normal, color
           );
 
-  gl_FragColor = vec4(color, 1.0);
+  gl_FragColor = vec4(color, edgeOpacity);
   #include <fog_fragment>
 }

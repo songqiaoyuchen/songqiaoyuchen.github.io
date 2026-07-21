@@ -82,6 +82,8 @@ export const ContourLines = forwardRef<Mesh>(function ContourLines(_, forwardedR
     uMinorRadius: { value: C.minorRadius },
     uMajorRadius: { value: C.majorRadius },
     uDepthBias:   { value: C.depthBias },
+    uPlaneSize:   { value: MESH.planeSize },
+    uEdgeFeather: { value: MESH.edgeFeather },
 
     uMajorColor:     { value: new Color(C.majorColor) },
     uMajorIntensity: { value: C.majorIntensity },

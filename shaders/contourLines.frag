@@ -3,6 +3,7 @@
 uniform float uTime;
 uniform float uIntroTime;
 uniform float uIntroTravelSpeed;
+uniform float uEdgeFeather;
 
 uniform vec3 uMajorColor;
 uniform float uMajorIntensity;
@@ -23,6 +24,7 @@ varying float vLineId;
 varying float vMajor;
 varying float vTravelDirection;
 varying float vShadow;
+varying vec2 vTerrainUv;
 
 // Periodic classic Perlin noise (Stefan Gustavson / webgl-noise, MIT).
 vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
@@ -90,10 +92,18 @@ void main() {
   color = mix(color, uMinorColor * uShadowIntensity, vShadow);
   color *= reveal;
 
+  vec2 edgeDistance = min(vTerrainUv, 1.0 - vTerrainUv);
+  float edgeOpacity = smoothstep(
+    0.0,
+    uEdgeFeather,
+    min(edgeDistance.x, edgeDistance.y)
+  );
+
   #ifdef USE_FOG
     color *= 1.0 - smoothstep(fogNear, fogFar, vFogDepth);
   #endif
 
   float alpha = clamp(max(color.r, max(color.g, color.b)), 0.0, 1.0);
+  alpha *= edgeOpacity;
   gl_FragColor = vec4(color, alpha);
 }

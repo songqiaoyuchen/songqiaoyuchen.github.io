@@ -11,13 +11,15 @@ export const TERRAIN_CONFIG = {
   fog: {
     color: '#0a0a0a',
     near: 7.5,
-    far: 16.5,
+    far: 21,
   },
 
   mesh: {
     position: [0, -0.5, 0] as Vector3Tuple,
     segments: 512,
     planeSize: 22,
+    // Normalized inward fade on every side, hiding the finite plane boundary.
+    edgeFeather: 0.12,
   },
 
   // Contour lines: real polylines extracted from the smoothed shell height
@@ -89,7 +91,7 @@ export const TERRAIN_CONFIG = {
     lightY: 7.3,
     lightZ: -0.2,
     lightColor: '#fef2ff',
-    lightIntensity: 2.45,
+    lightIntensity: 1.05,
     lightFalloff: 0.053,  // tighter pool of light with a faster fall into black
 
     // Independently tuned counter light. It uses the same hard diffuse
@@ -98,7 +100,7 @@ export const TERRAIN_CONFIG = {
     light2Y: 7.8,
     light2Z: 1.1,
     light2Color: '#fef2ff',
-    light2Intensity: 2.45,
+    light2Intensity: 1.45,
     light2Falloff: 0.065,
 
     // Height-field ray shadow. These stay as uniforms so future section looks

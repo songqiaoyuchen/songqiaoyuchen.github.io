@@ -13,6 +13,7 @@ uniform float uMeshY;
 uniform float uMinorRadius;
 uniform float uMajorRadius;
 uniform float uDepthBias;
+uniform float uPlaneSize;
 
 varying float vT;
 varying float vTotalLength;
@@ -20,6 +21,7 @@ varying float vLineId;
 varying float vMajor;
 varying float vTravelDirection;
 varying float vShadow;
+varying vec2 vTerrainUv;
 
 void main() {
   vT = t;
@@ -37,6 +39,7 @@ void main() {
   );
   float radius = mix(uMinorRadius, uMajorRadius, vMajor);
   vec3 pos = center + normal * radius;
+  vTerrainUv = pos.xz / uPlaneSize + 0.5;
 
   vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
   gl_Position = projectionMatrix * mvPosition;

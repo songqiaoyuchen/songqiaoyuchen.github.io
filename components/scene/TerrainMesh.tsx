@@ -69,6 +69,7 @@ export function TerrainMesh() {
       shadowStrength: { value: TERRAIN_CONFIG.material.shadowStrength },
       shadowBias:     { value: TERRAIN_CONFIG.material.shadowBias },
       planeSize:      { value: TERRAIN_CONFIG.mesh.planeSize },
+      edgeFeather:    { value: TERRAIN_CONFIG.mesh.edgeFeather },
       meshY:          { value: TERRAIN_CONFIG.mesh.position[1] },
     },
   ]), [displacementMap, gradientMap]);
