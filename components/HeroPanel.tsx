@@ -1,44 +1,28 @@
-﻿'use client';
+'use client';
 
-import { HOME_SECTIONS } from '@/data/homeSections';
-import type { SectionId } from '@/data/homeSections';
+import FadeContent from '@/components/FadeContent/FadeContent';
 
 type Props = {
-  activeSection: SectionId | null;
+  isFocused: boolean;
 };
 
-export function HeroPanel({ activeSection }: Props) {
-  const section = activeSection
-    ? (HOME_SECTIONS.find((s) => s.id === activeSection) ?? null)
-    : null;
-
+export function HeroPanel({ isFocused }: Props) {
   return (
     <div
-      className="absolute left-1/2 top-1/2 z-40 w-[min(340px,calc(100vw-48px))] -translate-x-1/2 -translate-y-1/2 border border-line bg-surface px-6 py-7 backdrop-blur-[14px]"
+      className={`absolute left-1/2 top-1/2 z-30 w-[min(340px,calc(100vw-48px))] -translate-x-1/2 border border-line bg-surface px-6 py-7 backdrop-blur-[14px] transition-[opacity,transform] duration-300 ease-out motion-reduce:transition-opacity ${
+        isFocused
+          ? '-translate-y-[calc(50%+8px)] opacity-0 pointer-events-none'
+          : '-translate-y-1/2 opacity-100 pointer-events-auto'
+      }`}
       role="region"
-      aria-label={section ? `${section.label} overview` : 'Introduction'}
+      aria-label="Introduction"
+      aria-hidden={isFocused}
     >
-
-      <h1 className="mb-2.5 font-serif text-[26px] font-normal italic leading-[1.2] text-text">
-        Hello, I&apos;m Sophon.
-      </h1>
-
-      {section ? (
-        <div className="mt-3">
-          <h2 className="mb-3.5 font-serif text-[30px] font-normal italic leading-[1.1] text-text">
-            {section.label}
-          </h2>
-          <p className="mb-3 font-mono text-[11px] leading-[1.75] text-muted">
-            {section.preview.description}
-          </p>
-          <a
-            href={section.href}
-            className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-accent"
-          >
-            View {section.label.toLowerCase()}
-          </a>
-        </div>
-      ) : null}
+      <FadeContent blur duration={1000} ease="power2.out" initialOpacity={0}>
+        <h1 className="font-serif text-[26px] font-normal italic leading-[1.2] text-text">
+          Hello, I&apos;m Sophon.
+        </h1>
+      </FadeContent>
     </div>
   );
 }

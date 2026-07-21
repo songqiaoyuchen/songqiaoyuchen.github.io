@@ -16,9 +16,16 @@ import { SceneFog } from './SceneFog';
 import { TerrainMesh } from './TerrainMesh';
 import { ContourLines } from './ContourLines';
 import { DecorativeStreams } from './DecorativeStreams';
-import { LinkStreams } from './LinkStreams';
+import { LinkStreams, type LinkStreamId } from './LinkStreams';
+import { CameraRig } from './CameraRig';
+import type { HomeSection } from '@/data/homeFocusSections';
 
-export function TerrainBackground() {
+type TerrainBackgroundProps = {
+  activeSection: HomeSection | null;
+  onLinkStreamClick: (id: LinkStreamId) => void;
+};
+
+export function TerrainBackground({ activeSection, onLinkStreamClick }: TerrainBackgroundProps) {
   const orbitcontrolsRef = useRef<OrbitControlsInstance>(null);
   const [bloomLight, setBloomLight] = useState<AmbientLight | null>(null);
   const [contourMesh, setContourMesh] = useState<Mesh | null>(null);
@@ -37,13 +44,18 @@ export function TerrainBackground() {
         {/* SelectiveBloom expects a light for its isolated render. */}
         <ambientLight ref={setBloomLight} intensity={0} />
         <OrbitControls ref={orbitcontrolsRef} target={TERRAIN_CONFIG.camera.target} makeDefault />
+        <CameraRig controlsRef={orbitcontrolsRef} isFocused={activeSection !== null} />
         <CameraLogger controlsRef={orbitcontrolsRef} />
         <SceneFog />
         <Suspense fallback={null}>
           <TerrainMesh />
           <ContourLines ref={setContourMesh} />
           <DecorativeStreams ref={setDecorativeStreamsMesh} />
-          <LinkStreams ref={setLinkStreamsMesh} />
+          <LinkStreams
+            ref={setLinkStreamsMesh}
+            activeSection={activeSection}
+            onLinkClick={onLinkStreamClick}
+          />
         </Suspense>
         {/* Keep the composer single-sampled: MSAA resolve blits intermittently
             present empty frames on some GPUs. Color-only SMAA smooths edges

@@ -8,8 +8,8 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-krypton);
+  --font-mono: var(--font-krypton);
   --color-surface: rgba(8, 8, 6, 0.76);
   --color-surface-strong: rgba(8, 8, 6, 0.92);
   --color-text: #f2eee6;
@@ -19,13 +19,14 @@
   --color-line-hover: rgba(242, 238, 230, 0.50);
   --color-accent: #e8c77a;
   --color-accent-dim: rgba(232, 199, 122, 0.22);
-  --font-serif: var(--font-cormorant);
+  --font-serif: var(--font-krypton);
 }
 
 html,
 body {
   background: var(--background);
   color: var(--foreground);
+  font-family: var(--font-krypton), monospace;
   margin: 0;
   padding: 0;
   overflow: hidden; /* Avoid scrollbars for full-screen hero */

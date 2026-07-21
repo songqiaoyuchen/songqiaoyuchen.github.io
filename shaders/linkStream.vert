@@ -16,6 +16,11 @@ uniform float uLift;
 uniform float uTime;
 uniform vec4 uHover;
 uniform vec4 uGlitch;
+uniform vec4 uLayoutOffsetX;
+uniform vec4 uLayoutOffsetZ;
+uniform float uLayoutProgress;
+uniform float uActiveLink;
+uniform float uFocused;
 
 varying vec2 vAtlasUv;
 varying vec2 vLocalUv;
@@ -25,6 +30,8 @@ varying float vSeed;
 varying float vStreamT;
 varying float vHover;
 varying float vGlitch;
+varying float vActive;
+varying float vFocused;
 
 float hash12(vec2 p) {
   vec3 p3 = fract(vec3(p.xyx) * 0.1031);
@@ -53,10 +60,17 @@ void main() {
   vStreamT = aStreamT;
   vHover = linkValue(uHover, aLinkId);
   vGlitch = linkValue(uGlitch, aLinkId);
+  vActive = 1.0 - step(0.25, abs(aLinkId - uActiveLink));
+  vFocused = uFocused;
 
-  vec2 terrainUv = vec2(position.x / planeSize + 0.5, 0.5 - position.z / planeSize);
+  vec2 layoutOffset = vec2(
+    linkValue(uLayoutOffsetX, aLinkId),
+    linkValue(uLayoutOffsetZ, aLinkId)
+  ) * uLayoutProgress;
+  vec2 layoutPosition = position.xz + layoutOffset;
+  vec2 terrainUv = vec2(layoutPosition.x / planeSize + 0.5, 0.5 - layoutPosition.y / planeSize);
   float terrainHeight = processH(texture2D(heightmap, terrainUv).r) * elevation + meshY;
-  vec3 center = vec3(position.x, terrainHeight + position.y + uLift, position.z);
+  vec3 center = vec3(layoutPosition.x, terrainHeight + position.y + uLift, layoutPosition.y);
   vec3 toCamera = normalize(cameraPosition - center);
   vec3 right = normalize(cross(vec3(0.0, 1.0, 0.0), toCamera));
   float band = floor(aLocalUv.y * 7.0);
