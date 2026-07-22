@@ -25,7 +25,10 @@ float atlasSample(float character, vec2 glyphUv) {
 void main() {
   float cellPosition = vStreamUv.y * vCharCount;
   float cellIndex = floor(cellPosition);
-  float character = floor(hash12(vec2(cellIndex + vRandom.x * 97.0, vRandom.w * 53.0)) * uAtlasColumns);
+  float character = floor(
+    hash12(vec2(cellIndex + vRandom.x * 97.0, vRandom.w * 53.0))
+    * uAtlasColumns
+  );
   vec2 glyphUv = vec2(vStreamUv.x, fract(cellPosition));
 
   float shade = atlasSample(character, glyphUv);

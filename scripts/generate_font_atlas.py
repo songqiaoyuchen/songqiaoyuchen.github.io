@@ -69,7 +69,12 @@ def edt(mask: np.ndarray) -> np.ndarray:
     return np.sqrt(result)
 
 
-def glyph_sdf(font: ImageFont.FreeTypeFont, character: str, cell_size: int, distance_range: int) -> np.ndarray:
+def glyph_sdf(
+    font: ImageFont.FreeTypeFont,
+    character: str,
+    cell_size: int,
+    distance_range: int,
+) -> np.ndarray:
     mask_image = Image.new("L", (cell_size, cell_size), 0)
     draw = ImageDraw.Draw(mask_image)
     ascent, descent = font.getmetrics()

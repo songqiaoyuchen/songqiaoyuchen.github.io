@@ -4,13 +4,9 @@ import { button, levaStore, useControls } from 'leva';
 import { postConfigValues } from '@/lib/debug/saveConfig';
 
 /**
- * "Save Config" Leva button: snapshots every current control value (all
- * folders) and writes it back into config/terrain.ts, so a tuning session
- * becomes the new default look with one click.
- *
- * Camera settings are untouched by construction: only scalar Leva control
- * values are sent, under their flat leaf keys — the camera block is written
- * exclusively by Save Camera (CameraLogger) via `camera.`-scoped keys.
+ * Leva button: snapshots control values (except camera related) 
+ * and writes it back into config/scene, 
+ * so a tuning session becomes the new default look with one click.
  */
 function collectLevaValues(): Record<string, unknown> {
   const values: Record<string, unknown> = {};

@@ -11,8 +11,9 @@ import {
 } from 'three';
 import type { Mesh } from 'three';
 import { EXRLoader } from 'three-stdlib';
-import { TERRAIN_CONFIG } from '@/config/terrain';
-import { bakeTerrainMaps, bakeShellGrid, toHeightmapImage } from '@/lib/terrain/bake';
+import {CONTOUR_CONFIG, TERRAIN_MATERIAL_CONFIG, TERRAIN_MESH_CONFIG} from '@/config/scene';
+import {bakeTerrainMaps, toHeightmapImage} from '@/lib/terrain/bake';
+import {bakeShellGrid} from '@/lib/terrain/shell';
 import { extractIsolines } from '@/lib/terrain/isolines';
 import { buildContourTubeGeometry } from '@/lib/terrain/lineTube';
 import vertexShader from '@/shaders/contourLines.vert';
@@ -20,8 +21,8 @@ import fragmentShader from '@/shaders/contourLines.frag';
 import { useTerrainControls } from '../debug/useTerrainControls';
 import { useContourControls } from '../debug/useContourControls';
 
-const C = TERRAIN_CONFIG.contours;
-const MESH = TERRAIN_CONFIG.mesh;
+const CONTOURS = CONTOUR_CONFIG;
+const TERRAIN_MESH = TERRAIN_MESH_CONFIG;
 
 export const ContourLines = forwardRef<Mesh>(function ContourLines(_, forwardedRef) {
   const exr = useLoader(EXRLoader, '/textures/terrain/heightmap.exr');
@@ -37,21 +38,21 @@ export const ContourLines = forwardRef<Mesh>(function ContourLines(_, forwardedR
   );
 
   const shellGrid = useMemo(
-    () => bakeShellGrid(shellBase, lines.smoothIterations, C.smoothFactor),
+    () => bakeShellGrid(shellBase, lines.smoothIterations, CONTOURS.smoothFactor),
     [shellBase, lines.smoothIterations],
   );
 
   const isolines = useMemo(
     () => extractIsolines(shellGrid, {
       levels: lines.levels,
-      contrast: TERRAIN_CONFIG.material.contrast,
+      contrast: TERRAIN_MATERIAL_CONFIG.contrast,
       seaLevel,
-      planeSize: MESH.planeSize,
-      downsample: C.downsample,
-      rdpEpsilon: C.rdpEpsilon,
+      planeSize: TERRAIN_MESH.planeSize,
+      downsample: CONTOURS.downsample,
+      rdpEpsilon: CONTOURS.rdpEpsilon,
       chaikinIterations: lines.chaikinIterations,
       resampleSpacing: lines.resampleSpacing,
-      minLength: C.minLength,
+      minLength: CONTOURS.minLength,
       majorEvery: lines.majorEvery,
       majorMinHeight: lines.majorMinHeight,
       spacingJitter: lines.spacingJitter,
@@ -74,51 +75,51 @@ export const ContourLines = forwardRef<Mesh>(function ContourLines(_, forwardedR
     ...UniformsUtils.clone(UniformsLib.fog),
     uTime:            { value: 0 },
     uIntroTime:       { value: 0 },
-    uIntroTravelSpeed: { value: C.introTravelSpeed },
+    uIntroTravelSpeed: { value: CONTOURS.introTravelSpeed },
 
-    uElevation:  { value: TERRAIN_CONFIG.material.elevation },
-    uLift:       { value: C.lift },
-    uMeshY:      { value: MESH.position[1] },
-    uMinorRadius: { value: C.minorRadius },
-    uMajorRadius: { value: C.majorRadius },
-    uDepthBias:   { value: C.depthBias },
-    uPlaneSize:   { value: MESH.planeSize },
-    uEdgeFeather: { value: MESH.edgeFeather },
+    uElevation:  { value: TERRAIN_MATERIAL_CONFIG.elevation },
+    uLift:       { value: CONTOURS.lift },
+    uMeshY:      { value: TERRAIN_MESH.position[1] },
+    uMinorRadius: { value: CONTOURS.minorRadius },
+    uMajorRadius: { value: CONTOURS.majorRadius },
+    uDepthBias:   { value: CONTOURS.depthBias },
+    uPlaneSize:   { value: TERRAIN_MESH.planeSize },
+    uEdgeFeather: { value: TERRAIN_MESH.edgeFeather },
 
-    uMajorColor:     { value: new Color(C.majorColor) },
-    uMajorIntensity: { value: C.majorIntensity },
-    uMinorColor:     { value: new Color(C.minorColor) },
-    uMinorIntensity: { value: C.minorIntensity },
-    uMinorBase:      { value: C.minorBase },
-    uShadowIntensity: { value: C.shadowIntensity },
+    uMajorColor:     { value: new Color(CONTOURS.majorColor) },
+    uMajorIntensity: { value: CONTOURS.majorIntensity },
+    uMinorColor:     { value: new Color(CONTOURS.minorColor) },
+    uMinorIntensity: { value: CONTOURS.minorIntensity },
+    uMinorBase:      { value: CONTOURS.minorBase },
+    uShadowIntensity: { value: CONTOURS.shadowIntensity },
 
-    uPulseColor:     { value: new Color(C.pulseColor) },
-    uPulseTint:      { value: C.pulseTint },
-    uPulseSpeed:     { value: C.pulseSpeed },
-    uPulseScale:     { value: C.pulseScale },
-    uPulseSharpness: { value: C.pulseSharpness },
+    uPulseColor:     { value: new Color(CONTOURS.pulseColor) },
+    uPulseTint:      { value: CONTOURS.pulseTint },
+    uPulseSpeed:     { value: CONTOURS.pulseSpeed },
+    uPulseScale:     { value: CONTOURS.pulseScale },
+    uPulseSharpness: { value: CONTOURS.pulseSharpness },
   }), []);
 
   useEffect(() => {
-    const mat = matRef.current;
-    if (!mat) return;
-    const u = mat.uniforms;
-    u.uElevation.value = elevation;
-    u.uLift.value = lines.lift;
-    u.uMinorRadius.value = lines.minorRadius;
-    u.uMajorRadius.value = lines.majorRadius;
-    u.uDepthBias.value = lines.depthBias;
-    u.uMajorColor.value.set(lines.majorColor);
-    u.uMajorIntensity.value = lines.majorIntensity;
-    u.uMinorColor.value.set(lines.minorColor);
-    u.uMinorIntensity.value = lines.minorIntensity;
-    u.uMinorBase.value = lines.minorBase;
-    u.uShadowIntensity.value = lines.shadowIntensity;
-    u.uPulseColor.value.set(lines.pulseColor);
-    u.uPulseTint.value = lines.pulseTint;
-    u.uPulseSpeed.value = lines.pulseSpeed;
-    u.uPulseScale.value = lines.pulseScale;
-    u.uPulseSharpness.value = lines.pulseSharpness;
+    const material = matRef.current;
+    if (!material) return;
+    const uniforms = material.uniforms;
+    uniforms.uElevation.value = elevation;
+    uniforms.uLift.value = lines.lift;
+    uniforms.uMinorRadius.value = lines.minorRadius;
+    uniforms.uMajorRadius.value = lines.majorRadius;
+    uniforms.uDepthBias.value = lines.depthBias;
+    uniforms.uMajorColor.value.set(lines.majorColor);
+    uniforms.uMajorIntensity.value = lines.majorIntensity;
+    uniforms.uMinorColor.value.set(lines.minorColor);
+    uniforms.uMinorIntensity.value = lines.minorIntensity;
+    uniforms.uMinorBase.value = lines.minorBase;
+    uniforms.uShadowIntensity.value = lines.shadowIntensity;
+    uniforms.uPulseColor.value.set(lines.pulseColor);
+    uniforms.uPulseTint.value = lines.pulseTint;
+    uniforms.uPulseSpeed.value = lines.pulseSpeed;
+    uniforms.uPulseScale.value = lines.pulseScale;
+    uniforms.uPulseSharpness.value = lines.pulseSharpness;
   }, [elevation, lines]);
 
   useEffect(() => {
@@ -127,11 +128,11 @@ export const ContourLines = forwardRef<Mesh>(function ContourLines(_, forwardedR
   }, [geometry]);
 
   useFrame((state, delta) => {
-    const mat = matRef.current;
-    if (!mat) return;
-    mat.uniforms.uTime.value += delta;
+    const material = matRef.current;
+    if (!material) return;
+    material.uniforms.uTime.value += delta;
     if (introStart.current === null) introStart.current = state.clock.elapsedTime;
-    mat.uniforms.uIntroTime.value = state.clock.elapsedTime - introStart.current;
+    material.uniforms.uIntroTime.value = state.clock.elapsedTime - introStart.current;
   });
 
   return (

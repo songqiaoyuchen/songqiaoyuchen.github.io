@@ -5,19 +5,19 @@ import {
   PlaneGeometry,
   Vector3,
 } from 'three';
-import { TERRAIN_CONFIG } from '@/config/terrain';
+import {CAMERA_CONFIG} from '@/config/scene';
 import type { HeightGrid } from '@/lib/terrain/bake';
-import { random01, randomBetween, sampleTerrainHeight } from './terrainTextShared';
+import {sampleHeight} from '@/lib/terrain/height';
 
-export const DECORATIVE_ATLAS_COLUMNS = 42;
-export const DECORATIVE_DEPTH_LAYERS = 4;
+export const DECOR_ATLAS_COLUMNS = 42;
+export const DECOR_DEPTH_LAYERS = 4;
 
-export type DecorativeStreamBounds = {
+export type DecorStreamBounds = {
   x: readonly [number, number];
   z: readonly [number, number];
 };
 
-type DecorativeStreamInstance = {
+type DecorStreamInstance = {
   anchor: [number, number];
   charCount: number;
   glyphHeight: number;
@@ -30,7 +30,7 @@ type DecorativeStreamInstance = {
 
 type LayoutOptions = {
   count: number;
-  bounds: DecorativeStreamBounds;
+  bounds: DecorStreamBounds;
   seed: number;
   aspect: number;
   heightGrid: HeightGrid;
@@ -38,10 +38,19 @@ type LayoutOptions = {
   seaLevel: number;
 };
 
+function random01(index: number, salt: number, seed: number) {
+  const value = Math.sin((index + seed) * 127.1 + salt * 311.7) * 43758.5453;
+  return value - Math.floor(value);
+}
+
+function randomBetween(min: number, max: number, value: number) {
+  return min + (max - min) * value;
+}
+
 function makeLayoutCamera(aspect: number) {
-  const camera = new PerspectiveCamera(TERRAIN_CONFIG.camera.fov, aspect, 0.1, 100);
-  camera.position.fromArray(TERRAIN_CONFIG.camera.position);
-  camera.lookAt(new Vector3().fromArray(TERRAIN_CONFIG.camera.target));
+  const camera = new PerspectiveCamera(CAMERA_CONFIG.fov, aspect, 0.1, 100);
+  camera.position.fromArray(CAMERA_CONFIG.position);
+  camera.lookAt(new Vector3().fromArray(CAMERA_CONFIG.target));
   camera.updateMatrixWorld(true);
   return camera;
 }
@@ -51,7 +60,7 @@ function makeLayoutCamera(aspect: number) {
  * in projected X. The source distribution stays random over the terrain, while
  * streams can no longer collapse into camera-space clumps or overlap columns.
  */
-export function generateDecorativeStreamLayers({
+export function generateDecorStreamLayers({
   count,
   bounds,
   seed,
@@ -59,9 +68,9 @@ export function generateDecorativeStreamLayers({
   heightGrid,
   elevation,
   seaLevel,
-}: LayoutOptions): DecorativeStreamInstance[][] {
+}: LayoutOptions): DecorStreamInstance[][] {
   const camera = makeLayoutCamera(aspect);
-  const candidates: DecorativeStreamInstance[] = [];
+  const candidates: DecorStreamInstance[] = [];
   const projected = new Vector3();
   const viewPosition = new Vector3();
 
@@ -69,7 +78,7 @@ export function generateDecorativeStreamLayers({
     const x = randomBetween(bounds.x[0], bounds.x[1], random01(attempt, 1, seed));
     const z = randomBetween(bounds.z[0], bounds.z[1], random01(attempt, 2, seed));
     const bottomOffset = randomBetween(0.08, 0.68, random01(attempt, 5, seed));
-    const y = sampleTerrainHeight(heightGrid, x, z, elevation, seaLevel) + bottomOffset;
+    const y = sampleHeight(heightGrid, x, z, elevation, seaLevel) + bottomOffset;
 
     projected.set(x, y, z).project(camera);
     viewPosition.set(x, y, z).applyMatrix4(camera.matrixWorldInverse);
@@ -97,11 +106,11 @@ export function generateDecorativeStreamLayers({
   }
 
   // One random target inside each projected band: even visual weight without
-  // turning the underlying world-space placement into a hardcoded curtain.
+  // turning the underlying world-space placement into fixed columns.
   const screenMin = -0.96;
   const screenSpan = 1.92;
   const bandWidth = screenSpan / count;
-  const selected: DecorativeStreamInstance[] = [];
+  const selected: DecorStreamInstance[] = [];
   const remaining = [...candidates];
   for (let index = 0; index < count && remaining.length; index++) {
     const jitter = (random01(index, 11, seed) - 0.5) * bandWidth * 0.42;
@@ -123,21 +132,21 @@ export function generateDecorativeStreamLayers({
   // instance index.
   selected.sort((a, b) => b.viewDepth - a.viewDepth);
   const layers = Array.from(
-    { length: DECORATIVE_DEPTH_LAYERS },
-    () => [] as DecorativeStreamInstance[],
+    { length: DECOR_DEPTH_LAYERS },
+    () => [] as DecorStreamInstance[],
   );
   selected.forEach((instance, index) => {
     const layer = Math.min(
-      DECORATIVE_DEPTH_LAYERS - 1,
-      Math.floor(index * DECORATIVE_DEPTH_LAYERS / selected.length),
+      DECOR_DEPTH_LAYERS - 1,
+      Math.floor(index * DECOR_DEPTH_LAYERS / selected.length),
     );
     layers[layer].push(instance);
   });
   return layers;
 }
 
-export function buildDecorativeStreamGeometry(
-  instances: DecorativeStreamInstance[],
+export function buildDecorStreamGeometry(
+  instances: DecorStreamInstance[],
 ): InstancedBufferGeometry {
   const plane = new PlaneGeometry(1, 1);
   const geometry = new InstancedBufferGeometry();

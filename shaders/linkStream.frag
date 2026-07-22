@@ -1,6 +1,6 @@
 uniform sampler2D uAtlas;
 uniform vec3 uDecorationColor;
-uniform vec3 uLinkColor;
+uniform vec3 uStreamColor;
 uniform vec3 uHotColor;
 uniform float uTime;
 uniform float uDissolve;
@@ -41,7 +41,7 @@ void main() {
   float focusEmphasis = mix(1.0, mix(0.52, 1.08, vActive), vFocused);
   focusEmphasis = mix(focusEmphasis, max(focusEmphasis, 0.94), vHover);
   float alpha = glyph * vIntensity * scan * roleStrength * focusEmphasis;
-  vec3 color = mix(uDecorationColor, uLinkColor, vNavGlyph);
+  vec3 color = mix(uDecorationColor, uStreamColor, vNavGlyph);
   color = mix(
     color,
     uHotColor,

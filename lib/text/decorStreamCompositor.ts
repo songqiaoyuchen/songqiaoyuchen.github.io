@@ -20,7 +20,7 @@ const CLEAR = new Color(0x000000);
 // quarter the fill cost of every render and blur with no visible loss.
 const RESOLUTION_SCALE = 0.5;
 
-// Overall blur strength multiplier：lower -> sharper
+// Overall blur strength multiplier: lower means sharper.
 const BLUR_SCALE = 0.2;
 
 function makeTarget(width: number, height: number) {
@@ -42,7 +42,7 @@ function makeTarget(width: number, height: number) {
  * The nearest group is not part of this pipeline to stay crisp
  * while the blurred stack runs at RESOLUTION_SCALE.
  */
-export class DecorativeStreamCompositor {
+export class DecorStreamCompositor {
   readonly texture;
   private readonly meshes: Mesh[];
   private readonly scenes: Scene[];

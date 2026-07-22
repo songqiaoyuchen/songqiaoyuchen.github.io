@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useLoader } from '@react-three/fiber';
 import { Color, PlaneGeometry, ShaderMaterial, UniformsLib, UniformsUtils, Vector3 } from 'three';
 import { EXRLoader } from 'three-stdlib';
-import { TERRAIN_CONFIG } from '@/config/terrain';
+import {TERRAIN_MATERIAL_CONFIG, TERRAIN_MESH_CONFIG} from '@/config/scene';
 import { bakeTerrainMaps, toHeightmapImage } from '@/lib/terrain/bake';
 import vertexShader from '@/shaders/terrain.vert';
 import fragmentShader from '@/shaders/terrain.frag';
@@ -28,22 +28,22 @@ export function TerrainMesh() {
   } = useTerrainControls();
 
   useEffect(() => {
-    const mat = surfaceMatRef.current;
-    if (!mat) return;
-    mat.uniforms.elevation.value     = elevation;
-    mat.uniforms.seaLevel.value      = seaLevel;
-    mat.uniforms.baseColor.value.set(baseColor);
-    mat.uniforms.ridgeColor.value.set(ridgeColor);
-    mat.uniforms.lightColor.value.set(lightColor);
-    mat.uniforms.lightPos.value.set(lightX, lightY, lightZ);
-    mat.uniforms.lightIntensity.value = lightIntensity;
-    mat.uniforms.lightFalloff.value   = lightFalloff;
-    mat.uniforms.light2Color.value.set(light2Color);
-    mat.uniforms.light2Pos.value.set(light2X, light2Y, light2Z);
-    mat.uniforms.light2Intensity.value = light2Intensity;
-    mat.uniforms.light2Falloff.value   = light2Falloff;
-    mat.uniforms.shadowStrength.value = shadowStrength;
-    mat.uniforms.shadowBias.value = shadowBias;
+    const material = surfaceMatRef.current;
+    if (!material) return;
+    material.uniforms.elevation.value = elevation;
+    material.uniforms.seaLevel.value = seaLevel;
+    material.uniforms.baseColor.value.set(baseColor);
+    material.uniforms.ridgeColor.value.set(ridgeColor);
+    material.uniforms.lightColor.value.set(lightColor);
+    material.uniforms.lightPos.value.set(lightX, lightY, lightZ);
+    material.uniforms.lightIntensity.value = lightIntensity;
+    material.uniforms.lightFalloff.value = lightFalloff;
+    material.uniforms.light2Color.value.set(light2Color);
+    material.uniforms.light2Pos.value.set(light2X, light2Y, light2Z);
+    material.uniforms.light2Intensity.value = light2Intensity;
+    material.uniforms.light2Falloff.value = light2Falloff;
+    material.uniforms.shadowStrength.value = shadowStrength;
+    material.uniforms.shadowBias.value = shadowBias;
   }, [elevation, seaLevel, baseColor, ridgeColor, lightColor, lightX, lightY, lightZ,
       lightIntensity, lightFalloff, light2Color, light2X, light2Y, light2Z,
       light2Intensity, light2Falloff, shadowStrength, shadowBias]);
@@ -53,34 +53,55 @@ export function TerrainMesh() {
     {
       heightmap:      { value: displacementMap },
       gradientMap:    { value: gradientMap },
-      elevation:      { value: TERRAIN_CONFIG.material.elevation },
-      contrast:       { value: TERRAIN_CONFIG.material.contrast },
-      seaLevel:       { value: TERRAIN_CONFIG.material.seaLevel },
-      baseColor:      { value: new Color(TERRAIN_CONFIG.material.baseColor) },
-      ridgeColor:     { value: new Color(TERRAIN_CONFIG.material.ridgeColor) },
-      lightColor:     { value: new Color(TERRAIN_CONFIG.material.lightColor) },
-      lightPos:       { value: new Vector3(TERRAIN_CONFIG.material.lightX, TERRAIN_CONFIG.material.lightY, TERRAIN_CONFIG.material.lightZ) },
-      lightIntensity: { value: TERRAIN_CONFIG.material.lightIntensity },
-      lightFalloff:   { value: TERRAIN_CONFIG.material.lightFalloff },
-      light2Color:    { value: new Color(TERRAIN_CONFIG.material.light2Color) },
-      light2Pos:      { value: new Vector3(TERRAIN_CONFIG.material.light2X, TERRAIN_CONFIG.material.light2Y, TERRAIN_CONFIG.material.light2Z) },
-      light2Intensity: { value: TERRAIN_CONFIG.material.light2Intensity },
-      light2Falloff:  { value: TERRAIN_CONFIG.material.light2Falloff },
-      shadowStrength: { value: TERRAIN_CONFIG.material.shadowStrength },
-      shadowBias:     { value: TERRAIN_CONFIG.material.shadowBias },
-      planeSize:      { value: TERRAIN_CONFIG.mesh.planeSize },
-      edgeFeather:    { value: TERRAIN_CONFIG.mesh.edgeFeather },
-      meshY:          { value: TERRAIN_CONFIG.mesh.position[1] },
+      elevation:      { value: TERRAIN_MATERIAL_CONFIG.elevation },
+      contrast:       { value: TERRAIN_MATERIAL_CONFIG.contrast },
+      seaLevel:       { value: TERRAIN_MATERIAL_CONFIG.seaLevel },
+      baseColor:      { value: new Color(TERRAIN_MATERIAL_CONFIG.baseColor) },
+      ridgeColor:     { value: new Color(TERRAIN_MATERIAL_CONFIG.ridgeColor) },
+      lightColor:     { value: new Color(TERRAIN_MATERIAL_CONFIG.lightColor) },
+      lightPos: {
+        value: new Vector3(
+          TERRAIN_MATERIAL_CONFIG.lightX,
+          TERRAIN_MATERIAL_CONFIG.lightY,
+          TERRAIN_MATERIAL_CONFIG.lightZ,
+        ),
+      },
+      lightIntensity: { value: TERRAIN_MATERIAL_CONFIG.lightIntensity },
+      lightFalloff:   { value: TERRAIN_MATERIAL_CONFIG.lightFalloff },
+      light2Color:    { value: new Color(TERRAIN_MATERIAL_CONFIG.light2Color) },
+      light2Pos: {
+        value: new Vector3(
+          TERRAIN_MATERIAL_CONFIG.light2X,
+          TERRAIN_MATERIAL_CONFIG.light2Y,
+          TERRAIN_MATERIAL_CONFIG.light2Z,
+        ),
+      },
+      light2Intensity: { value: TERRAIN_MATERIAL_CONFIG.light2Intensity },
+      light2Falloff:  { value: TERRAIN_MATERIAL_CONFIG.light2Falloff },
+      shadowStrength: { value: TERRAIN_MATERIAL_CONFIG.shadowStrength },
+      shadowBias:     { value: TERRAIN_MATERIAL_CONFIG.shadowBias },
+      planeSize:      { value: TERRAIN_MESH_CONFIG.planeSize },
+      edgeFeather:    { value: TERRAIN_MESH_CONFIG.edgeFeather },
+      meshY:          { value: TERRAIN_MESH_CONFIG.position[1] },
     },
   ]), [displacementMap, gradientMap]);
 
   const geometry = useMemo(
-    () => new PlaneGeometry(TERRAIN_CONFIG.mesh.planeSize, TERRAIN_CONFIG.mesh.planeSize, TERRAIN_CONFIG.mesh.segments, TERRAIN_CONFIG.mesh.segments),
+    () => new PlaneGeometry(
+      TERRAIN_MESH_CONFIG.planeSize,
+      TERRAIN_MESH_CONFIG.planeSize,
+      TERRAIN_MESH_CONFIG.segments,
+      TERRAIN_MESH_CONFIG.segments,
+    ),
     [],
   );
 
   return (
-    <mesh geometry={geometry} rotation={[-Math.PI / 2, 0, 0]} position={TERRAIN_CONFIG.mesh.position}>
+    <mesh
+      geometry={geometry}
+      position={TERRAIN_MESH_CONFIG.position}
+      rotation={[-Math.PI / 2, 0, 0]}
+    >
       <shaderMaterial
         ref={surfaceMatRef}
         vertexShader={vertexShader}

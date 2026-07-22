@@ -12,7 +12,12 @@ from PIL import Image, ImageDraw, ImageFilter, ImageFont
 CHARACTERS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ+-*/<>"
 
 
-def render_glyph(font: ImageFont.FreeTypeFont, character: str, width: int, height: int) -> Image.Image:
+def render_glyph(
+    font: ImageFont.FreeTypeFont,
+    character: str,
+    width: int,
+    height: int,
+) -> Image.Image:
     source = Image.new("L", (96, 112), 0)
     draw = ImageDraw.Draw(source)
     draw.text((48, 56), character, font=font, fill=255, anchor="mm", stroke_width=1)

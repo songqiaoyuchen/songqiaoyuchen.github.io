@@ -1,18 +1,21 @@
-import { promises as fs } from 'fs';
+import {promises as fs} from 'fs';
 import path from 'path';
-import { NextResponse } from 'next/server';
+import {NextResponse} from 'next/server';
 
-// Round float noise (0.060000000000000005 → 0.06) without clipping precision
-// anyone actually tunes at.
-function formatNumber(v: number): string {
-  return String(Math.round(v * 1e6) / 1e6);
+// Round float noise (0.060000000000000005 -> 0.06) without clipping
+// precision anyone actually tunes at.
+function formatNumber(value: number): string {
+  return String(Math.round(value * 1e6) / 1e6);
 }
 
 function toLiteral(value: unknown): string | null {
   if (typeof value === 'string') return `'${value.replace(/'/g, '')}'`;
   if (typeof value === 'number' && Number.isFinite(value)) return formatNumber(value);
   if (typeof value === 'boolean') return String(value);
-  if (Array.isArray(value) && value.every((n) => typeof n === 'number' && Number.isFinite(n))) {
+  if (
+    Array.isArray(value)
+    && value.every((item) => typeof item === 'number' && Number.isFinite(item))
+  ) {
     return `[${value.map(formatNumber).join(', ')}]`;
   }
   return null;
@@ -20,62 +23,99 @@ function toLiteral(value: unknown): string | null {
 
 const LITERAL = "\\[[^\\]]*\\]|'[^']*'|-?\\d[\\d.]*(?:e-?\\d+)?|true|false";
 
-function replaceKey(src: string, key: string, literal: string): string | null {
-  const re = new RegExp(`(\\b${key}:\\s*)(${LITERAL})`);
-  if (!re.test(src)) return null;
-  return src.replace(re, `$1${literal}`);
+function replaceKey(source: string, key: string, literal: string): string | null {
+  const pattern = new RegExp(`(\\b${key}:\\s*)(${LITERAL})`);
+  if (!pattern.test(source)) return null;
+  return source.replace(pattern, `$1${literal}`);
 }
 
-// "block.key" scoping for keys that aren't unique file-wide (e.g. `position`
-// exists under both camera and mesh): replace only inside `block: { ... }`.
-function replaceScopedKey(src: string, block: string, key: string, literal: string): string | null {
-  const blockStart = src.search(new RegExp(`\\b${block}:\\s*\\{`));
-  if (blockStart < 0) return null;
-  let depth = 0;
-  let end = -1;
-  for (let i = src.indexOf('{', blockStart); i < src.length; i++) {
-    if (src[i] === '{') depth++;
-    else if (src[i] === '}' && --depth === 0) { end = i; break; }
-  }
-  if (end < 0) return null;
-  const replaced = replaceKey(src.slice(blockStart, end), key, literal);
-  if (replaced === null) return null;
-  return src.slice(0, blockStart) + replaced + src.slice(end);
-}
+const EDITABLE_CONFIG_FILES = [
+  'camera.ts',
+  'contours.ts',
+  'fog.ts',
+  'postProcessing.ts',
+  'terrain.ts',
+] as const;
+
+const SCOPED_CONFIG_FILES: Record<string, string> = {
+  camera: 'camera.ts',
+};
+
+type ConfigSource = {
+  fileName: string;
+  filePath: string;
+  source: string;
+  changed: boolean;
+};
 
 /**
- * Dev-only: writes values back into config/terrain.ts in place, one targeted
- * regex per key, so hand-written comments and formatting survive. Keys may be
- * flat (`minorRadius` — must be unique across the file) or block-scoped
- * (`camera.position`). Unknown keys are reported back as `missed` instead of
- * failing the save.
+ * Dev-only: writes values back into the focused files under config/scene.
+ * Each flat key must occur in exactly one editable file. Scoped camera keys
+ * (`camera.position`) are routed directly to camera.ts. Unknown or ambiguous
+ * keys are reported as `missed` instead of failing the save.
  */
 export async function POST(request: Request) {
   if (process.env.NODE_ENV !== 'development') {
-    return NextResponse.json({ error: 'dev only' }, { status: 403 });
+    return NextResponse.json({error: 'dev only'}, {status: 403});
   }
 
-  const { values } = (await request.json()) as { values: Record<string, unknown> };
+  const {values} = (await request.json()) as {values: Record<string, unknown>};
   if (!values || typeof values !== 'object') {
-    return NextResponse.json({ error: 'missing values' }, { status: 400 });
+    return NextResponse.json({error: 'missing values'}, {status: 400});
   }
 
-  const file = path.join(process.cwd(), 'config', 'terrain.ts');
-  let src = await fs.readFile(file, 'utf8');
+  const configDirectory = path.join(process.cwd(), 'config', 'scene');
+  const sources: ConfigSource[] = await Promise.all(
+    EDITABLE_CONFIG_FILES.map(async (fileName) => {
+      const filePath = path.join(configDirectory, fileName);
+      return {
+        fileName,
+        filePath,
+        source: await fs.readFile(filePath, 'utf8'),
+        changed: false,
+      };
+    }),
+  );
 
   const missed: string[] = [];
   let saved = 0;
+
   for (const [rawKey, value] of Object.entries(values)) {
     const literal = toLiteral(value);
     const parts = rawKey.split('.');
-    const valid = parts.length <= 2 && parts.every((p) => /^[A-Za-z_][A-Za-z0-9_]*$/.test(p));
-    const next = !literal || !valid ? null
-      : parts.length === 2 ? replaceScopedKey(src, parts[0], parts[1], literal)
-      : replaceKey(src, rawKey, literal);
-    if (next === null) missed.push(rawKey);
-    else { src = next; saved++; }
+    const valid = parts.length <= 2 && parts.every((part) => /^[A-Za-z_][A-Za-z0-9_]*$/.test(part));
+    if (!literal || !valid) {
+      missed.push(rawKey);
+      continue;
+    }
+
+    const [scopeOrKey, scopedKey] = parts;
+    const candidates = scopedKey
+      ? sources.filter((source) => source.fileName === SCOPED_CONFIG_FILES[scopeOrKey])
+      : sources.filter((source) => replaceKey(source.source, scopeOrKey, literal) !== null);
+
+    if (candidates.length !== 1) {
+      missed.push(rawKey);
+      continue;
+    }
+
+    const target = candidates[0];
+    const next = replaceKey(target.source, scopedKey ?? scopeOrKey, literal);
+    if (next === null) {
+      missed.push(rawKey);
+      continue;
+    }
+
+    target.source = next;
+    target.changed = true;
+    saved++;
   }
 
-  await fs.writeFile(file, src, 'utf8');
-  return NextResponse.json({ saved, missed });
+  await Promise.all(
+    sources
+      .filter((source) => source.changed)
+      .map((source) => fs.writeFile(source.filePath, source.source, 'utf8')),
+  );
+
+  return NextResponse.json({saved, missed});
 }

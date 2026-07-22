@@ -22,44 +22,54 @@
   --font-serif: var(--font-krypton);
 }
 
-html,
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-krypton), monospace;
-  margin: 0;
-  padding: 0;
-  overflow: hidden; /* Avoid scrollbars for full-screen hero */
+@theme {
+  --animate-fade-in: fade-in 1s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
-.stream-hit-target {
-  display: block;
-  width: clamp(84px, 10vw, 156px);
-  height: 44px;
-  margin: 0;
-  border: 1px solid transparent;
-  border-radius: 2px;
-  background: transparent;
-  color: transparent;
-  font-size: 0;
-  outline: none;
-  touch-action: manipulation;
-}
-
-.stream-hit-target--vertical {
-  width: 62px;
-  height: clamp(210px, 48vh, 360px);
-}
-
-@media (max-width: 720px) {
-  .stream-hit-target {
-    width: 92px;
-    height: 38px;
+@layer base {
+  html,
+  body {
+    @apply m-0 min-h-full bg-background p-0 text-foreground;
   }
+}
 
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    filter: blur(10px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+  }
+}
 
-  .stream-hit-target--vertical {
-    width: 52px;
-    height: 240px;
+@utility preview-backdrop {
+  border-right: 1px solid rgb(255 255 255 / 5%);
+  background: linear-gradient(
+    to right,
+    rgb(8 10 13 / 94%) 0%,
+    rgb(8 10 13 / 88%) 72%,
+    rgb(8 10 13 / 20%) 94%,
+    transparent 100%
+  );
+  box-shadow: 20px 0 60px rgb(0 0 0 / 12%);
+  backdrop-filter: blur(14px);
+  mask-image: linear-gradient(
+    to right,
+    black 0%,
+    black 78%,
+    rgb(0 0 0 / 90%) 86%,
+    rgb(0 0 0 / 45%) 94%,
+    transparent 100%
+  );
+}
+
+@utility no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
   }
 }

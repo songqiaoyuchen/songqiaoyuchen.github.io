@@ -15,38 +15,38 @@ import {
 } from 'three';
 import type { Mesh as MeshType } from 'three';
 import { EXRLoader } from 'three-stdlib';
-import { TERRAIN_CONFIG } from '@/config/terrain';
-import { toHeightmapImage } from '@/lib/terrain/bake';
+import {CONTOUR_CONFIG, TERRAIN_MATERIAL_CONFIG, TERRAIN_MESH_CONFIG} from '@/config/scene';
+import {bakeTerrainMaps, toHeightmapImage} from '@/lib/terrain/bake';
 import {
-  buildDecorativeStreamGeometry,
-  DECORATIVE_ATLAS_COLUMNS,
-  generateDecorativeStreamLayers,
-} from '@/lib/text/decorativeStreamGeometry';
-import { DecorativeStreamCompositor } from '@/lib/text/decorativeStreamCompositor';
-import { configureBitmapAtlas, getTerrainTextMaps } from '@/lib/text/terrainTextShared';
-import compositeVertexShader from '@/shaders/decorativeComposite.vert';
-import compositeFragmentShader from '@/shaders/decorativeComposite.frag';
-import vertexShader from '@/shaders/decorativeStream.vert';
-import fragmentShader from '@/shaders/decorativeStream.frag';
-import { useTerrainControls } from '../debug/useTerrainControls';
+  buildDecorStreamGeometry,
+  DECOR_ATLAS_COLUMNS,
+  generateDecorStreamLayers,
+} from '@/lib/text/decorStreamGeometry';
+import { DecorStreamCompositor } from '@/lib/text/decorStreamCompositor';
+import {configureBitmapAtlas} from '@/lib/text/atlas';
+import compositeVertexShader from '@/shaders/decorComposite.vert';
+import compositeFragmentShader from '@/shaders/decorComposite.frag';
+import vertexShader from '@/shaders/decorStream.vert';
+import fragmentShader from '@/shaders/decorStream.frag';
+import {useTerrainControls} from '../debug/useTerrainControls';
 
 const TEXT_COUNT = 24;
 const TEXT_BOUNDS = { x: [-9.5, 9.5], z: [-0.5, 9.5] } as const;
 const LAYOUT_REFERENCE_WIDTH = 1440;
 const LAYOUT_REFERENCE_HEIGHT = 900;
 
-export const DecorativeStreams = forwardRef<MeshType>(function DecorativeStreams(_, forwardedRef) {
+export const DecorStreams = forwardRef<MeshType>(function DecorStreams(_, forwardedRef) {
   const exr = useLoader(EXRLoader, '/textures/terrain/heightmap.exr');
   const atlas = useLoader(TextureLoader, '/textures/text/decorative-atlas.png');
   const width = useThree((state) => state.size.width);
   const height = useThree((state) => state.size.height);
   const { elevation, seaLevel } = useTerrainControls();
   const { displacementMap, shellBase } = useMemo(
-    () => getTerrainTextMaps(toHeightmapImage(exr.image)),
+    () => bakeTerrainMaps(toHeightmapImage(exr.image)),
     [exr],
   );
 
-  const layers = useMemo(() => generateDecorativeStreamLayers({
+  const layers = useMemo(() => generateDecorStreamLayers({
     count: TEXT_COUNT,
     bounds: TEXT_BOUNDS,
     seed: 17,
@@ -62,15 +62,15 @@ export const DecorativeStreams = forwardRef<MeshType>(function DecorativeStreams
     uniforms: {
       heightmap: { value: displacementMap },
       elevation: { value: elevation },
-      contrast: { value: TERRAIN_CONFIG.material.contrast },
+      contrast: { value: TERRAIN_MATERIAL_CONFIG.contrast },
       seaLevel: { value: seaLevel },
-      planeSize: { value: TERRAIN_CONFIG.mesh.planeSize },
-      meshY: { value: TERRAIN_CONFIG.mesh.position[1] },
+      planeSize: { value: TERRAIN_MESH_CONFIG.planeSize },
+      meshY: { value: TERRAIN_MESH_CONFIG.position[1] },
       uLift: { value: 0.075 },
       uAtlas: { value: atlas },
-      uAtlasColumns: { value: DECORATIVE_ATLAS_COLUMNS },
-      uColor: { value: new Color(TERRAIN_CONFIG.contours.minorColor) },
-      uHotColor: { value: new Color(TERRAIN_CONFIG.contours.majorColor) },
+      uAtlasColumns: { value: DECOR_ATLAS_COLUMNS },
+      uColor: { value: new Color(CONTOUR_CONFIG.minorColor) },
+      uHotColor: { value: new Color(CONTOUR_CONFIG.majorColor) },
       uEnergy: { value: 0.62 },
     },
     transparent: true,
@@ -88,7 +88,7 @@ export const DecorativeStreams = forwardRef<MeshType>(function DecorativeStreams
   }), [atlas, displacementMap, elevation, seaLevel]);
 
   const geometries = useMemo(
-    () => layers.map(buildDecorativeStreamGeometry),
+    () => layers.map(buildDecorStreamGeometry),
     [layers],
   );
   const meshes = useMemo(
@@ -107,7 +107,7 @@ export const DecorativeStreams = forwardRef<MeshType>(function DecorativeStreams
   // blurred stack runs at reduced resolution.
   const nearMesh = meshes[meshes.length - 1];
   const compositor = useMemo(
-    () => new DecorativeStreamCompositor(meshes.slice(0, -1), 1, 1),
+    () => new DecorStreamCompositor(meshes.slice(0, -1), 1, 1),
     [meshes],
   );
   const compositeGeometry = useMemo(() => new PlaneGeometry(2, 2), []);

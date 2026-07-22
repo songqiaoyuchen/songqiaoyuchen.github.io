@@ -1,6 +1,6 @@
 attribute vec2 aBillboardOffset;
 attribute vec2 aLocalUv;
-attribute float aLinkId;
+attribute float aStreamIndex;
 attribute float aNavGlyph;
 attribute float aIntensity;
 attribute float aSeed;
@@ -20,7 +20,7 @@ uniform float uHover[LINK_STREAM_COUNT];
 uniform float uGlitch[LINK_STREAM_COUNT];
 uniform float uLayoutOffsetX[LINK_STREAM_COUNT];
 uniform float uLayoutOffsetZ[LINK_STREAM_COUNT];
-uniform float uActiveLink;
+uniform float uActiveStream;
 uniform float uFocused;
 
 varying vec2 vAtlasUv;
@@ -40,10 +40,10 @@ float hash12(vec2 p) {
   return fract((p3.x + p3.y) * p3.z);
 }
 
-float linkValue(float values[LINK_STREAM_COUNT], float id) {
+float streamValue(float values[LINK_STREAM_COUNT], float indexValue) {
   float value = 0.0;
   for (int index = 0; index < LINK_STREAM_COUNT; index++) {
-    value += values[index] * (1.0 - step(0.25, abs(id - float(index))));
+    value += values[index] * (1.0 - step(0.25, abs(indexValue - float(index))));
   }
   return value;
 }
@@ -60,14 +60,14 @@ void main() {
   vIntensity = aIntensity;
   vSeed = aSeed;
   vStreamT = aStreamT;
-  vHover = linkValue(uHover, aLinkId);
-  vGlitch = linkValue(uGlitch, aLinkId);
-  vActive = 1.0 - step(0.25, abs(aLinkId - uActiveLink));
+  vHover = streamValue(uHover, aStreamIndex);
+  vGlitch = streamValue(uGlitch, aStreamIndex);
+  vActive = 1.0 - step(0.25, abs(aStreamIndex - uActiveStream));
   vFocused = uFocused;
 
   vec2 layoutOffset = vec2(
-    linkValue(uLayoutOffsetX, aLinkId),
-    linkValue(uLayoutOffsetZ, aLinkId)
+    streamValue(uLayoutOffsetX, aStreamIndex),
+    streamValue(uLayoutOffsetZ, aStreamIndex)
   );
   vec2 layoutPosition = position.xz + layoutOffset;
   vec2 terrainUv = vec2(layoutPosition.x / planeSize + 0.5, 0.5 - layoutPosition.y / planeSize);
