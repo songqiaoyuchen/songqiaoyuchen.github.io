@@ -1,6 +1,6 @@
 'use client';
 
-import { forwardRef, useEffect, useMemo } from 'react';
+import { forwardRef, useEffect, useLayoutEffect, useMemo } from 'react';
 import { useFrame, useLoader, useThree } from '@react-three/fiber';
 import {
   AddEquation,
@@ -30,13 +30,16 @@ import vertexShader from '@/shaders/decorativeStream.vert';
 import fragmentShader from '@/shaders/decorativeStream.frag';
 import { useTerrainControls } from '../debug/useTerrainControls';
 
-const TEXT_COUNT = 36;
+const TEXT_COUNT = 24;
 const TEXT_BOUNDS = { x: [-9.5, 9.5], z: [-0.5, 9.5] } as const;
+const LAYOUT_REFERENCE_WIDTH = 1440;
+const LAYOUT_REFERENCE_HEIGHT = 900;
 
 export const DecorativeStreams = forwardRef<MeshType>(function DecorativeStreams(_, forwardedRef) {
   const exr = useLoader(EXRLoader, '/textures/terrain/heightmap.exr');
   const atlas = useLoader(TextureLoader, '/textures/text/decorative-atlas.png');
-  const size = useThree((state) => state.size);
+  const width = useThree((state) => state.size.width);
+  const height = useThree((state) => state.size.height);
   const { elevation, seaLevel } = useTerrainControls();
   const { displacementMap, shellBase } = useMemo(
     () => getTerrainTextMaps(toHeightmapImage(exr.image)),
@@ -47,11 +50,11 @@ export const DecorativeStreams = forwardRef<MeshType>(function DecorativeStreams
     count: TEXT_COUNT,
     bounds: TEXT_BOUNDS,
     seed: 17,
-    aspect: size.width / Math.max(size.height, 1),
+    aspect: LAYOUT_REFERENCE_WIDTH / LAYOUT_REFERENCE_HEIGHT,
     heightGrid: shellBase,
     elevation,
     seaLevel,
-  }), [elevation, seaLevel, shellBase, size.height, size.width]);
+  }), [elevation, seaLevel, shellBase]);
 
   const material = useMemo(() => new ShaderMaterial({
     vertexShader,
@@ -104,8 +107,8 @@ export const DecorativeStreams = forwardRef<MeshType>(function DecorativeStreams
   // blurred stack runs at reduced resolution.
   const nearMesh = meshes[meshes.length - 1];
   const compositor = useMemo(
-    () => new DecorativeStreamCompositor(meshes.slice(0, -1), size.width, size.height),
-    [meshes, size.height, size.width],
+    () => new DecorativeStreamCompositor(meshes.slice(0, -1), 1, 1),
+    [meshes],
   );
   const compositeGeometry = useMemo(() => new PlaneGeometry(2, 2), []);
   const compositeUniforms = useMemo(
@@ -114,6 +117,7 @@ export const DecorativeStreams = forwardRef<MeshType>(function DecorativeStreams
   );
 
   useEffect(() => configureBitmapAtlas(atlas), [atlas]);
+  useLayoutEffect(() => compositor.setSize(width, height), [compositor, height, width]);
   useEffect(() => () => compositor.dispose(), [compositor]);
   useEffect(() => () => geometries.forEach((geometry) => geometry.dispose()), [geometries]);
   useEffect(() => () => material.dispose(), [material]);

@@ -6,6 +6,8 @@ attribute float aIntensity;
 attribute float aSeed;
 attribute float aStreamT;
 
+#define LINK_STREAM_COUNT __LINK_STREAM_COUNT__
+
 uniform sampler2D heightmap;
 uniform float elevation;
 uniform float contrast;
@@ -14,11 +16,10 @@ uniform float planeSize;
 uniform float meshY;
 uniform float uLift;
 uniform float uTime;
-uniform vec4 uHover;
-uniform vec4 uGlitch;
-uniform vec4 uLayoutOffsetX;
-uniform vec4 uLayoutOffsetZ;
-uniform float uLayoutProgress;
+uniform float uHover[LINK_STREAM_COUNT];
+uniform float uGlitch[LINK_STREAM_COUNT];
+uniform float uLayoutOffsetX[LINK_STREAM_COUNT];
+uniform float uLayoutOffsetZ[LINK_STREAM_COUNT];
 uniform float uActiveLink;
 uniform float uFocused;
 
@@ -39,11 +40,12 @@ float hash12(vec2 p) {
   return fract((p3.x + p3.y) * p3.z);
 }
 
-float linkValue(vec4 values, float id) {
-  if (id < 0.5) return values.x;
-  if (id < 1.5) return values.y;
-  if (id < 2.5) return values.z;
-  return values.w;
+float linkValue(float values[LINK_STREAM_COUNT], float id) {
+  float value = 0.0;
+  for (int index = 0; index < LINK_STREAM_COUNT; index++) {
+    value += values[index] * (1.0 - step(0.25, abs(id - float(index))));
+  }
+  return value;
 }
 
 float processH(float raw) {
@@ -66,7 +68,7 @@ void main() {
   vec2 layoutOffset = vec2(
     linkValue(uLayoutOffsetX, aLinkId),
     linkValue(uLayoutOffsetZ, aLinkId)
-  ) * uLayoutProgress;
+  );
   vec2 layoutPosition = position.xz + layoutOffset;
   vec2 terrainUv = vec2(layoutPosition.x / planeSize + 0.5, 0.5 - layoutPosition.y / planeSize);
   float terrainHeight = processH(texture2D(heightmap, terrainUv).r) * elevation + meshY;
