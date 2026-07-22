@@ -44,5 +44,3 @@ next-env.d.ts
 #ai
 .claude
 .agents
-AGENTS.md
-docs
