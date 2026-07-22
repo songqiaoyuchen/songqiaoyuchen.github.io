@@ -5,12 +5,12 @@ import { useLoader } from '@react-three/fiber';
 import { Color, PlaneGeometry, ShaderMaterial, UniformsLib, UniformsUtils, Vector3 } from 'three';
 import { EXRLoader } from 'three-stdlib';
 import {TERRAIN_MATERIAL_CONFIG, TERRAIN_MESH_CONFIG} from '@/config/scene';
+import type {TerrainControlValues} from '@/components/debug/useSceneControls';
 import { bakeTerrainMaps, toHeightmapImage } from '@/lib/terrain/bake';
 import vertexShader from '@/shaders/terrain.vert';
 import fragmentShader from '@/shaders/terrain.frag';
-import { useTerrainControls } from '../debug/useTerrainControls';
 
-export function TerrainMesh() {
+export function TerrainMesh({settings}: {settings: TerrainControlValues}) {
   const exr = useLoader(EXRLoader, '/textures/terrain/heightmap.exr');
   const surfaceMatRef = useRef<ShaderMaterial>(null);
 
@@ -25,7 +25,7 @@ export function TerrainMesh() {
     lightColor, lightX, lightY, lightZ, lightIntensity, lightFalloff,
     light2Color, light2X, light2Y, light2Z, light2Intensity, light2Falloff,
     shadowStrength, shadowBias,
-  } = useTerrainControls();
+  } = settings;
 
   useEffect(() => {
     const material = surfaceMatRef.current;

@@ -12,8 +12,12 @@ import {
 import type { Group, Mesh } from 'three';
 import { EXRLoader } from 'three-stdlib';
 import { forwardRef, useEffect, useMemo, useRef, useState } from 'react';
-import {LINK_STREAMS} from '@/config/navigation';
+import {LINK_STREAM_EFFECT_CONFIG, LINK_STREAMS} from '@/config/navigation';
 import {CONTOUR_CONFIG, TERRAIN_MATERIAL_CONFIG, TERRAIN_MESH_CONFIG} from '@/config/scene';
+import type {
+  ContourControlValues,
+  TerrainControlValues,
+} from '@/components/debug/useSceneControls';
 import {bakeTerrainMaps, toHeightmapImage} from '@/lib/terrain/bake';
 import {
   buildLinkStreamGeometry,
@@ -32,18 +36,17 @@ import vertexShader from '@/shaders/linkStream.vert';
 import fragmentShader from '@/shaders/linkStream.frag';
 import type {SectionId} from '@/data/sections';
 import {useReducedMotion} from '@/hooks/useReducedMotion';
-import { useTerrainControls } from '../debug/useTerrainControls';
 type RayTransitionPhase = 'idle' | 'out' | 'in';
-
-const LAYOUT_DAMPING = 7;
 
 type LinkStreamsProps = {
   activeId: SectionId | null;
+  contourSettings: ContourControlValues;
   onStreamClick: (id: SectionId) => void;
+  terrainSettings: TerrainControlValues;
 };
 
 export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStreams(
-  {activeId, onStreamClick},
+  {activeId, contourSettings, onStreamClick, terrainSettings},
   forwardedRef,
 ) {
   const exr = useLoader(EXRLoader, '/textures/terrain/heightmap.exr');
@@ -65,15 +68,22 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
   const activeIndex = activeId
     ? LINK_STREAMS.findIndex((run) => run.id === activeId)
     : -1;
-  const { elevation, seaLevel } = useTerrainControls();
+  const {elevation, seaLevel} = terrainSettings;
   const { displacementMap, shellBase } = useMemo(
     () => bakeTerrainMaps(toHeightmapImage(exr.image)),
     [exr],
   );
   const geometry = useMemo(() => buildLinkStreamGeometry(LINK_STREAMS), []);
   const layouts = useMemo(
-    () => getLinkLayouts(LINK_STREAMS, viewportWidth, viewportHeight, shellBase),
-    [shellBase, viewportHeight, viewportWidth],
+    () => getLinkLayouts(
+      LINK_STREAMS,
+      viewportWidth,
+      viewportHeight,
+      shellBase,
+      elevation,
+      seaLevel,
+    ),
+    [elevation, seaLevel, shellBase, viewportHeight, viewportWidth],
   );
   const compiledVertexShader = useMemo(
     () => vertexShader.replace('__LINK_STREAM_COUNT__', String(LINK_STREAMS.length)),
@@ -86,7 +96,7 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
     seaLevel: { value: TERRAIN_MATERIAL_CONFIG.seaLevel },
     planeSize: { value: TERRAIN_MESH_CONFIG.planeSize },
     meshY: { value: TERRAIN_MESH_CONFIG.position[1] },
-    uLift: { value: 0.075 },
+    uLift: { value: LINK_STREAM_EFFECT_CONFIG.lift },
     uTime: { value: 0 },
     uHover: { value: new Float32Array(LINK_STREAMS.length) },
     uGlitch: { value: new Float32Array(LINK_STREAMS.length) },
@@ -105,14 +115,23 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
   useEffect(() => () => geometry.dispose(), [geometry]);
   useEffect(() => {
     if (!materialRef.current) return;
-    materialRef.current.uniforms.elevation.value = elevation;
-    materialRef.current.uniforms.seaLevel.value = seaLevel;
-  }, [elevation, seaLevel]);
+    const uniforms = materialRef.current.uniforms;
+    uniforms.elevation.value = elevation;
+    uniforms.seaLevel.value = seaLevel;
+    uniforms.uDecorationColor.value.set(contourSettings.minorColor);
+    uniforms.uStreamColor.value.set(contourSettings.majorColor);
+    uniforms.uHotColor.value.set(contourSettings.pulseColor);
+  }, [
+    contourSettings.majorColor,
+    contourSettings.minorColor,
+    contourSettings.pulseColor,
+    elevation,
+    seaLevel,
+  ]);
   useEffect(() => {
     if (hoveredIndex !== null) glitchValues.current[hoveredIndex] = 1;
   }, [hoveredIndex]);
 
-  // ??? idk what this whole function is doing, seems a lot of math, but shouldnt this be done in the shader?
   useFrame((_, delta) => {
     const material = materialRef.current;
     if (!material) return;
@@ -130,14 +149,20 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
       transitionPhase.current = 'idle';
       dissolveVisibility.current = 1;
     } else if (transitionPhase.current === 'out') {
-      dissolveVisibility.current = Math.max(0, dissolveVisibility.current - delta * 4.8);
+      dissolveVisibility.current = Math.max(
+        0,
+        dissolveVisibility.current - delta * LINK_STREAM_EFFECT_CONFIG.dissolveOutSpeed,
+      );
       if (dissolveVisibility.current === 0) {
         layoutMode.current = requestedLayoutMode.current;
         transitionPhase.current = 'in';
         layoutSwitched = true;
       }
     } else if (transitionPhase.current === 'in') {
-      dissolveVisibility.current = Math.min(1, dissolveVisibility.current + delta * 3.2);
+      dissolveVisibility.current = Math.min(
+        1,
+        dissolveVisibility.current + delta * LINK_STREAM_EFFECT_CONFIG.dissolveInSpeed,
+      );
       if (dissolveVisibility.current === 1) transitionPhase.current = 'idle';
     }
 
@@ -148,7 +173,7 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
         : null;
     const layoutAlpha = isReducedMotion || !layoutInitialized.current || layoutSwitched
       ? 1
-      : 1 - Math.exp(-LAYOUT_DAMPING * delta);
+      : 1 - Math.exp(-LINK_STREAM_EFFECT_CONFIG.layoutDamping * delta);
     const offsetX = material.uniforms.uLayoutOffsetX.value as Float32Array;
     const offsetZ = material.uniforms.uLayoutOffsetZ.value as Float32Array;
 
@@ -167,8 +192,13 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
 
     for (let index = 0; index < LINK_STREAMS.length; index++) {
       const target = hoveredIndex === index ? 1 : 0;
-      hoverValues.current[index] += (target - hoverValues.current[index]) * Math.min(1, delta * 9);
-      glitchValues.current[index] *= Math.exp(-delta * 3.6);
+      hoverValues.current[index] += (
+        (target - hoverValues.current[index])
+        * Math.min(1, delta * LINK_STREAM_EFFECT_CONFIG.hoverDamping)
+      );
+      glitchValues.current[index] *= Math.exp(
+        -delta * LINK_STREAM_EFFECT_CONFIG.glitchDecay,
+      );
     }
     (material.uniforms.uHover.value as Float32Array).set(hoverValues.current);
     (material.uniforms.uGlitch.value as Float32Array).set(glitchValues.current);

@@ -4,15 +4,15 @@ import { useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import {PerspectiveCamera, Vector3} from 'three';
 import type { OrbitControls as OrbitControlsInstance } from 'three-stdlib';
+import {CAMERA_CONFIG, SCENE_LAYOUT_CONFIG} from '@/config/scene';
 import {useReducedMotion} from '@/hooks/useReducedMotion';
-import {FOCUSED_CAMERA, getHomeFov, OVERVIEW_CAMERA} from '@/lib/scene/camera';
+import {getHomeFov} from '@/lib/scene/camera';
 
 type CameraRigProps = {
   controlsRef: React.RefObject<OrbitControlsInstance | null>;
   isFocused: boolean;
 };
 
-const CAMERA_DAMPING = 4.6;
 const SETTLE_EPSILON = 0.0001;
 
 export function CameraRig({ controlsRef, isFocused }: CameraRigProps) {
@@ -20,16 +20,21 @@ export function CameraRig({ controlsRef, isFocused }: CameraRigProps) {
   const viewportWidth = useThree((state) => state.size.width);
   const viewportHeight = useThree((state) => state.size.height);
   const coverFov = useMemo(
-    () => getHomeFov(viewportWidth, viewportHeight),
+    () => getHomeFov(
+      viewportWidth,
+      viewportHeight,
+      CAMERA_CONFIG.fov,
+      SCENE_LAYOUT_CONFIG,
+    ),
     [viewportHeight, viewportWidth],
   );
-  const useFocusedComposition = isFocused && viewportWidth >= 768;
+  const useFocusedComposition = isFocused && viewportWidth >= SCENE_LAYOUT_CONFIG.mobileMaxWidth;
   const previousFocusedComposition = useRef(useFocusedComposition);
   const isAnimating = useRef(false);
-  const overviewPosition = useMemo(() => new Vector3(...OVERVIEW_CAMERA.position), []);
-  const overviewTarget = useMemo(() => new Vector3(...OVERVIEW_CAMERA.target), []);
-  const focusedPosition = useMemo(() => new Vector3(...FOCUSED_CAMERA.position), []);
-  const focusedTarget = useMemo(() => new Vector3(...FOCUSED_CAMERA.target), []);
+  const overviewPosition = useMemo(() => new Vector3(...CAMERA_CONFIG.overviewPosition), []);
+  const overviewTarget = useMemo(() => new Vector3(...CAMERA_CONFIG.overviewTarget), []);
+  const focusedPosition = useMemo(() => new Vector3(...CAMERA_CONFIG.focusedPosition), []);
+  const focusedTarget = useMemo(() => new Vector3(...CAMERA_CONFIG.focusedTarget), []);
 
   useFrame(({ camera }, delta) => {
     const controls = controlsRef.current;
@@ -52,7 +57,7 @@ export function CameraRig({ controlsRef, isFocused }: CameraRigProps) {
     if (isAnimating.current) {
       const destinationPosition = useFocusedComposition ? focusedPosition : overviewPosition;
       const destinationTarget = useFocusedComposition ? focusedTarget : overviewTarget;
-      const alpha = isReducedMotion ? 1 : 1 - Math.exp(-CAMERA_DAMPING * delta);
+      const alpha = isReducedMotion ? 1 : 1 - Math.exp(-CAMERA_CONFIG.damping * delta);
 
       camera.position.lerp(destinationPosition, alpha);
       controls.target.lerp(destinationTarget, alpha);

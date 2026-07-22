@@ -1,7 +1,7 @@
 /**
  * POST values to the dev-only config writer (app/api/dev-config). Keys are
- * either flat scene keys (`minorRadius`) or scoped camera keys
- * (`camera.position`).
+ * explicitly scoped scene keys such as `contours.minorRadius` or
+ * `camera.overviewPosition`.
  * Logs the outcome; used by the Leva "Config" buttons.
  */
 export async function postConfigValues(label: string, values: Record<string, unknown>) {
@@ -18,7 +18,7 @@ export async function postConfigValues(label: string, values: Record<string, unk
     };
     if (!response.ok) throw new Error(result.error ?? response.statusText);
     const missed = result.missed?.length ? ` (not in config: ${result.missed.join(', ')})` : '';
-    console.log(`[config] ${label}: saved ${result.saved} values to config/scene${missed}`);
+    console.log(`[config] ${label}: saved ${result.saved} values${missed}`);
   } catch (error) {
     console.error(`[config] ${label} failed:`, error);
   }

@@ -1,9 +1,16 @@
 import {PerspectiveCamera, Ray, Vector2, Vector3} from 'three';
-import type {LinkStream} from '@/config/navigation';
-import {TERRAIN_MATERIAL_CONFIG, TERRAIN_MESH_CONFIG} from '@/config/scene';
+import {
+  LINK_STREAM_LAYOUT,
+  type LinkStream,
+} from '@/config/navigation/linkStreams';
+import {
+  CAMERA_CONFIG,
+  SCENE_LAYOUT_CONFIG,
+  TERRAIN_MESH_CONFIG,
+} from '@/config/scene';
 import type {HeightGrid} from '@/lib/terrain/bake';
 import {sampleHeight} from '@/lib/terrain/height';
-import {FOCUSED_CAMERA, getHomeFov, OVERVIEW_CAMERA} from '@/lib/scene/camera';
+import {getHomeFov} from '@/lib/scene/camera';
 import {getLinkStreamHeight} from './linkStreamGeometry';
 
 export type LinkLayoutMode = 'overview' | 'focused-mobile' | 'focused';
@@ -16,57 +23,58 @@ interface ProjectedPosition {
   distance: number;
 }
 
-const MOBILE_MAX_WIDTH = 768;
-const SAFE_INNER_X = 0.56;
-const SAFE_OUTER_X = 0.82;
-const SAFE_CENTER_Y = 0.145;
-const FOCUSED_START_X = 0.04;
-const FOCUSED_END_X = 0.88;
-const FOCUSED_MIN_Y = -0.05;
 const DEPTH_SEARCH_STEPS = 12;
 const INTERSECTION_STEPS = 18;
 const INTERSECTION_DISTANCE = 50;
 
 export function getLinkLayoutMode(isFocused: boolean, width: number): LinkLayoutMode {
   if (!isFocused) return 'overview';
-  if (width < MOBILE_MAX_WIDTH) return 'focused-mobile';
+  if (width < SCENE_LAYOUT_CONFIG.mobileMaxWidth) return 'focused-mobile';
   return 'focused';
 }
 
-function makeSideSlots(side: -1 | 1, count: number) {
-  return Array.from({length: count}, (_, index) => {
+function makeSideSlots(side: -1 | 1, streams: readonly LinkStream[]) {
+  return streams.map((stream, index) => {
+    const count = streams.length;
     const progress = count === 1 ? 0.5 : index / (count - 1);
-    const x = SAFE_INNER_X + (SAFE_OUTER_X - SAFE_INNER_X) * progress;
-    return new Vector2(side * x, SAFE_CENTER_Y);
+    const {innerX, outerX, centerY} = LINK_STREAM_LAYOUT.overview;
+    const x = innerX + (outerX - innerX) * progress;
+    return new Vector2(side * x, centerY + stream.overviewYOffset);
   });
 }
 
-function makeOverviewSlots(count: number) {
-  const leftCount = Math.ceil(count / 2);
+function makeOverviewSlots(streams: readonly LinkStream[]) {
+  const leftCount = Math.ceil(streams.length / 2);
   return [
-    ...makeSideSlots(-1, leftCount),
-    ...makeSideSlots(1, count - leftCount),
+    ...makeSideSlots(-1, streams.slice(0, leftCount)),
+    ...makeSideSlots(1, streams.slice(leftCount)),
   ];
 }
 
 function makeFocusedSlots(count: number) {
   return Array.from({length: count}, (_, index) => {
     const progress = count === 1 ? 0.5 : index / (count - 1);
-    const x = FOCUSED_START_X + (FOCUSED_END_X - FOCUSED_START_X) * progress;
-    return new Vector2(x, SAFE_CENTER_Y);
+    const {startX, endX, centerY} = LINK_STREAM_LAYOUT.focused;
+    const x = startX + (endX - startX) * progress;
+    return new Vector2(x, centerY);
   });
 }
 
 function makeCamera(width: number, height: number, mode: DesktopMode) {
-  const pose = mode === 'focused' ? FOCUSED_CAMERA : OVERVIEW_CAMERA;
+  const position = mode === 'focused'
+    ? CAMERA_CONFIG.focusedPosition
+    : CAMERA_CONFIG.overviewPosition;
+  const target = mode === 'focused'
+    ? CAMERA_CONFIG.focusedTarget
+    : CAMERA_CONFIG.overviewTarget;
   const camera = new PerspectiveCamera(
-    getHomeFov(width, height),
+    getHomeFov(width, height, CAMERA_CONFIG.fov, SCENE_LAYOUT_CONFIG),
     width / Math.max(height, 1),
     0.1,
     100,
   );
-  camera.position.fromArray(pose.position);
-  camera.lookAt(new Vector3().fromArray(pose.target));
+  camera.position.fromArray(position);
+  camera.lookAt(new Vector3().fromArray(target));
   camera.updateMatrixWorld(true);
   return camera;
 }
@@ -76,6 +84,8 @@ function projectSlot(
   camera: PerspectiveCamera,
   stream: LinkStream,
   heightGrid: HeightGrid,
+  elevation: number,
+  seaLevel: number,
 ): ProjectedPosition {
   const rayEnd = new Vector3(slot.x, slot.y, 0.5).unproject(camera);
   const ray = new Ray(camera.position, rayEnd.sub(camera.position).normalize());
@@ -89,8 +99,8 @@ function projectSlot(
         heightGrid,
         point.x,
         point.z,
-        TERRAIN_MATERIAL_CONFIG.elevation,
-        TERRAIN_MATERIAL_CONFIG.seaLevel,
+        elevation,
+        seaLevel,
       ) + centerOffset
     );
   }
@@ -129,9 +139,11 @@ function normalizeDepth(
   slots: Vector2[],
   camera: PerspectiveCamera,
   heightGrid: HeightGrid,
+  elevation: number,
+  seaLevel: number,
 ) {
   const projected = streams.map((stream, index) => (
-    projectSlot(slots[index], camera, stream, heightGrid)
+    projectSlot(slots[index], camera, stream, heightGrid, elevation, seaLevel)
   ));
   const depths = projected.map(({distance}) => distance).sort((a, b) => a - b);
   const targetDepth = depths[Math.floor((depths.length - 1) * 0.5)];
@@ -143,8 +155,15 @@ function normalizeDepth(
     for (let step = 1; step <= DEPTH_SEARCH_STEPS; step++) {
       const progress = step / DEPTH_SEARCH_STEPS;
       const slot = slots[index].clone();
-      slot.y += (FOCUSED_MIN_Y - slot.y) * progress;
-      const candidate = projectSlot(slot, camera, streams[index], heightGrid);
+      slot.y += (LINK_STREAM_LAYOUT.focused.closestSearchY - slot.y) * progress;
+      const candidate = projectSlot(
+        slot,
+        camera,
+        streams[index],
+        heightGrid,
+        elevation,
+        seaLevel,
+      );
       if (Math.abs(candidate.distance - targetDepth) < Math.abs(closest.distance - targetDepth)) {
         closest = candidate;
       }
@@ -159,14 +178,18 @@ function makeLayout(
   height: number,
   mode: DesktopMode,
   heightGrid: HeightGrid,
+  elevation: number,
+  seaLevel: number,
 ) {
   const camera = makeCamera(width, height, mode);
   const slots = mode === 'focused'
     ? makeFocusedSlots(streams.length)
-    : makeOverviewSlots(streams.length);
-  if (mode === 'focused') return normalizeDepth(streams, slots, camera, heightGrid);
+    : makeOverviewSlots(streams);
+  if (mode === 'focused') {
+    return normalizeDepth(streams, slots, camera, heightGrid, elevation, seaLevel);
+  }
   return streams.map((stream, index) => (
-    projectSlot(slots[index], camera, stream, heightGrid).position
+    projectSlot(slots[index], camera, stream, heightGrid, elevation, seaLevel).position
   ));
 }
 
@@ -175,9 +198,15 @@ export function getLinkLayouts(
   width: number,
   height: number,
   heightGrid: HeightGrid,
+  elevation: number,
+  seaLevel: number,
 ) {
   return {
-    overview: makeLayout(streams, width, height, 'overview', heightGrid),
-    focused: makeLayout(streams, width, height, 'focused', heightGrid),
+    overview: makeLayout(
+      streams, width, height, 'overview', heightGrid, elevation, seaLevel,
+    ),
+    focused: makeLayout(
+      streams, width, height, 'focused', heightGrid, elevation, seaLevel,
+    ),
   };
 }

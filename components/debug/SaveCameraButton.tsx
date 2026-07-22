@@ -12,12 +12,14 @@ function toTuple(vector: {x: number; y: number; z: number}): [number, number, nu
 
 /**
  * Leva button: writes current camera position, orbit target, and field of view
- * into config/scene/camera.ts via `camera.`-scoped keys.
+ * into the active pose in config/scene/camera.ts via `camera.`-scoped keys.
  */
 export function SaveCameraButton({
   controlsRef,
+  isFocused,
 }: {
-  controlsRef: React.RefObject<OrbitControlsInstance | null>
+  controlsRef: React.RefObject<OrbitControlsInstance | null>;
+  isFocused: boolean;
 }) {
   const {camera} = useThree();
 
@@ -25,11 +27,12 @@ export function SaveCameraButton({
     // The ref is read only when the user clicks the button.
     // eslint-disable-next-line react-hooks/refs
     'Save Camera': button(() => {
+      const pose = isFocused ? 'focused' : 'overview';
       const values: Record<string, unknown> = {
-        'camera.position': toTuple(camera.position),
+        [`camera.${pose}Position`]: toTuple(camera.position),
       };
       const target = controlsRef.current?.target;
-      if (target) values['camera.target'] = toTuple(target);
+      if (target) values[`camera.${pose}Target`] = toTuple(target);
       if (camera instanceof PerspectiveCamera) values['camera.fov'] = round3(camera.fov);
       void postConfigValues('Save Camera', values);
     }),

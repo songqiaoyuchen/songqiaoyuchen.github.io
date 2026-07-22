@@ -5,12 +5,10 @@ import {
   PlaneGeometry,
   Vector3,
 } from 'three';
-import {CAMERA_CONFIG} from '@/config/scene';
 import type { HeightGrid } from '@/lib/terrain/bake';
 import {sampleHeight} from '@/lib/terrain/height';
 
 export const DECOR_ATLAS_COLUMNS = 42;
-export const DECOR_DEPTH_LAYERS = 4;
 
 export type DecorStreamBounds = {
   x: readonly [number, number];
@@ -32,7 +30,13 @@ type LayoutOptions = {
   count: number;
   bounds: DecorStreamBounds;
   seed: number;
+  depthLayers: number;
   aspect: number;
+  camera: {
+    fov: number;
+    position: readonly [number, number, number];
+    target: readonly [number, number, number];
+  };
   heightGrid: HeightGrid;
   elevation: number;
   seaLevel: number;
@@ -47,10 +51,10 @@ function randomBetween(min: number, max: number, value: number) {
   return min + (max - min) * value;
 }
 
-function makeLayoutCamera(aspect: number) {
-  const camera = new PerspectiveCamera(CAMERA_CONFIG.fov, aspect, 0.1, 100);
-  camera.position.fromArray(CAMERA_CONFIG.position);
-  camera.lookAt(new Vector3().fromArray(CAMERA_CONFIG.target));
+function makeLayoutCamera(options: LayoutOptions['camera'], aspect: number) {
+  const camera = new PerspectiveCamera(options.fov, aspect, 0.1, 100);
+  camera.position.fromArray(options.position);
+  camera.lookAt(new Vector3().fromArray(options.target));
   camera.updateMatrixWorld(true);
   return camera;
 }
@@ -64,12 +68,14 @@ export function generateDecorStreamLayers({
   count,
   bounds,
   seed,
+  depthLayers,
   aspect,
+  camera: cameraOptions,
   heightGrid,
   elevation,
   seaLevel,
 }: LayoutOptions): DecorStreamInstance[][] {
-  const camera = makeLayoutCamera(aspect);
+  const camera = makeLayoutCamera(cameraOptions, aspect);
   const candidates: DecorStreamInstance[] = [];
   const projected = new Vector3();
   const viewPosition = new Vector3();
@@ -132,13 +138,13 @@ export function generateDecorStreamLayers({
   // instance index.
   selected.sort((a, b) => b.viewDepth - a.viewDepth);
   const layers = Array.from(
-    { length: DECOR_DEPTH_LAYERS },
+    { length: depthLayers },
     () => [] as DecorStreamInstance[],
   );
   selected.forEach((instance, index) => {
     const layer = Math.min(
-      DECOR_DEPTH_LAYERS - 1,
-      Math.floor(index * DECOR_DEPTH_LAYERS / selected.length),
+      depthLayers - 1,
+      Math.floor(index * depthLayers / selected.length),
     );
     layers[layer].push(instance);
   });

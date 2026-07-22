@@ -1,28 +1,31 @@
 'use client';
 
-import { button, levaStore, useControls } from 'leva';
+import {button, useControls} from 'leva';
 import { postConfigValues } from '@/lib/debug/saveConfig';
+import type {SceneControlValues} from './useSceneControls';
 
 /**
- * Leva button: snapshots control values (except camera related) 
- * and writes it back into config/scene, 
+ * Leva button: snapshots the scene controls (except camera related)
+ * and writes them back into config/scene,
  * so a tuning session becomes the new default look with one click.
  */
-function collectLevaValues(): Record<string, unknown> {
+function collectConfigValues(groups: SceneControlValues): Record<string, unknown> {
   const values: Record<string, unknown> = {};
-  for (const [dataPath, entry] of Object.entries(levaStore.getData())) {
-    if (!('value' in entry)) continue; // buttons, folders
-    const { value } = entry;
-    const t = typeof value;
-    if (t !== 'string' && t !== 'number' && t !== 'boolean') continue;
-    values[dataPath.split('.').pop()!] = value;
+  for (const [scope, group] of Object.entries(groups)) {
+    for (const [key, value] of Object.entries(group)) {
+      const type = typeof value;
+      if (type !== 'string' && type !== 'number' && type !== 'boolean') continue;
+      values[`${scope}.${key}`] = value;
+    }
   }
   return values;
 }
 
-export function SaveConfigButton() {
+export function SaveConfigButton({values}: {values: SceneControlValues}) {
   useControls('Config', {
-    'Save Config': button(() => void postConfigValues('Save Config', collectLevaValues())),
+    'Save Config': button(() => (
+      void postConfigValues('Save Config', collectConfigValues(values))
+    )),
   });
   return null;
 }

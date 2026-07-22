@@ -29,20 +29,48 @@ function replaceKey(source: string, key: string, literal: string): string | null
   return source.replace(pattern, `$1${literal}`);
 }
 
-const EDITABLE_CONFIG_FILES = [
-  'camera.ts',
-  'contours.ts',
-  'fog.ts',
-  'postProcessing.ts',
-  'terrain.ts',
-] as const;
+const EDITABLE_CONFIG = {
+  camera: {
+    fileName: 'camera.ts',
+    keys: ['overviewPosition', 'overviewTarget', 'focusedPosition', 'focusedTarget', 'fov'],
+  },
+  contours: {
+    fileName: 'contours.ts',
+    keys: [
+      'levels', 'smoothIterations', 'chaikinIterations', 'resampleSpacing',
+      'spacingJitter', 'shadowChance', 'shadowOffset', 'shadowIntensity',
+      'lift', 'depthBias', 'majorEvery', 'majorMinHeight', 'minorRadius',
+      'majorRadius', 'minorColor', 'minorIntensity', 'minorBase', 'majorColor',
+      'majorIntensity', 'pulseColor', 'pulseTint', 'pulseSpeed', 'pulseScale',
+      'pulseSharpness',
+    ],
+  },
+  fog: {
+    fileName: 'fog.ts',
+    keys: ['near', 'far'],
+  },
+  postProcessing: {
+    fileName: 'postProcessing.ts',
+    keys: ['bloomIntensity', 'bloomThreshold', 'bloomSmoothing'],
+  },
+  terrain: {
+    fileName: 'terrain.ts',
+    keys: [
+      'elevation', 'seaLevel', 'baseColor', 'ridgeColor', 'shadowStrength',
+      'shadowBias', 'lightColor', 'lightX', 'lightY', 'lightZ', 'lightIntensity',
+      'lightFalloff', 'light2Color', 'light2X', 'light2Y', 'light2Z',
+      'light2Intensity', 'light2Falloff',
+    ],
+  },
+} as const;
 
-const SCOPED_CONFIG_FILES: Record<string, string> = {
-  camera: 'camera.ts',
-};
+type ConfigScope = keyof typeof EDITABLE_CONFIG;
+
+function isConfigScope(value: string): value is ConfigScope {
+  return value in EDITABLE_CONFIG;
+}
 
 type ConfigSource = {
-  fileName: string;
   filePath: string;
   source: string;
   changed: boolean;
@@ -50,9 +78,8 @@ type ConfigSource = {
 
 /**
  * Dev-only: writes values back into the focused files under config/scene.
- * Each flat key must occur in exactly one editable file. Scoped camera keys
- * (`camera.position`) are routed directly to camera.ts. Unknown or ambiguous
- * keys are reported as `missed` instead of failing the save.
+ * Values use explicit `scope.key` paths. Both scopes and keys are allowlisted,
+ * so unrelated Leva controls can never be written into source files.
  */
 export async function POST(request: Request) {
   if (process.env.NODE_ENV !== 'development') {
@@ -65,17 +92,19 @@ export async function POST(request: Request) {
   }
 
   const configDirectory = path.join(process.cwd(), 'config', 'scene');
-  const sources: ConfigSource[] = await Promise.all(
-    EDITABLE_CONFIG_FILES.map(async (fileName) => {
+  const scopes = Object.keys(EDITABLE_CONFIG) as ConfigScope[];
+  const sourceEntries = await Promise.all(
+    scopes.map(async (scope) => {
+      const {fileName} = EDITABLE_CONFIG[scope];
       const filePath = path.join(configDirectory, fileName);
-      return {
-        fileName,
+      return [scope, {
         filePath,
         source: await fs.readFile(filePath, 'utf8'),
         changed: false,
-      };
+      }] as const;
     }),
   );
+  const sources = new Map<ConfigScope, ConfigSource>(sourceEntries);
 
   const missed: string[] = [];
   let saved = 0;
@@ -83,24 +112,28 @@ export async function POST(request: Request) {
   for (const [rawKey, value] of Object.entries(values)) {
     const literal = toLiteral(value);
     const parts = rawKey.split('.');
-    const valid = parts.length <= 2 && parts.every((part) => /^[A-Za-z_][A-Za-z0-9_]*$/.test(part));
-    if (!literal || !valid) {
+    if (
+      !literal
+      || parts.length !== 2
+      || !parts.every((part) => /^[A-Za-z_][A-Za-z0-9_]*$/.test(part))
+    ) {
       missed.push(rawKey);
       continue;
     }
 
-    const [scopeOrKey, scopedKey] = parts;
-    const candidates = scopedKey
-      ? sources.filter((source) => source.fileName === SCOPED_CONFIG_FILES[scopeOrKey])
-      : sources.filter((source) => replaceKey(source.source, scopeOrKey, literal) !== null);
-
-    if (candidates.length !== 1) {
+    const [scope, key] = parts;
+    if (!isConfigScope(scope) || !EDITABLE_CONFIG[scope].keys.some((entry) => entry === key)) {
       missed.push(rawKey);
       continue;
     }
 
-    const target = candidates[0];
-    const next = replaceKey(target.source, scopedKey ?? scopeOrKey, literal);
+    const target = sources.get(scope);
+    if (!target) {
+      missed.push(rawKey);
+      continue;
+    }
+
+    const next = replaceKey(target.source, key, literal);
     if (next === null) {
       missed.push(rawKey);
       continue;
@@ -112,7 +145,7 @@ export async function POST(request: Request) {
   }
 
   await Promise.all(
-    sources
+    [...sources.values()]
       .filter((source) => source.changed)
       .map((source) => fs.writeFile(source.filePath, source.source, 'utf8')),
   );

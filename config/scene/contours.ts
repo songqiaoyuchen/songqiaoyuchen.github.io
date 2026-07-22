@@ -41,5 +41,5 @@ export const CONTOUR_CONFIG = {
   pulseSharpness: 0.25, // 1 = distinct borders, 0 = smooth gradient
 
   // All contours start together and alternate path direction by elevation.
-  introTravelSpeed: 4, // world units per second
+  introTravelSpeed: 6, // world units per second
 } as const;

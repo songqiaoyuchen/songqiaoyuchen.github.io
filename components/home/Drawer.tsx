@@ -11,21 +11,16 @@ interface DrawerProps {
 
 export function Drawer({activeId, onClose}: DrawerProps) {
   const [displayedId, setDisplayedId] = useState<SectionId | null>(activeId);
-  // ??? i dont get the point of this isVisible state, why not use displayedId !== null? or activeid != null?
-  // this issue i think arise from a duplicate variable, active id and displayed id, they are the same, just for different scopes,
-  // making activeid global state is much cleaner i believe
-  const [isVisible, setIsVisible] = useState(activeId !== null);
 
   useEffect(() => {
-    const frame = window.requestAnimationFrame(() => {
-      if (activeId !== null) setDisplayedId(activeId);
-      setIsVisible(activeId !== null);
-    });
-    return () => window.cancelAnimationFrame(frame); // ??? what is cancelAnimationFrame doing here? is it necessary?
+    if (activeId === null) return;
+
+    const frame = window.requestAnimationFrame(() => setDisplayedId(activeId));
+    return () => window.cancelAnimationFrame(frame);
   }, [activeId]);
 
   useEffect(() => {
-    if (!isVisible) return;
+    if (activeId === null) return;
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') onClose();
@@ -33,12 +28,10 @@ export function Drawer({activeId, onClose}: DrawerProps) {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isVisible, onClose]);
+  }, [activeId, onClose]);
 
-  // ??? this function is essentially onclose? all it does is set id to null so i do not render drawer
-  // but this runs on every transition end, is this good pattern? why not handle explicitly onclose
   function handleTransitionEnd(event: TransitionEvent<HTMLElement>) {
-    if (event.target === event.currentTarget && !isVisible && activeId === null) {
+    if (event.target === event.currentTarget && activeId === null) {
       setDisplayedId(null);
     }
   }
@@ -48,13 +41,13 @@ export function Drawer({activeId, onClose}: DrawerProps) {
   const section = SECTIONS[displayedId];
   return (
     <aside
-      aria-hidden={!isVisible}
+      aria-hidden={activeId === null}
       aria-label={`${section.label} preview`}
       className={`
         fixed inset-y-0 left-0 z-40 w-[min(100vw,clamp(340px,45vw,620px))]
         transition-[opacity,visibility] duration-100 motion-reduce:duration-0
         ${
-          isVisible
+          activeId !== null
             ? 'visible pointer-events-auto opacity-100'
             : 'invisible pointer-events-none opacity-0'
         }
@@ -76,7 +69,7 @@ export function Drawer({activeId, onClose}: DrawerProps) {
             transition-colors hover:text-text focus-visible:outline-1
             focus-visible:outline-offset-4 focus-visible:outline-accent sm:right-11 sm:top-24"
           onClick={onClose}
-          tabIndex={isVisible ? 0 : -1}
+          tabIndex={activeId !== null ? 0 : -1}
           type="button"
         >
           <span aria-hidden="true">&times;</span>

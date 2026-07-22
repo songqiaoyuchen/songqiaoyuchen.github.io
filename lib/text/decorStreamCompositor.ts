@@ -15,13 +15,10 @@ import {
 
 const CLEAR = new Color(0x000000);
 
-// The streams are soft additive glow, so the whole far-to-near accumulation
-// can run at reduced resolution and upsample linearly in the composite pass:
-// quarter the fill cost of every render and blur with no visible loss.
-const RESOLUTION_SCALE = 0.5;
-
-// Overall blur strength multiplier: lower means sharper.
-const BLUR_SCALE = 0.2;
+type DecorCompositorSettings = {
+  resolutionScale: number;
+  blurScale: number;
+};
 
 function makeTarget(width: number, height: number) {
   const target = new WebGLRenderTarget(width, height, {
@@ -40,7 +37,7 @@ function makeTarget(width: number, height: number) {
 /**
  * Far-to-near blur accumulation over the three depth groups (16px-ish, 8px-ish, 4px-ish). 
  * The nearest group is not part of this pipeline to stay crisp
- * while the blurred stack runs at RESOLUTION_SCALE.
+ * while the blurred stack runs at the configured reduced resolution.
  */
 export class DecorStreamCompositor {
   readonly texture;
@@ -52,10 +49,17 @@ export class DecorStreamCompositor {
   private initialized = false;
   private width: number;
   private height: number;
+  private readonly resolutionScale: number;
 
-  constructor(meshes: Mesh[], width: number, height: number) {
-    this.width = Math.max(1, Math.round(width * RESOLUTION_SCALE));
-    this.height = Math.max(1, Math.round(height * RESOLUTION_SCALE));
+  constructor(
+    meshes: Mesh[],
+    width: number,
+    height: number,
+    settings: DecorCompositorSettings,
+  ) {
+    this.resolutionScale = settings.resolutionScale;
+    this.width = Math.max(1, Math.round(width * this.resolutionScale));
+    this.height = Math.max(1, Math.round(height * this.resolutionScale));
     this.meshes = meshes;
     this.scenes = meshes.map((mesh) => {
       const scene = new Scene();
@@ -71,14 +75,14 @@ export class DecorStreamCompositor {
         kernelSize: KernelSize.VERY_SMALL,
         resolutionScale,
       });
-      pass.scale = BLUR_SCALE;
+      pass.scale = settings.blurScale;
       return pass;
     });
   }
 
   setSize(width: number, height: number) {
-    const nextWidth = Math.max(1, Math.round(width * RESOLUTION_SCALE));
-    const nextHeight = Math.max(1, Math.round(height * RESOLUTION_SCALE));
+    const nextWidth = Math.max(1, Math.round(width * this.resolutionScale));
+    const nextHeight = Math.max(1, Math.round(height * this.resolutionScale));
     if (nextWidth === this.width && nextHeight === this.height) return;
     this.width = nextWidth;
     this.height = nextHeight;

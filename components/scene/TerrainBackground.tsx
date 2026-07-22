@@ -11,7 +11,7 @@ import {CAMERA_CONFIG, FOG_CONFIG} from '@/config/scene';
 import { SaveCameraButton } from '@/components/debug/SaveCameraButton';
 import { ColorOnlySMAA } from '@/components/effects/ColorOnlySMAA';
 import { SaveConfigButton } from '@/components/debug/SaveConfigButton';
-import { usePostControls } from '@/components/debug/usePostControls';
+import {useSceneControls} from '@/components/debug/useSceneControls';
 import { SceneFog } from './SceneFog';
 import { TerrainMesh } from './TerrainMesh';
 import { ContourLines } from './ContourLines';
@@ -31,30 +31,40 @@ export function TerrainBackground({activeId, onStreamClick}: TerrainBackgroundPr
   const [contourMesh, setContourMesh] = useState<Mesh | null>(null);
   const [decorStreamsMesh, setDecorStreamsMesh] = useState<Mesh | null>(null);
   const [linkStreamsMesh, setLinkStreamsMesh] = useState<Mesh | null>(null);
-  const post = usePostControls();
+  const settings = useSceneControls();
 
   return (
     <div className="absolute inset-0 z-0">
-      <SaveConfigButton />
+      <SaveConfigButton values={settings} />
       <Canvas
-        camera={{position: CAMERA_CONFIG.position, fov: CAMERA_CONFIG.fov}}
+        camera={{position: CAMERA_CONFIG.overviewPosition, fov: CAMERA_CONFIG.fov}}
         gl={{ antialias: false, powerPreference: 'high-performance' }}
       >
         <color attach="background" args={[FOG_CONFIG.color]} />
         {/* SelectiveBloom expects a light for its isolated render. */}
         <ambientLight ref={setBloomLight} intensity={0} />
-        <OrbitControls ref={orbitcontrolsRef} target={CAMERA_CONFIG.target} makeDefault />
+        <OrbitControls ref={orbitcontrolsRef} target={CAMERA_CONFIG.overviewTarget} makeDefault />
         <CameraRig controlsRef={orbitcontrolsRef} isFocused={activeId !== null} />
-        <SaveCameraButton controlsRef={orbitcontrolsRef} />
-        <SceneFog />
+        <SaveCameraButton controlsRef={orbitcontrolsRef} isFocused={activeId !== null} />
+        <SceneFog settings={settings.fog} />
         <Suspense fallback={null}>
-          <TerrainMesh />
-          <ContourLines ref={setContourMesh} />
-          <DecorStreams ref={setDecorStreamsMesh} />
+          <TerrainMesh settings={settings.terrain} />
+          <ContourLines
+            ref={setContourMesh}
+            contourSettings={settings.contours}
+            terrainSettings={settings.terrain}
+          />
+          <DecorStreams
+            ref={setDecorStreamsMesh}
+            contourSettings={settings.contours}
+            terrainSettings={settings.terrain}
+          />
           <LinkStreams
             ref={setLinkStreamsMesh}
             activeId={activeId}
+            contourSettings={settings.contours}
             onStreamClick={onStreamClick}
+            terrainSettings={settings.terrain}
           />
         </Suspense>
         {/* Keep the composer single-sampled: MSAA resolve blits intermittently
@@ -67,9 +77,9 @@ export function TerrainBackground({activeId, onStreamClick}: TerrainBackgroundPr
               lights={[bloomLight]}
               selection={[contourMesh, linkStreamsMesh]}
               mipmapBlur
-              intensity={post.bloomIntensity}
-              luminanceThreshold={post.bloomThreshold}
-              luminanceSmoothing={post.bloomSmoothing}
+              intensity={settings.postProcessing.bloomIntensity}
+              luminanceThreshold={settings.postProcessing.bloomThreshold}
+              luminanceSmoothing={settings.postProcessing.bloomSmoothing}
             />
           </EffectComposer>
         ) : null}

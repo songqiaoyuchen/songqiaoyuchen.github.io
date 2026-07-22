@@ -10,7 +10,6 @@ import {
 import {TERRAIN_MATERIAL_CONFIG, TERRAIN_MESH_CONFIG} from '@/config/scene';
 import {gaussianBlur} from './blur';
 
-// ??? two interfaces here what is the point?
 export interface HeightmapImage {
   data: Uint16Array | Float32Array;
   width: number;
