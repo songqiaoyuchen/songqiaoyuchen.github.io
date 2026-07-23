@@ -15,6 +15,7 @@ varying float vHover;
 varying float vGlitch;
 varying float vActive;
 varying float vFocused;
+varying float vBorder;
 
 float hash12(vec2 p) {
   vec3 p3 = fract(vec3(p.xyx) * 0.1031);
@@ -27,6 +28,14 @@ void main() {
   float dissolveNoise = hash12(dissolveCell + vec2(vSeed * 9.7, floor(vStreamT * 17.0)));
   if (dissolveNoise > uDissolve) discard;
 
+  float scan = 0.8 + 0.2 * sin(gl_FragCoord.y * 1.45 + uTime * 2.2 + vSeed);
+  if (vBorder > 0.5) {
+    if (vActive * vFocused < 0.5) discard;
+    vec3 borderColor = mix(uStreamColor, uHotColor, 0.46);
+    gl_FragColor = vec4(borderColor, vIntensity * scan * 0.92);
+    return;
+  }
+
   float field = texture2D(uAtlas, vAtlasUv).r;
   float width = fwidth(field);
   float smoothing = max(width * 1.2, 0.004);
@@ -36,7 +45,6 @@ void main() {
   float glyph = smoothstep(threshold - smoothing, threshold + smoothing, field);
   if (glyph < 0.01) discard;
 
-  float scan = 0.8 + 0.2 * sin(gl_FragCoord.y * 1.45 + uTime * 2.2 + vSeed);
   float roleStrength = mix(0.32, 1.0, vNavGlyph);
   float focusEmphasis = mix(1.0, mix(0.52, 1.08, vActive), vFocused);
   focusEmphasis = mix(focusEmphasis, max(focusEmphasis, 0.94), vHover);

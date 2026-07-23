@@ -6,6 +6,8 @@ const ATLAS_COLUMNS = 16;
 const ATLAS_ROWS = 8;
 const X_SEGMENTS = 2;
 const Y_SEGMENTS = 4;
+const FOCUS_BRACKET_PADDING = 0.08;
+const FOCUS_BRACKET_THICKNESS = 0.034;
 
 export function getLinkStreamHeight(stream: LinkStream) {
   return stream.size
@@ -22,7 +24,77 @@ export function buildLinkStreamGeometry(streams: readonly LinkStream[]) {
   const intensities: number[] = [];
   const seeds: number[] = [];
   const streamTs: number[] = [];
+  const spacingOffsets: number[] = [];
+  const borderFlags: number[] = [];
   const indices: number[] = [];
+
+  function pushFocusBracketQuad(
+    stream: LinkStream,
+    centerX: number,
+    centerY: number,
+    width: number,
+    height: number,
+    seed: number,
+  ) {
+    const vertexBase = positions.length / 3;
+    const corners = [
+      [-0.5, -0.5],
+      [0.5, -0.5],
+      [-0.5, 0.5],
+      [0.5, 0.5],
+    ];
+
+    for (const [cornerX, cornerY] of corners) {
+      positions.push(stream.anchor[0], centerY, stream.anchor[1]);
+      billboardOffsets.push(centerX + cornerX * width, cornerY * height);
+      atlasUvs.push(0, 0);
+      localUvs.push(cornerX + 0.5, cornerY + 0.5);
+      streamIndices.push(stream.index);
+      navGlyphs.push(1);
+      intensities.push(stream.intensity);
+      seeds.push(seed);
+      streamTs.push(cornerY + 0.5);
+      spacingOffsets.push(0);
+      borderFlags.push(1);
+    }
+
+    indices.push(
+      vertexBase,
+      vertexBase + 1,
+      vertexBase + 2,
+      vertexBase + 1,
+      vertexBase + 3,
+      vertexBase + 2,
+    );
+  }
+
+  function pushFocusBracketPair(
+    stream: LinkStream,
+    horizontalCenterX: number,
+    horizontalCenterY: number,
+    verticalCenterX: number,
+    verticalCenterY: number,
+    armWidth: number,
+    armHeight: number,
+    seed: number,
+  ) {
+    pushFocusBracketQuad(
+      stream,
+      horizontalCenterX,
+      horizontalCenterY,
+      armWidth,
+      FOCUS_BRACKET_THICKNESS,
+      seed,
+    );
+    pushFocusBracketQuad(
+      stream,
+      verticalCenterX,
+      verticalCenterY,
+      FOCUS_BRACKET_THICKNESS,
+      armHeight,
+      seed + 0.1,
+    );
+  }
 
   for (const stream of streams) {
     const advance = stream.size + stream.spacing;
@@ -54,6 +126,8 @@ export function buildLinkStreamGeometry(streams: readonly LinkStream[]) {
           intensities.push(stream.intensity);
           seeds.push(stream.seed + characterIndex * 0.173);
           streamTs.push(reversedIndex / denominator);
+          spacingOffsets.push(reversedIndex * stream.spacing);
+          borderFlags.push(0);
         }
       }
 
@@ -68,6 +142,33 @@ export function buildLinkStreamGeometry(streams: readonly LinkStream[]) {
         }
       }
     }
+
+    const streamHeight = getLinkStreamHeight(stream);
+    const bracketArm = Math.min(stream.size * 0.48, 0.22);
+    const bracketX = glyphWidth * 0.5 + FOCUS_BRACKET_PADDING;
+    const bracketTop = stream.bottomOffset + streamHeight + FOCUS_BRACKET_PADDING;
+    const bracketBottom = stream.bottomOffset - FOCUS_BRACKET_PADDING;
+
+    pushFocusBracketPair(
+      stream,
+      -bracketX + bracketArm * 0.5,
+      bracketTop,
+      -bracketX,
+      bracketTop - bracketArm * 0.5,
+      bracketArm,
+      bracketArm,
+      stream.seed + 31.1,
+    );
+    pushFocusBracketPair(
+      stream,
+      bracketX - bracketArm * 0.5,
+      bracketBottom,
+      bracketX,
+      bracketBottom + bracketArm * 0.5,
+      bracketArm,
+      bracketArm,
+      stream.seed + 31.3,
+    );
   }
 
   const geometry = new BufferGeometry();
@@ -86,6 +187,11 @@ export function buildLinkStreamGeometry(streams: readonly LinkStream[]) {
   geometry.setAttribute('aIntensity', new BufferAttribute(new Float32Array(intensities), 1));
   geometry.setAttribute('aSeed', new BufferAttribute(new Float32Array(seeds), 1));
   geometry.setAttribute('aStreamT', new BufferAttribute(new Float32Array(streamTs), 1));
+  geometry.setAttribute(
+    'aSpacingOffset',
+    new BufferAttribute(new Float32Array(spacingOffsets), 1),
+  );
+  geometry.setAttribute('aBorder', new BufferAttribute(new Float32Array(borderFlags), 1));
   geometry.setIndex(indices);
   geometry.computeBoundingSphere();
   return geometry;

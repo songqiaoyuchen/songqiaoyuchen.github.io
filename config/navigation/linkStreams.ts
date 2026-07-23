@@ -23,21 +23,30 @@ export interface LinkStream {
  */
 export const LINK_STREAM_LAYOUT = {
   overview: {
-    innerX: 0.46,
-    outerX: 0.72,
-    centerY: 0.045,
+    desktop: {
+      startX: -0.8,
+      endX: -0.32,
+      centerY: -0.12,
+    },
+    mobile: {
+      innerX: 0.46,
+      outerX: 0.72,
+      centerY: 0.045,
+    },
   },
   focused: {
     startX: 0.04,
     endX: 0.78,
     centerY: 0.145,
     closestSearchY: -0.05,
+    order: ['art', 'blog', 'projects', 'about'],
   },
 } as const;
 
 export const LINK_STREAM_EFFECT_CONFIG = {
   lift: 0.075,
   layoutDamping: 7,
+  focusedSpacingMultiplier: 0.5,
   dissolveOutSpeed: 4.8,
   dissolveInSpeed: 3.2,
   hoverDamping: 9,
@@ -45,18 +54,6 @@ export const LINK_STREAM_EFFECT_CONFIG = {
 } as const;
 
 const LINK_STREAM_DEFINITIONS: Array<Omit<LinkStream, 'index'>> = [
-  {
-    id: 'projects',
-    text: 'PROJECTS',
-    navRange: [0, 8],
-    anchor: [7.05, 4.05],
-    size: 0.45,
-    spacing: 0.04,
-    bottomOffset: 0.6,
-    overviewYOffset: 0,
-    intensity: 1.18,
-    seed: 2.1,
-  },
   {
     id: 'art',
     text: 'ART',
@@ -68,6 +65,18 @@ const LINK_STREAM_DEFINITIONS: Array<Omit<LinkStream, 'index'>> = [
     overviewYOffset: -0.05,
     intensity: 1.12,
     seed: 7.4,
+  },
+  {
+    id: 'projects',
+    text: 'PROJECTS',
+    navRange: [0, 8],
+    anchor: [7.05, 4.05],
+    size: 0.45,
+    spacing: 0.04,
+    bottomOffset: 0.6,
+    overviewYOffset: 0,
+    intensity: 1.18,
+    seed: 2.1,
   },
   {
     id: 'blog',

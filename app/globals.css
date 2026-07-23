@@ -73,3 +73,10 @@
     display: none;
   }
 }
+
+@layer components {
+  .link-stream-hit[data-active][data-focused]:focus-visible {
+    border-color: transparent !important;
+    background-color: transparent !important;
+  }
+}

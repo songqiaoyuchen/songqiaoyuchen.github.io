@@ -5,6 +5,8 @@ attribute float aNavGlyph;
 attribute float aIntensity;
 attribute float aSeed;
 attribute float aStreamT;
+attribute float aSpacingOffset;
+attribute float aBorder;
 
 #define LINK_STREAM_COUNT __LINK_STREAM_COUNT__
 
@@ -22,6 +24,7 @@ uniform float uLayoutOffsetX[LINK_STREAM_COUNT];
 uniform float uLayoutOffsetZ[LINK_STREAM_COUNT];
 uniform float uActiveStream;
 uniform float uFocused;
+uniform float uFocusedSpacingMultiplier;
 
 varying vec2 vAtlasUv;
 varying vec2 vLocalUv;
@@ -33,6 +36,7 @@ varying float vHover;
 varying float vGlitch;
 varying float vActive;
 varying float vFocused;
+varying float vBorder;
 
 float hash12(vec2 p) {
   vec3 p3 = fract(vec3(p.xyx) * 0.1031);
@@ -64,6 +68,7 @@ void main() {
   vGlitch = streamValue(uGlitch, aStreamIndex);
   vActive = 1.0 - step(0.25, abs(aStreamIndex - uActiveStream));
   vFocused = uFocused;
+  vBorder = aBorder;
 
   vec2 layoutOffset = vec2(
     streamValue(uLayoutOffsetX, aStreamIndex),
@@ -77,10 +82,12 @@ void main() {
   vec3 right = normalize(cross(vec3(0.0, 1.0, 0.0), toCamera));
   float band = floor(aLocalUv.y * 7.0);
   float slice = hash12(vec2(band + aSeed * 31.0, floor(uTime * 18.0)));
-  float glitchOffset = (slice - 0.5) * step(0.5, slice) * vGlitch * 0.42;
+  float glitchOffset =
+    (slice - 0.5) * step(0.5, slice) * vGlitch * 0.42 * (1.0 - vBorder);
 
   vec3 worldPosition = center;
   worldPosition += right * (aBillboardOffset.x + glitchOffset);
-  worldPosition.y += aBillboardOffset.y;
+  worldPosition.y += aBillboardOffset.y
+    + aSpacingOffset * (uFocusedSpacingMultiplier - 1.0) * vFocused;
   gl_Position = projectionMatrix * modelViewMatrix * vec4(worldPosition, 1.0);
 }

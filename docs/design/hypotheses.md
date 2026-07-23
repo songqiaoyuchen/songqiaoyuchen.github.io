@@ -35,6 +35,35 @@ Leave blank until tested. Link screenshots, commits, or prototypes where useful.
 
 ## Active hypotheses
 
+### H-011: Asymmetric homepage overview
+
+Status: exploring
+Confidence: medium
+
+**Hypothesis**
+
+At desktop and tablet widths, concentrating the four section streams in a left-side field and placing a large, unboxed introduction on the right will create a stronger identity-first hierarchy than the centered spread.
+
+**Why it may fit**
+
+The asymmetry gives navigation and identity distinct roles while leaving the terrain as the shared atmospheric ground. It also creates a more deliberate visual counterweight between the dense stream cluster and the open typographic field.
+
+**Keep constant**
+
+Terrain and camera framing, stream order and hit targets, the focused drawer composition, and the existing fade/glitch swap between overview and focused stream layouts.
+
+**Test on**
+
+The homepage at approximately 390 px, 768 px, and 1440 px, including every section focus state, keyboard focus, and reduced motion.
+
+**Success signal**
+
+The overview reads immediately as navigation on the left and personal introduction on the right without overlap or clipping, while mobile and every focused state retain their existing balance and usability.
+
+**Result**
+
+2026-07-22 — Exploration implemented with desktop/tablet stream slots spanning NDC x -0.86 to -0.36 and a large introduction in an upper-right field ending at 60% viewport height. Browser checks at 1440 px and 768 px confirmed clear separation between the stream cluster and introduction; the 390 px composition retained its previous centered hero and symmetric stream slots. All four stream controls and all four top-navigation controls retained the existing focused drawer and fade/glitch layout swap.
+
 ### H-010: Interim single-page index composition
 
 Status: exploring  

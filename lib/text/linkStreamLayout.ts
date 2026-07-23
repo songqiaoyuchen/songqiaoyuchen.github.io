@@ -37,13 +37,13 @@ function makeSideSlots(side: -1 | 1, streams: readonly LinkStream[]) {
   return streams.map((stream, index) => {
     const count = streams.length;
     const progress = count === 1 ? 0.5 : index / (count - 1);
-    const {innerX, outerX, centerY} = LINK_STREAM_LAYOUT.overview;
+    const {innerX, outerX, centerY} = LINK_STREAM_LAYOUT.overview.mobile;
     const x = innerX + (outerX - innerX) * progress;
     return new Vector2(side * x, centerY + stream.overviewYOffset);
   });
 }
 
-function makeOverviewSlots(streams: readonly LinkStream[]) {
+function makeMobileOverviewSlots(streams: readonly LinkStream[]) {
   const leftCount = Math.ceil(streams.length / 2);
   return [
     ...makeSideSlots(-1, streams.slice(0, leftCount)),
@@ -51,13 +51,40 @@ function makeOverviewSlots(streams: readonly LinkStream[]) {
   ];
 }
 
-function makeFocusedSlots(count: number) {
-  return Array.from({length: count}, (_, index) => {
+function makeOverviewSlots(streams: readonly LinkStream[], width: number) {
+  if (width < SCENE_LAYOUT_CONFIG.mobileMaxWidth) {
+    return makeMobileOverviewSlots(streams);
+  }
+
+  const {startX, endX, centerY} = LINK_STREAM_LAYOUT.overview.desktop;
+  return streams.map((stream, index) => {
+    const progress = streams.length === 1 ? 0.5 : index / (streams.length - 1);
+    return new Vector2(
+      startX + (endX - startX) * progress,
+      centerY + stream.overviewYOffset,
+    );
+  });
+}
+
+function applyFocusedOrder<T>(
+  streams: readonly LinkStream[],
+  slots: readonly T[],
+) {
+  return streams.map((stream) => {
+    const slotIndex = LINK_STREAM_LAYOUT.focused.order.indexOf(stream.id);
+    return slots[slotIndex] ?? slots[stream.index];
+  });
+}
+
+function makeFocusedSlots(streams: readonly LinkStream[]) {
+  const slots = Array.from({length: streams.length}, (_, index) => {
+    const count = streams.length;
     const progress = count === 1 ? 0.5 : index / (count - 1);
     const {startX, endX, centerY} = LINK_STREAM_LAYOUT.focused;
     const x = startX + (endX - startX) * progress;
     return new Vector2(x, centerY);
   });
+  return applyFocusedOrder(streams, slots);
 }
 
 function makeCamera(width: number, height: number, mode: DesktopMode) {
@@ -183,14 +210,38 @@ function makeLayout(
 ) {
   const camera = makeCamera(width, height, mode);
   const slots = mode === 'focused'
-    ? makeFocusedSlots(streams.length)
-    : makeOverviewSlots(streams);
+    ? makeFocusedSlots(streams)
+    : makeOverviewSlots(streams, width);
   if (mode === 'focused') {
     return normalizeDepth(streams, slots, camera, heightGrid, elevation, seaLevel);
   }
   return streams.map((stream, index) => (
     projectSlot(slots[index], camera, stream, heightGrid, elevation, seaLevel).position
   ));
+}
+
+function makeFocusedMobileLayout(
+  streams: readonly LinkStream[],
+  width: number,
+  height: number,
+  heightGrid: HeightGrid,
+  elevation: number,
+  seaLevel: number,
+) {
+  const camera = makeCamera(width, height, 'focused');
+  const slots = streams.map((stream) => {
+    const [x, z] = stream.anchor;
+    const y = sampleHeight(heightGrid, x, z, elevation, seaLevel)
+      + stream.bottomOffset
+      + getLinkStreamHeight(stream) * 0.5;
+    const screenX = new Vector3(x, y, z).project(camera).x;
+    return {position: stream.anchor, screenX};
+  }).sort((a, b) => a.screenX - b.screenX);
+
+  return applyFocusedOrder(
+    streams,
+    slots.map(({position}) => position),
+  );
 }
 
 export function getLinkLayouts(
@@ -207,6 +258,9 @@ export function getLinkLayouts(
     ),
     focused: makeLayout(
       streams, width, height, 'focused', heightGrid, elevation, seaLevel,
+    ),
+    focusedMobile: makeFocusedMobileLayout(
+      streams, width, height, heightGrid, elevation, seaLevel,
     ),
   };
 }

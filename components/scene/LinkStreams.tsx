@@ -8,6 +8,7 @@ import {
   DoubleSide,
   ShaderMaterial,
   TextureLoader,
+  Vector3,
 } from 'three';
 import type { Group, Mesh } from 'three';
 import { EXRLoader } from 'three-stdlib';
@@ -53,6 +54,7 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
   const atlas = useLoader(TextureLoader, '/textures/text/stream-atlas.png');
   const materialRef = useRef<ShaderMaterial>(null);
   const hitTargetRefs = useRef<Array<Group | null>>([]);
+  const hitButtonRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const hoverValues = useRef(new Float32Array(LINK_STREAMS.length));
   const glitchValues = useRef(new Float32Array(LINK_STREAMS.length));
@@ -85,6 +87,16 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
     ),
     [elevation, seaLevel, shellBase, viewportHeight, viewportWidth],
   );
+  const hitProjection = useMemo(() => ({
+    bottom: new Vector3(),
+    center: new Vector3(),
+    left: new Vector3(),
+    right: new Vector3(),
+    rightAxis: new Vector3(),
+    top: new Vector3(),
+    toCamera: new Vector3(),
+    up: new Vector3(0, 1, 0),
+  }), []);
   const compiledVertexShader = useMemo(
     () => vertexShader.replace('__LINK_STREAM_COUNT__', String(LINK_STREAMS.length)),
     [],
@@ -105,6 +117,9 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
     uDissolve: { value: 1 },
     uActiveStream: { value: -1 },
     uFocused: { value: 0 },
+    uFocusedSpacingMultiplier: {
+      value: LINK_STREAM_EFFECT_CONFIG.focusedSpacingMultiplier,
+    },
     uAtlas: { value: atlas },
     uDecorationColor: { value: new Color(CONTOUR_CONFIG.minorColor) },
     uStreamColor: { value: new Color(CONTOUR_CONFIG.majorColor) },
@@ -132,7 +147,7 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
     if (hoveredIndex !== null) glitchValues.current[hoveredIndex] = 1;
   }, [hoveredIndex]);
 
-  useFrame((_, delta) => {
+  useFrame(({camera}, delta) => {
     const material = materialRef.current;
     if (!material) return;
     const desiredLayoutMode = getLinkLayoutMode(isFocused, viewportWidth);
@@ -170,7 +185,7 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
       ? layouts.focused
       : layoutMode.current === 'overview'
         ? layouts.overview
-        : null;
+        : layouts.focusedMobile;
     const layoutAlpha = isReducedMotion || !layoutInitialized.current || layoutSwitched
       ? 1
       : 1 - Math.exp(-LINK_STREAM_EFFECT_CONFIG.layoutDamping * delta);
@@ -205,14 +220,40 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
 
     for (const run of LINK_STREAMS) {
       const hitTarget = hitTargetRefs.current[run.index];
-      if (!hitTarget) continue;
+      const hitButton = hitButtonRefs.current[run.index];
+      if (!hitTarget || !hitButton) continue;
       const x = run.anchor[0] + offsetX[run.index];
       const z = run.anchor[1] + offsetZ[run.index];
+      const streamHeight = getLinkStreamHeight(run);
       const y =
         sampleHeight(shellBase, x, z, elevation, seaLevel) +
         run.bottomOffset +
-        getLinkStreamHeight(run) * 0.5;
+        streamHeight * 0.5;
       hitTarget.position.set(x, y, z);
+
+      const halfWidth = run.size * 0.62 * 0.5;
+      hitProjection.center.set(x, y, z);
+      hitProjection.toCamera.subVectors(camera.position, hitProjection.center).normalize();
+      hitProjection.rightAxis.crossVectors(hitProjection.up, hitProjection.toCamera).normalize();
+      hitProjection.top.set(x, y + streamHeight * 0.5, z).project(camera);
+      hitProjection.bottom.set(x, y - streamHeight * 0.5, z).project(camera);
+      hitProjection.left.copy(hitProjection.center)
+        .addScaledVector(hitProjection.rightAxis, -halfWidth)
+        .project(camera);
+      hitProjection.right.copy(hitProjection.center)
+        .addScaledVector(hitProjection.rightAxis, halfWidth)
+        .project(camera);
+
+      const hitHeight = Math.max(
+        44,
+        Math.abs(hitProjection.top.y - hitProjection.bottom.y) * viewportHeight * 0.5 + 16,
+      );
+      const hitWidth = Math.max(
+        44,
+        Math.abs(hitProjection.right.x - hitProjection.left.x) * viewportWidth * 0.5 + 16,
+      );
+      hitButton.style.height = `${hitHeight}px`;
+      hitButton.style.width = `${hitWidth}px`;
     }
   });
 
@@ -250,12 +291,14 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
           >
             <Html center zIndexRange={[30, 10]}>
               <button
+                ref={(node) => {
+                  hitButtonRefs.current[run.index] = node;
+                }}
                 type="button"
-                className="block h-[clamp(210px,48vh,360px)] w-15.5 touch-manipulation
+                className="link-stream-hit block min-h-11 min-w-11 touch-manipulation
                   cursor-pointer rounded-sm border border-transparent bg-transparent
                   text-transparent outline-none transition-colors
-                  focus-visible:border-line-hover focus-visible:bg-accent-dim
-                  max-[720px]:h-60 max-[720px]:w-13"
+                  focus-visible:border-line-hover focus-visible:bg-accent-dim"
                 aria-label={`Open ${run.text.toLowerCase()} preview`}
                 aria-pressed={activeId === run.id}
                 data-active={activeId === run.id || undefined}
