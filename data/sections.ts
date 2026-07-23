@@ -4,10 +4,7 @@ interface Section {
   id: SectionId;
   label: string;
   href: string;
-  preview: {
-    description: string;
-    items: readonly string[];
-  };
+  description: string;
 }
 
 export const SECTIONS = {
@@ -15,37 +12,25 @@ export const SECTIONS = {
     id: 'projects',
     label: 'Projects',
     href: '/projects',
-    preview: {
-      description: 'Systems, tools, experiments, and interfaces.',
-      items: ['MarketLab', 'Uniplans', 'Hawkeye Console'],
-    },
+    description: 'Systems, tools, experiments, and interfaces.',
   },
   art: {
     id: 'art',
     label: 'Art',
     href: '/art',
-    preview: {
-      description: 'Paintings, drawings, and visual experiments.',
-      items: ['Oil Studies', 'Digital Work', 'Sketchbooks'],
-    },
+    description: 'Paintings, drawings, and visual experiments.',
   },
   blog: {
     id: 'blog',
     label: 'Blog',
     href: '/blog',
-    preview: {
-      description: 'Notes on design, technology, and creative practice.',
-      items: ['Field Notes', 'Build Logs', 'Reading Notes'],
-    },
+    description: 'Notes on design, technology, and creative practice.',
   },
   about: {
     id: 'about',
     label: 'About',
     href: '/about',
-    preview: {
-      description: 'Background, interests, and ways to get in touch.',
-      items: ['Profile', 'Now', 'Contact'],
-    },
+    description: 'Background, interests, and ways to get in touch.',
   },
 } as const satisfies Record<SectionId, Section>;
 

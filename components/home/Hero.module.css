@@ -1,11 +1,11 @@
 .hero {
   position: absolute;
   z-index: 30;
-  top: clamp(5.75rem, 11svh, 6.75rem);
-  right: 1.5rem;
-  left: 1.5rem;
-  width: min(27rem, calc(100vw - 3rem));
-  font-family: var(--font-krypton), ui-monospace, monospace;
+  top: var(--spacing-hero-top);
+  right: var(--spacing-6);
+  left: var(--spacing-6);
+  width: min(var(--container-md), calc(100vw - var(--spacing-12)));
+  font-family: var(--font-mono);
   text-align: left;
   transition:
     opacity 300ms ease-out,
@@ -21,16 +21,16 @@
 .hidden {
   pointer-events: none;
   opacity: 0;
-  transform: translateY(-0.5rem);
+  transform: translateY(calc(var(--spacing-2) * -1));
 }
 
 .eyebrow {
   height: 1.4em;
   margin: 0;
-  color: rgb(184 175 162 / 72%);
-  font-size: clamp(0.7rem, 3vw, 0.8rem);
+  color: var(--color-muted-soft);
+  font-size: var(--text-hero-eyebrow);
   line-height: 1.4;
-  letter-spacing: 0.15em;
+  letter-spacing: var(--tracking-eyebrow);
   text-transform: uppercase;
 }
 
@@ -48,25 +48,25 @@
   position: absolute;
   top: 0.15em;
   left: 100%;
-  width: 1px;
+  width: var(--spacing-px);
   height: 1em;
-  background: rgb(232 199 122 / 68%);
+  background: var(--color-accent-muted);
   content: '';
   animation: cursor-sequence 1.42s step-end forwards;
 }
 
 .name {
   margin: 0;
-  color: rgb(232 199 122 / 82%);
-  font-size: clamp(3.5rem, 16vw, 5rem);
+  color: var(--color-accent-soft);
+  font-size: var(--text-hero-title);
   font-style: normal;
   font-weight: 400;
   line-height: 0.85;
   letter-spacing: 0.08em;
-  text-shadow: 0 0 18px rgb(232 199 122 / 8%);
+  text-shadow: var(--shadow-hero);
   opacity: 0;
-  filter: blur(5px);
-  transform: translateY(0.55rem);
+  filter: blur(var(--blur-reveal));
+  transform: translateY(var(--spacing-2));
   animation: reveal-name 520ms cubic-bezier(0.22, 0.75, 0.25, 1) 1.42s forwards;
   transition:
     color 300ms ease-out,
@@ -75,19 +75,19 @@
 
 .supportingCopy {
   display: grid;
-  gap: 0.45rem;
-  margin: 1.35rem 0 0;
-  color: rgb(184 175 162 / 72%);
-  font-size: clamp(0.7rem, 2.8vw, 0.82rem);
+  gap: var(--spacing-2);
+  margin: var(--spacing-5) 0 0;
+  color: var(--color-muted-soft);
+  font-size: var(--text-hero-support);
   line-height: 1.55;
-  letter-spacing: 0.1em;
+  letter-spacing: var(--tracking-support);
   text-transform: uppercase;
 }
 
 .supportingLine {
   display: block;
   opacity: 0;
-  transform: translateY(0.3rem);
+  transform: translateY(var(--spacing-1));
   animation: reveal-support 420ms ease-out forwards;
 }
 
@@ -122,7 +122,7 @@
 
   .eyebrow,
   .supportingCopy {
-    font-size: clamp(0.8rem, 1.25vw, 0.95rem);
+    font-size: var(--text-hero-annotation);
   }
 
   .eyebrow {
@@ -136,7 +136,7 @@
     position: absolute;
     top: var(--hero-supporting-top);
     left: var(--hero-annotation-left);
-    width: min(40vw, 38rem);
+    width: min(40vw, var(--container-annotation));
     margin: 0;
   }
 }
