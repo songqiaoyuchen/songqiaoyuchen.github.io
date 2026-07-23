@@ -7,7 +7,10 @@ export interface LinkStream {
   anchor: [number, number];
   size: number;
   spacing: number;
-  bottomOffset: number;
+  /** Stable vertical baseline used by the focused layout and layout projection. */
+  focusedBottomOffset: number;
+  /** Overview-only vertical lift. Does not change X/Z placement or focused layout. */
+  overviewBottomOffset: number;
   /** Negative values move the overview slot lower on screen and closer in depth. */
   overviewYOffset: number;
   navRange: [number, number];
@@ -61,7 +64,8 @@ const LINK_STREAM_DEFINITIONS: Array<Omit<LinkStream, 'index'>> = [
     anchor: [8, 1.53],
     size: 0.48,
     spacing: 0.04,
-    bottomOffset: 1.7,
+    focusedBottomOffset: 1.7,
+    overviewBottomOffset: 2.7,
     overviewYOffset: -0.05,
     intensity: 1.12,
     seed: 7.4,
@@ -73,7 +77,8 @@ const LINK_STREAM_DEFINITIONS: Array<Omit<LinkStream, 'index'>> = [
     anchor: [7.05, 4.05],
     size: 0.45,
     spacing: 0.04,
-    bottomOffset: 0.6,
+    focusedBottomOffset: 0.6,
+    overviewBottomOffset: 1.2,
     overviewYOffset: 0,
     intensity: 1.18,
     seed: 2.1,
@@ -85,7 +90,8 @@ const LINK_STREAM_DEFINITIONS: Array<Omit<LinkStream, 'index'>> = [
     anchor: [-0.1, 0.6],
     size: 0.45,
     spacing: 0.04,
-    bottomOffset: 2.32,
+    focusedBottomOffset: 2.32,
+    overviewBottomOffset: 2.62,
     overviewYOffset: 0,
     intensity: 1.16,
     seed: 12.7,
@@ -97,7 +103,8 @@ const LINK_STREAM_DEFINITIONS: Array<Omit<LinkStream, 'index'>> = [
     anchor: [-1, -0.63],
     size: 0.43,
     spacing: 0.04,
-    bottomOffset: 1.38,
+    focusedBottomOffset: 1.38,
+    overviewBottomOffset: 1.38,
     overviewYOffset: 0,
     intensity: 1.1,
     seed: 18.3,

@@ -28,7 +28,10 @@ export function Home() {
           },
         }}
       />
-      <TerrainBackground activeId={activeId} onStreamClick={toggleSection} />
+      <TerrainBackground
+        activeId={activeId}
+        onStreamClick={toggleSection}
+      />
       <Hero isHidden={activeId !== null} />
       <Drawer activeId={activeId} onClose={() => setActiveId(null)} />
       <Nav activeId={activeId} onSectionClick={toggleSection} />

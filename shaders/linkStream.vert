@@ -22,9 +22,11 @@ uniform float uHover[LINK_STREAM_COUNT];
 uniform float uGlitch[LINK_STREAM_COUNT];
 uniform float uLayoutOffsetX[LINK_STREAM_COUNT];
 uniform float uLayoutOffsetZ[LINK_STREAM_COUNT];
+uniform float uVerticalOffset[LINK_STREAM_COUNT];
 uniform float uActiveStream;
 uniform float uFocused;
 uniform float uFocusedSpacingMultiplier;
+uniform float uBillboardTilt;
 
 varying vec2 vAtlasUv;
 varying vec2 vLocalUv;
@@ -45,11 +47,15 @@ float hash12(vec2 p) {
 }
 
 float streamValue(float values[LINK_STREAM_COUNT], float indexValue) {
+#if LINK_STREAM_COUNT == 1
+  return values[0];
+#else
   float value = 0.0;
   for (int index = 0; index < LINK_STREAM_COUNT; index++) {
     value += values[index] * (1.0 - step(0.25, abs(indexValue - float(index))));
   }
   return value;
+#endif
 }
 
 float processH(float raw) {
@@ -77,7 +83,12 @@ void main() {
   vec2 layoutPosition = position.xz + layoutOffset;
   vec2 terrainUv = vec2(layoutPosition.x / planeSize + 0.5, 0.5 - layoutPosition.y / planeSize);
   float terrainHeight = processH(texture2D(heightmap, terrainUv).r) * elevation + meshY;
-  vec3 center = vec3(layoutPosition.x, terrainHeight + position.y + uLift, layoutPosition.y);
+  float verticalOffset = streamValue(uVerticalOffset, aStreamIndex);
+  vec3 center = vec3(
+    layoutPosition.x,
+    terrainHeight + position.y + uLift + verticalOffset,
+    layoutPosition.y
+  );
   vec3 toCamera = normalize(cameraPosition - center);
   vec3 right = normalize(cross(vec3(0.0, 1.0, 0.0), toCamera));
   float band = floor(aLocalUv.y * 7.0);
@@ -85,9 +96,20 @@ void main() {
   float glitchOffset =
     (slice - 0.5) * step(0.5, slice) * vGlitch * 0.42 * (1.0 - vBorder);
 
+  vec2 billboardOffset = vec2(
+    aBillboardOffset.x + glitchOffset,
+    aBillboardOffset.y
+      + aSpacingOffset * (uFocusedSpacingMultiplier - 1.0) * vFocused
+  );
+  float tiltCos = cos(uBillboardTilt);
+  float tiltSin = sin(uBillboardTilt);
+  billboardOffset = vec2(
+    billboardOffset.x * tiltCos - billboardOffset.y * tiltSin,
+    billboardOffset.x * tiltSin + billboardOffset.y * tiltCos
+  );
+
   vec3 worldPosition = center;
-  worldPosition += right * (aBillboardOffset.x + glitchOffset);
-  worldPosition.y += aBillboardOffset.y
-    + aSpacingOffset * (uFocusedSpacingMultiplier - 1.0) * vFocused;
+  worldPosition += right * billboardOffset.x;
+  worldPosition.y += billboardOffset.y;
   gl_Position = projectionMatrix * modelViewMatrix * vec4(worldPosition, 1.0);
 }

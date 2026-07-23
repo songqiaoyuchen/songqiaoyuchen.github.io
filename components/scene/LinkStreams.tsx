@@ -75,17 +75,25 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
     () => bakeTerrainMaps(toHeightmapImage(exr.image)),
     [exr],
   );
-  const geometry = useMemo(() => buildLinkStreamGeometry(LINK_STREAMS), []);
+  const streamConfigKey = JSON.stringify(LINK_STREAMS);
+  const configuredStreams = useMemo(
+    () => JSON.parse(streamConfigKey) as typeof LINK_STREAMS,
+    [streamConfigKey],
+  );
+  const geometry = useMemo(
+    () => buildLinkStreamGeometry(configuredStreams),
+    [configuredStreams],
+  );
   const layouts = useMemo(
     () => getLinkLayouts(
-      LINK_STREAMS,
+      configuredStreams,
       viewportWidth,
       viewportHeight,
       shellBase,
       elevation,
       seaLevel,
     ),
-    [elevation, seaLevel, shellBase, viewportHeight, viewportWidth],
+    [configuredStreams, elevation, seaLevel, shellBase, viewportHeight, viewportWidth],
   );
   const hitProjection = useMemo(() => ({
     bottom: new Vector3(),
@@ -114,12 +122,18 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
     uGlitch: { value: new Float32Array(LINK_STREAMS.length) },
     uLayoutOffsetX: { value: new Float32Array(LINK_STREAMS.length) },
     uLayoutOffsetZ: { value: new Float32Array(LINK_STREAMS.length) },
+    uVerticalOffset: {
+      value: new Float32Array(LINK_STREAMS.map((run) => (
+        run.overviewBottomOffset - run.focusedBottomOffset
+      ))),
+    },
     uDissolve: { value: 1 },
     uActiveStream: { value: -1 },
     uFocused: { value: 0 },
     uFocusedSpacingMultiplier: {
       value: LINK_STREAM_EFFECT_CONFIG.focusedSpacingMultiplier,
     },
+    uBillboardTilt: { value: 0 },
     uAtlas: { value: atlas },
     uDecorationColor: { value: new Color(CONTOUR_CONFIG.minorColor) },
     uStreamColor: { value: new Color(CONTOUR_CONFIG.majorColor) },
@@ -191,6 +205,7 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
       : 1 - Math.exp(-LINK_STREAM_EFFECT_CONFIG.layoutDamping * delta);
     const offsetX = material.uniforms.uLayoutOffsetX.value as Float32Array;
     const offsetZ = material.uniforms.uLayoutOffsetZ.value as Float32Array;
+    const verticalOffsets = material.uniforms.uVerticalOffset.value as Float32Array;
 
     material.uniforms.uTime.value += delta;
     for (const run of LINK_STREAMS) {
@@ -199,6 +214,9 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
       const targetOffsetZ = target[1] - run.anchor[1];
       offsetX[run.index] += (targetOffsetX - offsetX[run.index]) * layoutAlpha;
       offsetZ[run.index] += (targetOffsetZ - offsetZ[run.index]) * layoutAlpha;
+      verticalOffsets[run.index] = layoutMode.current === 'overview'
+        ? run.overviewBottomOffset - run.focusedBottomOffset
+        : 0;
     }
     layoutInitialized.current = true;
     material.uniforms.uDissolve.value = dissolveVisibility.current;
@@ -227,7 +245,9 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
       const streamHeight = getLinkStreamHeight(run);
       const y =
         sampleHeight(shellBase, x, z, elevation, seaLevel) +
-        run.bottomOffset +
+        (layoutMode.current === 'overview'
+          ? run.overviewBottomOffset
+          : run.focusedBottomOffset) +
         streamHeight * 0.5;
       hitTarget.position.set(x, y, z);
 
@@ -277,7 +297,7 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
         const position: [number, number, number] = [
           run.anchor[0],
           sampleHeight(shellBase, run.anchor[0], run.anchor[1], elevation, seaLevel)
-            + run.bottomOffset
+            + run.overviewBottomOffset
             + getLinkStreamHeight(run) * 0.5,
           run.anchor[1],
         ];

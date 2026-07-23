@@ -1,0 +1,222 @@
+.hero {
+  position: absolute;
+  z-index: 30;
+  top: clamp(5.75rem, 11svh, 6.75rem);
+  right: 1.5rem;
+  left: 1.5rem;
+  width: min(27rem, calc(100vw - 3rem));
+  font-family: var(--font-krypton), ui-monospace, monospace;
+  text-align: left;
+  transition:
+    opacity 300ms ease-out,
+    transform 300ms ease-out;
+}
+
+.visible {
+  pointer-events: auto;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.hidden {
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(-0.5rem);
+}
+
+.eyebrow {
+  height: 1.4em;
+  margin: 0;
+  color: rgb(184 175 162 / 72%);
+  font-size: clamp(0.7rem, 3vw, 0.8rem);
+  line-height: 1.4;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.typedEyebrow {
+  position: relative;
+  display: inline-block;
+  width: max-content;
+  overflow: visible;
+  white-space: nowrap;
+  clip-path: inset(0 100% 0 0);
+  animation: type-eyebrow 900ms steps(10, end) 120ms forwards;
+}
+
+.typedEyebrow::after {
+  position: absolute;
+  top: 0.15em;
+  left: 100%;
+  width: 1px;
+  height: 1em;
+  background: rgb(232 199 122 / 68%);
+  content: '';
+  animation: cursor-sequence 1.42s step-end forwards;
+}
+
+.name {
+  margin: 0;
+  color: rgb(232 199 122 / 82%);
+  font-size: clamp(3.5rem, 16vw, 5rem);
+  font-style: normal;
+  font-weight: 400;
+  line-height: 0.85;
+  letter-spacing: 0.08em;
+  text-shadow: 0 0 18px rgb(232 199 122 / 8%);
+  opacity: 0;
+  filter: blur(5px);
+  transform: translateY(0.55rem);
+  animation: reveal-name 520ms cubic-bezier(0.22, 0.75, 0.25, 1) 1.42s forwards;
+  transition:
+    color 300ms ease-out,
+    text-shadow 300ms ease-out;
+}
+
+.supportingCopy {
+  display: grid;
+  gap: 0.45rem;
+  margin: 1.35rem 0 0;
+  color: rgb(184 175 162 / 72%);
+  font-size: clamp(0.7rem, 2.8vw, 0.82rem);
+  line-height: 1.55;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.supportingLine {
+  display: block;
+  opacity: 0;
+  transform: translateY(0.3rem);
+  animation: reveal-support 420ms ease-out forwards;
+}
+
+.supportingLine:first-child {
+  animation-delay: 1.76s;
+}
+
+.supportingLine:last-child {
+  animation-delay: 1.92s;
+}
+
+@media (min-width: 768px) {
+  .hero {
+    inset: 0;
+    width: auto;
+    max-width: none;
+    pointer-events: none;
+  }
+
+  .name {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    border: 0;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .eyebrow,
+  .supportingCopy {
+    font-size: clamp(0.8rem, 1.25vw, 0.95rem);
+  }
+
+  .eyebrow {
+    position: absolute;
+    top: var(--hero-eyebrow-top);
+    left: var(--hero-annotation-left);
+    margin: 0;
+  }
+
+  .supportingCopy {
+    position: absolute;
+    top: var(--hero-supporting-top);
+    left: var(--hero-annotation-left);
+    width: min(40vw, 38rem);
+    margin: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero {
+    transition: opacity 150ms ease-out;
+  }
+
+  .typedEyebrow,
+  .name,
+  .supportingLine {
+    animation: none;
+  }
+
+  .typedEyebrow {
+    width: auto;
+    clip-path: none;
+  }
+
+  .typedEyebrow::after {
+    display: none;
+    animation: none;
+  }
+
+  .name,
+  .supportingLine {
+    opacity: 1;
+    filter: none;
+    transform: none;
+  }
+
+  .name {
+    transition: none;
+  }
+}
+
+@keyframes type-eyebrow {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes cursor-sequence {
+  0%,
+  70% {
+    opacity: 1;
+  }
+
+  71%,
+  80% {
+    opacity: 0;
+  }
+
+  81%,
+  90% {
+    opacity: 1;
+  }
+
+  91%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes reveal-name {
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
+  }
+}
+
+@keyframes reveal-support {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

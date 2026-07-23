@@ -17,6 +17,7 @@ import { TerrainMesh } from './TerrainMesh';
 import { ContourLines } from './ContourLines';
 import { DecorStreams } from './DecorStreams';
 import {LinkStreams} from './LinkStreams';
+import {SceneHeroName} from './SceneHeroName';
 import { CameraRig } from './CameraRig';
 import type {SectionId} from '@/data/sections';
 
@@ -25,12 +26,16 @@ type TerrainBackgroundProps = {
   onStreamClick: (id: SectionId) => void;
 };
 
-export function TerrainBackground({activeId, onStreamClick}: TerrainBackgroundProps) {
+export function TerrainBackground({
+  activeId,
+  onStreamClick,
+}: TerrainBackgroundProps) {
   const orbitcontrolsRef = useRef<OrbitControlsInstance>(null);
   const [bloomLight, setBloomLight] = useState<AmbientLight | null>(null);
   const [contourMesh, setContourMesh] = useState<Mesh | null>(null);
   const [decorStreamsMesh, setDecorStreamsMesh] = useState<Mesh | null>(null);
   const [linkStreamsMesh, setLinkStreamsMesh] = useState<Mesh | null>(null);
+  const [heroNameMesh, setHeroNameMesh] = useState<Mesh | null>(null);
   const settings = useSceneControls();
 
   return (
@@ -66,16 +71,22 @@ export function TerrainBackground({activeId, onStreamClick}: TerrainBackgroundPr
             onStreamClick={onStreamClick}
             terrainSettings={settings.terrain}
           />
+          <SceneHeroName
+            ref={setHeroNameMesh}
+            contourSettings={settings.contours}
+            isHidden={activeId !== null}
+            terrainSettings={settings.terrain}
+          />
         </Suspense>
         {/* Keep the composer single-sampled: MSAA resolve blits intermittently
             present empty frames on some GPUs. Color-only SMAA smooths edges
             without requesting the composer's sampled depth texture. */}
-        {contourMesh && decorStreamsMesh && linkStreamsMesh && bloomLight ? (
+        {contourMesh && decorStreamsMesh && linkStreamsMesh && heroNameMesh && bloomLight ? (
           <EffectComposer multisampling={0}>
             <ColorOnlySMAA preset={SMAAPreset.MEDIUM} />
             <SelectiveBloom
               lights={[bloomLight]}
-              selection={[contourMesh, linkStreamsMesh]}
+              selection={[contourMesh, linkStreamsMesh, heroNameMesh]}
               mipmapBlur
               intensity={settings.postProcessing.bloomIntensity}
               luminanceThreshold={settings.postProcessing.bloomThreshold}

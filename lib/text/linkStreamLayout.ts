@@ -109,7 +109,7 @@ function makeCamera(width: number, height: number, mode: DesktopMode) {
 function projectSlot(
   slot: Vector2,
   camera: PerspectiveCamera,
-  stream: LinkStream,
+  centerOffset: number,
   heightGrid: HeightGrid,
   elevation: number,
   seaLevel: number,
@@ -117,8 +117,6 @@ function projectSlot(
   const rayEnd = new Vector3(slot.x, slot.y, 0.5).unproject(camera);
   const ray = new Ray(camera.position, rayEnd.sub(camera.position).normalize());
   const point = new Vector3();
-  const centerOffset = stream.bottomOffset + getLinkStreamHeight(stream) * 0.5;
-
   function distanceFromTerrain(distance: number) {
     ray.at(distance, point);
     return point.y - (
@@ -161,6 +159,18 @@ function projectSlot(
   };
 }
 
+export function projectOverviewSlotAtDistance(
+  screenPosition: readonly [number, number],
+  width: number,
+  height: number,
+  distance: number,
+) {
+  const camera = makeCamera(width, height, 'overview');
+  const rayEnd = new Vector3(...screenPosition, 0.5).unproject(camera);
+  const ray = new Ray(camera.position, rayEnd.sub(camera.position).normalize());
+  return ray.at(distance, new Vector3()).toArray();
+}
+
 function normalizeDepth(
   streams: readonly LinkStream[],
   slots: Vector2[],
@@ -170,7 +180,14 @@ function normalizeDepth(
   seaLevel: number,
 ) {
   const projected = streams.map((stream, index) => (
-    projectSlot(slots[index], camera, stream, heightGrid, elevation, seaLevel)
+    projectSlot(
+      slots[index],
+      camera,
+      stream.focusedBottomOffset + getLinkStreamHeight(stream) * 0.5,
+      heightGrid,
+      elevation,
+      seaLevel,
+    )
   ));
   const depths = projected.map(({distance}) => distance).sort((a, b) => a - b);
   const targetDepth = depths[Math.floor((depths.length - 1) * 0.5)];
@@ -186,7 +203,7 @@ function normalizeDepth(
       const candidate = projectSlot(
         slot,
         camera,
-        streams[index],
+        streams[index].focusedBottomOffset + getLinkStreamHeight(streams[index]) * 0.5,
         heightGrid,
         elevation,
         seaLevel,
@@ -216,7 +233,14 @@ function makeLayout(
     return normalizeDepth(streams, slots, camera, heightGrid, elevation, seaLevel);
   }
   return streams.map((stream, index) => (
-    projectSlot(slots[index], camera, stream, heightGrid, elevation, seaLevel).position
+    projectSlot(
+      slots[index],
+      camera,
+      stream.focusedBottomOffset + getLinkStreamHeight(stream) * 0.5,
+      heightGrid,
+      elevation,
+      seaLevel,
+    ).position
   ));
 }
 
@@ -232,7 +256,7 @@ function makeFocusedMobileLayout(
   const slots = streams.map((stream) => {
     const [x, z] = stream.anchor;
     const y = sampleHeight(heightGrid, x, z, elevation, seaLevel)
-      + stream.bottomOffset
+      + stream.focusedBottomOffset
       + getLinkStreamHeight(stream) * 0.5;
     const screenX = new Vector3(x, y, z).project(camera).x;
     return {position: stream.anchor, screenX};

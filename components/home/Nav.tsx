@@ -16,7 +16,7 @@ export function Nav({activeId, onSectionClick}: NavProps) {
         sm:px-10 sm:pt-7"
     >
       <Link
-        className="font-mono text-xs uppercase tracking-[0.2em] text-muted transition-colors
+        className="font-mono text-md uppercase tracking-[0.2em] text-muted transition-colors
           hover:text-accent focus-visible:outline-1 focus-visible:outline-offset-4
           focus-visible:outline-accent"
         href="/"
@@ -29,7 +29,7 @@ export function Nav({activeId, onSectionClick}: NavProps) {
           <li key={section.id}>
             <button
               aria-pressed={activeId === section.id}
-              className="min-h-11 border-0 bg-transparent px-0 py-1 font-mono text-[11px]
+              className="min-h-11 border-0 bg-transparent px-0 py-1 font-mono text-sm
                 uppercase tracking-[0.14em] text-muted transition-colors hover:text-accent
                 focus-visible:outline-1 focus-visible:outline-offset-4
                 focus-visible:outline-accent"

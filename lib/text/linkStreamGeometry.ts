@@ -9,9 +9,151 @@ const Y_SEGMENTS = 4;
 const FOCUS_BRACKET_PADDING = 0.08;
 const FOCUS_BRACKET_THICKNESS = 0.034;
 
+export interface HorizontalStreamText {
+  anchor: [number, number];
+  bottomOffset: number;
+  intensity: number;
+  seed: number;
+  size: number;
+  spacing: number;
+  text: string;
+}
+
+type GeometryBuffers = {
+  atlasUvs: number[];
+  billboardOffsets: number[];
+  borderFlags: number[];
+  indices: number[];
+  intensities: number[];
+  localUvs: number[];
+  navGlyphs: number[];
+  positions: number[];
+  seeds: number[];
+  spacingOffsets: number[];
+  streamIndices: number[];
+  streamTs: number[];
+};
+
+function createStreamGeometry(buffers: GeometryBuffers) {
+  const geometry = new BufferGeometry();
+  geometry.setAttribute(
+    'position',
+    new BufferAttribute(new Float32Array(buffers.positions), 3),
+  );
+  geometry.setAttribute(
+    'uv',
+    new BufferAttribute(new Float32Array(buffers.atlasUvs), 2),
+  );
+  geometry.setAttribute(
+    'aBillboardOffset',
+    new BufferAttribute(new Float32Array(buffers.billboardOffsets), 2),
+  );
+  geometry.setAttribute(
+    'aLocalUv',
+    new BufferAttribute(new Float32Array(buffers.localUvs), 2),
+  );
+  geometry.setAttribute(
+    'aStreamIndex',
+    new BufferAttribute(new Float32Array(buffers.streamIndices), 1),
+  );
+  geometry.setAttribute(
+    'aNavGlyph',
+    new BufferAttribute(new Float32Array(buffers.navGlyphs), 1),
+  );
+  geometry.setAttribute(
+    'aIntensity',
+    new BufferAttribute(new Float32Array(buffers.intensities), 1),
+  );
+  geometry.setAttribute(
+    'aSeed',
+    new BufferAttribute(new Float32Array(buffers.seeds), 1),
+  );
+  geometry.setAttribute(
+    'aStreamT',
+    new BufferAttribute(new Float32Array(buffers.streamTs), 1),
+  );
+  geometry.setAttribute(
+    'aSpacingOffset',
+    new BufferAttribute(new Float32Array(buffers.spacingOffsets), 1),
+  );
+  geometry.setAttribute(
+    'aBorder',
+    new BufferAttribute(new Float32Array(buffers.borderFlags), 1),
+  );
+  geometry.setIndex(buffers.indices);
+  geometry.computeBoundingSphere();
+  return geometry;
+}
+
 export function getLinkStreamHeight(stream: LinkStream) {
   return stream.size
     + Math.max(0, stream.text.length - 1) * (stream.size + stream.spacing);
+}
+
+export function buildHorizontalStreamGeometry(run: HorizontalStreamText) {
+  const buffers: GeometryBuffers = {
+    positions: [],
+    atlasUvs: [],
+    billboardOffsets: [],
+    localUvs: [],
+    streamIndices: [],
+    navGlyphs: [],
+    intensities: [],
+    seeds: [],
+    streamTs: [],
+    spacingOffsets: [],
+    borderFlags: [],
+    indices: [],
+  };
+  const glyphWidth = run.size * 0.62;
+  const advance = glyphWidth + run.spacing;
+  const denominator = Math.max(1, run.text.length - 1);
+
+  for (let characterIndex = 0; characterIndex < run.text.length; characterIndex++) {
+    const atlasIndex = run.text.charCodeAt(characterIndex) - FIRST_CODEPOINT;
+    const column = atlasIndex % ATLAS_COLUMNS;
+    const row = Math.floor(atlasIndex / ATLAS_COLUMNS);
+    const horizontalCenter = (characterIndex - (run.text.length - 1) * 0.5) * advance;
+    const verticalCenter = run.bottomOffset + run.size * 0.5;
+    const vertexBase = buffers.positions.length / 3;
+
+    for (let iy = 0; iy <= Y_SEGMENTS; iy++) {
+      const localY = iy / Y_SEGMENTS;
+      for (let ix = 0; ix <= X_SEGMENTS; ix++) {
+        const localX = ix / X_SEGMENTS;
+        buffers.positions.push(run.anchor[0], verticalCenter, run.anchor[1]);
+        buffers.billboardOffsets.push(
+          horizontalCenter + (localX - 0.5) * glyphWidth,
+          (localY - 0.5) * run.size,
+        );
+        buffers.atlasUvs.push(
+          (column + localX) / ATLAS_COLUMNS,
+          1 - (row + 1 - localY) / ATLAS_ROWS,
+        );
+        buffers.localUvs.push(localX, localY);
+        buffers.streamIndices.push(0);
+        buffers.navGlyphs.push(1);
+        buffers.intensities.push(run.intensity);
+        buffers.seeds.push(run.seed + characterIndex * 0.173);
+        buffers.streamTs.push(characterIndex / denominator);
+        buffers.spacingOffsets.push(0);
+        buffers.borderFlags.push(0);
+      }
+    }
+
+    const rowStride = X_SEGMENTS + 1;
+    for (let iy = 0; iy < Y_SEGMENTS; iy++) {
+      for (let ix = 0; ix < X_SEGMENTS; ix++) {
+        const a = vertexBase + iy * rowStride + ix;
+        const b = a + 1;
+        const c = a + rowStride;
+        const d = c + 1;
+        buffers.indices.push(a, b, c, b, d, c);
+      }
+    }
+  }
+
+  return createStreamGeometry(buffers);
 }
 
 export function buildLinkStreamGeometry(streams: readonly LinkStream[]) {
@@ -106,7 +248,9 @@ export function buildLinkStreamGeometry(streams: readonly LinkStream[]) {
       const column = atlasIndex % ATLAS_COLUMNS;
       const row = Math.floor(atlasIndex / ATLAS_COLUMNS);
       const reversedIndex = stream.text.length - 1 - characterIndex;
-      const verticalCenter = stream.bottomOffset + stream.size * 0.5 + reversedIndex * advance;
+      const verticalCenter = stream.focusedBottomOffset
+        + stream.size * 0.5
+        + reversedIndex * advance;
       const vertexBase = positions.length / 3;
 
       for (let iy = 0; iy <= Y_SEGMENTS; iy++) {
@@ -146,8 +290,8 @@ export function buildLinkStreamGeometry(streams: readonly LinkStream[]) {
     const streamHeight = getLinkStreamHeight(stream);
     const bracketArm = Math.min(stream.size * 0.48, 0.22);
     const bracketX = glyphWidth * 0.5 + FOCUS_BRACKET_PADDING;
-    const bracketTop = stream.bottomOffset + streamHeight + FOCUS_BRACKET_PADDING;
-    const bracketBottom = stream.bottomOffset - FOCUS_BRACKET_PADDING;
+    const bracketTop = stream.focusedBottomOffset + streamHeight + FOCUS_BRACKET_PADDING;
+    const bracketBottom = stream.focusedBottomOffset - FOCUS_BRACKET_PADDING;
 
     pushFocusBracketPair(
       stream,
@@ -171,28 +315,18 @@ export function buildLinkStreamGeometry(streams: readonly LinkStream[]) {
     );
   }
 
-  const geometry = new BufferGeometry();
-  geometry.setAttribute('position', new BufferAttribute(new Float32Array(positions), 3));
-  geometry.setAttribute('uv', new BufferAttribute(new Float32Array(atlasUvs), 2));
-  geometry.setAttribute(
-    'aBillboardOffset',
-    new BufferAttribute(new Float32Array(billboardOffsets), 2),
-  );
-  geometry.setAttribute('aLocalUv', new BufferAttribute(new Float32Array(localUvs), 2));
-  geometry.setAttribute(
-    'aStreamIndex',
-    new BufferAttribute(new Float32Array(streamIndices), 1),
-  );
-  geometry.setAttribute('aNavGlyph', new BufferAttribute(new Float32Array(navGlyphs), 1));
-  geometry.setAttribute('aIntensity', new BufferAttribute(new Float32Array(intensities), 1));
-  geometry.setAttribute('aSeed', new BufferAttribute(new Float32Array(seeds), 1));
-  geometry.setAttribute('aStreamT', new BufferAttribute(new Float32Array(streamTs), 1));
-  geometry.setAttribute(
-    'aSpacingOffset',
-    new BufferAttribute(new Float32Array(spacingOffsets), 1),
-  );
-  geometry.setAttribute('aBorder', new BufferAttribute(new Float32Array(borderFlags), 1));
-  geometry.setIndex(indices);
-  geometry.computeBoundingSphere();
-  return geometry;
+  return createStreamGeometry({
+    positions,
+    atlasUvs,
+    billboardOffsets,
+    localUvs,
+    streamIndices,
+    navGlyphs,
+    intensities,
+    seeds,
+    streamTs,
+    spacingOffsets,
+    borderFlags,
+    indices,
+  });
 }
