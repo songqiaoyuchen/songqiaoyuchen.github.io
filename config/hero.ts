@@ -2,8 +2,8 @@ export const HERO_CONTENT = {
   eyebrow: "HELLO, I'M",
   name: 'SONG',
   supportingLines: [
-    'CS + MATHEMATICS AT NUS',
-    'SOFTWARE AND VISUAL EXPERIMENTS',
+    'CS + MATH AT National University of SG',
+    'EXPLORING SOFTWARE AND VISUAL SOLUTIONS',
   ],
 } as const;
 
@@ -14,8 +14,7 @@ export const HERO_CONTENT = {
 export const HERO_SCENE_CONFIG = {
   screenPosition: [0.36, -0.02] as const,
   size: 1.3,
-  spacing: 0.01,
-  /** World-space Y offset after camera-depth placement. Positive values raise the word. */
+  spacing: -0.3,
   bottomOffset: 0.7,
   intensity: 0.72,
   seed: 24.7,

@@ -38,6 +38,7 @@ function PreviewLink({children, href, icon}: PreviewLinkProps) {
 
 function ProjectsPreviews() {
   return (
+    <>
     <PixelCard speed={20} className="w-full" variant="yellow">
       <Image
         alt="test"
@@ -47,6 +48,43 @@ function ProjectsPreviews() {
         width={200}
       />
     </PixelCard>
+        <PixelCard speed={20} className="w-full" variant="yellow">
+      <Image
+        alt="test"
+        className="h-56 object-cover"
+        height={400}
+        src="/images/test.jpg"
+        width={200}
+      />
+    </PixelCard>
+        <PixelCard speed={20} className="w-full" variant="yellow">
+      <Image
+        alt="test"
+        className="h-56 object-cover"
+        height={400}
+        src="/images/test.jpg"
+        width={200}
+      />
+    </PixelCard>
+        <PixelCard speed={20} className="w-full" variant="yellow">
+      <Image
+        alt="test"
+        className="h-56 object-cover"
+        height={400}
+        src="/images/test.jpg"
+        width={200}
+      />
+    </PixelCard>
+        <PixelCard speed={20} className="w-full" variant="yellow">
+      <Image
+        alt="test"
+        className="h-56 object-cover"
+        height={400}
+        src="/images/test.jpg"
+        width={200}
+      />
+    </PixelCard>
+    </>
   );
 }
 

@@ -12,19 +12,21 @@ export function Nav({activeId, onSectionClick}: NavProps) {
   return (
     <nav
       aria-label="Site navigation"
-      className="absolute inset-x-0 top-0 z-50 flex items-center justify-between px-6 pt-6
-        sm:px-10 sm:pt-7"
+      className="top-nav-glass absolute inset-x-0 top-0 z-50 flex flex-wrap items-center
+        justify-between gap-y-1 px-6 pt-6 sm:flex-nowrap sm:px-10 sm:pt-7"
     >
       <Link
-        className="font-mono text-base uppercase tracking-brand text-muted transition-colors
-          hover:text-accent focus-visible:outline-1 focus-visible:outline-offset-4
-          focus-visible:outline-accent"
+        className="flex min-h-11 items-center font-mono text-base uppercase tracking-brand
+          text-muted transition-colors hover:text-accent focus-visible:outline-1
+          focus-visible:outline-offset-4 focus-visible:outline-accent"
         href="/"
       >
         SQYC
       </Link>
 
-      <ul className="m-0 flex list-none gap-4 p-0 sm:gap-8">
+      <ul
+        className="m-0 flex w-full list-none justify-between gap-0 p-0 sm:w-auto sm:gap-8"
+      >
         {NAV_SECTIONS.map((section) => (
           <li key={section.id}>
             <button

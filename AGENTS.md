@@ -17,7 +17,7 @@ Use the narrowest applicable source, in this order:
 5. Architecture in `docs/architecture.md`.
 6. Existing implementation, when it does not conflict with the sources above.
 
-Read `docs/README.md` before material product, design, or architecture work. Do not treat items marked `exploring` as requirements.
+Read `docs` before material product, design, or architecture work. Do not treat items marked `exploring` as requirements.
 
 ## Working with uncertainty
 

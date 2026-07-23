@@ -9,8 +9,8 @@ const krypton = localFont({
 });
 
 export const metadata: Metadata = {
-  title: 'Sophon\'s Site',
-  description: 'Sophon\'s Site.',
+  title: 'Song\'s Site',
+  description: 'Song\'s Site.',
 };
 
 export default function RootLayout({

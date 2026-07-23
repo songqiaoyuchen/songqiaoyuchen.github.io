@@ -5,7 +5,7 @@ Last reviewed: 2026-07-19
 
 ## Identity
 
-This is Sophon's personal digital space: a calm, atmospheric interface for exploring work, writing, visual practice, travel, and the ideas connecting them.
+This is Song's personal digital space: a calm, atmospheric interface for exploring work, writing, visual practice, travel, and the ideas connecting them.
 
 The site should feel personal, precise, editorial, and technically crafted. Its technical sophistication should support the content rather than become the content.
 
@@ -13,7 +13,7 @@ The site should feel personal, precise, editorial, and technically crafted. Its 
 
 A visitor should be able to:
 
-- understand who Sophon is and what Sophon cares about;
+- understand who Song is and what Song cares about;
 - explore selected projects and visual work;
 - read essays, notes, and technical reflections;
 - browse travel records and personal observations;

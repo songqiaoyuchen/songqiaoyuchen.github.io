@@ -87,7 +87,7 @@ The homepage at approximately 390 px, 768 px, and 1440 px, including keyboard fo
 
 **Success signal**
 
-Visitors understand who Sophon is and can reach Projects, Art, Writing, Travel, and About without the layout feeling crowded. The interim layout should be easy to extend into the accepted scroll narrative later.
+Visitors understand who Song is and can reach Projects, Art, Writing, Travel, and About without the layout feeling crowded. The interim layout should be easy to extend into the accepted scroll narrative later.
 
 **Result**
 
