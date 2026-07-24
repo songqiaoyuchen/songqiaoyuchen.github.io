@@ -61,28 +61,29 @@ old EXR path for A/B screenshots. Production should not request the EXR.
 ## Second implementation: bake terrain shadows
 
 Current status: the complete static illumination is implemented in memory at
-startup as an RGBA16F `DataTexture`. It includes both point lights' color,
-intensity, falloff, normal response, terrain visibility, shadow strength, and
-slope shading. The fragment shader retains only live terrain albedo, edge fade,
-and fog. This deliberately accepts startup CPU time while the visual match and
-steady-state GPU benefit are evaluated.
+startup as an RG16F `DataTexture`, with one scalar contribution per point
+light. It includes intensity, falloff, normal response, terrain visibility,
+shadow strength, and slope shading. Keeping the channels separate preserves
+independently adjustable light colors without rebaking. The fragment shader
+retains only those colors, terrain albedo, edge fade, and fog.
 
 The previous terrain fragment shader performed nine height samples for each of
 two lights at every terrain pixel, then calculated normals, attenuation, and
-diffuse response live. The runtime baker now stores the combined RGB light
-multiplier in one texture. A future offline artifact should use that output:
+diffuse response live. The runtime baker now stores both scalar light
+contributions in one texture. A future offline artifact should use that output:
 
 ```text
-static-lighting.rgba16f.bin
+static-lighting.rg16f.bin
 ```
 
-Changing a light, terrain elevation, sea level, shadow bias, or shadow strength
-requires a rebake. Base and ridge colors remain live because the baked texture
-stores illumination rather than final surface color.
+Changing a light's position, intensity or falloff, terrain elevation, sea level,
+shadow bias, or shadow strength requires a rebake. Light, base, and ridge colors
+remain live because the baked texture stores scalar illumination.
 
-The shadow artifact's config hash must include both light positions, elevation,
-sea level, shadow bias, contrast, plane size, mesh Y, and the ray-march
-constants. Changing any of those values requires `npm run bake:terrain`.
+The lighting artifact's config hash must include both light positions,
+intensities and falloffs, elevation, sea level, shadow strength and bias,
+contrast, plane size, mesh Y, and the ray-march constants. Changing any of
+those values requires `npm run bake:terrain`; light colors do not.
 
 ## Optional compression after visual approval
 

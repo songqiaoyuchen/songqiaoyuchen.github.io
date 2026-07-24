@@ -3,6 +3,8 @@
 uniform sampler2D staticLightingMap;
 uniform vec3  baseColor;
 uniform vec3  ridgeColor;
+uniform vec3  lightColor;
+uniform vec3  light2Color;
 uniform float edgeFeather;
 
 varying float vHeight;
@@ -18,7 +20,8 @@ void main() {
 
   float heightBlend = pow(vHeight, 1.4);
   vec3 color = mix(baseColor, ridgeColor, heightBlend);
-  color *= texture2D(staticLightingMap, vUv).rgb;
+  vec2 staticLighting = texture2D(staticLightingMap, vUv).rg;
+  color *= lightColor * staticLighting.r + light2Color * staticLighting.g;
 
   gl_FragColor = vec4(color, edgeOpacity);
   #include <fog_fragment>

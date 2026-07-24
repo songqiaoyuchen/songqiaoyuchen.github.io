@@ -303,7 +303,7 @@ export function ExperienceTimeline({isOpen, scrollRef, shellRef}: ExperienceTime
                   </p>
                 )}
                 <p
-                  className="mt-4 mb-0 max-w-prose font-mono text-summary leading-summary
+                  className="mt-4 mb-0 max-w-sm font-mono text-xs leading-summary
                     tracking-[0.025em] text-muted-soft"
                 >
                   {entry.summary}

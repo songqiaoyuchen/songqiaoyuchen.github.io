@@ -1,11 +1,10 @@
 import {
   ClampToEdgeWrapping,
-  Color,
   DataTexture,
   DataUtils,
   HalfFloatType,
   LinearFilter,
-  RGBAFormat,
+  RGFormat,
 } from 'three';
 import {TERRAIN_MATERIAL_CONFIG, TERRAIN_MESH_CONFIG} from '@/config/scene';
 import type {HeightGrid} from './bake';
@@ -16,13 +15,11 @@ const SHADOW_SOFT_MAX = 0.18;
 
 export type TerrainLightingSettings = {
   elevation: number;
-  lightColor: string;
   lightFalloff: number;
   lightIntensity: number;
   lightX: number;
   lightY: number;
   lightZ: number;
-  light2Color: string;
   light2Falloff: number;
   light2Intensity: number;
   light2X: number;
@@ -195,16 +192,14 @@ export function bakeTerrainLightingMap(
   gradientMap: DataTexture,
   settings: TerrainLightingSettings,
 ) {
-  const data = new Uint16Array(grid.width * grid.height * 4);
+  const data = new Uint16Array(grid.width * grid.height * 2);
   const {
     elevation,
-    lightColor,
     lightFalloff,
     lightIntensity,
     lightX,
     lightY,
     lightZ,
-    light2Color,
     light2Falloff,
     light2Intensity,
     light2X,
@@ -214,8 +209,6 @@ export function bakeTerrainLightingMap(
     shadowBias,
     shadowStrength,
   } = settings;
-  const primaryColor = new Color(lightColor);
-  const secondaryColor = new Color(light2Color);
   const planeSize = TERRAIN_MESH_CONFIG.planeSize;
 
   for (let y = 0; y < grid.height; y++) {
@@ -300,17 +293,9 @@ export function bakeTerrainLightingMap(
         light2Falloff,
         secondaryVisibility,
       );
-      const index = (y * grid.width + x) * 4;
-      data[index] = DataUtils.toHalfFloat(
-        primaryColor.r * primary + secondaryColor.r * secondary,
-      );
-      data[index + 1] = DataUtils.toHalfFloat(
-        primaryColor.g * primary + secondaryColor.g * secondary,
-      );
-      data[index + 2] = DataUtils.toHalfFloat(
-        primaryColor.b * primary + secondaryColor.b * secondary,
-      );
-      data[index + 3] = DataUtils.toHalfFloat(1);
+      const index = (y * grid.width + x) * 2;
+      data[index] = DataUtils.toHalfFloat(primary);
+      data[index + 1] = DataUtils.toHalfFloat(secondary);
     }
   }
 
@@ -318,7 +303,7 @@ export function bakeTerrainLightingMap(
     data,
     grid.width,
     grid.height,
-    RGBAFormat,
+    RGFormat,
     HalfFloatType,
   );
   texture.minFilter = LinearFilter;

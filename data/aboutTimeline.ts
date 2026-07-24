@@ -39,7 +39,7 @@ export const ABOUT_TIMELINE: readonly TimelineEntry[] = [
   {
     id: 'nus-greyhats',
     category: 'Community',
-    dateRange: '2024-2026',
+    dateRange: '2024-NOW',
     title: 'NUS Greyhats',
     role: 'Publicity Director/Member',
     summary: 'Worked on visual communication and publicity for cybersecurity events.',
@@ -49,15 +49,15 @@ export const ABOUT_TIMELINE: readonly TimelineEntry[] = [
     category: 'Project',
     dateRange: '2024',
     title: 'Medic Handbook',
-    role: 'Eemergency Medical Services, Singapore Civil Defence Force',
-    summary: `A field reference guide for emergency medical protocols. 
+    role: 'EMT, Singapore Civil Defence Force',
+    summary: `A reference guide for medics in Yishun Fire Station. 
               It is my first website, built with vanilla JS, HTML, and CSS.`,
   },
 ];
 
 export const ABOUT_CONTACT = {
   email: 'songqiaoyuchen@gmail.com',
-  linkedIn: 'https://www.linkedin.com/',
-  gitHub: 'https://github.com/',
+  linkedIn: 'https://sg.linkedin.com/in/song-qiaoyuchen',
+  gitHub: 'https://github.com/songqiaoyuchen',
   resume: '/resume.pdf',
 } as const;

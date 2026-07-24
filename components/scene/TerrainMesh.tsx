@@ -33,13 +33,11 @@ export function TerrainMesh({settings}: {settings: TerrainControlValues}) {
     seaLevel,
     shadowBias,
     shadowStrength,
-    lightColor,
     lightIntensity,
     lightFalloff,
     lightX,
     lightY,
     lightZ,
-    light2Color,
     light2Intensity,
     light2Falloff,
     light2X,
@@ -52,13 +50,11 @@ export function TerrainMesh({settings}: {settings: TerrainControlValues}) {
     seaLevel,
     shadowBias,
     shadowStrength,
-    lightColor,
     lightIntensity,
     lightFalloff,
     lightX,
     lightY,
     lightZ,
-    light2Color,
     light2Intensity,
     light2Falloff,
     light2X,
@@ -78,7 +74,17 @@ export function TerrainMesh({settings}: {settings: TerrainControlValues}) {
     material.uniforms.seaLevel.value = seaLevel;
     material.uniforms.baseColor.value.set(baseColor);
     material.uniforms.ridgeColor.value.set(ridgeColor);
-  }, [elevation, seaLevel, baseColor, ridgeColor, staticLightingMap]);
+    material.uniforms.lightColor.value.set(lightColor);
+    material.uniforms.light2Color.value.set(light2Color);
+  }, [
+    elevation,
+    seaLevel,
+    baseColor,
+    ridgeColor,
+    lightColor,
+    light2Color,
+    staticLightingMap,
+  ]);
 
   const uniforms = useMemo(() => UniformsUtils.merge([
     UniformsLib.fog,
@@ -90,6 +96,8 @@ export function TerrainMesh({settings}: {settings: TerrainControlValues}) {
       seaLevel:       { value: TERRAIN_MATERIAL_CONFIG.seaLevel },
       baseColor:      { value: new Color(TERRAIN_MATERIAL_CONFIG.baseColor) },
       ridgeColor:     { value: new Color(TERRAIN_MATERIAL_CONFIG.ridgeColor) },
+      lightColor:     { value: new Color(TERRAIN_MATERIAL_CONFIG.lightColor) },
+      light2Color:    { value: new Color(TERRAIN_MATERIAL_CONFIG.light2Color) },
       edgeFeather:    { value: TERRAIN_MESH_CONFIG.edgeFeather },
     },
   ]), [displacementMap, staticLightingMap]);
