@@ -31,6 +31,7 @@ Read `docs` before material product, design, or architecture work. Do not treat 
 ## Architecture principles
 
 - Use semantic HTML for content and navigation. WebGL is an enhancement, not the sole representation of information.
+- Keep styling unified. Use existing tailwind css classes whenever possible or design reusable theme tokens, avoid hardcoded magic numbers for font-sizes, padding and margin, etc.
 - Use Server Components by default. Add Client Component boundaries only where interaction or browser APIs require them.
 - Keep the heavy terrain experience primarily on the homepage. Reading and detail pages should be content-first.
 - Keep UI in HTML/SVG and terrain rendering in WebGL; shared state may connect them.

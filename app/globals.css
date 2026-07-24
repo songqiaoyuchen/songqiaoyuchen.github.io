@@ -32,13 +32,11 @@
   --animate-hero-support-first: hero-support 420ms ease-out 1.76s forwards;
   --animate-hero-support-last: hero-support 420ms ease-out 1.92s forwards;
   --animate-route-ripple-one: route-ripple-one 900ms cubic-bezier(0.18, 0.65, 0.26, 1) both;
-  --animate-route-ripple-two: route-ripple-two 900ms cubic-bezier(0.18, 0.65, 0.26, 1) 150ms both;
-  --animate-contact-ripple-one: contact-ripple-one 900ms cubic-bezier(0.18, 0.65, 0.26, 1) both;
-  --animate-contact-ripple-two: contact-ripple-two 900ms cubic-bezier(0.18, 0.65, 0.26, 1) 150ms both;
+  --animate-route-ripple-two: route-ripple-two 1000ms cubic-bezier(0.18, 0.65, 0.26, 1) 120ms both;
+  --animate-route-ripple-three: route-ripple-three 1100ms cubic-bezier(0.18, 0.65, 0.26, 1) 240ms both;
   --animate-current-signal: current-signal 4.8s ease-out 1.4s infinite;
   --background-image-pixel-card: radial-gradient(circle, rgb(9 9 11 / 96%) 0%, rgb(9 9 11 / 91%) 30%, transparent 75%);
   --blur-reveal: 5px;
-  --blur-timeline: 3px;
   --container-copy: 60ch;
   --container-annotation: 38rem;
   --duration-interaction: 180ms;
@@ -123,33 +121,27 @@
 }
 
 @keyframes route-ripple-one {
-  0% { width: 0.5rem; height: 0.5rem; opacity: 0; }
-  14% { opacity: 0.72; }
-  100% { width: 1.25rem; height: 1.25rem; opacity: 0; }
+  0% { opacity: 0; transform: scale(1); }
+  12% { opacity: 0.84; }
+  100% { opacity: 0; transform: scale(3); }
 }
 
 @keyframes route-ripple-two {
-  0% { width: 0.5rem; height: 0.5rem; opacity: 0; }
-  14% { opacity: 0.5; }
-  100% { width: 1.875rem; height: 1.875rem; opacity: 0; }
+  0% { opacity: 0; transform: scale(1); }
+  12% { opacity: 0.62; }
+  100% { opacity: 0; transform: scale(4.5); }
 }
 
-@keyframes contact-ripple-one {
-  0% { width: 0.5rem; height: 0.5rem; opacity: 0; }
-  14% { opacity: 0.78; }
-  100% { width: 1.6rem; height: 1.6rem; opacity: 0; }
-}
-
-@keyframes contact-ripple-two {
-  0% { width: 0.5rem; height: 0.5rem; opacity: 0; }
-  14% { opacity: 0.56; }
-  100% { width: 2.2rem; height: 2.2rem; opacity: 0; }
+@keyframes route-ripple-three {
+  0% { opacity: 0; transform: scale(1); }
+  12% { opacity: 0.4; }
+  100% { opacity: 0; transform: scale(6); }
 }
 
 @keyframes current-signal {
-  0%, 72% { width: 0.5rem; height: 0.5rem; opacity: 0; }
+  0%, 72% { opacity: 0; transform: scale(1); }
   77% { opacity: 0.22; }
-  94%, 100% { width: 1.6rem; height: 1.6rem; opacity: 0; }
+  94%, 100% { opacity: 0; transform: scale(3.2); }
 }
 
 @utility preview-backdrop {
@@ -162,7 +154,6 @@
     transparent 100%
   );
   box-shadow: 20px 0 60px rgb(0 0 0 / 12%);
-  backdrop-filter: blur(14px);
   mask-image: linear-gradient(
     to right,
     black 0%,
@@ -175,7 +166,6 @@
 
 @utility top-nav-glass {
   isolation: isolate;
-  padding-bottom: clamp(1.75rem, 4vw, 2.75rem);
 
   &::before {
     position: absolute;
@@ -222,4 +212,32 @@
   &::-webkit-scrollbar {
     display: none;
   }
+}
+
+@utility about-bottom-reveal {
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgb(8 10 13 / 8%) 28%,
+    rgb(8 10 13 / 42%) 66%,
+    rgb(8 10 13 / 94%) 100%
+  );
+  -webkit-backdrop-filter: blur(var(--blur-reveal));
+  backdrop-filter: blur(var(--blur-reveal));
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgb(0 0 0 / 8%) 18%,
+    rgb(0 0 0 / 42%) 48%,
+    black 82%,
+    black 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgb(0 0 0 / 8%) 18%,
+    rgb(0 0 0 / 42%) 48%,
+    black 82%,
+    black 100%
+  );
 }

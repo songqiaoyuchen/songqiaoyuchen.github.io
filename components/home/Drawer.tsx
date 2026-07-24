@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import {useEffect, useState, type TransitionEvent} from 'react';
 import {SECTIONS, type SectionId} from '@/data/sections';
-import {AboutPanel} from './AboutPanel';
+import {AboutPanel} from './about/AboutPanel';
 import {DrawerPreviews} from './DrawerPreviews';
 
 interface DrawerProps {
@@ -70,13 +70,13 @@ export function Drawer({activeId, onClose}: DrawerProps) {
           <AboutPanel isOpen={activeId === 'about'} onClose={onClose} />
         ) : (
           <div className="no-scrollbar flex h-full max-w-drawer flex-col overflow-y-auto
-            px-9 pb-10 pt-24 sm:px-11 sm:pt-28">
+            px-6 pb-10 pt-24 sm:px-10 sm:pt-28">
             <button
               aria-label={`Close ${section.label.toLowerCase()} preview`}
-              className="absolute right-9 top-20 z-20 grid size-11 place-items-center border-0
+              className="absolute right-6 top-20 z-20 grid size-11 place-items-center border-0
                 bg-transparent p-0 font-mono text-xl font-light leading-none text-dim
                 transition-colors hover:text-text focus-visible:outline-1
-                focus-visible:outline-offset-4 focus-visible:outline-accent sm:right-11 sm:top-24"
+                focus-visible:outline-offset-4 focus-visible:outline-accent sm:right-10 sm:top-24"
               onClick={onClose}
               tabIndex={activeId !== null ? 0 : -1}
               type="button"
