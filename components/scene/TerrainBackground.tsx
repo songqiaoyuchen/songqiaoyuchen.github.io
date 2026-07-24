@@ -4,6 +4,7 @@ import { Suspense, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { EffectComposer, SelectiveBloom } from '@react-three/postprocessing';
+import { Perf } from 'r3f-perf';
 import { SMAAPreset } from 'postprocessing';
 import type { AmbientLight, Mesh } from 'three';
 import type { OrbitControls as OrbitControlsInstance } from 'three-stdlib';
@@ -45,6 +46,9 @@ export function TerrainBackground({
         camera={{position: CAMERA_CONFIG.overviewPosition, fov: CAMERA_CONFIG.fov}}
         gl={{ antialias: false, powerPreference: 'high-performance' }}
       >
+        {process.env.NODE_ENV === 'development' ? (
+          <Perf position="top-left" showGraph />
+        ) : null}
         <color attach="background" args={[FOG_CONFIG.color]} />
         {/* SelectiveBloom expects a light for its isolated render. */}
         <ambientLight ref={setBloomLight} intensity={0} />
