@@ -318,7 +318,9 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
                 className="link-stream-hit block min-h-11 min-w-11 touch-manipulation
                   cursor-pointer rounded-sm border border-transparent bg-transparent
                   text-transparent outline-none transition-colors
-                  focus-visible:border-line-hover focus-visible:bg-accent-dim"
+                  focus-visible:border-line-hover focus-visible:bg-accent-dim
+                  data-active:data-focused:focus-visible:border-transparent
+                  data-active:data-focused:focus-visible:bg-transparent"
                 aria-label={`Open ${run.text.toLowerCase()} preview`}
                 aria-pressed={activeId === run.id}
                 data-active={activeId === run.id || undefined}

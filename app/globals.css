@@ -3,6 +3,7 @@
 @theme inline {
   --color-background: #0a0a0a;
   --color-foreground: #ededed;
+  --color-panel: #080a0d;
   --color-surface: rgb(8 8 6 / 76%);
   --color-surface-strong: rgb(8 8 6 / 92%);
   --color-surface-soft: rgb(255 255 255 / 2.5%);
@@ -25,25 +26,56 @@
 @theme {
   --animate-fade-in: fade-in 1s cubic-bezier(0.2, 0.8, 0.2, 1) both;
   --animate-drawer-content: fade-in 650ms cubic-bezier(0.2, 0.8, 0.2, 1) 100ms both;
+  --animate-hero-eyebrow: hero-eyebrow 900ms steps(10, end) 120ms forwards;
+  --animate-hero-cursor: hero-cursor 1.42s step-end forwards;
+  --animate-hero-name: hero-name 520ms cubic-bezier(0.22, 0.75, 0.25, 1) 1.42s forwards;
+  --animate-hero-support-first: hero-support 420ms ease-out 1.76s forwards;
+  --animate-hero-support-last: hero-support 420ms ease-out 1.92s forwards;
+  --animate-route-ripple-one: route-ripple-one 900ms cubic-bezier(0.18, 0.65, 0.26, 1) both;
+  --animate-route-ripple-two: route-ripple-two 900ms cubic-bezier(0.18, 0.65, 0.26, 1) 150ms both;
+  --animate-contact-ripple-one: contact-ripple-one 900ms cubic-bezier(0.18, 0.65, 0.26, 1) both;
+  --animate-contact-ripple-two: contact-ripple-two 900ms cubic-bezier(0.18, 0.65, 0.26, 1) 150ms both;
+  --animate-current-signal: current-signal 4.8s ease-out 1.4s infinite;
+  --background-image-pixel-card: radial-gradient(circle, rgb(9 9 11 / 96%) 0%, rgb(9 9 11 / 91%) 30%, transparent 75%);
   --blur-reveal: 5px;
+  --blur-timeline: 3px;
   --container-copy: 60ch;
   --container-annotation: 38rem;
+  --duration-interaction: 180ms;
+  --duration-timeline: 520ms;
+  --ease-pixel: cubic-bezier(0.5, 1, 0.89, 1);
+  --ease-timeline: cubic-bezier(0.2, 0.75, 0.2, 1);
   --leading-copy: 1.8;
+  --leading-intro-copy: 1.85;
+  --leading-meta: 1.7;
+  --leading-summary: 1.75;
+  --opacity-timeline-passed: 0.78;
+  --opacity-timeline-upcoming: 0.24;
   --radius-card: 0.875rem;
   --shadow-hero: 0 0 18px rgb(232 199 122 / 8%);
+  --shadow-route: 0 0 10px rgb(232 199 122 / 12%);
+  --shadow-route-marker: 0 0 9px rgb(232 199 122 / 34%);
   --spacing-drawer: clamp(21.25rem, 45vw, 38.75rem);
   --spacing-hero-top: clamp(5.75rem, 11svh, 6.75rem);
   --text-card: 1.3125rem;
   --text-copy: 0.6875rem;
   --text-display: 2.625rem;
+  --text-entry-title: clamp(1.35rem, 2.6vw, 1.85rem);
   --text-hero-annotation: clamp(0.8rem, 1.25vw, 0.95rem);
   --text-hero-eyebrow: clamp(0.7rem, 3vw, 0.8rem);
   --text-hero-support: clamp(0.7rem, 2.8vw, 0.82rem);
   --text-hero-title: clamp(3.5rem, 16vw, 5rem);
+  --text-intro: clamp(2rem, 5vw, 3rem);
+  --text-intro-copy: 0.74rem;
   --text-label: 0.625rem;
+  --text-meta: 0.68rem;
+  --text-micro: 0.58rem;
+  --text-summary: 0.72rem;
   --tracking-brand: 0.2em;
   --tracking-eyebrow: 0.15em;
   --tracking-label: 0.14em;
+  --tracking-meta: 0.1em;
+  --tracking-role: 0.08em;
   --tracking-support: 0.1em;
 }
 
@@ -63,6 +95,61 @@
     opacity: 1;
     filter: blur(0);
   }
+}
+
+@keyframes hero-eyebrow {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0); }
+}
+
+@keyframes hero-cursor {
+  0%, 70%, 81%, 90% { opacity: 1; }
+  71%, 80%, 91%, 100% { opacity: 0; }
+}
+
+@keyframes hero-name {
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
+  }
+}
+
+@keyframes hero-support {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes route-ripple-one {
+  0% { width: 0.5rem; height: 0.5rem; opacity: 0; }
+  14% { opacity: 0.72; }
+  100% { width: 1.25rem; height: 1.25rem; opacity: 0; }
+}
+
+@keyframes route-ripple-two {
+  0% { width: 0.5rem; height: 0.5rem; opacity: 0; }
+  14% { opacity: 0.5; }
+  100% { width: 1.875rem; height: 1.875rem; opacity: 0; }
+}
+
+@keyframes contact-ripple-one {
+  0% { width: 0.5rem; height: 0.5rem; opacity: 0; }
+  14% { opacity: 0.78; }
+  100% { width: 1.6rem; height: 1.6rem; opacity: 0; }
+}
+
+@keyframes contact-ripple-two {
+  0% { width: 0.5rem; height: 0.5rem; opacity: 0; }
+  14% { opacity: 0.56; }
+  100% { width: 2.2rem; height: 2.2rem; opacity: 0; }
+}
+
+@keyframes current-signal {
+  0%, 72% { width: 0.5rem; height: 0.5rem; opacity: 0; }
+  77% { opacity: 0.22; }
+  94%, 100% { width: 1.6rem; height: 1.6rem; opacity: 0; }
 }
 
 @utility preview-backdrop {
@@ -134,12 +221,5 @@
 
   &::-webkit-scrollbar {
     display: none;
-  }
-}
-
-@layer components {
-  .link-stream-hit[data-active][data-focused]:focus-visible {
-    border-color: transparent !important;
-    background-color: transparent !important;
   }
 }

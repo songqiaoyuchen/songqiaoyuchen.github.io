@@ -290,13 +290,13 @@ export default function PixelCard({
       ref={containerRef}
       className={`
         group relative isolate inline-grid w-fit place-items-center overflow-hidden
-        rounded-[18px] border-accent-soft border transition-colors duration-200
+        rounded-2xl border-accent-soft border transition-colors duration-200
         hover:border-accent-dim focus-within:border-accent-dim
-        ease-[cubic-bezier(0.5,1,0.89,1)] select-none before:pointer-events-none
+        ease-pixel select-none before:pointer-events-none
         before:absolute before:inset-0 before:z-10 before:m-auto before:aspect-square
-        before:bg-[radial-gradient(circle,#09090bf5_0%,#09090be8_30%,transparent_75%)] before:opacity-0
+        before:bg-pixel-card before:opacity-0
         before:transition-opacity before:duration-400
-        before:ease-[cubic-bezier(0.5,1,0.89,1)] before:content-['']
+        before:ease-pixel before:content-['']
         hover:before:opacity-100 focus-within:before:opacity-100 ${className}
       `}
       onMouseEnter={onMouseEnter}
@@ -308,8 +308,7 @@ export default function PixelCard({
       <canvas className="absolute inset-0 z-0 block h-full w-full" ref={canvasRef} />
       <div
         className="relative z-20 transition-opacity duration-400
-          ease-[cubic-bezier(0.5,1,0.89,1)] group-hover:opacity-[0.3]
-          group-focus-within:opacity-[0.3]"
+          ease-pixel group-hover:opacity-30 group-focus-within:opacity-30"
       >
         {children}
       </div>
