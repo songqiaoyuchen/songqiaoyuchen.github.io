@@ -1,6 +1,6 @@
 'use client';
 
-import { forwardRef, useEffect, useLayoutEffect, useMemo } from 'react';
+import { forwardRef, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { useFrame, useLoader, useThree } from '@react-three/fiber';
 import {
   AddEquation,
@@ -14,6 +14,7 @@ import {
   TextureLoader,
 } from 'three';
 import type { Mesh as MeshType } from 'three';
+import type {Camera} from 'three';
 import { EXRLoader } from 'three-stdlib';
 import {
   CAMERA_CONFIG,
@@ -43,10 +44,37 @@ type DecorStreamsProps = {
   terrainSettings: TerrainControlValues;
 };
 
+const CAMERA_MATRIX_VALUE_COUNT = 32;
+
+function cameraChanged(camera: Camera, previous: Float64Array) {
+  const world = camera.matrixWorld.elements;
+  const projection = camera.projectionMatrix.elements;
+  for (let index = 0; index < 16; index++) {
+    if (
+      previous[index] !== world[index]
+      || previous[index + 16] !== projection[index]
+    ) return true;
+  }
+  return false;
+}
+
+function rememberCamera(camera: Camera, target: Float64Array) {
+  const world = camera.matrixWorld.elements;
+  const projection = camera.projectionMatrix.elements;
+  for (let index = 0; index < 16; index++) {
+    target[index] = world[index];
+    target[index + 16] = projection[index];
+  }
+}
+
 export const DecorStreams = forwardRef<MeshType, DecorStreamsProps>(function DecorStreams(
   {contourSettings, terrainSettings},
   forwardedRef,
 ) {
+  const compositorDirty = useRef(true);
+  const previousCamera = useRef(
+    new Float64Array(CAMERA_MATRIX_VALUE_COUNT).fill(Number.NaN),
+  );
   const exr = useLoader(EXRLoader, '/textures/terrain/heightmap.exr');
   const atlas = useLoader(TextureLoader, '/textures/text/decorative-atlas.png');
   const width = useThree((state) => state.size.width);
@@ -148,15 +176,31 @@ export const DecorStreams = forwardRef<MeshType, DecorStreamsProps>(function Dec
     [compositor],
   );
 
-  useEffect(() => configureBitmapAtlas(atlas), [atlas]);
-  useLayoutEffect(() => compositor.setSize(width, height), [compositor, height, width]);
+  useEffect(() => {
+    configureBitmapAtlas(atlas);
+    compositorDirty.current = true;
+  }, [atlas]);
+  useLayoutEffect(() => {
+    compositor.setSize(width, height);
+    compositorDirty.current = true;
+  }, [compositor, height, width]);
   useEffect(() => () => compositor.dispose(), [compositor]);
   useEffect(() => () => geometries.forEach((geometry) => geometry.dispose()), [geometries]);
   useEffect(() => () => material.dispose(), [material]);
   useEffect(() => () => compositeGeometry.dispose(), [compositeGeometry]);
 
   useFrame((state, delta) => {
+    // The planned letter scramble can mark this dirty only when its discrete
+    // loop frame advances; the blurred result is reusable between those ticks.
+    state.camera.updateMatrixWorld();
+    if (
+      !compositorDirty.current
+      && !cameraChanged(state.camera, previousCamera.current)
+    ) return;
+
     compositor.render(state.gl, state.camera, delta);
+    rememberCamera(state.camera, previousCamera.current);
+    compositorDirty.current = false;
   }, -1);
 
   return (

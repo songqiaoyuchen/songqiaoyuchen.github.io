@@ -1,15 +1,20 @@
 // Adopted from https://reactbits.dev/components/pixel-card
 
-import { useEffect, useRef } from 'react';
-import { JSX } from 'react';
+import {useEffect, useRef, type JSX} from 'react';
+
+type PixelColor = {
+  alpha: number;
+  blue: number;
+  green: number;
+  red: number;
+};
+
+type PixelAnimation = 'appear' | 'disappear';
 
 class Pixel {
-  width: number;
-  height: number;
-  ctx: CanvasRenderingContext2D;
   x: number;
   y: number;
-  color: string;
+  color: PixelColor;
   speed: number;
   size: number;
   sizeStep: number;
@@ -24,17 +29,14 @@ class Pixel {
   isShimmer: boolean;
 
   constructor(
-    canvas: HTMLCanvasElement,
-    context: CanvasRenderingContext2D,
+    canvasWidth: number,
+    canvasHeight: number,
     x: number,
     y: number,
-    color: string,
+    color: PixelColor,
     speed: number,
     delay: number
   ) {
-    this.width = canvas.width;
-    this.height = canvas.height;
-    this.ctx = context;
     this.x = x;
     this.y = y;
     this.color = color;
@@ -46,7 +48,7 @@ class Pixel {
     this.maxSize = this.getRandomValue(this.minSize, this.maxSizeInteger);
     this.delay = delay;
     this.counter = 0;
-    this.counterStep = Math.random() * 4 + (this.width + this.height) * 0.01;
+    this.counterStep = Math.random() * 4 + (canvasWidth + canvasHeight) * 0.01;
     this.isIdle = false;
     this.isReverse = false;
     this.isShimmer = false;
@@ -54,12 +56,6 @@ class Pixel {
 
   getRandomValue(min: number, max: number) {
     return Math.random() * (max - min) + min;
-  }
-
-  draw() {
-    const centerOffset = this.maxSizeInteger * 0.5 - this.size * 0.5;
-    this.ctx.fillStyle = this.color;
-    this.ctx.fillRect(this.x + centerOffset, this.y + centerOffset, this.size, this.size);
   }
 
   appear() {
@@ -76,7 +72,6 @@ class Pixel {
     } else {
       this.size += this.sizeStep;
     }
-    this.draw();
   }
 
   disappear() {
@@ -88,7 +83,6 @@ class Pixel {
     } else {
       this.size -= 0.1;
     }
-    this.draw();
   }
 
   shimmer() {
@@ -101,6 +95,74 @@ class Pixel {
       this.size -= this.speed;
     } else {
       this.size += this.speed;
+    }
+  }
+}
+
+function readPixelColor(context: CanvasRenderingContext2D, value: string): PixelColor {
+  context.clearRect(0, 0, 1, 1);
+  context.fillStyle = value.trim();
+  context.fillRect(0, 0, 1, 1);
+  const [red, green, blue, alpha] = context.getImageData(0, 0, 1, 1).data;
+  return {alpha, blue, green, red};
+}
+
+function blendPixel(
+  data: Uint8ClampedArray,
+  index: number,
+  color: PixelColor,
+  coverage: number,
+) {
+  const sourceAlphaByte = Math.round(color.alpha * coverage);
+  if (sourceAlphaByte <= 0) return;
+
+  const destinationAlphaByte = data[index + 3];
+  if (destinationAlphaByte === 0 || sourceAlphaByte === 255) {
+    data[index] = color.red;
+    data[index + 1] = color.green;
+    data[index + 2] = color.blue;
+    data[index + 3] = sourceAlphaByte;
+    return;
+  }
+
+  const sourceAlpha = sourceAlphaByte / 255;
+  const destinationAlpha = destinationAlphaByte / 255;
+  const inverseSourceAlpha = 1 - sourceAlpha;
+  const outputAlpha = sourceAlpha + destinationAlpha * inverseSourceAlpha;
+  data[index] = Math.round((
+    color.red * sourceAlpha
+    + data[index] * destinationAlpha * inverseSourceAlpha
+  ) / outputAlpha);
+  data[index + 1] = Math.round((
+    color.green * sourceAlpha
+    + data[index + 1] * destinationAlpha * inverseSourceAlpha
+  ) / outputAlpha);
+  data[index + 2] = Math.round((
+    color.blue * sourceAlpha
+    + data[index + 2] * destinationAlpha * inverseSourceAlpha
+  ) / outputAlpha);
+  data[index + 3] = Math.round(outputAlpha * 255);
+}
+
+function rasterizePixel(frame: ImageData, pixel: Pixel) {
+  if (pixel.size <= 0) return;
+
+  const centerOffset = pixel.maxSizeInteger * 0.5 - pixel.size * 0.5;
+  const left = pixel.x + centerOffset;
+  const top = pixel.y + centerOffset;
+  const right = left + pixel.size;
+  const bottom = top + pixel.size;
+  const startX = Math.max(0, Math.floor(left));
+  const startY = Math.max(0, Math.floor(top));
+  const endX = Math.min(frame.width, Math.ceil(right));
+  const endY = Math.min(frame.height, Math.ceil(bottom));
+
+  for (let y = startY; y < endY; y++) {
+    const verticalCoverage = Math.min(bottom, y + 1) - Math.max(top, y);
+    for (let x = startX; x < endX; x++) {
+      const horizontalCoverage = Math.min(right, x + 1) - Math.max(left, x);
+      const coverage = horizontalCoverage * verticalCoverage;
+      blendPixel(frame.data, (y * frame.width + x) * 4, pixel.color, coverage);
     }
   }
 }
@@ -179,6 +241,8 @@ export default function PixelCard({
 }: PixelCardProps): JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const contextRef = useRef<CanvasRenderingContext2D | null>(null);
+  const frameRef = useRef<ImageData | null>(null);
   const pixelsRef = useRef<Pixel[]>([]);
   const animationRef = useRef<ReturnType<typeof requestAnimationFrame> | null>(null);
   const timePreviousRef = useRef(performance.now());
@@ -200,29 +264,47 @@ export default function PixelCard({
     const height = Math.floor(rect.height);
     const ctx = canvasRef.current.getContext('2d');
 
+    if (width <= 0 || height <= 0 || !ctx) {
+      pixelsRef.current = [];
+      contextRef.current = null;
+      frameRef.current = null;
+      return;
+    }
+
     canvasRef.current.width = width;
     canvasRef.current.height = height;
     canvasRef.current.style.width = `${width}px`;
     canvasRef.current.style.height = `${height}px`;
 
-    const colorsArray = finalColors.split(',');
+    contextRef.current = ctx;
+    frameRef.current = ctx.createImageData(width, height);
+    const colorsArray = finalColors.split(',').map((color) => readPixelColor(ctx, color));
+    ctx.clearRect(0, 0, width, height);
+    const pixelGap = Math.max(1, Math.floor(finalGap));
     const pxs = [];
-    for (let x = 0; x < width; x += parseInt(finalGap.toString(), 10)) {
-      for (let y = 0; y < height; y += parseInt(finalGap.toString(), 10)) {
+    for (let x = 0; x < width; x += pixelGap) {
+      for (let y = 0; y < height; y += pixelGap) {
         const color = colorsArray[Math.floor(Math.random() * colorsArray.length)];
 
         const dx = x - width / 2;
         const dy = y - height / 2;
         const distance = Math.sqrt(dx * dx + dy * dy);
         const delay = reducedMotion ? 0 : distance * 0.75;
-        if (!ctx) return;
-        pxs.push(new Pixel(canvasRef.current, ctx, x, y, color, getEffectiveSpeed(finalSpeed, reducedMotion), delay));
+        pxs.push(new Pixel(
+          width,
+          height,
+          x,
+          y,
+          color,
+          getEffectiveSpeed(finalSpeed, reducedMotion),
+          delay,
+        ));
       }
     }
     pixelsRef.current = pxs;
   };
 
-  const doAnimate = (fnName: keyof Pixel) => {
+  const doAnimate = (fnName: PixelAnimation) => {
     animationRef.current = requestAnimationFrame(() => doAnimate(fnName));
     const timeNow = performance.now();
     const timePassed = timeNow - timePreviousRef.current;
@@ -231,26 +313,28 @@ export default function PixelCard({
     if (timePassed < timeInterval) return;
     timePreviousRef.current = timeNow - (timePassed % timeInterval);
 
-    const ctx = canvasRef.current?.getContext('2d');
-    if (!ctx || !canvasRef.current) return;
+    const ctx = contextRef.current;
+    const frame = frameRef.current;
+    if (!ctx || !frame) return;
 
-    ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+    frame.data.fill(0);
 
     let allIdle = true;
     for (let i = 0; i < pixelsRef.current.length; i++) {
       const pixel = pixelsRef.current[i];
-      // @ts-expect-error fnName is restricted by callers to Pixel animation methods.
       pixel[fnName]();
+      rasterizePixel(frame, pixel);
       if (!pixel.isIdle) {
         allIdle = false;
       }
     }
+    ctx.putImageData(frame, 0, 0);
     if (allIdle) {
       cancelAnimationFrame(animationRef.current);
     }
   };
 
-  const handleAnimation = (name: keyof Pixel) => {
+  const handleAnimation = (name: PixelAnimation) => {
     if (animationRef.current !== null) {
       cancelAnimationFrame(animationRef.current);
     }

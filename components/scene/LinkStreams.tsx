@@ -10,7 +10,7 @@ import {
   TextureLoader,
   Vector3,
 } from 'three';
-import type { Group, Mesh } from 'three';
+import type { Camera, Group, Mesh } from 'three';
 import { EXRLoader } from 'three-stdlib';
 import { forwardRef, useEffect, useMemo, useRef, useState } from 'react';
 import {LINK_STREAM_EFFECT_CONFIG, LINK_STREAMS} from '@/config/navigation';
@@ -39,6 +39,32 @@ import type {SectionId} from '@/data/sections';
 import {useReducedMotion} from '@/hooks/useReducedMotion';
 type RayTransitionPhase = 'idle' | 'out' | 'in';
 
+const CAMERA_MATRIX_VALUE_COUNT = 32;
+
+function cameraChanged(camera: Camera, previous: Float64Array) {
+  const world = camera.matrixWorld.elements;
+  const projection = camera.projectionMatrix.elements;
+
+  for (let index = 0; index < 16; index++) {
+    if (
+      previous[index] !== world[index]
+      || previous[index + 16] !== projection[index]
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function rememberCamera(camera: Camera, target: Float64Array) {
+  const world = camera.matrixWorld.elements;
+  const projection = camera.projectionMatrix.elements;
+  for (let index = 0; index < 16; index++) {
+    target[index] = world[index];
+    target[index + 16] = projection[index];
+  }
+}
+
 type LinkStreamsProps = {
   activeId: SectionId | null;
   contourSettings: ContourControlValues;
@@ -63,6 +89,10 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
   const transitionPhase = useRef<RayTransitionPhase>('idle');
   const dissolveVisibility = useRef(1);
   const layoutInitialized = useRef(false);
+  const hitTargetsDirty = useRef(true);
+  const previousCamera = useRef(
+    new Float64Array(CAMERA_MATRIX_VALUE_COUNT).fill(Number.NaN),
+  );
   const viewportWidth = useThree((state) => state.size.width);
   const viewportHeight = useThree((state) => state.size.height);
   const isReducedMotion = useReducedMotion();
@@ -160,6 +190,9 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
   useEffect(() => {
     if (hoveredIndex !== null) glitchValues.current[hoveredIndex] = 1;
   }, [hoveredIndex]);
+  useEffect(() => {
+    hitTargetsDirty.current = true;
+  }, [elevation, layouts, seaLevel, viewportHeight, viewportWidth]);
 
   useFrame(({camera}, delta) => {
     const material = materialRef.current;
@@ -206,14 +239,21 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
     const offsetX = material.uniforms.uLayoutOffsetX.value as Float32Array;
     const offsetZ = material.uniforms.uLayoutOffsetZ.value as Float32Array;
     const verticalOffsets = material.uniforms.uVerticalOffset.value as Float32Array;
+    let hitTargetsMoved = !layoutInitialized.current || layoutSwitched;
 
     material.uniforms.uTime.value += delta;
     for (const run of LINK_STREAMS) {
       const target = targetLayout?.[run.index] ?? run.anchor;
       const targetOffsetX = target[0] - run.anchor[0];
       const targetOffsetZ = target[1] - run.anchor[1];
+      const previousOffsetX = offsetX[run.index];
+      const previousOffsetZ = offsetZ[run.index];
       offsetX[run.index] += (targetOffsetX - offsetX[run.index]) * layoutAlpha;
       offsetZ[run.index] += (targetOffsetZ - offsetZ[run.index]) * layoutAlpha;
+      hitTargetsMoved ||= (
+        previousOffsetX !== offsetX[run.index]
+        || previousOffsetZ !== offsetZ[run.index]
+      );
       verticalOffsets[run.index] = layoutMode.current === 'overview'
         ? run.overviewBottomOffset - run.focusedBottomOffset
         : 0;
@@ -235,6 +275,10 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
     }
     (material.uniforms.uHover.value as Float32Array).set(hoverValues.current);
     (material.uniforms.uGlitch.value as Float32Array).set(glitchValues.current);
+
+    camera.updateMatrixWorld();
+    const cameraMoved = cameraChanged(camera, previousCamera.current);
+    if (!hitTargetsDirty.current && !hitTargetsMoved && !cameraMoved) return;
 
     for (const run of LINK_STREAMS) {
       const hitTarget = hitTargetRefs.current[run.index];
@@ -272,10 +316,14 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
         44,
         Math.abs(hitProjection.right.x - hitProjection.left.x) * viewportWidth * 0.5 + 16,
       );
-      hitButton.style.height = `${hitHeight}px`;
-      hitButton.style.width = `${hitWidth}px`;
+      const heightStyle = `${hitHeight}px`;
+      const widthStyle = `${hitWidth}px`;
+      if (hitButton.style.height !== heightStyle) hitButton.style.height = heightStyle;
+      if (hitButton.style.width !== widthStyle) hitButton.style.width = widthStyle;
     }
-  });
+    rememberCamera(camera, previousCamera.current);
+    hitTargetsDirty.current = false;
+  }, 0.25);
 
   return (
     <>
@@ -306,6 +354,7 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
             key={run.id}
             ref={(node) => {
               hitTargetRefs.current[run.index] = node;
+              hitTargetsDirty.current = true;
             }}
             position={position}
           >
@@ -313,6 +362,7 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
               <button
                 ref={(node) => {
                   hitButtonRefs.current[run.index] = node;
+                  hitTargetsDirty.current = true;
                 }}
                 type="button"
                 className="link-stream-hit block min-h-11 min-w-11 touch-manipulation

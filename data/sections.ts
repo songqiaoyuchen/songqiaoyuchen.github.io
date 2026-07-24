@@ -34,4 +34,5 @@ export const SECTIONS = {
   },
 } as const satisfies Record<SectionId, Section>;
 
-export const NAV_SECTIONS = [SECTIONS.projects, SECTIONS.art, SECTIONS.blog, SECTIONS.about];
+// Section on navbar
+export const NAV_SECTIONS = [SECTIONS.projects, SECTIONS.art, SECTIONS.blog];
