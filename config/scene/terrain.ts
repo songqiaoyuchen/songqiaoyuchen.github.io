@@ -32,8 +32,7 @@ export const TERRAIN_MATERIAL_CONFIG = {
   light2Intensity: 1.45,
   light2Falloff: 0.065,
 
-  // Height-field ray shadow. These stay as uniforms so future section looks
-  // can animate them without replacing or recompiling the material.
+  // Static terrain lighting is rebaked when any light or shadow input changes.
   shadowStrength: 0.81,
   shadowBias: 0.09,
 } as const;

@@ -60,17 +60,25 @@ old EXR path for A/B screenshots. Production should not request the EXR.
 
 ## Second implementation: bake terrain shadows
 
-The terrain fragment shader currently performs nine height samples for each of
-two lights at every terrain pixel. Reproduce `terrainShadow` in the bake script
-for each output texel and store both visibility values in an RG texture:
+Current status: the complete static illumination is implemented in memory at
+startup as an RGBA16F `DataTexture`. It includes both point lights' color,
+intensity, falloff, normal response, terrain visibility, shadow strength, and
+slope shading. The fragment shader retains only live terrain albedo, edge fade,
+and fog. This deliberately accepts startup CPU time while the visual match and
+steady-state GPU benefit are evaluated.
+
+The previous terrain fragment shader performed nine height samples for each of
+two lights at every terrain pixel, then calculated normals, attenuation, and
+diffuse response live. The runtime baker now stores the combined RGB light
+multiplier in one texture. A future offline artifact should use that output:
 
 ```text
-shadow-visibility.rg16f.bin
+static-lighting.rgba16f.bin
 ```
 
-Then replace both ray-march loops with one texture lookup. Keep light color,
-intensity, falloff, normal lighting, and `shadowStrength` live. Apply strength
-in the shader with `mix(1.0, bakedVisibility, shadowStrength)`.
+Changing a light, terrain elevation, sea level, shadow bias, or shadow strength
+requires a rebake. Base and ridge colors remain live because the baked texture
+stores illumination rather than final surface color.
 
 The shadow artifact's config hash must include both light positions, elevation,
 sea level, shadow bias, contrast, plane size, mesh Y, and the ray-march
