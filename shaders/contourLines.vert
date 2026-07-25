@@ -25,6 +25,7 @@ varying float vTravelDirection;
 varying float vShadow;
 varying vec2 vTerrainUv;
 varying float vNoise;
+varying vec2 vScreenUv;
 
 // Periodic classic Perlin noise (Stefan Gustavson / webgl-noise, MIT).
 vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
@@ -97,6 +98,7 @@ void main() {
   vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
   gl_Position = projectionMatrix * mvPosition;
   gl_Position.z -= uDepthBias * gl_Position.w;
+  vScreenUv = gl_Position.xy / gl_Position.w * 0.5 + 0.5;
 
   #include <fog_vertex>
 }

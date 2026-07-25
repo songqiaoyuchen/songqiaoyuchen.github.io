@@ -9,7 +9,7 @@ import {
   UniformsLib,
   UniformsUtils,
 } from 'three';
-import type { Mesh } from 'three';
+import type {DepthTexture, Mesh} from 'three';
 import { EXRLoader } from 'three-stdlib';
 import {CONTOUR_CONFIG, TERRAIN_MATERIAL_CONFIG, TERRAIN_MESH_CONFIG} from '@/config/scene';
 import type {
@@ -28,11 +28,12 @@ const TERRAIN_MESH = TERRAIN_MESH_CONFIG;
 
 type ContourLinesProps = {
   contourSettings: ContourControlValues;
+  terrainDepthTexture: DepthTexture | null;
   terrainSettings: TerrainControlValues;
 };
 
 export const ContourLines = forwardRef<Mesh, ContourLinesProps>(function ContourLines(
-  {contourSettings: lines, terrainSettings},
+  {contourSettings: lines, terrainDepthTexture, terrainSettings},
   forwardedRef,
 ) {
   const exr = useLoader(EXRLoader, '/textures/terrain/heightmap.exr');
@@ -94,6 +95,8 @@ export const ContourLines = forwardRef<Mesh, ContourLinesProps>(function Contour
     uDepthBias:   { value: CONTOURS.depthBias },
     uPlaneSize:   { value: TERRAIN_MESH.planeSize },
     uEdgeFeather: { value: TERRAIN_MESH.edgeFeather },
+    uTerrainDepth: {value: null},
+    uUseTerrainDepth: {value: 0},
 
     uMajorColor:     { value: new Color(CONTOURS.majorColor) },
     uMajorIntensity: { value: CONTOURS.majorIntensity },
@@ -130,6 +133,13 @@ export const ContourLines = forwardRef<Mesh, ContourLinesProps>(function Contour
     uniforms.uPulseScale.value = lines.pulseScale;
     uniforms.uPulseSharpness.value = lines.pulseSharpness;
   }, [elevation, lines]);
+
+  useEffect(() => {
+    const material = matRef.current;
+    if (!material) return;
+    material.uniforms.uTerrainDepth.value = terrainDepthTexture;
+    material.uniforms.uUseTerrainDepth.value = terrainDepthTexture ? 1 : 0;
+  }, [terrainDepthTexture]);
 
   useEffect(() => {
     introStart.current = null;

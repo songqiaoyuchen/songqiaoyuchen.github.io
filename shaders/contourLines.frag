@@ -3,6 +3,8 @@
 uniform float uIntroTime;
 uniform float uIntroTravelSpeed;
 uniform float uEdgeFeather;
+uniform sampler2D uTerrainDepth;
+uniform float uUseTerrainDepth;
 
 uniform vec3 uMajorColor;
 uniform float uMajorIntensity;
@@ -22,8 +24,14 @@ varying float vTravelDirection;
 varying float vShadow;
 varying vec2 vTerrainUv;
 varying float vNoise;
+varying vec2 vScreenUv;
 
 void main() {
+  if (uUseTerrainDepth > 0.5) {
+    float terrainDepth = texture2D(uTerrainDepth, vScreenUv).r;
+    if (gl_FragCoord.z > terrainDepth) discard;
+  }
+
   float totalLength = max(vTotalLength, 0.0001);
   float n = vNoise;
   float hardWidth = max(fwidth(n), 0.015);

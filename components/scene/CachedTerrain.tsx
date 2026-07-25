@@ -74,18 +74,24 @@ function renderTerrain(
 
 type CachedTerrainProps = {
   fogSettings: FogControlValues;
+  onDepthTextureChange: (texture: ReturnType<typeof useFBO>['depthTexture']) => void;
   terrainSettings: TerrainControlValues;
 };
 
 /**
  * Renders the static terrain into a full-resolution texture only when its
  * camera, viewport, fog, or material controls change. The animated contour and
- * stream layers continue rendering normally over the cached result.
+ * stream layers continue rendering normally over the cached result. Its cached
+ * depth texture is exposed so contours can reject only their hidden fragments.
  */
-export function CachedTerrain({fogSettings, terrainSettings}: CachedTerrainProps) {
+export function CachedTerrain({
+  fogSettings,
+  onDepthTextureChange,
+  terrainSettings,
+}: CachedTerrainProps) {
   const scene = useMemo(() => new Scene(), []);
   const target = useFBO({
-    depthBuffer: false,
+    depthBuffer: true,
     stencilBuffer: false,
     samples: 0,
     type: HalfFloatType,
@@ -99,6 +105,11 @@ export function CachedTerrain({fogSettings, terrainSettings}: CachedTerrainProps
     () => ({uTexture: {value: target.texture}}),
     [target.texture],
   );
+
+  useLayoutEffect(() => {
+    onDepthTextureChange(target.depthTexture);
+    return () => onDepthTextureChange(null);
+  }, [onDepthTextureChange, target.depthTexture]);
 
   useLayoutEffect(() => {
     dirty.current = true;

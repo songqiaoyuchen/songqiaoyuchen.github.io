@@ -5,7 +5,7 @@ import { Canvas } from '@react-three/fiber';
 import { OrbitControls, StatsGl } from '@react-three/drei';
 import { EffectComposer } from '@react-three/postprocessing';
 import { SMAAPreset } from 'postprocessing';
-import type { Mesh } from 'three';
+import type {DepthTexture, Mesh} from 'three';
 import type { OrbitControls as OrbitControlsInstance } from 'three-stdlib';
 import {CAMERA_CONFIG, FOG_CONFIG} from '@/config/scene';
 import { SaveCameraButton } from '@/components/debug/SaveCameraButton';
@@ -35,6 +35,7 @@ export function TerrainBackground({
   const [contourMesh, setContourMesh] = useState<Mesh | null>(null);
   const [linkStreamsMesh, setLinkStreamsMesh] = useState<Mesh | null>(null);
   const [heroNameMesh, setHeroNameMesh] = useState<Mesh | null>(null);
+  const [terrainDepthTexture, setTerrainDepthTexture] = useState<DepthTexture | null>(null);
   const settings = useSceneControls();
   const bloomSelection = useMemo(
     () => [contourMesh, linkStreamsMesh, heroNameMesh]
@@ -62,11 +63,13 @@ export function TerrainBackground({
         <Suspense fallback={null}>
           <CachedTerrain
             fogSettings={settings.fog}
+            onDepthTextureChange={setTerrainDepthTexture}
             terrainSettings={settings.terrain}
           />
           <ContourLines
             ref={setContourMesh}
             contourSettings={settings.contours}
+            terrainDepthTexture={terrainDepthTexture}
             terrainSettings={settings.terrain}
           />
           <DecorStreams
