@@ -34,13 +34,12 @@ export function TerrainBackground({
   const orbitcontrolsRef = useRef<OrbitControlsInstance>(null);
   const [contourMesh, setContourMesh] = useState<Mesh | null>(null);
   const [linkStreamsMesh, setLinkStreamsMesh] = useState<Mesh | null>(null);
-  const [heroNameMesh, setHeroNameMesh] = useState<Mesh | null>(null);
   const [terrainDepthTexture, setTerrainDepthTexture] = useState<DepthTexture | null>(null);
   const settings = useSceneControls();
   const bloomSelection = useMemo(
-    () => [contourMesh, linkStreamsMesh, heroNameMesh]
+    () => [contourMesh, linkStreamsMesh]
       .filter((mesh): mesh is Mesh => mesh !== null),
-    [contourMesh, heroNameMesh, linkStreamsMesh],
+    [contourMesh, linkStreamsMesh],
   );
 
   return (
@@ -84,7 +83,6 @@ export function TerrainBackground({
             terrainSettings={settings.terrain}
           />
           <SceneHeroName
-            ref={setHeroNameMesh}
             contourSettings={settings.contours}
             isHidden={activeId !== null}
             terrainSettings={settings.terrain}
@@ -93,12 +91,14 @@ export function TerrainBackground({
         {/* Keep the composer single-sampled: MSAA resolve blits intermittently
             present empty frames on some GPUs. Color-only SMAA smooths edges
             without requesting the composer's sampled depth texture. */}
-        {bloomSelection.length === 3 ? (
+        {bloomSelection.length === 2 ? (
           <EffectComposer multisampling={0}>
             <ColorOnlySMAA preset={SMAAPreset.MEDIUM} />
             <IsolatedBloom
               selection={bloomSelection}
-              resolutionScale={0.5}
+              // Preserve the one-pixel contour and glyph cores before the
+              // bloom mip chain downsamples them.
+              resolutionScale={1}
               intensity={settings.postProcessing.bloomIntensity}
               luminanceThreshold={settings.postProcessing.bloomThreshold}
               luminanceSmoothing={settings.postProcessing.bloomSmoothing}
