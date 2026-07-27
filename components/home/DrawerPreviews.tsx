@@ -47,7 +47,7 @@ function ArtPreviews() {
             font-mono text-label uppercase tracking-label text-muted transition-colors
             hover:border-accent-dim hover:bg-surface-hover hover:text-text
             focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-accent"
-          href="/art"
+          href="/artworks"
           key={label}
         >
           <span className="mb-2 text-2xl text-accent" aria-hidden="true">

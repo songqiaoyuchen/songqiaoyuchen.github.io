@@ -17,7 +17,7 @@ export const SECTIONS = {
   art: {
     id: 'art',
     label: 'Art',
-    href: '/art',
+    href: '/artworks',
     description: 'Paintings, drawings, and visual experiments.',
   },
   blog: {

@@ -1,5 +1,6 @@
 import type {Metadata} from 'next';
 import localFont from 'next/font/local';
+import {Nav} from '@/components/home/Nav';
 import './globals.css';
 
 const krypton = localFont({
@@ -20,7 +21,10 @@ export default function RootLayout({
 }>) {
   return (
     <html className={`${krypton.variable} h-full antialiased`} lang="en">
-      <body className={`${krypton.className} flex min-h-full flex-col`}>{children}</body>
+      <body className={`${krypton.className} flex min-h-full flex-col`}>
+        {children}
+        <Nav />
+      </body>
     </html>
   );
 }

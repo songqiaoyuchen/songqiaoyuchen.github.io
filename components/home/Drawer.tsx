@@ -4,6 +4,7 @@ import Link from 'next/link';
 import {useEffect, useState, type TransitionEvent} from 'react';
 import {SECTIONS, type SectionId} from '@/data/sections';
 import {AboutPanel} from './about/AboutPanel';
+import {ArtPanel} from './art/ArtPanel';
 import {DrawerPreviews} from './DrawerPreviews';
 import {ProjectsPanel} from './projects/ProjectsPanel';
 
@@ -43,8 +44,9 @@ export function Drawer({activeId, onClose}: DrawerProps) {
 
   const section = SECTIONS[displayedId];
   const isAbout = displayedId === 'about';
+  const isArt = displayedId === 'art';
   const isProjects = displayedId === 'projects';
-  const isEditorialPanel = isAbout || isProjects;
+  const isEditorialPanel = isAbout || isArt || isProjects;
   return (
     <aside
       aria-hidden={activeId === null}
@@ -71,6 +73,8 @@ export function Drawer({activeId, onClose}: DrawerProps) {
       <div className="relative z-10 h-full">
         {isAbout ? (
           <AboutPanel isOpen={activeId === 'about'} onClose={onClose} />
+        ) : isArt ? (
+          <ArtPanel isOpen={activeId === 'art'} onClose={onClose} />
         ) : isProjects ? (
           <ProjectsPanel isOpen={activeId === 'projects'} onClose={onClose} />
         ) : (

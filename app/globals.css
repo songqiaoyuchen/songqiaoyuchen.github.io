@@ -35,6 +35,8 @@
   --animate-route-ripple-two: route-ripple-two 1000ms cubic-bezier(0.18, 0.65, 0.26, 1) 120ms both;
   --animate-route-ripple-three: route-ripple-three 1100ms cubic-bezier(0.18, 0.65, 0.26, 1) 240ms both;
   --animate-current-signal: current-signal 4.8s ease-out 1.4s infinite;
+  --animate-art-carousel: art-carousel 360ms var(--ease-timeline) both;
+  --animate-art-caption: art-caption 300ms ease-out both;
   --background-image-pixel-card: radial-gradient(circle, rgb(9 9 11 / 96%) 0%, rgb(9 9 11 / 91%) 30%, transparent 75%);
   --blur-reveal: 5px;
   --container-copy: 60ch;
@@ -142,6 +144,28 @@
   0%, 72% { opacity: 0; transform: scale(1); }
   77% { opacity: 0.22; }
   94%, 100% { opacity: 0; transform: scale(3.2); }
+}
+
+@keyframes art-carousel {
+  from {
+    opacity: 0.35;
+    transform: translateY(0.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes art-caption {
+  from {
+    opacity: 0;
+    transform: translateY(0.25rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @utility preview-backdrop {
