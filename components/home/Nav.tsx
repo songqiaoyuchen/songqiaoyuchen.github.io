@@ -11,11 +11,11 @@ export function Nav() {
   return (
     <nav
       aria-label="Site navigation"
-      className="top-nav-glass fixed inset-x-0 top-0 z-50 flex flex-wrap items-center
-        justify-between gap-y-1 px-6 pt-6 sm:flex-nowrap sm:px-10 sm:pt-7"
+      className="top-nav-glass fixed text-xs inset-x-0 top-0 z-50 flex flex-wrap items-center
+        justify-between gap-y-1 px-6 py-5 sm:flex-nowrap sm:px-10"
     >
       <Link
-        className={`flex min-h-11 items-center font-mono text-base uppercase tracking-brand
+        className={`flex items-center font-mono text-base uppercase tracking-brand
           transition-colors hover:text-accent focus-visible:outline-1
           focus-visible:outline-offset-4 focus-visible:outline-accent
           ${pathname === '/' ? 'text-accent' : 'text-muted'}`}
@@ -31,7 +31,7 @@ export function Nav() {
           <li key={section.id}>
             <button
               aria-pressed={pathname.startsWith(`/${section.href}`)}
-              className="min-h-11 min-w-11 border-0 bg-transparent px-0 py-1 font-mono text-sm
+              className="min-w-11 border-0 bg-transparent px-0 py-1 font-mono text-sm
                 uppercase tracking-label text-muted transition-colors hover:text-accent
                 focus-visible:outline-1 focus-visible:outline-offset-4
                 focus-visible:outline-accent"
