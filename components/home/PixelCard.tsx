@@ -218,6 +218,7 @@ interface PixelCardProps {
   speed?: number;
   colors?: string;
   noFocus?: boolean;
+  active?: boolean;
   className?: string;
   children: React.ReactNode;
 }
@@ -236,9 +237,11 @@ export default function PixelCard({
   speed,
   colors,
   noFocus,
+  active,
   className = '',
   children
 }: PixelCardProps): JSX.Element {
+  const isControlled = active !== undefined;
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const contextRef = useRef<CanvasRenderingContext2D | null>(null);
@@ -369,30 +372,42 @@ export default function PixelCard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [finalGap, finalSpeed, finalColors, finalNoFocus]);
 
+  useEffect(() => {
+    if (!isControlled) return;
+    handleAnimation(active ? 'appear' : 'disappear');
+  }, [active, isControlled]);
+
+  const isActive = active ?? false;
+  const contentClassName = isActive
+    ? 'opacity-30'
+    : 'group-hover:opacity-30 group-focus-within:opacity-30';
+
   return (
     <div
       ref={containerRef}
       className={`
-        group relative isolate inline-grid w-fit place-items-center overflow-hidden
-        rounded-2xl border-accent-soft border transition-colors duration-200
+        group relative isolate grid w-full place-items-stretch overflow-hidden
+        rounded-2xl border border-accent-soft transition-colors duration-200
         hover:border-accent-dim focus-within:border-accent-dim
         ease-pixel select-none before:pointer-events-none
         before:absolute before:inset-0 before:z-10 before:m-auto before:aspect-square
         before:bg-pixel-card before:opacity-0
         before:transition-opacity before:duration-400
         before:ease-pixel before:content-['']
-        hover:before:opacity-100 focus-within:before:opacity-100 ${className}
+        ${isActive
+          ? 'before:opacity-100'
+          : 'hover:before:opacity-100 focus-within:before:opacity-100'}
+        ${className}
       `}
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
-      onFocus={finalNoFocus ? undefined : onFocus}
-      onBlur={finalNoFocus ? undefined : onBlur}
-      tabIndex={finalNoFocus ? -1 : 0}
+      onMouseEnter={isControlled ? undefined : onMouseEnter}
+      onMouseLeave={isControlled ? undefined : onMouseLeave}
+      onFocus={isControlled || finalNoFocus ? undefined : onFocus}
+      onBlur={isControlled || finalNoFocus ? undefined : onBlur}
+      tabIndex={finalNoFocus ? undefined : 0}
     >
       <canvas className="absolute inset-0 z-0 block h-full w-full" ref={canvasRef} />
       <div
-        className="relative z-20 transition-opacity duration-400
-          ease-pixel group-hover:opacity-30 group-focus-within:opacity-30"
+        className={`relative z-20 w-full transition-opacity duration-400 ease-pixel ${contentClassName}`}
       >
         {children}
       </div>

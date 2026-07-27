@@ -1,8 +1,6 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import type {ReactNode} from 'react';
 import type {SectionId} from '@/data/sections';
-import PixelCard from './PixelCard';
 
 interface DrawerPreviewsProps {
   sectionId: SectionId;
@@ -37,19 +35,7 @@ function PreviewLink({children, href, icon}: PreviewLinkProps) {
 }
 
 function ProjectsPreviews() {
-  return (
-    <>
-    <PixelCard speed={20} className="w-full" variant="yellow">
-      <Image
-        alt="test"
-        className="h-56 object-cover"
-        height={400}
-        src="/images/test.jpg"
-        width={200}
-      />
-    </PixelCard>
-    </>
-  );
+  return null;
 }
 
 function ArtPreviews() {
@@ -85,42 +71,7 @@ function BlogPreviews() {
 }
 
 function AboutPreviews() {
-  return (
-    <div className="space-y-1">
-      <PreviewLink
-        href="/about"
-        icon={
-          <svg fill="none" viewBox="0 0 24 24" className="size-5" stroke="currentColor">
-            <circle cx="12" cy="8" r="3.25" />
-            <path d="M5.75 20c.45-4 2.55-6 6.25-6s5.8 2 6.25 6" />
-          </svg>
-        }
-      >
-        Background
-      </PreviewLink>
-      <PreviewLink
-        href="/about"
-        icon={
-          <svg fill="none" viewBox="0 0 24 24" className="size-5" stroke="currentColor">
-            <path d="m12 3 2.2 5.2L20 10l-4.4 3.8.15 5.7L12 16.2 8.25 19.5l.15-5.7L4 10l5.8-1.8L12 3Z" />
-          </svg>
-        }
-      >
-        Interests
-      </PreviewLink>
-      <PreviewLink
-        href="/about"
-        icon={
-          <svg fill="none" viewBox="0 0 24 24" className="size-5" stroke="currentColor">
-            <path d="M3.5 6.5h17v11h-17z" />
-            <path d="m4 7 8 6 8-6" />
-          </svg>
-        }
-      >
-        Contact
-      </PreviewLink>
-    </div>
-  );
+  return null;
 }
 
 const PREVIEWS_BY_SECTION = {

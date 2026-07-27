@@ -5,6 +5,7 @@ import {useEffect, useState, type TransitionEvent} from 'react';
 import {SECTIONS, type SectionId} from '@/data/sections';
 import {AboutPanel} from './about/AboutPanel';
 import {DrawerPreviews} from './DrawerPreviews';
+import {ProjectsPanel} from './projects/ProjectsPanel';
 
 interface DrawerProps {
   activeId: SectionId | null;
@@ -42,6 +43,8 @@ export function Drawer({activeId, onClose}: DrawerProps) {
 
   const section = SECTIONS[displayedId];
   const isAbout = displayedId === 'about';
+  const isProjects = displayedId === 'projects';
+  const isEditorialPanel = isAbout || isProjects;
   return (
     <aside
       aria-hidden={activeId === null}
@@ -62,12 +65,14 @@ export function Drawer({activeId, onClose}: DrawerProps) {
       <div
         aria-hidden="true"
         className={`preview-backdrop pointer-events-none absolute inset-0
-          ${isAbout ? 'max-sm:border-r-0 max-sm:bg-panel/94 max-sm:mask-none' : ''}`}
+          ${isEditorialPanel ? 'max-sm:border-r-0 max-sm:bg-panel/94 max-sm:mask-none' : ''}`}
       />
 
       <div className="relative z-10 h-full">
         {isAbout ? (
           <AboutPanel isOpen={activeId === 'about'} onClose={onClose} />
+        ) : isProjects ? (
+          <ProjectsPanel isOpen={activeId === 'projects'} onClose={onClose} />
         ) : (
           <div className="no-scrollbar flex h-full max-w-drawer flex-col overflow-y-auto
             px-6 pb-10 pt-24 sm:px-10 sm:pt-28">
