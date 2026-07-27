@@ -67,7 +67,7 @@ export const ARTWORK_SECTIONS: readonly ArtworkSection[] = [
   {
     id: 'oil',
     label: 'Oil',
-    artworks: [],
+    artworks: DIGITAL_ARTWORKS,
   },
   {
     id: 'digital',
@@ -77,7 +77,7 @@ export const ARTWORK_SECTIONS: readonly ArtworkSection[] = [
   {
     id: 'pencil',
     label: 'Pencil',
-    artworks: [],
+    artworks: DIGITAL_ARTWORKS,
   },
 ];
 

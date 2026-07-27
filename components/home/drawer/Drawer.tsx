@@ -5,7 +5,6 @@ import {useEffect, useState, type TransitionEvent} from 'react';
 import {SECTIONS, type SectionId} from '@/data/sections';
 import {AboutPanel} from './about/AboutPanel';
 import {ArtPanel} from './art/ArtPanel';
-import {DrawerPreviews} from './DrawerPreviews';
 import {ProjectsPanel} from './projects/ProjectsPanel';
 
 interface DrawerProps {
@@ -106,7 +105,6 @@ export function Drawer({activeId, onClose}: DrawerProps) {
               </p>
 
               <div aria-label={`${section.label} previews`} className="space-y-3">
-                <DrawerPreviews sectionId={displayedId} />
               </div>
 
               <Link

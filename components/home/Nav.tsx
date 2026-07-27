@@ -15,7 +15,7 @@ export function Nav() {
         justify-between gap-y-1 px-6 py-5 sm:flex-nowrap sm:px-10"
     >
       <Link
-        className={`flex items-center font-mono text-base uppercase tracking-brand
+        className={`flex items-center font-mono uppercase tracking-brand
           transition-colors hover:text-accent focus-visible:outline-1
           focus-visible:outline-offset-4 focus-visible:outline-accent
           ${pathname === '/' ? 'text-accent' : 'text-muted'}`}
@@ -30,11 +30,13 @@ export function Nav() {
         {NAV_SECTIONS.map((section) => (
           <li key={section.id}>
             <button
-              aria-pressed={pathname.startsWith(`/${section.href}`)}
-              className="min-w-11 border-0 bg-transparent px-0 py-1 font-mono text-sm
-                uppercase tracking-label text-muted transition-colors hover:text-accent
+              aria-pressed={pathname.startsWith(section.href)}
+              className={`min-w-11 border-0 bg-transparent px-0 py-1 font-mono
+                uppercase tracking-label 
+                ${pathname.startsWith(section.href) ? 'text-accent' : 'text-muted'}
+                transition-colors hover:text-accent
                 focus-visible:outline-1 focus-visible:outline-offset-4
-                focus-visible:outline-accent"
+                focus-visible:outline-accent`}
               onClick={() => router.push(section.href)}
               type="button"
             >

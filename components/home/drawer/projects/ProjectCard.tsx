@@ -3,7 +3,7 @@ import Link from 'next/link';
 import {useState} from 'react';
 import StackIcon from 'tech-stack-icons';
 import type {FEATURED_PROJECTS} from '@/data/projects';
-import PixelCard from '../PixelCard';
+import PixelCard from './PixelCard';
 
 interface ProjectCardProps {
   index: number;

@@ -3,7 +3,7 @@
 import {useState} from 'react';
 import type {SectionId} from '@/data/sections';
 import {TerrainBackground} from '@/components/scene/TerrainBackground';
-import {Drawer} from './Drawer';
+import {Drawer} from './drawer/Drawer';
 import {Hero} from './Hero';
 import { Leva } from 'leva';
 
