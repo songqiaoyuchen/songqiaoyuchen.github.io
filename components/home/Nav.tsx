@@ -15,7 +15,7 @@ export function Nav() {
         justify-between gap-y-1 px-6 py-5 sm:flex-nowrap sm:px-10"
     >
       <Link
-        className={`flex items-center font-mono uppercase tracking-brand
+        className={`flex text-sm items-center font-mono uppercase tracking-brand
           transition-colors hover:text-accent focus-visible:outline-1
           focus-visible:outline-offset-4 focus-visible:outline-accent
           ${pathname === '/' ? 'text-accent' : 'text-muted'}`}

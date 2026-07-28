@@ -7,12 +7,14 @@ import {
   useEffect,
   useRef,
   useState,
+  type ComponentPropsWithRef,
   type KeyboardEvent,
   type PointerEvent as ReactPointerEvent,
 } from 'react';
 import {gsap} from 'gsap';
 import {useMotionValue, useMotionValueEvent} from 'motion/react';
 import {FEATURED_ARTWORKS} from '@/data/artworks';
+import {ArtworkLightbox} from '@/components/artworks/ArtworkLightbox';
 import {
   CardsContainer,
   CardTransformed,
@@ -31,9 +33,15 @@ const WHEEL_STAGE_DISTANCE = 200;
 
 interface ArtworkStackContentProps {
   onActiveIndexChange: (index: number) => void;
+  onArtworkOpen: (index: number) => void;
+  interactionProps: ComponentPropsWithRef<'div'>;
 }
 
-function ArtworkStackContent({onActiveIndexChange}: ArtworkStackContentProps) {
+function ArtworkStackContent({
+  onActiveIndexChange,
+  onArtworkOpen,
+  interactionProps,
+}: ArtworkStackContentProps) {
   const {scrollYProgress} = useContainerScrollContext();
   const artworkCount = FEATURED_ARTWORKS.length;
 
@@ -50,17 +58,17 @@ function ArtworkStackContent({onActiveIndexChange}: ArtworkStackContentProps) {
 
   return (
     <CardsContainer
-      className="sticky top-2 mx-auto w-[60%] max-w-100"
+      className={`sticky top-2 mx-auto w-[60%] max-w-120 touch-none ${FOCUS_RING}`}
       role="group"
       style={{
         aspectRatio: Math.min(
           ...FEATURED_ARTWORKS.map((artwork) => artwork.width / artwork.height),
         ),
       }}
+      {...interactionProps}
     >
       {FEATURED_ARTWORKS.map((artwork, index) => (
         <CardTransformed
-          aria-label={`${artwork.title}, artwork ${index + 1} of ${artworkCount}`}
           arrayLength={artworkCount}
           className="h-auto w-full overflow-hidden border-0 bg-transparent p-0 backdrop-blur-none"
           index={index}
@@ -68,16 +76,26 @@ function ArtworkStackContent({onActiveIndexChange}: ArtworkStackContentProps) {
           layout={false}
           style={{aspectRatio: artwork.width / artwork.height}}
         >
-          <Image
-            alt={artwork.alt}
-            className="size-full select-none object-contain"
-            draggable={false}
-            height={artwork.height}
-            priority={index === 0}
-            sizes="(max-width: 639px) calc(100vw - 72px), 500px"
-            src={artwork.src}
-            width={artwork.width}
-          />
+          <button
+            aria-haspopup="dialog"
+            aria-label={`Open ${artwork.title}, artwork ${index + 1} of ${artworkCount}`}
+            className="size-full cursor-zoom-in border-0 bg-transparent p-0 focus-visible:outline-1
+              focus-visible:outline-offset-4 focus-visible:outline-accent"
+            onClick={() => onArtworkOpen(index)}
+            onKeyDown={(event) => event.stopPropagation()}
+            type="button"
+          >
+            <Image
+              alt={artwork.alt}
+              className="size-full select-none object-contain"
+              draggable={false}
+              height={artwork.height}
+              priority={index === 0}
+              sizes="(max-width: 639px) calc(100vw - 72px), 500px"
+              src={artwork.src}
+              width={artwork.width}
+            />
+          </button>
         </CardTransformed>
       ))}
     </CardsContainer>
@@ -86,6 +104,7 @@ function ArtworkStackContent({onActiveIndexChange}: ArtworkStackContentProps) {
 
 export function ArtworkStack() {
   const [activeIndex, setActiveIndex] = useState(0);
+  const [openArtworkIndex, setOpenArtworkIndex] = useState<number | null>(null);
   const stackInteractionRef = useRef<HTMLDivElement>(null);
   const targetIndexRef = useRef(0);
   const scrollTweenRef = useRef<ReturnType<typeof gsap.to> | null>(null);
@@ -102,6 +121,11 @@ export function ArtworkStack() {
 
   const updateActiveIndex = useCallback((index: number) => {
     setActiveIndex(index);
+  }, []);
+
+  const closeArtwork = useCallback(() => {
+    setOpenArtworkIndex(null);
+    window.setTimeout(() => stackInteractionRef.current?.focus(), 0);
   }, []);
 
   const animateToPosition = useCallback((position: number, shouldSnap: boolean) => {
@@ -241,22 +265,28 @@ export function ArtworkStack() {
 
   return (
     <section aria-label="Featured artworks">
+      {/* hardcoding the pb here to prevent cropping of long images */}
       <div
-        aria-label="Scroll through featured artworks"
-        className={`relative touch-none overflow-clip py-5 pr-11 ${FOCUS_RING}`}
-        onKeyDown={handleKeyDown}
-        onPointerCancel={handlePointerUp}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        ref={stackInteractionRef}
-        tabIndex={0}
+        className="relative mr-11 overflow-clip pt-5 pb-20"
       >
         <ContainerScroll
           className="min-h-0 py-2"
           scrollProgress={stackProgress}
         >
-          <ArtworkStackContent onActiveIndexChange={updateActiveIndex} />
+          <ArtworkStackContent
+            onActiveIndexChange={updateActiveIndex}
+            onArtworkOpen={setOpenArtworkIndex}
+            interactionProps={{
+              'aria-label': 'Scroll through featured artworks',
+              onKeyDown: handleKeyDown,
+              onPointerCancel: handlePointerUp,
+              onPointerDown: handlePointerDown,
+              onPointerMove: handlePointerMove,
+              onPointerUp: handlePointerUp,
+              ref: stackInteractionRef,
+              tabIndex: 0,
+            }}
+          />
         </ContainerScroll>
       </div>
 
@@ -285,6 +315,13 @@ export function ArtworkStack() {
       >
         View all artworks <span aria-hidden="true" className="ml-2">&rarr;</span>
       </Link>
+
+      {openArtworkIndex !== null && (
+        <ArtworkLightbox
+          artwork={FEATURED_ARTWORKS[openArtworkIndex]}
+          onClose={closeArtwork}
+        />
+      )}
     </section>
   );
 }

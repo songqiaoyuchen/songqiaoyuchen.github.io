@@ -112,24 +112,19 @@ export const ContainerScroll: React.FC<ContainerScrollProps> = ({
 };
 ContainerScroll.displayName = 'ContainerScroll';
 
-export const CardsContainer: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({
-  children,
-  className,
-  ...props
-}) => {
-  const containerRef = React.useRef<HTMLDivElement>(null);
-
-  return (
-    <div
-      className={cn('relative', className)}
-      ref={containerRef}
-      style={{perspective: '1000px', ...props.style}}
-      {...props}
-    >
-      {children}
-    </div>
-  );
-};
+export const CardsContainer = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({children, className, ...props}, ref) => (
+  <div
+    className={cn('relative', className)}
+    ref={ref}
+    style={{perspective: '1000px', ...props.style}}
+    {...props}
+  >
+    {children}
+  </div>
+));
 CardsContainer.displayName = 'CardsContainer';
 
 export const CardTransformed = React.forwardRef<HTMLDivElement, CardStickyProps>(

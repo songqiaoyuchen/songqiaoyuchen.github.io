@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "sync:artwork-dimensions": "node scripts/sync-artwork-dimensions.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",
