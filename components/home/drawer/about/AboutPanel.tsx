@@ -34,23 +34,12 @@ export function AboutPanel({isOpen}: AboutPanelProps) {
             text-text md:text-5xl">
             About
           </h2>
-          <a
-            className={`mb-4 inline-flex min-h-11 items-center gap-[0.45rem] font-mono text-label
-              tracking-label text-accent-soft uppercase no-underline transition-colors
-              duration-interaction ease-out hover:text-text ${FOCUS_RING}`}
-            href={ABOUT_CONTACT.resume}
-            rel="noreferrer"
-            target="_blank"
-          >
-            Résumé
-            <span aria-hidden="true" className="-translate-y-px translate-x-px">↗</span>
-          </a>
         </header>
 
         <div>
           <section
             aria-labelledby="about-intro-title"
-            className="flex flex-col justify-center pt-4 pb-2"
+            className="flex flex-col justify-center gap-4 sm:gap-6"
           >
             <h3
               className="m-0 -translate-x-[0.04em] font-serif text-3xl leading-[0.98]
@@ -59,14 +48,27 @@ export function AboutPanel({isOpen}: AboutPanelProps) {
             >
               Song Qiaoyuchen
             </h3>
+
+            <a
+              className={`items-center gap-[0.45rem] font-mono text-label
+                tracking-label text-accent-soft uppercase no-underline transition-colors
+                duration-interaction ease-out hover:text-text ${FOCUS_RING}`}
+              href={ABOUT_CONTACT.resume}
+              rel="noreferrer"
+              target="_blank"
+            >
+              Résumé
+              <span aria-hidden="true" className="-translate-y-px translate-x-px">↗</span>
+            </a>
+
             <p
-              className="mt-4 mb-0 font-mono text-meta leading-meta tracking-meta
+              className="font-mono text-meta leading-meta tracking-meta
                 text-muted uppercase"
             >
               Computer Science + Mathematics · National University of Singapore
             </p>
             <p
-              className="mt-6 mb-0 font-mono text-intro-copy leading-intro-copy
+              className="font-mono text-intro-copy leading-intro-copy
                 tracking-[0.035em] text-muted-soft"
             >
               I build software across systems, interfaces, and interactive graphics.

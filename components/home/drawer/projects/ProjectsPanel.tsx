@@ -54,7 +54,7 @@ export function ProjectsPanel({isOpen}: ProjectsPanelProps) {
               Projects
             </h2>
             <p className="m-0 max-w-copy font-mono text-copy leading-copy text-muted">
-              Some of the stuff I&apos;ve built. I&apos;m always looking for the next interesting
+              Some of the stuff I&apos;ve built; Always looking for the next interesting
               project to work on.
             </p>
           </header>

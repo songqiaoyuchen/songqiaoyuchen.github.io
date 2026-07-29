@@ -7,7 +7,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import type {SectionId} from '@/data/sections';
+import type {SectionId} from '@/config/navigation/linkStreams';
 import type {ArticleSummary} from '@/lib/content/types';
 import {TerrainBackground} from '@/components/scene/TerrainBackground';
 import {Drawer} from './drawer/Drawer';

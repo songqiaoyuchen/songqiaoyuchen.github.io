@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import {useCallback, useEffect, useRef} from 'react';
-import {SECTIONS} from '@/data/sections';
 import type {ArticleSummary} from '@/lib/content/types';
 import {PANEL_SCROLL_CLASS} from '../panelStyles';
 
@@ -61,15 +60,12 @@ export function BlogPanel({articles, isOpen}: BlogPanelProps) {
       >
         <div className="animate-drawer-content motion-reduce:animate-none">
           <header className="mb-8">
-            <p className="mb-4 font-mono text-label uppercase tracking-label text-accent">
-              Recent writing
-            </p>
             <h2 className="mb-5 font-serif text-display font-normal italic uppercase leading-none
               text-text md:text-5xl">
-              {SECTIONS.blog.label}
+              Blog
             </h2>
             <p className="m-0 max-w-copy font-mono text-copy leading-copy text-muted">
-              {SECTIONS.blog.description}
+              Reflections, travel journals, and rant.
             </p>
           </header>
 
@@ -121,7 +117,7 @@ export function BlogPanel({articles, isOpen}: BlogPanelProps) {
             className={`mt-7 inline-flex min-h-11 items-center font-mono text-label uppercase
               tracking-label text-accent transition-colors duration-interaction hover:text-text
               ${FOCUS_RING}`}
-            href={SECTIONS.blog.href}
+            href="/blog"
           >
             View all writing <span aria-hidden="true" className="ml-2">&rarr;</span>
           </Link>

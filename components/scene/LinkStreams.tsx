@@ -48,7 +48,7 @@ import {
 } from '@/lib/text/linkStreamLayout';
 import vertexShader from '@/shaders/linkStream.vert';
 import fragmentShader from '@/shaders/linkStream.frag';
-import type {SectionId} from '@/data/sections';
+import type {SectionId} from '@/config/navigation/linkStreams';
 import {useReducedMotion} from '@/hooks/useReducedMotion';
 type RayTransitionPhase = 'idle' | 'out' | 'in';
 

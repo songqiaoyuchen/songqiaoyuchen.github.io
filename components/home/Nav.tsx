@@ -1,9 +1,14 @@
 'use client';
 
-import { NAV_SECTIONS } from '@/data/sections';
 import Link from 'next/link';
 import {usePathname} from 'next/navigation';
 import {preloadTerrainManifest} from '@/lib/terrain/manifest';
+
+const NAV_ITEMS = [
+  {href: '/projects', label: 'Projects'},
+  {href: '/artworks', label: 'Art'},
+  {href: '/blog', label: 'Blog'},
+] as const;
 
 export function Nav() {
   const pathname = usePathname();
@@ -30,19 +35,19 @@ export function Nav() {
       <ul
         className="m-0 flex min-w-0 list-none items-center justify-end gap-1 p-0 sm:gap-8"
       >
-        {NAV_SECTIONS.map((section) => (
-          <li key={section.id}>
+        {NAV_ITEMS.map((item) => (
+          <li key={item.href}>
             <Link
-              aria-current={pathname.startsWith(section.href) ? 'page' : undefined}
+              aria-current={pathname.startsWith(item.href) ? 'page' : undefined}
               className={`flex min-h-11 items-center px-1.5 font-mono text-micro uppercase
                 tracking-label sm:px-0 sm:text-xs
-                ${pathname.startsWith(section.href) ? 'text-accent' : 'text-muted'}
+                ${pathname.startsWith(item.href) ? 'text-accent' : 'text-muted'}
                 transition-colors hover:text-accent
                 focus-visible:outline-1 focus-visible:outline-offset-4
                 focus-visible:outline-accent`}
-              href={section.href}
+              href={item.href}
             >
-              {section.label}
+              {item.label}
             </Link>
           </li>
         ))}

@@ -1,4 +1,4 @@
-import type {SectionId} from '@/data/sections';
+export type SectionId = 'projects' | 'art' | 'blog' | 'about';
 
 export interface LinkStream {
   id: SectionId;

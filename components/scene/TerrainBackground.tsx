@@ -22,7 +22,7 @@ import {SceneHeroName} from './SceneHeroName';
 import { CameraRig } from './CameraRig';
 import {SceneErrorBoundary} from './SceneErrorBoundary';
 import {SceneReadySignal} from './SceneReadySignal';
-import type {SectionId} from '@/data/sections';
+import type {SectionId} from '@/config/navigation/linkStreams';
 
 type TerrainBackgroundProps = {
   activeId: SectionId | null;
