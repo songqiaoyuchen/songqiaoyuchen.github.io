@@ -21,7 +21,7 @@ export const FEATURED_PROJECTS = [
     id: 'this-site',
     image: '/images/projects/this-site.webp',
     imageAlt: "This website's interface",
-    subtitle: 'My personal website with some visual design explorations.',
+    subtitle: 'My personal website with some visual design explorations, still in progress.',
     technologies: [
       {icon: 'react', label: 'React'},
       {icon: 'threejs', label: 'Three.js'},

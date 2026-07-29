@@ -1,3 +1,5 @@
+// npm.cmd run sync:artwork-dimensions
+
 import {readFile, writeFile} from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
