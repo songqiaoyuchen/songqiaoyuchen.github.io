@@ -3,16 +3,19 @@
 import Link from 'next/link';
 import {useEffect, useState, type TransitionEvent} from 'react';
 import {SECTIONS, type SectionId} from '@/data/sections';
+import type {ArticleSummary} from '@/lib/content/types';
 import {AboutPanel} from './about/AboutPanel';
 import {ArtPanel} from './art/ArtPanel';
+import {BlogPanel} from './blog/BlogPanel';
 import {ProjectsPanel} from './projects/ProjectsPanel';
 
 interface DrawerProps {
   activeId: SectionId | null;
+  articles: readonly ArticleSummary[];
   onClose: () => void;
 }
 
-export function Drawer({activeId, onClose}: DrawerProps) {
+export function Drawer({activeId, articles, onClose}: DrawerProps) {
   const [displayedId, setDisplayedId] = useState<SectionId | null>(activeId);
 
   useEffect(() => {
@@ -44,8 +47,9 @@ export function Drawer({activeId, onClose}: DrawerProps) {
   const section = SECTIONS[displayedId];
   const isAbout = displayedId === 'about';
   const isArt = displayedId === 'art';
+  const isBlog = displayedId === 'blog';
   const isProjects = displayedId === 'projects';
-  const isEditorialPanel = isAbout || isArt || isProjects;
+  const isEditorialPanel = isAbout || isArt || isBlog || isProjects;
   return (
     <aside
       aria-hidden={activeId === null}
@@ -74,6 +78,8 @@ export function Drawer({activeId, onClose}: DrawerProps) {
           <AboutPanel isOpen={activeId === 'about'} onClose={onClose} />
         ) : isArt ? (
           <ArtPanel isOpen={activeId === 'art'} onClose={onClose} />
+        ) : isBlog ? (
+          <BlogPanel articles={articles} isOpen={activeId === 'blog'} />
         ) : isProjects ? (
           <ProjectsPanel isOpen={activeId === 'projects'} onClose={onClose} />
         ) : (

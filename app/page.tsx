@@ -1,7 +1,10 @@
 import {Home} from '@/components/home/Home';
+import {getAllArticles} from '@/lib/content/articles';
 
-export default function Page() {
+export default async function Page() {
+  const articles = await getAllArticles();
+
   return <>
-    <Home />
+    <Home articles={articles.slice(0, 3)} />
   </>;
 }

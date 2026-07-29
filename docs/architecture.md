@@ -9,6 +9,7 @@ Last reviewed: 2026-07-19
 - Tailwind CSS patterns should dominate styling.
 - React Three Fiber, Three.js, Drei, and post-processing for the terrain experience.
 - GSAP ScrollTrigger for the homepage's coordinated DOM/WebGL scroll-transition timeline.
+- Rehype Pretty Code and Shiki for build-time article syntax highlighting.
 - Custom GLSL shaders and generated font/texture atlases.
 - Static assets in `public/` and tuned visual configuration in `config/`.
 
@@ -28,7 +29,10 @@ The WebGL scene owns terrain rendering, shader animation, contour lines, and atm
 
 ### Content source
 
-The publishing source is not yet accepted. Local Markdown/MDX is the leading low-complexity hypothesis for an initial writing system, but the architecture should avoid coupling route layouts to a specific future CMS.
+Writing uses local MDX in `content/<slug>/index.mdx` (D-007). A server-only adapter in
+`lib/content/articles.ts` discovers articles and normalizes their metadata for route layouts and indexes.
+Route components should depend on that normalized record rather than on filesystem details so a future CMS
+can replace the loader without redesigning the editorial UI.
 
 ## Page-depth model
 
@@ -58,7 +62,6 @@ These are not instructions to refactor everything immediately. Address them in t
 
 ## Open architecture questions
 
-- Final content source and authoring workflow.
 - Shape of project, article, art, and blog content records.
 - ~~Whether scroll choreography needs a small motion dependency or can remain native.~~ Resolved by D-005: GSAP ScrollTrigger owns the homepage transition timeline.
 - Performance quality tiers for mobile and lower-power GPUs.

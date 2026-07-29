@@ -10,8 +10,28 @@ const krypton = localFont({
 });
 
 export const metadata: Metadata = {
-  title: 'Song\'s Site',
   description: 'Song\'s Site.',
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'),
+  openGraph: {
+    description: 'A calm, atmospheric space for work, writing, art, and travel.',
+    images: [
+      {
+        alt: 'SQYC Journal over a warm-gold topographic map',
+        height: 909,
+        url: '/og.png',
+        width: 1732,
+      },
+    ],
+    title: 'Song\'s Site',
+    type: 'website',
+  },
+  title: 'Song\'s Site',
+  twitter: {
+    card: 'summary_large_image',
+    description: 'A calm, atmospheric space for work, writing, art, and travel.',
+    images: ['/og.png'],
+    title: 'Song\'s Site',
+  },
 };
 
 export default function RootLayout({

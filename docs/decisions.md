@@ -138,3 +138,50 @@ The LinkStreams should simply fade out and in with the pixel glitch transition t
 **Reason**
 
 Reduce motion and scene complexity. Avoid visual noise.
+
+### D-007: Writing uses local MDX with statically generated article routes
+
+Status: accepted
+Date: 2026-07-29
+Scope: architecture, content, workflow
+
+**Decision**
+
+Writing is authored as local MDX in `content/<slug>/index.mdx`. Article folders are discovered by
+the server-side content adapter, and Next.js pre-renders the corresponding `/blog/[slug]` routes at build
+time. MDX may use a small registered component vocabulary for editorial media and callouts.
+
+**Reason**
+
+The site needs rich editorial pages with images and code, crawlable HTML, minimal client JavaScript, and a
+publishing workflow proportionate to a personal site. Local MDX provides those properties without adding a
+CMS or database before a non-code authoring need exists.
+
+**Consequences**
+
+Publishing a new article requires adding its MDX folder and deploying a new build. Content-source details
+remain behind `lib/content/articles.ts` so a future CMS can replace the loader without changing article
+layouts. Interactive archive controls may be Client Components; article content remains server-rendered.
+
+### D-008: Article prose and code use distinct typographic roles
+
+Status: accepted
+Date: 2026-07-29
+Scope: design, architecture, content
+
+**Decision**
+
+Long-form article titles, decks, headings, and prose use a readable editorial serif stack. Krypton remains
+the typeface for metadata, inline code, and fenced code. Fenced code is highlighted at build time and uses
+line numbers, a language label, horizontal overflow, and a small copy control.
+
+**Reason**
+
+Krypton carries the site's identity but is tiring across long passages. Separating prose from code improves
+reading comfort while preserving the visual language in compact UI and technical material. Build-time
+highlighting follows the rich but low-runtime-cost code treatment accepted from the supplied reference.
+
+**Consequences**
+
+Do not use Krypton for long-form article prose. New fenced code blocks should include a language identifier
+so their label and highlighting are meaningful; the article route should not load a browser-side highlighter.

@@ -10,6 +10,9 @@
     "sync:artwork-dimensions": "node scripts/sync-artwork-dimensions.mjs"
   },
   "dependencies": {
+    "@mdx-js/loader": "^3.1.1",
+    "@mdx-js/react": "^3.1.1",
+    "@next/mdx": "^16.2.11",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.5.0",
     "@react-three/postprocessing": "^3.0.4",
@@ -22,12 +25,14 @@
     "raw-loader": "^4.0.2",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "rehype-pretty-code": "^0.14.5",
     "tailwind-merge": "^3.6.0",
     "tech-stack-icons": "^3.7.1",
     "three": "^0.169.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/mdx": "^2.0.14",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
