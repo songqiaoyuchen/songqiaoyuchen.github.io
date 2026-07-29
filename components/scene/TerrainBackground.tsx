@@ -26,6 +26,7 @@ import type {SectionId} from '@/data/sections';
 
 type TerrainBackgroundProps = {
   activeId: SectionId | null;
+  introStarted: boolean;
   onSceneError: (error: Error) => void;
   onSceneReady: () => void;
   onStreamClick: (id: SectionId) => void;
@@ -33,6 +34,7 @@ type TerrainBackgroundProps = {
 
 export function TerrainBackground({
   activeId,
+  introStarted,
   onSceneError,
   onSceneReady,
   onStreamClick,
@@ -94,6 +96,7 @@ export function TerrainBackground({
           <SceneHeroName
             contourSettings={settings.contours}
             isHidden={activeId !== null}
+            introStarted={introStarted}
             terrainSettings={settings.terrain}
           />
           <SceneReadySignal

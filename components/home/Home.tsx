@@ -150,25 +150,30 @@ export function Home({articles}: HomeProps) {
         ) : (
           <TerrainBackground
             activeId={activeId}
+            introStarted={sceneState === 'ready'}
             onSceneError={handleSceneError}
             onSceneReady={handleSceneReady}
             onStreamClick={toggleSection}
           />
         )}
 
-        <div className="pointer-events-none relative -mt-[100svh] h-svh md:hidden">
-          <Hero
-            isHidden={activeId !== null}
-            useHtmlDesktopName={sceneState === 'fallback'}
-          />
-        </div>
+        {!isBlocking ? (
+          <>
+            <div className="pointer-events-none relative -mt-[100svh] h-svh md:hidden">
+              <Hero
+                isHidden={activeId !== null}
+                useHtmlDesktopName={sceneState === 'fallback'}
+              />
+            </div>
 
-        <div className="hidden md:block">
-          <Hero
-            isHidden={activeId !== null}
-            useHtmlDesktopName={sceneState === 'fallback'}
-          />
-        </div>
+            <div className="hidden md:block">
+              <Hero
+                isHidden={activeId !== null}
+                useHtmlDesktopName={sceneState === 'fallback'}
+              />
+            </div>
+          </>
+        ) : null}
         <Drawer
           activeId={activeId}
           articles={articles}

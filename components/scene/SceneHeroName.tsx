@@ -42,11 +42,12 @@ import fragmentShader from '@/shaders/linkStream.frag';
 interface SceneHeroNameProps {
   contourSettings: ContourControlValues;
   isHidden: boolean;
+  introStarted: boolean;
   terrainSettings: TerrainControlValues;
 }
 
 export const SceneHeroName = forwardRef<Mesh, SceneHeroNameProps>(function SceneHeroName(
-  {contourSettings, isHidden, terrainSettings},
+  {contourSettings, isHidden, introStarted, terrainSettings},
   forwardedRef,
 ) {
   const atlas = useLoader(TextureLoader, '/textures/text/stream-atlas.png');
@@ -169,6 +170,14 @@ export const SceneHeroName = forwardRef<Mesh, SceneHeroNameProps>(function Scene
     const material = materialRef.current;
     if (!material) return;
 
+    material.uniforms.uTime.value += delta;
+    if (!introStarted) {
+      elapsed.current = 0;
+      dissolve.current = 0;
+      material.uniforms.uDissolve.value = 0;
+      return;
+    }
+
     elapsed.current += delta;
     const isDesktop = viewportWidth >= HERO_SCENE_CONFIG.desktopMinWidth;
     const entranceComplete = isReducedMotion
@@ -188,7 +197,6 @@ export const SceneHeroName = forwardRef<Mesh, SceneHeroNameProps>(function Scene
       );
     }
 
-    material.uniforms.uTime.value += delta;
     material.uniforms.uDissolve.value = dissolve.current;
   });
 
