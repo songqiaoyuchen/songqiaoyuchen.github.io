@@ -26,7 +26,7 @@ float hash12(vec2 p) {
 void main() {
   vec2 dissolveCell = floor(gl_FragCoord.xy / 7.0);
   float dissolveNoise = hash12(dissolveCell + vec2(vSeed * 9.7, floor(vStreamT * 17.0)));
-  if (dissolveNoise > uDissolve) discard;
+  if (uDissolve <= 0.0 || dissolveNoise > uDissolve) discard;
 
   float scan = 0.8 + 0.2 * sin(gl_FragCoord.y * 1.45 + uTime * 2.2 + vSeed);
   if (vBorder > 0.5) {
