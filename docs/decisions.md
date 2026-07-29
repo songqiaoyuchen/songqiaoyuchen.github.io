@@ -185,3 +185,78 @@ highlighting follows the rich but low-runtime-cost code treatment accepted from 
 
 Do not use Krypton for long-form article prose. New fenced code blocks should include a language identifier
 so their label and highlighting are meaningful; the article route should not load a browser-side highlighter.
+
+### D-009: Mobile homepage uses a two-stage introduction and index
+
+Status: superseded
+Date: 2026-07-29
+Scope: design, interaction
+
+**Decision**
+
+Below the mobile breakpoint, the homepage uses two full-height stages: the greeting first and the link-stream
+index second. A visible scroll cue connects them. Native touch scrolling remains the input, with smooth
+programmatic movement, viewport snapping, and a damped pixel-dissolve reveal for the streams.
+
+**Reason**
+
+Separating identity and navigation prevents either from being clipped or compressed on narrow screens while
+keeping both one gesture apart. The existing pixel dissolve preserves the established stream motion language.
+
+**Consequences**
+
+Mobile stream controls are evenly spaced across the second viewport and are not interactive before that stage.
+Desktop and tablet retain the single-screen composition. The mobile two-stage snap is a narrow exception to
+the general no-snap rule in the homepage design direction; reduced-motion mode removes the damped reveal.
+
+**Superseded by**
+
+D-011.
+
+### D-010: The homepage uses a functional full-screen terrain preloader
+
+Status: accepted
+Date: 2026-07-29
+Scope: design, architecture, performance
+
+**Decision**
+
+The homepage is covered by a full-screen preloader until the first complete WebGL terrain frame is ready. The
+screen represents genuine loading only: production adds no minimum display time, cached returns pass through
+as soon as the scene is ready, and any return that remains slow receives the same loading treatment. The
+temporary default is the Contour Survey variant while it is compared with the SQYC Type Build variant.
+
+**Reason**
+
+The homepage scene has a material startup cost and an incomplete scene is visually misleading. A designed
+loading screen provides a deliberate handoff while the pre-baked terrain pipeline removes avoidable transfer
+and main-thread work. Both variants remain inside the established cartographic and typographic vocabulary.
+
+**Consequences**
+
+The preloader must cover navigation, prevent interaction with incomplete content, respect reduced motion, and
+exit only after scene assets, preparation, and two complete frames. Scene or asset failure reveals the static
+semantic fallback, and an eight-second escape action prevents loading from trapping the visitor. Content routes
+do not receive the homepage preloader.
+
+### D-011: Mobile homepage uses one viewport for identity and navigation
+
+Status: accepted
+Date: 2026-07-29
+Scope: design, interaction
+
+**Decision**
+
+Below the mobile breakpoint, the greeting and evenly spaced link streams share one full-height homepage.
+The stream row occupies the open space below the introduction and remains immediately interactive.
+
+**Reason**
+
+Representative phone viewports have enough vertical space for both elements without compressing either.
+Keeping them together removes an unnecessary gesture and exposes the site index immediately.
+
+**Consequences**
+
+The mobile homepage does not snap or scroll between introduction and navigation stages, and it has no scroll
+cue or scroll-driven stream reveal. Mobile stream placement remains tunable through the existing development
+controls. Desktop and tablet composition remains unchanged.

@@ -18,6 +18,12 @@ export interface LinkStream {
   seed: number;
 }
 
+export interface MobileLinkStreamSettings {
+  mobileStartX: number;
+  mobileEndX: number;
+  mobileCenterY: number;
+}
+
 /**
  * Screen-space placement for the homepage streams.
  *
@@ -31,11 +37,6 @@ export const LINK_STREAM_LAYOUT = {
       endX: -0.32,
       centerY: -0.12,
     },
-    mobile: {
-      innerX: 0.46,
-      outerX: 0.72,
-      centerY: 0.045,
-    },
   },
   focused: {
     startX: 0.04,
@@ -45,6 +46,17 @@ export const LINK_STREAM_LAYOUT = {
     order: ['art', 'blog', 'projects', 'about'],
   },
 } as const;
+
+/**
+ * Mobile-only screen-space placement.
+ *
+ * X/Y positions are normalized device coordinates.
+ */
+export const MOBILE_LINK_STREAM_CONFIG = {
+  mobileStartX: -0.68,
+  mobileEndX: 0.68,
+  mobileCenterY: -0.45,
+} as const satisfies MobileLinkStreamSettings;
 
 export const LINK_STREAM_EFFECT_CONFIG = {
   lift: 0.075,

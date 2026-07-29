@@ -1,24 +1,22 @@
 'use client';
 
 import { useEffect, useMemo, useRef } from 'react';
-import { useLoader } from '@react-three/fiber';
 import { Color, PlaneGeometry, ShaderMaterial, UniformsLib, UniformsUtils } from 'three';
-import { EXRLoader } from 'three-stdlib';
 import {TERRAIN_MATERIAL_CONFIG, TERRAIN_MESH_CONFIG} from '@/config/scene';
 import type {TerrainControlValues} from '@/components/debug/useSceneControls';
-import { bakeTerrainMaps, toHeightmapImage } from '@/lib/terrain/bake';
+import {useTerrainAssets} from '@/lib/terrain/assets';
 import {bakeTerrainLightingMap} from '@/lib/terrain/lightingBake';
 import vertexShader from '@/shaders/terrain.vert';
 import fragmentShader from '@/shaders/terrain.frag';
 
 export function TerrainMesh({settings}: {settings: TerrainControlValues}) {
-  const exr = useLoader(EXRLoader, '/textures/terrain/heightmap.exr');
   const surfaceMatRef = useRef<ShaderMaterial>(null);
-
-  const { displacementMap, gradientMap, shellBase } = useMemo(
-    () => bakeTerrainMaps(toHeightmapImage(exr.image)),
-    [exr],
-  );
+  const {
+    displacementMap,
+    gradientMap,
+    shellBase,
+    staticLightingMap: bakedLightingMap,
+  } = useTerrainAssets();
 
   const {
     elevation, seaLevel,
@@ -28,24 +26,45 @@ export function TerrainMesh({settings}: {settings: TerrainControlValues}) {
     shadowStrength, shadowBias,
   } = settings;
 
-  const staticLightingMap = useMemo(() => bakeTerrainLightingMap(shellBase, gradientMap, {
-    elevation,
-    seaLevel,
-    shadowBias,
-    shadowStrength,
-    lightIntensity,
-    lightFalloff,
-    lightX,
-    lightY,
-    lightZ,
-    light2Intensity,
-    light2Falloff,
-    light2X,
-    light2Y,
-    light2Z,
-  }), [
+  const usesBakedLighting = process.env.NODE_ENV !== 'development' || (
+    elevation === TERRAIN_MATERIAL_CONFIG.elevation
+    && seaLevel === TERRAIN_MATERIAL_CONFIG.seaLevel
+    && shadowBias === TERRAIN_MATERIAL_CONFIG.shadowBias
+    && shadowStrength === TERRAIN_MATERIAL_CONFIG.shadowStrength
+    && lightIntensity === TERRAIN_MATERIAL_CONFIG.lightIntensity
+    && lightFalloff === TERRAIN_MATERIAL_CONFIG.lightFalloff
+    && lightX === TERRAIN_MATERIAL_CONFIG.lightX
+    && lightY === TERRAIN_MATERIAL_CONFIG.lightY
+    && lightZ === TERRAIN_MATERIAL_CONFIG.lightZ
+    && light2Intensity === TERRAIN_MATERIAL_CONFIG.light2Intensity
+    && light2Falloff === TERRAIN_MATERIAL_CONFIG.light2Falloff
+    && light2X === TERRAIN_MATERIAL_CONFIG.light2X
+    && light2Y === TERRAIN_MATERIAL_CONFIG.light2Y
+    && light2Z === TERRAIN_MATERIAL_CONFIG.light2Z
+  );
+  const liveLightingMap = useMemo(() => usesBakedLighting ? null : bakeTerrainLightingMap(
     shellBase,
     gradientMap,
+    {
+      elevation,
+      seaLevel,
+      shadowBias,
+      shadowStrength,
+      lightIntensity,
+      lightFalloff,
+      lightX,
+      lightY,
+      lightZ,
+      light2Intensity,
+      light2Falloff,
+      light2X,
+      light2Y,
+      light2Z,
+    },
+  ), [
+    shellBase,
+    gradientMap,
+    usesBakedLighting,
     elevation,
     seaLevel,
     shadowBias,
@@ -62,10 +81,9 @@ export function TerrainMesh({settings}: {settings: TerrainControlValues}) {
     light2Z,
   ]);
 
-  useEffect(
-    () => () => staticLightingMap.dispose(),
-    [staticLightingMap],
-  );
+  const staticLightingMap = liveLightingMap ?? bakedLightingMap;
+
+  useEffect(() => () => liveLightingMap?.dispose(), [liveLightingMap]);
 
   useEffect(() => {
     const material = surfaceMatRef.current;

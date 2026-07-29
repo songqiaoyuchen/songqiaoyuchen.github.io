@@ -4,16 +4,16 @@ import Link from 'next/link';
 import {useCallback, useEffect, useRef} from 'react';
 import {FEATURED_PROJECTS} from '@/data/projects';
 import {ProjectCard} from './ProjectCard';
+import {PANEL_SCROLL_CLASS} from '../panelStyles';
 
 interface ProjectsPanelProps {
   isOpen: boolean;
-  onClose: () => void;
 }
 
 const FOCUS_RING = `rounded-xs focus-visible:outline-1 focus-visible:outline-offset-4
   focus-visible:outline-accent`;
 
-export function ProjectsPanel({isOpen, onClose}: ProjectsPanelProps) {
+export function ProjectsPanel({isOpen}: ProjectsPanelProps) {
   const shellRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -42,33 +42,20 @@ export function ProjectsPanel({isOpen, onClose}: ProjectsPanelProps) {
       data-at-start="true"
       ref={shellRef}
     >
-      <button
-        aria-label="Close projects preview"
-        className={`absolute right-6 top-28 z-30 grid size-11 cursor-pointer place-items-center
-          border-0 bg-transparent p-0 font-mono text-xl font-light leading-none text-dim
-          transition-colors duration-interaction ease-out hover:text-text sm:right-10 sm:top-24
-          ${FOCUS_RING}`}
-        onClick={onClose}
-        tabIndex={isOpen ? 0 : -1}
-        type="button"
-      >
-        <span aria-hidden="true">&times;</span>
-      </button>
-
       <div
-        className="no-scrollbar h-full w-full max-w-none touch-pan-y overflow-x-hidden
-          overflow-y-auto overscroll-contain px-6 pb-20 pt-32 sm:max-w-drawer sm:px-10 sm:pt-28"
+        className={PANEL_SCROLL_CLASS}
         onScroll={updateScrollState}
         ref={scrollRef}
       >
-        <div className="animate-drawer-content pr-11 motion-reduce:animate-none">
+        <div className="animate-drawer-content motion-reduce:animate-none">
           <header className="mb-7">
             <h2 className="mb-5 font-serif text-display font-normal italic uppercase leading-none
-              text-text sm:text-5xl">
+              text-text md:text-5xl">
               Projects
             </h2>
             <p className="m-0 max-w-copy font-mono text-copy leading-copy text-muted">
-              Some of the stuff I've built. I'm always looking for the next interesting project to work on.
+              Some of the stuff I&apos;ve built. I&apos;m always looking for the next interesting
+              project to work on.
             </p>
           </header>
 

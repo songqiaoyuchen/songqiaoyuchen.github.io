@@ -1,3 +1,5 @@
+import {VIEWPORT_BREAKPOINTS} from '@/config/breakpoints';
+
 export const HERO_CONTENT = {
   eyebrow: "HELLO, I'M",
   name: 'SONG',
@@ -23,7 +25,7 @@ export const HERO_SCENE_CONFIG = {
   entranceDelay: 1.42,
   revealSpeed: 2.4,
   hideSpeed: 4.8,
-  desktopMinWidth: 768,
+  desktopMinWidth: VIEWPORT_BREAKPOINTS.md,
 } as const;
 
 export const HERO_ANNOTATION_LAYOUT = {

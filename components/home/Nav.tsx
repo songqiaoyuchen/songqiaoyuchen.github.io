@@ -2,46 +2,48 @@
 
 import { NAV_SECTIONS } from '@/data/sections';
 import Link from 'next/link';
-import {usePathname, useRouter} from 'next/navigation';
+import {usePathname} from 'next/navigation';
+import {preloadTerrainManifest} from '@/lib/terrain/manifest';
 
 export function Nav() {
   const pathname = usePathname();
-  const router = useRouter();
 
   return (
     <nav
       aria-label="Site navigation"
-      className="top-nav-glass fixed text-xs inset-x-0 top-0 z-50 flex flex-wrap items-center
-        justify-between gap-y-1 px-6 py-5 sm:flex-nowrap sm:px-10"
+      className="top-nav-glass fixed inset-x-0 top-0 z-50 flex flex-nowrap items-center
+        justify-between gap-3 px-5 py-2.5 text-xs sm:px-10 sm:py-5"
     >
       <Link
-        className={`flex text-sm items-center font-mono uppercase tracking-brand
+        aria-current={pathname === '/' ? 'page' : undefined}
+        className={`flex min-h-11 shrink-0 items-center font-mono text-sm uppercase tracking-brand
           transition-colors hover:text-accent focus-visible:outline-1
           focus-visible:outline-offset-4 focus-visible:outline-accent
           ${pathname === '/' ? 'text-accent' : 'text-muted'}`}
         href="/"
+        onFocus={pathname === '/' ? undefined : preloadTerrainManifest}
+        onPointerEnter={pathname === '/' ? undefined : preloadTerrainManifest}
       >
         SQYC
       </Link>
 
       <ul
-        className="m-0 flex w-full list-none justify-between gap-0 p-0 sm:w-auto sm:gap-8"
+        className="m-0 flex min-w-0 list-none items-center justify-end gap-1 p-0 sm:gap-8"
       >
         {NAV_SECTIONS.map((section) => (
           <li key={section.id}>
-            <button
-              aria-pressed={pathname.startsWith(section.href)}
-              className={`min-w-11 border-0 bg-transparent px-0 py-1 font-mono
-                uppercase tracking-label 
+            <Link
+              aria-current={pathname.startsWith(section.href) ? 'page' : undefined}
+              className={`flex min-h-11 items-center px-1.5 font-mono text-micro uppercase
+                tracking-label sm:px-0 sm:text-xs
                 ${pathname.startsWith(section.href) ? 'text-accent' : 'text-muted'}
                 transition-colors hover:text-accent
                 focus-visible:outline-1 focus-visible:outline-offset-4
                 focus-visible:outline-accent`}
-              onClick={() => router.push(section.href)}
-              type="button"
+              href={section.href}
             >
               {section.label}
-            </button>
+            </Link>
           </li>
         ))}
       </ul>

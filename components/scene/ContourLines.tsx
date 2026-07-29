@@ -1,7 +1,7 @@
 'use client';
 
 import { forwardRef, useEffect, useMemo, useRef } from 'react';
-import { useFrame, useLoader } from '@react-three/fiber';
+import { useFrame } from '@react-three/fiber';
 import {
   AdditiveBlending,
   Color,
@@ -10,13 +10,12 @@ import {
   UniformsUtils,
 } from 'three';
 import type {DepthTexture, Mesh} from 'three';
-import { EXRLoader } from 'three-stdlib';
 import {CONTOUR_CONFIG, TERRAIN_MATERIAL_CONFIG, TERRAIN_MESH_CONFIG} from '@/config/scene';
 import type {
   ContourControlValues,
   TerrainControlValues,
 } from '@/components/debug/useSceneControls';
-import {bakeTerrainMaps, toHeightmapImage} from '@/lib/terrain/bake';
+import {useTerrainAssets} from '@/lib/terrain/assets';
 import {bakeShellGrid} from '@/lib/terrain/shell';
 import { extractIsolines } from '@/lib/terrain/isolines';
 import { buildContourTubeGeometry } from '@/lib/terrain/lineTube';
@@ -36,16 +35,12 @@ export const ContourLines = forwardRef<Mesh, ContourLinesProps>(function Contour
   {contourSettings: lines, terrainDepthTexture, terrainSettings},
   forwardedRef,
 ) {
-  const exr = useLoader(EXRLoader, '/textures/terrain/heightmap.exr');
   const matRef = useRef<ShaderMaterial>(null);
   const introStart = useRef<number | null>(null);
 
   const {elevation, seaLevel} = terrainSettings;
 
-  const { shellBase } = useMemo(
-    () => bakeTerrainMaps(toHeightmapImage(exr.image)),
-    [exr],
-  );
+  const {shellBase} = useTerrainAssets();
 
   const shellGrid = useMemo(
     () => bakeShellGrid(shellBase, lines.smoothIterations, CONTOURS.smoothFactor),

@@ -1,7 +1,9 @@
 import {PerspectiveCamera, Ray, Vector2, Vector3} from 'three';
 import {
   LINK_STREAM_LAYOUT,
+  MOBILE_LINK_STREAM_CONFIG,
   type LinkStream,
+  type MobileLinkStreamSettings,
 } from '@/config/navigation/linkStreams';
 import {
   CAMERA_CONFIG,
@@ -13,7 +15,7 @@ import {sampleHeight} from '@/lib/terrain/height';
 import {getHomeFov} from '@/lib/scene/camera';
 import {getLinkStreamHeight} from './linkStreamGeometry';
 
-export type LinkLayoutMode = 'overview' | 'focused-mobile' | 'focused';
+export type LinkLayoutMode = 'overview-mobile' | 'overview' | 'focused-mobile' | 'focused';
 
 type DesktopMode = Extract<LinkLayoutMode, 'overview' | 'focused'>;
 type LayoutPosition = [number, number];
@@ -28,32 +30,32 @@ const INTERSECTION_STEPS = 18;
 const INTERSECTION_DISTANCE = 50;
 
 export function getLinkLayoutMode(isFocused: boolean, width: number): LinkLayoutMode {
-  if (!isFocused) return 'overview';
-  if (width < SCENE_LAYOUT_CONFIG.mobileMaxWidth) return 'focused-mobile';
-  return 'focused';
+  const isMobile = width < SCENE_LAYOUT_CONFIG.mobileMaxWidth;
+  if (isFocused) return isMobile ? 'focused-mobile' : 'focused';
+  return isMobile ? 'overview-mobile' : 'overview';
 }
 
-function makeSideSlots(side: -1 | 1, streams: readonly LinkStream[]) {
+function makeMobileOverviewSlots(
+  streams: readonly LinkStream[],
+  settings: MobileLinkStreamSettings,
+) {
   return streams.map((stream, index) => {
-    const count = streams.length;
-    const progress = count === 1 ? 0.5 : index / (count - 1);
-    const {innerX, outerX, centerY} = LINK_STREAM_LAYOUT.overview.mobile;
-    const x = innerX + (outerX - innerX) * progress;
-    return new Vector2(side * x, centerY + stream.overviewYOffset);
+    const progress = streams.length === 1 ? 0.5 : index / (streams.length - 1);
+    return new Vector2(
+      settings.mobileStartX
+        + (settings.mobileEndX - settings.mobileStartX) * progress,
+      settings.mobileCenterY + stream.overviewYOffset,
+    );
   });
 }
 
-function makeMobileOverviewSlots(streams: readonly LinkStream[]) {
-  const leftCount = Math.ceil(streams.length / 2);
-  return [
-    ...makeSideSlots(-1, streams.slice(0, leftCount)),
-    ...makeSideSlots(1, streams.slice(leftCount)),
-  ];
-}
-
-function makeOverviewSlots(streams: readonly LinkStream[], width: number) {
+function makeOverviewSlots(
+  streams: readonly LinkStream[],
+  width: number,
+  mobileSettings: MobileLinkStreamSettings,
+) {
   if (width < SCENE_LAYOUT_CONFIG.mobileMaxWidth) {
-    return makeMobileOverviewSlots(streams);
+    return makeMobileOverviewSlots(streams, mobileSettings);
   }
 
   const {startX, endX, centerY} = LINK_STREAM_LAYOUT.overview.desktop;
@@ -224,11 +226,12 @@ function makeLayout(
   heightGrid: HeightGrid,
   elevation: number,
   seaLevel: number,
+  mobileSettings: MobileLinkStreamSettings,
 ) {
   const camera = makeCamera(width, height, mode);
   const slots = mode === 'focused'
     ? makeFocusedSlots(streams)
-    : makeOverviewSlots(streams, width);
+    : makeOverviewSlots(streams, width, mobileSettings);
   if (mode === 'focused') {
     return normalizeDepth(streams, slots, camera, heightGrid, elevation, seaLevel);
   }
@@ -275,13 +278,16 @@ export function getLinkLayouts(
   heightGrid: HeightGrid,
   elevation: number,
   seaLevel: number,
+  mobileSettings: MobileLinkStreamSettings = MOBILE_LINK_STREAM_CONFIG,
 ) {
   return {
     overview: makeLayout(
       streams, width, height, 'overview', heightGrid, elevation, seaLevel,
+      mobileSettings,
     ),
     focused: makeLayout(
       streams, width, height, 'focused', heightGrid, elevation, seaLevel,
+      mobileSettings,
     ),
     focusedMobile: makeFocusedMobileLayout(
       streams, width, height, heightGrid, elevation, seaLevel,

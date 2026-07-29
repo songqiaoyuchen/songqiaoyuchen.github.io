@@ -6,7 +6,7 @@ import type {SceneControlValues} from './useSceneControls';
 
 /**
  * Leva button: snapshots the scene controls (except camera related)
- * and writes them back into config/scene,
+ * and writes them back into their allowlisted config files,
  * so a tuning session becomes the new default look with one click.
  */
 function collectConfigValues(groups: SceneControlValues): Record<string, unknown> {

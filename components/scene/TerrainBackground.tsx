@@ -20,15 +20,21 @@ import { DecorStreams } from './DecorStreams';
 import {LinkStreams} from './LinkStreams';
 import {SceneHeroName} from './SceneHeroName';
 import { CameraRig } from './CameraRig';
+import {SceneErrorBoundary} from './SceneErrorBoundary';
+import {SceneReadySignal} from './SceneReadySignal';
 import type {SectionId} from '@/data/sections';
 
 type TerrainBackgroundProps = {
   activeId: SectionId | null;
+  onSceneError: (error: Error) => void;
+  onSceneReady: () => void;
   onStreamClick: (id: SectionId) => void;
 };
 
 export function TerrainBackground({
   activeId,
+  onSceneError,
+  onSceneReady,
   onStreamClick,
 }: TerrainBackgroundProps) {
   const orbitcontrolsRef = useRef<OrbitControlsInstance>(null);
@@ -43,12 +49,14 @@ export function TerrainBackground({
   );
 
   return (
-    <div className="absolute inset-0 z-0">
+    <div className="sticky top-0 z-0 h-svh w-full md:absolute md:inset-0">
       <SaveConfigButton values={settings} />
-      <Canvas
-        camera={{position: CAMERA_CONFIG.overviewPosition, fov: CAMERA_CONFIG.fov}}
-        gl={{ antialias: false, powerPreference: 'high-performance' }}
-      >
+      <SceneErrorBoundary onError={onSceneError}>
+        <Canvas
+          camera={{position: CAMERA_CONFIG.overviewPosition, fov: CAMERA_CONFIG.fov}}
+          fallback={null}
+          gl={{ antialias: false, powerPreference: 'high-performance' }}
+        >
 
         {process.env.NODE_ENV === 'development' ? (
           <StatsGl className="fixed right-0 bottom-0 z-10000" />
@@ -79,6 +87,7 @@ export function TerrainBackground({
             ref={setLinkStreamsMesh}
             activeId={activeId}
             contourSettings={settings.contours}
+            linkStreamSettings={settings.linkStreams}
             onStreamClick={onStreamClick}
             terrainSettings={settings.terrain}
           />
@@ -86,6 +95,10 @@ export function TerrainBackground({
             contourSettings={settings.contours}
             isHidden={activeId !== null}
             terrainSettings={settings.terrain}
+          />
+          <SceneReadySignal
+            enabled={bloomSelection.length === 2}
+            onReady={onSceneReady}
           />
         </Suspense>
         {/* Keep the composer single-sampled: MSAA resolve blits intermittently
@@ -105,7 +118,8 @@ export function TerrainBackground({
             />
           </EffectComposer>
         ) : null}
-      </Canvas>
+        </Canvas>
+      </SceneErrorBoundary>
     </div>
   );
 }

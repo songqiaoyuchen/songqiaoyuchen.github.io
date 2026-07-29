@@ -1,0 +1,43 @@
+{
+  "artifacts": {
+    "displacement": {
+      "byteLength": 1959420,
+      "channels": 1,
+      "compressedByteLength": 231473,
+      "file": "displacement.056b4fa6eff35b46.r16f.bin.gz",
+      "format": "r16f",
+      "height": 1130,
+      "width": 867
+    },
+    "gradient": {
+      "byteLength": 35296680,
+      "channels": 2,
+      "compressedByteLength": 10543018,
+      "file": "gradient.d2e32bec50e81209.rg16f.bin.gz",
+      "format": "rg16f",
+      "height": 3390,
+      "width": 2603
+    },
+    "shell": {
+      "byteLength": 3918840,
+      "channels": 1,
+      "compressedByteLength": 3088790,
+      "file": "shell.8d9bc954ee1aef4d.f32.bin.gz",
+      "format": "f32",
+      "height": 1130,
+      "width": 867
+    },
+    "staticLighting": {
+      "byteLength": 3918840,
+      "channels": 2,
+      "compressedByteLength": 2187793,
+      "file": "static-lighting.055415ee2d4779b7.rg16f.bin.gz",
+      "format": "rg16f",
+      "height": 1130,
+      "width": 867
+    }
+  },
+  "configHash": "7c99d791930ea59fffe1b2e69d84bfd3f8841fe2ee805848ce8652111fc426e6",
+  "sourceHash": "333f2c7b63f79252665b3efdaf215fd1a34ace934d3df47947a77a15da15e1a7",
+  "version": 1
+}

@@ -32,7 +32,7 @@ function ContactIconLink({children, href, label, opensNewTab = false}: ContactIc
 export function ContactFooter() {
   return (
     <footer aria-labelledby="connect-title" className="mt-16 border-t border-line pt-8 pb-20
-      sm:mt-20 sm:pb-24">
+      md:mt-20 md:pb-24">
       <h3
         className="m-0 font-serif text-3xl leading-none font-normal tracking-[0.04em]
           text-accent italic uppercase"

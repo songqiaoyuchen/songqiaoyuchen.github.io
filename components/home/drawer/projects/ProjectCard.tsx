@@ -52,7 +52,7 @@ export function ProjectCard({index, project}: ProjectCardProps) {
           </div>
         </PixelCard>
 
-        <div className="px-2 pt-4 pb-2 sm:px-3 sm:pt-4">
+        <div className="px-2 pt-4 pb-2 md:px-3 md:pt-4">
           <div className="flex items-center justify-between gap-4">
             <h3 className="m-0 font-serif text-card font-normal leading-tight tracking-[0.02em]
               text-text">

@@ -55,7 +55,7 @@ export function Drawer({activeId, articles, onClose}: DrawerProps) {
       aria-hidden={activeId === null}
       aria-label={`${section.label} preview`}
       className={`
-        fixed inset-y-0 left-0 z-40 w-full sm:w-drawer
+        fixed inset-y-0 left-0 z-40 w-full md:w-drawer
         transition-[opacity,visibility] duration-100 motion-reduce:duration-0
         ${
           activeId !== null
@@ -70,27 +70,28 @@ export function Drawer({activeId, articles, onClose}: DrawerProps) {
       <div
         aria-hidden="true"
         className={`preview-backdrop pointer-events-none absolute inset-0
-          ${isEditorialPanel ? 'max-sm:border-r-0 max-sm:bg-panel/94 max-sm:mask-none' : ''}`}
+          ${isEditorialPanel ? 'max-md:border-r-0 max-md:bg-panel/94 max-md:mask-none' : ''}`}
       />
 
       <div className="relative z-10 h-full">
         {isAbout ? (
-          <AboutPanel isOpen={activeId === 'about'} onClose={onClose} />
+          <AboutPanel isOpen={activeId === 'about'} />
         ) : isArt ? (
-          <ArtPanel isOpen={activeId === 'art'} onClose={onClose} />
+          <ArtPanel isOpen={activeId === 'art'} />
         ) : isBlog ? (
           <BlogPanel articles={articles} isOpen={activeId === 'blog'} />
         ) : isProjects ? (
-          <ProjectsPanel isOpen={activeId === 'projects'} onClose={onClose} />
+          <ProjectsPanel isOpen={activeId === 'projects'} />
         ) : (
-          <div className="no-scrollbar flex h-full max-w-drawer flex-col overflow-y-auto
-            px-6 pb-10 pt-24 sm:px-10 sm:pt-28">
+          // default content, should never be reached
+          <div className="no-scrollbar flex h-full w-full max-w-none flex-col overflow-y-auto
+            px-6 pb-10 pt-24 md:max-w-drawer md:px-10 md:pt-28">
             <button
               aria-label={`Close ${section.label.toLowerCase()} preview`}
               className="absolute right-6 top-20 z-20 grid size-11 place-items-center border-0
                 bg-transparent p-0 font-mono text-xl font-light leading-none text-dim
                 transition-colors hover:text-text focus-visible:outline-1
-                focus-visible:outline-offset-4 focus-visible:outline-accent sm:right-10 sm:top-24"
+                focus-visible:outline-offset-4 focus-visible:outline-accent md:right-10 md:top-24"
               onClick={onClose}
               tabIndex={activeId !== null ? 0 : -1}
               type="button"
@@ -103,7 +104,7 @@ export function Drawer({activeId, articles, onClose}: DrawerProps) {
               key={displayedId}
             >
               <h2 className="mb-5 font-serif text-display font-normal italic uppercase leading-none
-                text-text sm:text-5xl">
+                text-text md:text-5xl">
                 {section.label}
               </h2>
               <p className="mb-8 max-w-copy font-mono text-copy leading-copy text-muted">
@@ -125,6 +126,21 @@ export function Drawer({activeId, articles, onClose}: DrawerProps) {
           </div>
         )}
       </div>
+
+      {isEditorialPanel ? (
+        <button
+          aria-label={`Close ${section.label.toLowerCase()} preview`}
+          className="absolute right-6 top-20 z-50 grid size-11 place-items-center border-0 bg-transparent
+            p-0 font-mono text-xl font-light leading-none text-dim transition-colors
+            duration-interaction ease-out hover:text-text focus-visible:outline-1
+            focus-visible:outline-offset-4 focus-visible:outline-accent md:right-0 md:top-24"
+          onClick={onClose}
+          tabIndex={activeId !== null ? 0 : -1}
+          type="button"
+        >
+          <span aria-hidden="true">&times;</span>
+        </button>
+      ) : null}
     </aside>
   );
 }

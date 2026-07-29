@@ -3,8 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "bake:terrain": "node scripts/bake-terrain.mjs",
     "dev": "next dev",
     "build": "next build",
+    "check:terrain-bake": "node scripts/bake-terrain.mjs --check",
+    "prebuild": "npm run check:terrain-bake",
     "start": "next start",
     "lint": "eslint",
     "sync:artwork-dimensions": "node scripts/sync-artwork-dimensions.mjs"

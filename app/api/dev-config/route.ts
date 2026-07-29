@@ -31,10 +31,12 @@ function replaceKey(source: string, key: string, literal: string): string | null
 
 const EDITABLE_CONFIG = {
   camera: {
+    directory: 'scene',
     fileName: 'camera.ts',
     keys: ['overviewPosition', 'overviewTarget', 'focusedPosition', 'focusedTarget', 'fov'],
   },
   contours: {
+    directory: 'scene',
     fileName: 'contours.ts',
     keys: [
       'levels', 'smoothIterations', 'chaikinIterations', 'resampleSpacing',
@@ -46,14 +48,17 @@ const EDITABLE_CONFIG = {
     ],
   },
   fog: {
+    directory: 'scene',
     fileName: 'fog.ts',
     keys: ['near', 'far'],
   },
   postProcessing: {
+    directory: 'scene',
     fileName: 'postProcessing.ts',
     keys: ['bloomIntensity', 'bloomThreshold', 'bloomSmoothing'],
   },
   terrain: {
+    directory: 'scene',
     fileName: 'terrain.ts',
     keys: [
       'elevation', 'seaLevel', 'baseColor', 'ridgeColor', 'shadowStrength',
@@ -61,6 +66,11 @@ const EDITABLE_CONFIG = {
       'lightFalloff', 'light2Color', 'light2X', 'light2Y', 'light2Z',
       'light2Intensity', 'light2Falloff',
     ],
+  },
+  linkStreams: {
+    directory: 'navigation',
+    fileName: 'linkStreams.ts',
+    keys: ['mobileStartX', 'mobileEndX', 'mobileCenterY'],
   },
 } as const;
 
@@ -91,12 +101,11 @@ export async function POST(request: Request) {
     return NextResponse.json({error: 'missing values'}, {status: 400});
   }
 
-  const configDirectory = path.join(process.cwd(), 'config', 'scene');
   const scopes = Object.keys(EDITABLE_CONFIG) as ConfigScope[];
   const sourceEntries = await Promise.all(
     scopes.map(async (scope) => {
-      const {fileName} = EDITABLE_CONFIG[scope];
-      const filePath = path.join(configDirectory, fileName);
+      const {directory, fileName} = EDITABLE_CONFIG[scope];
+      const filePath = path.join(process.cwd(), 'config', directory, fileName);
       return [scope, {
         filePath,
         source: await fs.readFile(filePath, 'utf8'),

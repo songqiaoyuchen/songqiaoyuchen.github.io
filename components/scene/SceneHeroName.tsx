@@ -12,7 +12,6 @@ import {
   Vector3,
 } from 'three';
 import type {Mesh} from 'three';
-import {EXRLoader} from 'three-stdlib';
 import type {
   ContourControlValues,
   TerrainControlValues,
@@ -35,7 +34,7 @@ import {
   getLinkLayouts,
   projectOverviewSlotAtDistance,
 } from '@/lib/text/linkStreamLayout';
-import {bakeTerrainMaps, toHeightmapImage} from '@/lib/terrain/bake';
+import {useTerrainAssets} from '@/lib/terrain/assets';
 import {sampleHeight} from '@/lib/terrain/height';
 import vertexShader from '@/shaders/linkStream.vert';
 import fragmentShader from '@/shaders/linkStream.frag';
@@ -50,7 +49,6 @@ export const SceneHeroName = forwardRef<Mesh, SceneHeroNameProps>(function Scene
   {contourSettings, isHidden, terrainSettings},
   forwardedRef,
 ) {
-  const exr = useLoader(EXRLoader, '/textures/terrain/heightmap.exr');
   const atlas = useLoader(TextureLoader, '/textures/text/stream-atlas.png');
   const materialRef = useRef<ShaderMaterial>(null);
   const elapsed = useRef(0);
@@ -59,10 +57,7 @@ export const SceneHeroName = forwardRef<Mesh, SceneHeroNameProps>(function Scene
   const viewportHeight = useThree((state) => state.size.height);
   const isReducedMotion = useReducedMotion();
   const {elevation, seaLevel} = terrainSettings;
-  const {displacementMap, shellBase} = useMemo(
-    () => bakeTerrainMaps(toHeightmapImage(exr.image)),
-    [exr],
-  );
+  const {displacementMap, shellBase} = useTerrainAssets();
   const geometry = useMemo(() => buildHorizontalStreamGeometry({
     anchor: [0, 0],
     bottomOffset: 0,

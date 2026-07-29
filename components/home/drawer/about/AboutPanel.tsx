@@ -4,16 +4,16 @@ import {useRef} from 'react';
 import {ABOUT_CONTACT} from '@/data/aboutTimeline';
 import {ContactFooter} from './ContactFooter';
 import {ExperienceTimeline} from './ExperienceTimeline';
+import {PANEL_SCROLL_CLASS} from '../panelStyles';
 
 interface AboutPanelProps {
   isOpen: boolean;
-  onClose: () => void;
 }
 
 const FOCUS_RING = `rounded-xs focus-visible:outline-1 focus-visible:outline-offset-4
   focus-visible:outline-accent`;
 
-export function AboutPanel({isOpen, onClose}: AboutPanelProps) {
+export function AboutPanel({isOpen}: AboutPanelProps) {
   const shellRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -24,27 +24,14 @@ export function AboutPanel({isOpen, onClose}: AboutPanelProps) {
       data-at-start="true"
       ref={shellRef}
     >
-      <button
-        aria-label="Close about preview"
-        className={`absolute right-6 top-20 z-30 grid size-11 cursor-pointer place-items-center
-          border-0 bg-transparent p-0 font-mono text-xl font-light leading-none text-dim
-          transition-colors duration-interaction ease-out hover:text-text sm:right-10 sm:top-24
-          ${FOCUS_RING}`}
-        onClick={onClose}
-        tabIndex={isOpen ? 0 : -1}
-        type="button"
-      >
-        <span aria-hidden="true">&times;</span>
-      </button>
-
       <div
-        className="no-scrollbar flex h-full max-w-drawer touch-pan-y flex-col overflow-x-hidden
-          overflow-y-auto overscroll-contain px-6 pb-10 pt-24 sm:px-10 sm:pt-28"
+        className={PANEL_SCROLL_CLASS}
         ref={scrollRef}
       >
-        <header>
+        <div className="animate-drawer-content motion-reduce:animate-none">
+          <header>
           <h2 className="mb-5 font-serif text-display font-normal italic uppercase leading-none
-            text-text sm:text-5xl">
+            text-text md:text-5xl">
             About
           </h2>
           <a
@@ -89,6 +76,7 @@ export function AboutPanel({isOpen, onClose}: AboutPanelProps) {
 
           <ExperienceTimeline isOpen={isOpen} scrollRef={scrollRef} shellRef={shellRef} />
           <ContactFooter />
+          </div>
         </div>
       </div>
 

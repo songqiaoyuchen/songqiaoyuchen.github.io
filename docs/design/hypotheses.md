@@ -35,6 +35,43 @@ Leave blank until tested. Link screenshots, commits, or prototypes where useful.
 
 ## Active hypotheses
 
+### H-012: Contour Survey versus SQYC Type Build preloader
+
+Status: exploring
+Confidence: medium
+
+**Hypothesis**
+
+A full-screen preloader can make genuine homepage scene startup feel intentional without becoming a separate
+showreel. Two variants should be compared: sparse contour surveying that hands directly into the terrain, and a
+restrained SQYC glyph build that emphasizes the site's typographic identity.
+
+**Why it may fit**
+
+Both variants reuse existing visual language and avoid invented diagnostics, percentages, or an unrelated logo
+animation. The contour direction offers the strongest terrain continuity; the type direction may produce a
+clearer identity-first opening.
+
+**Keep constant**
+
+Background, palette, loader duration, readiness signal, exit dissolve, reduced-motion behavior, failure escape,
+and the loaded homepage composition.
+
+**Test on**
+
+Cold and cached homepage visits at approximately 390 px, 768 px, and 1440 px, plus internal return navigation,
+reduced motion, slow loading, and the static fallback.
+
+**Success signal**
+
+The chosen variant reads as part of the site, hides incomplete scene construction, does not make cached returns
+feel slower, and hands into the loaded homepage without a visual flash or focus loss.
+
+**Result**
+
+Both variants are implemented for comparison. Contour Survey is the temporary default; development URLs
+`/#preloader=contour&preview=1` and `/#preloader=type&preview=1` force a short comparison preview.
+
 ### H-011: Asymmetric homepage overview
 
 Status: exploring

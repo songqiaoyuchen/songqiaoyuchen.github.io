@@ -11,15 +11,28 @@ import {
   Vector3,
 } from 'three';
 import type { Camera, Group, Mesh } from 'three';
-import { EXRLoader } from 'three-stdlib';
-import { forwardRef, useEffect, useMemo, useRef, useState } from 'react';
-import {LINK_STREAM_EFFECT_CONFIG, LINK_STREAMS} from '@/config/navigation';
-import {CONTOUR_CONFIG, TERRAIN_MATERIAL_CONFIG, TERRAIN_MESH_CONFIG} from '@/config/scene';
+import {
+  forwardRef,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import {
+  LINK_STREAM_EFFECT_CONFIG,
+  LINK_STREAMS,
+  type MobileLinkStreamSettings,
+} from '@/config/navigation';
+import {
+  CONTOUR_CONFIG,
+  TERRAIN_MATERIAL_CONFIG,
+  TERRAIN_MESH_CONFIG,
+} from '@/config/scene';
 import type {
   ContourControlValues,
   TerrainControlValues,
 } from '@/components/debug/useSceneControls';
-import {bakeTerrainMaps, toHeightmapImage} from '@/lib/terrain/bake';
+import {useTerrainAssets} from '@/lib/terrain/assets';
 import {
   buildLinkStreamGeometry,
   getLinkStreamHeight,
@@ -68,24 +81,33 @@ function rememberCamera(camera: Camera, target: Float64Array) {
 type LinkStreamsProps = {
   activeId: SectionId | null;
   contourSettings: ContourControlValues;
+  linkStreamSettings: MobileLinkStreamSettings;
   onStreamClick: (id: SectionId) => void;
   terrainSettings: TerrainControlValues;
 };
 
 export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStreams(
-  {activeId, contourSettings, onStreamClick, terrainSettings},
+  {
+    activeId,
+    contourSettings,
+    linkStreamSettings,
+    onStreamClick,
+    terrainSettings,
+  },
   forwardedRef,
 ) {
-  const exr = useLoader(EXRLoader, '/textures/terrain/heightmap.exr');
   const atlas = useLoader(TextureLoader, '/textures/text/stream-atlas.png');
+  const viewportWidth = useThree((state) => state.size.width);
+  const viewportHeight = useThree((state) => state.size.height);
+  const initialLayoutMode = getLinkLayoutMode(activeId !== null, viewportWidth);
   const materialRef = useRef<ShaderMaterial>(null);
   const hitTargetRefs = useRef<Array<Group | null>>([]);
   const hitButtonRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const hoverValues = useRef(new Float32Array(LINK_STREAMS.length));
   const glitchValues = useRef(new Float32Array(LINK_STREAMS.length));
-  const layoutMode = useRef<LinkLayoutMode>('overview');
-  const requestedLayoutMode = useRef<LinkLayoutMode>('overview');
+  const layoutMode = useRef<LinkLayoutMode>(initialLayoutMode);
+  const requestedLayoutMode = useRef<LinkLayoutMode>(initialLayoutMode);
   const transitionPhase = useRef<RayTransitionPhase>('idle');
   const dissolveVisibility = useRef(1);
   const layoutInitialized = useRef(false);
@@ -93,18 +115,13 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
   const previousCamera = useRef(
     new Float64Array(CAMERA_MATRIX_VALUE_COUNT).fill(Number.NaN),
   );
-  const viewportWidth = useThree((state) => state.size.width);
-  const viewportHeight = useThree((state) => state.size.height);
   const isReducedMotion = useReducedMotion();
   const isFocused = activeId !== null;
   const activeIndex = activeId
     ? LINK_STREAMS.findIndex((run) => run.id === activeId)
     : -1;
   const {elevation, seaLevel} = terrainSettings;
-  const { displacementMap, shellBase } = useMemo(
-    () => bakeTerrainMaps(toHeightmapImage(exr.image)),
-    [exr],
-  );
+  const {displacementMap, shellBase} = useTerrainAssets();
   const streamConfigKey = JSON.stringify(LINK_STREAMS);
   const configuredStreams = useMemo(
     () => JSON.parse(streamConfigKey) as typeof LINK_STREAMS,
@@ -122,8 +139,17 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
       shellBase,
       elevation,
       seaLevel,
+      linkStreamSettings,
     ),
-    [configuredStreams, elevation, seaLevel, shellBase, viewportHeight, viewportWidth],
+    [
+      configuredStreams,
+      elevation,
+      linkStreamSettings,
+      seaLevel,
+      shellBase,
+      viewportHeight,
+      viewportWidth,
+    ],
   );
   const hitProjection = useMemo(() => ({
     bottom: new Vector3(),
@@ -228,10 +254,12 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
       if (dissolveVisibility.current === 1) transitionPhase.current = 'idle';
     }
 
-    const targetLayout = layoutMode.current === 'focused'
-      ? layouts.focused
-      : layoutMode.current === 'overview'
-        ? layouts.overview
+    const isOverviewLayout = layoutMode.current === 'overview'
+      || layoutMode.current === 'overview-mobile';
+    const targetLayout = isOverviewLayout
+      ? layouts.overview
+      : layoutMode.current === 'focused'
+        ? layouts.focused
         : layouts.focusedMobile;
     const layoutAlpha = isReducedMotion || !layoutInitialized.current || layoutSwitched
       ? 1
@@ -254,14 +282,14 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
         previousOffsetX !== offsetX[run.index]
         || previousOffsetZ !== offsetZ[run.index]
       );
-      verticalOffsets[run.index] = layoutMode.current === 'overview'
+      verticalOffsets[run.index] = isOverviewLayout
         ? run.overviewBottomOffset - run.focusedBottomOffset
         : 0;
     }
     layoutInitialized.current = true;
     material.uniforms.uDissolve.value = dissolveVisibility.current;
     material.uniforms.uActiveStream.value = activeIndex;
-    material.uniforms.uFocused.value = layoutMode.current === 'overview' ? 0 : 1;
+    material.uniforms.uFocused.value = isOverviewLayout ? 0 : 1;
 
     for (let index = 0; index < LINK_STREAMS.length; index++) {
       const target = hoveredIndex === index ? 1 : 0;
@@ -289,7 +317,7 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
       const streamHeight = getLinkStreamHeight(run);
       const y =
         sampleHeight(shellBase, x, z, elevation, seaLevel) +
-        (layoutMode.current === 'overview'
+        (isOverviewLayout
           ? run.overviewBottomOffset
           : run.focusedBottomOffset) +
         streamHeight * 0.5;

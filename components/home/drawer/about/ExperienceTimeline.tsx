@@ -233,10 +233,10 @@ export function ExperienceTimeline({isOpen, scrollRef, shellRef}: ExperienceTime
         [--timeline-length-px:0px] [--timeline-start-px:1rem]"
       ref={timelineRef}
     >
-      <div className="mb-8 grid grid-cols-[2rem_minmax(0,1fr)] gap-4 sm:gap-6">
+      <div className="mb-8 grid grid-cols-[2rem_minmax(0,1fr)] gap-4 md:gap-6">
         <h3
           className="m-0 font-serif text-3xl leading-none font-normal
-            tracking-[0.04em] text-accent italic uppercase sm:text-[1.65rem]"
+            tracking-[0.04em] text-accent italic uppercase md:text-[1.65rem]"
         >
           Experience
         </h3>
@@ -245,17 +245,17 @@ export function ExperienceTimeline({isOpen, scrollRef, shellRef}: ExperienceTime
       <span
         aria-hidden="true"
         className="pointer-events-none absolute top-(--timeline-start-px) left-[0.96875rem]
-          z-0 h-(--timeline-length-px) w-px origin-top bg-line max-sm:w-[1.25px]"
+          z-0 h-(--timeline-length-px) w-px origin-top bg-line max-md:w-[1.25px]"
       />
       <span
         aria-hidden="true"
         className="pointer-events-none absolute top-(--timeline-start-px) left-[0.96875rem]
           z-0 h-(--timeline-drawn-px) w-px origin-top bg-accent-soft shadow-route
-          max-sm:w-[1.25px]"
+          max-md:w-[1.25px]"
       />
 
       <ol aria-label="Experience timeline" className="m-0 flex list-none flex-col gap-16 p-0
-        sm:gap-20">
+        md:gap-20">
         {ABOUT_TIMELINE.map((entry, index) => {
           const state = getTimelineState(index, activeIndex);
 
@@ -263,7 +263,7 @@ export function ExperienceTimeline({isOpen, scrollRef, shellRef}: ExperienceTime
             <li
               aria-current={state === 'active' ? 'step' : undefined}
               className="relative z-1 grid grid-cols-[2rem_minmax(0,1fr)] items-start
-                gap-4 sm:gap-6"
+                gap-4 md:gap-6"
               data-state={state}
               key={entry.id}
             >
@@ -303,7 +303,7 @@ export function ExperienceTimeline({isOpen, scrollRef, shellRef}: ExperienceTime
                   </p>
                 )}
                 <p
-                  className="mt-4 mb-0 max-w-sm font-mono text-xs leading-summary
+                  className="mt-4 mb-0 font-mono text-xs leading-summary
                     tracking-[0.025em] text-muted-soft"
                 >
                   {entry.summary}

@@ -15,7 +15,6 @@ import {
 } from 'three';
 import type { Mesh as MeshType } from 'three';
 import type {Camera} from 'three';
-import { EXRLoader } from 'three-stdlib';
 import {
   CAMERA_CONFIG,
   DECOR_STREAM_CONFIG,
@@ -27,7 +26,7 @@ import type {
   ContourControlValues,
   TerrainControlValues,
 } from '@/components/debug/useSceneControls';
-import {bakeTerrainMaps, toHeightmapImage} from '@/lib/terrain/bake';
+import {useTerrainAssets} from '@/lib/terrain/assets';
 import {
   buildDecorStreamGeometry,
   DECOR_ATLAS_COLUMNS,
@@ -75,15 +74,11 @@ export const DecorStreams = forwardRef<MeshType, DecorStreamsProps>(function Dec
   const previousCamera = useRef(
     new Float64Array(CAMERA_MATRIX_VALUE_COUNT).fill(Number.NaN),
   );
-  const exr = useLoader(EXRLoader, '/textures/terrain/heightmap.exr');
   const atlas = useLoader(TextureLoader, '/textures/text/decorative-atlas.png');
   const width = useThree((state) => state.size.width);
   const height = useThree((state) => state.size.height);
   const {elevation, seaLevel} = terrainSettings;
-  const { displacementMap, shellBase } = useMemo(
-    () => bakeTerrainMaps(toHeightmapImage(exr.image)),
-    [exr],
-  );
+  const {displacementMap, shellBase} = useTerrainAssets();
 
   const layers = useMemo(() => generateDecorStreamLayers({
     count: DECOR_STREAM_CONFIG.count,
