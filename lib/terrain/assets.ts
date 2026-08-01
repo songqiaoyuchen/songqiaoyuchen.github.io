@@ -12,7 +12,8 @@ import {
 import type {HeightGrid, TerrainMaps} from './bake';
 import {loadTerrainManifest, type TerrainArtifact} from './manifest';
 
-export type TerrainAssets = TerrainMaps & {
+export type TerrainAssets = Omit<TerrainMaps, 'gradientMap'> & {
+  gradientMap: DataTexture | null;
   staticLightingMap: DataTexture;
 };
 
@@ -51,12 +52,13 @@ function loadTerrainAssets() {
   assetsPromise ??= loadTerrainManifest().then(async ({artifacts}) => {
     const [displacementBuffer, gradientBuffer, shellBuffer, lightingBuffer] = await Promise.all([
       decompressArtifact(artifacts.displacement),
-      decompressArtifact(artifacts.gradient),
+      process.env.NODE_ENV === 'development'
+        ? decompressArtifact(artifacts.gradient)
+        : Promise.resolve(null),
       decompressArtifact(artifacts.shell),
       decompressArtifact(artifacts.staticLighting),
     ]);
     const displacement = artifacts.displacement;
-    const gradient = artifacts.gradient;
     const shell = artifacts.shell;
     const lighting = artifacts.staticLighting;
     const displacementMap = configureTexture(new DataTexture(
@@ -67,14 +69,16 @@ function loadTerrainAssets() {
       HalfFloatType,
     ));
     displacementMap.name = 'Terrain.Displacement';
-    const gradientMap = configureTexture(new DataTexture(
-      new Uint16Array(gradientBuffer),
-      gradient.width,
-      gradient.height,
-      RGFormat,
-      HalfFloatType,
-    ));
-    gradientMap.name = 'Terrain.Gradient';
+    const gradientMap = gradientBuffer === null
+      ? null
+      : configureTexture(new DataTexture(
+        new Uint16Array(gradientBuffer),
+        artifacts.gradient.width,
+        artifacts.gradient.height,
+        RGFormat,
+        HalfFloatType,
+      ));
+    if (gradientMap) gradientMap.name = 'Terrain.Gradient';
     const staticLightingMap = configureTexture(new DataTexture(
       new Uint16Array(lightingBuffer),
       lighting.width,

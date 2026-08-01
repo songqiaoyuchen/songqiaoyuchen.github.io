@@ -44,22 +44,24 @@ public/textures/terrain/baked/
 - `manifest.json`: dimensions, formats, byte lengths, source hash, and a config
   hash covering terrain geometry, displacement, and lighting inputs.
 
-The raw values remain exact. Gzip reduces the current transfer from the 31.6 MB
-EXR to approximately 15.3 MB while removing EXR decoding and all deterministic
-blur, gradient, and lighting loops from the production startup path.
+The raw values remain exact. Production downloads only the displacement, shell,
+and static-lighting artifacts (approximately 5.5 MB compressed), while removing
+EXR decoding and all deterministic blur, gradient, and lighting loops from the
+startup path. The full-resolution gradient artifact is development-only because
+it is needed solely when live-lighting controls diverge from the baked config.
 
-In the browser, the Suspense-compatible loader fetches the manifest and four
+In production, the Suspense-compatible loader fetches the manifest and three
 compressed buffers in parallel, decompresses and validates them, and creates:
 
 - a `RedFormat` / `HalfFloatType` displacement `DataTexture`;
-- an `RGFormat` / `HalfFloatType` gradient `DataTexture`;
 - a `Float32Array`-backed `HeightGrid` for CPU sampling.
 - an `RGFormat` / `HalfFloatType` static-lighting `DataTexture`.
 
 The loader uses the same linear filters, clamp wrapping, and disabled mipmaps
-as the legacy path. Production does not request the EXR. Development controls
-fall back to a live lighting rebake only when a scalar lighting value differs
-from the checked-in configuration.
+as the legacy path. Production requests neither the EXR nor the gradient.
+Development additionally loads an `RGFormat` / `HalfFloatType` gradient
+`DataTexture`, allowing controls to fall back to a live lighting rebake when a
+scalar lighting value differs from the checked-in configuration.
 
 ## Static terrain lighting
 

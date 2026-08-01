@@ -42,10 +42,9 @@ export function TerrainMesh({settings}: {settings: TerrainControlValues}) {
     && light2Y === TERRAIN_MATERIAL_CONFIG.light2Y
     && light2Z === TERRAIN_MATERIAL_CONFIG.light2Z
   );
-  const liveLightingMap = useMemo(() => usesBakedLighting ? null : bakeTerrainLightingMap(
-    shellBase,
-    gradientMap,
-    {
+  const liveLightingMap = useMemo(() => {
+    if (usesBakedLighting || !gradientMap) return null;
+    return bakeTerrainLightingMap(shellBase, gradientMap, {
       elevation,
       seaLevel,
       shadowBias,
@@ -60,8 +59,8 @@ export function TerrainMesh({settings}: {settings: TerrainControlValues}) {
       light2X,
       light2Y,
       light2Z,
-    },
-  ), [
+    });
+  }, [
     shellBase,
     gradientMap,
     usesBakedLighting,
