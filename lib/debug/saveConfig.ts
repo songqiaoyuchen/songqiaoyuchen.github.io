@@ -1,7 +1,7 @@
 /**
  * POST values to the dev-only config writer (app/api/dev-config). Keys are
  * explicitly scoped scene keys such as `contours.minorRadius` or
- * `camera.overviewPosition`.
+ * `camera.overviewPosition` or `camera.projectsLookAt`.
  * Logs the outcome; used by the Leva "Config" buttons.
  */
 export async function postConfigValues(label: string, values: Record<string, unknown>) {

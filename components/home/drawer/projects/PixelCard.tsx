@@ -1,6 +1,7 @@
 // Adopted from https://reactbits.dev/components/pixel-card
 
-import {useEffect, useRef, type JSX} from 'react';
+import {useCallback, useEffect, useRef, type JSX} from 'react';
+import {useReducedMotion} from '@/hooks/useReducedMotion';
 
 type PixelColor = {
   alpha: number;
@@ -249,9 +250,7 @@ export default function PixelCard({
   const pixelsRef = useRef<Pixel[]>([]);
   const animationRef = useRef<ReturnType<typeof requestAnimationFrame> | null>(null);
   const timePreviousRef = useRef(performance.now());
-  const reducedMotion = useRef(
-    typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  ).current;
+  const reducedMotion = useReducedMotion();
 
   const variantCfg: VariantConfig = VARIANTS[variant] || VARIANTS.default;
   const finalGap = gap ?? variantCfg.gap;
@@ -307,7 +306,7 @@ export default function PixelCard({
     pixelsRef.current = pxs;
   };
 
-  const doAnimate = (fnName: PixelAnimation) => {
+  const doAnimate = useCallback((fnName: PixelAnimation) => {
     animationRef.current = requestAnimationFrame(() => doAnimate(fnName));
     const timeNow = performance.now();
     const timePassed = timeNow - timePreviousRef.current;
@@ -335,14 +334,14 @@ export default function PixelCard({
     if (allIdle) {
       cancelAnimationFrame(animationRef.current);
     }
-  };
+  }, []);
 
-  const handleAnimation = (name: PixelAnimation) => {
+  const handleAnimation = useCallback((name: PixelAnimation) => {
     if (animationRef.current !== null) {
       cancelAnimationFrame(animationRef.current);
     }
     animationRef.current = requestAnimationFrame(() => doAnimate(name));
-  };
+  }, [doAnimate]);
 
   const onMouseEnter = () => handleAnimation('appear');
   const onMouseLeave = () => handleAnimation('disappear');
@@ -370,12 +369,12 @@ export default function PixelCard({
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [finalGap, finalSpeed, finalColors, finalNoFocus]);
+  }, [finalGap, finalSpeed, finalColors, finalNoFocus, reducedMotion]);
 
   useEffect(() => {
     if (!isControlled) return;
     handleAnimation(active ? 'appear' : 'disappear');
-  }, [active, isControlled]);
+  }, [active, handleAnimation, isControlled]);
 
   const isActive = active ?? false;
   const contentClassName = isActive

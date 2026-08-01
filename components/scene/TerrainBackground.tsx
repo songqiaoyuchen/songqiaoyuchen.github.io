@@ -22,6 +22,7 @@ import {SceneHeroName} from './SceneHeroName';
 import { CameraRig } from './CameraRig';
 import {SceneErrorBoundary} from './SceneErrorBoundary';
 import {SceneReadySignal} from './SceneReadySignal';
+import {CameraFrameProvider} from './CameraFrameState';
 import type {SectionId} from '@/config/navigation/linkStreams';
 
 type TerrainBackgroundProps = {
@@ -45,6 +46,7 @@ export function TerrainBackground({
   const [contourMesh, setContourMesh] = useState<Mesh | null>(null);
   const [linkStreamsMesh, setLinkStreamsMesh] = useState<Mesh | null>(null);
   const [terrainDepthTexture, setTerrainDepthTexture] = useState<DepthTexture | null>(null);
+  const isDevelopment = process.env.NODE_ENV === 'development';
   const settings = useSceneControls();
   const bloomSelection = useMemo(
     () => [contourMesh, linkStreamsMesh]
@@ -71,51 +73,64 @@ export function TerrainBackground({
           onCreated={() => onSceneProgress(0.18)}
         >
 
-        {process.env.NODE_ENV === 'development' ? (
+        {isDevelopment ? (
           <StatsGl className="fixed right-0 bottom-0 z-10000" />
         ) : null}
         
         <color attach="background" args={[FOG_CONFIG.color]} />
-        <OrbitControls ref={orbitcontrolsRef} target={CAMERA_CONFIG.overviewTarget} makeDefault />
-        <CameraRig controlsRef={orbitcontrolsRef} isFocused={activeId !== null} />
-        <SaveCameraButton controlsRef={orbitcontrolsRef} isFocused={activeId !== null} />
-        <SceneFog settings={settings.fog} />
-        <Suspense fallback={null}>
-          <CachedTerrain
-            fogSettings={settings.fog}
-            onDepthTextureChange={setTerrainDepthTexture}
-            terrainSettings={settings.terrain}
+        {isDevelopment ? (
+          <OrbitControls
+            ref={orbitcontrolsRef}
+            target={CAMERA_CONFIG.overviewLookAt}
+            makeDefault
           />
-          <ContourLines
-            ref={setContourMesh}
-            contourSettings={settings.contours}
-            terrainDepthTexture={terrainDepthTexture}
-            terrainSettings={settings.terrain}
-          />
-          <DecorStreams
-            contourSettings={settings.contours}
-            terrainSettings={settings.terrain}
-          />
-          <LinkStreams
-            ref={setLinkStreamsMesh}
+        ) : null}
+        <CameraFrameProvider>
+          <CameraRig
             activeId={activeId}
-            contourSettings={settings.contours}
-            linkStreamSettings={settings.linkStreams}
-            onStreamClick={onStreamClick}
-            terrainSettings={settings.terrain}
+            controlsRef={isDevelopment ? orbitcontrolsRef : undefined}
           />
-          <SceneHeroName
-            contourSettings={settings.contours}
-            isHidden={activeId !== null}
-            introStarted={introStarted}
-            terrainSettings={settings.terrain}
-          />
-          <SceneReadySignal
-            enabled={bloomSelection.length === 2}
-            onProgress={onSceneProgress}
-            onReady={onSceneReady}
-          />
-        </Suspense>
+          {isDevelopment ? (
+            <SaveCameraButton activeId={activeId} controlsRef={orbitcontrolsRef} />
+          ) : null}
+          <SceneFog settings={settings.fog} />
+          <Suspense fallback={null}>
+            <CachedTerrain
+              fogSettings={settings.fog}
+              onDepthTextureChange={setTerrainDepthTexture}
+              terrainSettings={settings.terrain}
+            />
+            <ContourLines
+              ref={setContourMesh}
+              contourSettings={settings.contours}
+              terrainDepthTexture={terrainDepthTexture}
+              terrainSettings={settings.terrain}
+            />
+            <DecorStreams
+              contourSettings={settings.contours}
+              terrainSettings={settings.terrain}
+            />
+            <LinkStreams
+              ref={setLinkStreamsMesh}
+              activeId={activeId}
+              contourSettings={settings.contours}
+              linkStreamSettings={settings.linkStreams}
+              onStreamClick={onStreamClick}
+              terrainSettings={settings.terrain}
+            />
+            <SceneHeroName
+              contourSettings={settings.contours}
+              isHidden={activeId !== null}
+              introStarted={introStarted}
+              terrainSettings={settings.terrain}
+            />
+            <SceneReadySignal
+              enabled={bloomSelection.length === 2}
+              onProgress={onSceneProgress}
+              onReady={onSceneReady}
+            />
+          </Suspense>
+        </CameraFrameProvider>
         {/* Keep the composer single-sampled: MSAA resolve blits intermittently
             present empty frames on some GPUs. Color-only SMAA smooths edges
             without requesting the composer's sampled depth texture. */}

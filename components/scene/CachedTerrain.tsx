@@ -11,6 +11,7 @@ import type {
 import {FOG_CONFIG} from '@/config/scene';
 import {SceneFog} from './SceneFog';
 import {TerrainMesh} from './TerrainMesh';
+import {useCameraFrameState} from './CameraFrameState';
 
 const vertexShader = /* glsl */ `
   varying vec2 vUv;
@@ -29,32 +30,6 @@ const fragmentShader = /* glsl */ `
     gl_FragColor = texture2D(uTexture, vUv);
   }
 `;
-
-const MATRIX_VALUE_COUNT = 32;
-
-function cameraChanged(camera: Camera, previous: Float64Array) {
-  const world = camera.matrixWorld.elements;
-  const projection = camera.projectionMatrix.elements;
-
-  for (let index = 0; index < 16; index++) {
-    if (
-      previous[index] !== world[index]
-      || previous[index + 16] !== projection[index]
-    ) {
-      return true;
-    }
-  }
-  return false;
-}
-
-function rememberCamera(camera: Camera, target: Float64Array) {
-  const world = camera.matrixWorld.elements;
-  const projection = camera.projectionMatrix.elements;
-  for (let index = 0; index < 16; index++) {
-    target[index] = world[index];
-    target[index + 16] = projection[index];
-  }
-}
 
 function renderTerrain(
   renderer: WebGLRenderer,
@@ -100,7 +75,8 @@ export function CachedTerrain({
   const height = useThree((state) => state.size.height);
   const dpr = useThree((state) => state.viewport.dpr);
   const dirty = useRef(true);
-  const previousCamera = useRef(new Float64Array(MATRIX_VALUE_COUNT).fill(Number.NaN));
+  const cameraFrameState = useCameraFrameState();
+  const renderedCameraRevision = useRef(-1);
   const uniforms = useMemo(
     () => ({uTexture: {value: target.texture}}),
     [target.texture],
@@ -116,11 +92,11 @@ export function CachedTerrain({
   }, [dpr, fogSettings, height, target, terrainSettings, width]);
 
   useFrame(({camera, gl}) => {
-    camera.updateMatrixWorld();
-    if (!dirty.current && !cameraChanged(camera, previousCamera.current)) return;
+    const cameraRevision = cameraFrameState.current.revision;
+    if (!dirty.current && renderedCameraRevision.current === cameraRevision) return;
 
     renderTerrain(gl, scene, camera, target);
-    rememberCamera(camera, previousCamera.current);
+    renderedCameraRevision.current = cameraRevision;
     dirty.current = false;
   }, 0.5);
 

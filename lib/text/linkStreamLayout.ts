@@ -2,11 +2,13 @@ import {PerspectiveCamera, Ray, Vector2, Vector3} from 'three';
 import {
   LINK_STREAM_LAYOUT,
   MOBILE_LINK_STREAM_CONFIG,
+  type SectionId,
   type LinkStream,
   type MobileLinkStreamSettings,
 } from '@/config/navigation/linkStreams';
 import {
   CAMERA_CONFIG,
+  getCameraPose,
   SCENE_LAYOUT_CONFIG,
   TERRAIN_MESH_CONFIG,
 } from '@/config/scene';
@@ -89,21 +91,23 @@ function makeFocusedSlots(streams: readonly LinkStream[]) {
   return applyFocusedOrder(streams, slots);
 }
 
-function makeCamera(width: number, height: number, mode: DesktopMode) {
-  const position = mode === 'focused'
-    ? CAMERA_CONFIG.focusedPosition
-    : CAMERA_CONFIG.overviewPosition;
-  const target = mode === 'focused'
-    ? CAMERA_CONFIG.focusedTarget
-    : CAMERA_CONFIG.overviewTarget;
+function makeCamera(
+  width: number,
+  height: number,
+  mode: DesktopMode,
+  focusedSectionId: SectionId | null = null,
+) {
+  const pose = getCameraPose(
+    mode === 'focused' ? focusedSectionId ?? 'projects' : null,
+  );
   const camera = new PerspectiveCamera(
     getHomeFov(width, height, CAMERA_CONFIG.fov, SCENE_LAYOUT_CONFIG),
     width / Math.max(height, 1),
     0.1,
     100,
   );
-  camera.position.fromArray(position);
-  camera.lookAt(new Vector3().fromArray(target));
+  camera.position.fromArray(pose.position);
+  camera.lookAt(new Vector3().fromArray(pose.lookAt));
   camera.updateMatrixWorld(true);
   return camera;
 }
@@ -227,8 +231,9 @@ function makeLayout(
   elevation: number,
   seaLevel: number,
   mobileSettings: MobileLinkStreamSettings,
+  focusedSectionId: SectionId | null,
 ) {
-  const camera = makeCamera(width, height, mode);
+  const camera = makeCamera(width, height, mode, focusedSectionId);
   const slots = mode === 'focused'
     ? makeFocusedSlots(streams)
     : makeOverviewSlots(streams, width, mobileSettings);
@@ -254,8 +259,9 @@ function makeFocusedMobileLayout(
   heightGrid: HeightGrid,
   elevation: number,
   seaLevel: number,
+  focusedSectionId: SectionId | null,
 ) {
-  const camera = makeCamera(width, height, 'focused');
+  const camera = makeCamera(width, height, 'focused', focusedSectionId);
   const slots = streams.map((stream) => {
     const [x, z] = stream.anchor;
     const y = sampleHeight(heightGrid, x, z, elevation, seaLevel)
@@ -279,18 +285,19 @@ export function getLinkLayouts(
   elevation: number,
   seaLevel: number,
   mobileSettings: MobileLinkStreamSettings = MOBILE_LINK_STREAM_CONFIG,
+  focusedSectionId: SectionId | null = null,
 ) {
   return {
     overview: makeLayout(
       streams, width, height, 'overview', heightGrid, elevation, seaLevel,
-      mobileSettings,
+      mobileSettings, null,
     ),
     focused: makeLayout(
       streams, width, height, 'focused', heightGrid, elevation, seaLevel,
-      mobileSettings,
+      mobileSettings, focusedSectionId,
     ),
     focusedMobile: makeFocusedMobileLayout(
-      streams, width, height, heightGrid, elevation, seaLevel,
+      streams, width, height, heightGrid, elevation, seaLevel, focusedSectionId,
     ),
   };
 }

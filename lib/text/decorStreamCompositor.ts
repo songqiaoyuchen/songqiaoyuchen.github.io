@@ -46,6 +46,9 @@ export class DecorStreamCompositor {
   private readonly targetA: WebGLRenderTarget;
   private readonly targetB: WebGLRenderTarget;
   private readonly blurs: KawaseBlurPass[];
+  private readonly previousClearColor = new Color();
+  private readonly previousViewport = new Vector4();
+  private readonly previousScissor = new Vector4();
   private initialized = false;
   private width: number;
   private height: number;
@@ -109,9 +112,9 @@ export class DecorStreamCompositor {
     const previousTarget = renderer.getRenderTarget();
     const previousAutoClear = renderer.autoClear;
     const previousAlpha = renderer.getClearAlpha();
-    const previousColor = renderer.getClearColor(new Color()).clone();
-    const previousViewport = renderer.getViewport(new Vector4()).clone();
-    const previousScissor = renderer.getScissor(new Vector4()).clone();
+    renderer.getClearColor(this.previousClearColor);
+    renderer.getViewport(this.previousViewport);
+    renderer.getScissor(this.previousScissor);
     const previousScissorTest = renderer.getScissorTest();
 
     renderer.autoClear = false;
@@ -132,10 +135,10 @@ export class DecorStreamCompositor {
     this.blurs[2].render(renderer, this.targetA, this.targetB, delta, false);
 
     renderer.setRenderTarget(previousTarget);
-    renderer.setViewport(previousViewport);
-    renderer.setScissor(previousScissor);
+    renderer.setViewport(this.previousViewport);
+    renderer.setScissor(this.previousScissor);
     renderer.setScissorTest(previousScissorTest);
-    renderer.setClearColor(previousColor, previousAlpha);
+    renderer.setClearColor(this.previousClearColor, previousAlpha);
     renderer.autoClear = previousAutoClear;
   }
 

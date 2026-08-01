@@ -14,7 +14,6 @@ import {
   TextureLoader,
 } from 'three';
 import type { Mesh as MeshType } from 'three';
-import type {Camera} from 'three';
 import {
   CAMERA_CONFIG,
   DECOR_STREAM_CONFIG,
@@ -38,42 +37,19 @@ import compositeVertexShader from '@/shaders/decorComposite.vert';
 import compositeFragmentShader from '@/shaders/decorComposite.frag';
 import vertexShader from '@/shaders/decorStream.vert';
 import fragmentShader from '@/shaders/decorStream.frag';
+import {useCameraFrameState} from './CameraFrameState';
 type DecorStreamsProps = {
   contourSettings: ContourControlValues;
   terrainSettings: TerrainControlValues;
 };
-
-const CAMERA_MATRIX_VALUE_COUNT = 32;
-
-function cameraChanged(camera: Camera, previous: Float64Array) {
-  const world = camera.matrixWorld.elements;
-  const projection = camera.projectionMatrix.elements;
-  for (let index = 0; index < 16; index++) {
-    if (
-      previous[index] !== world[index]
-      || previous[index + 16] !== projection[index]
-    ) return true;
-  }
-  return false;
-}
-
-function rememberCamera(camera: Camera, target: Float64Array) {
-  const world = camera.matrixWorld.elements;
-  const projection = camera.projectionMatrix.elements;
-  for (let index = 0; index < 16; index++) {
-    target[index] = world[index];
-    target[index + 16] = projection[index];
-  }
-}
 
 export const DecorStreams = forwardRef<MeshType, DecorStreamsProps>(function DecorStreams(
   {contourSettings, terrainSettings},
   forwardedRef,
 ) {
   const compositorDirty = useRef(true);
-  const previousCamera = useRef(
-    new Float64Array(CAMERA_MATRIX_VALUE_COUNT).fill(Number.NaN),
-  );
+  const cameraFrameState = useCameraFrameState();
+  const renderedCameraRevision = useRef(-1);
   const atlas = useLoader(TextureLoader, '/textures/text/decorative-atlas.png');
   const width = useThree((state) => state.size.width);
   const height = useThree((state) => state.size.height);
@@ -92,7 +68,7 @@ export const DecorStreams = forwardRef<MeshType, DecorStreamsProps>(function Dec
     camera: {
       fov: CAMERA_CONFIG.fov,
       position: CAMERA_CONFIG.overviewPosition,
-      target: CAMERA_CONFIG.overviewTarget,
+      target: CAMERA_CONFIG.overviewLookAt,
     },
     heightGrid: shellBase,
     elevation,
@@ -187,16 +163,16 @@ export const DecorStreams = forwardRef<MeshType, DecorStreamsProps>(function Dec
   useFrame((state, delta) => {
     // The planned letter scramble can mark this dirty only when its discrete
     // loop frame advances; the blurred result is reusable between those ticks.
-    state.camera.updateMatrixWorld();
+    const cameraRevision = cameraFrameState.current.revision;
     if (
       !compositorDirty.current
-      && !cameraChanged(state.camera, previousCamera.current)
+      && renderedCameraRevision.current === cameraRevision
     ) return;
 
     compositor.render(state.gl, state.camera, delta);
-    rememberCamera(state.camera, previousCamera.current);
+    renderedCameraRevision.current = cameraRevision;
     compositorDirty.current = false;
-  }, -1);
+  });
 
   return (
     <>

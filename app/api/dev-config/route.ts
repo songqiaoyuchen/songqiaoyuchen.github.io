@@ -33,7 +33,14 @@ const EDITABLE_CONFIG = {
   camera: {
     directory: 'scene',
     fileName: 'camera.ts',
-    keys: ['overviewPosition', 'overviewTarget', 'focusedPosition', 'focusedTarget', 'fov'],
+    keys: [
+      'overviewPosition', 'overviewLookAt',
+      'projectsPosition', 'projectsLookAt',
+      'artPosition', 'artLookAt',
+      'blogPosition', 'blogLookAt',
+      'aboutPosition', 'aboutLookAt',
+      'fov',
+    ],
   },
   contours: {
     directory: 'scene',

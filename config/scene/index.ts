@@ -1,4 +1,4 @@
-export {CAMERA_CONFIG} from './camera';
+export {CAMERA_CONFIG, getCameraPose, type CameraPose} from './camera';
 export {CONTOUR_CONFIG} from './contours';
 export {DECOR_STREAM_CONFIG} from './decorStreams';
 export {FOG_CONFIG} from './fog';

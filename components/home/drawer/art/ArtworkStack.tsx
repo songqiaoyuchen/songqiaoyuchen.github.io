@@ -15,6 +15,7 @@ import {gsap} from 'gsap';
 import {useMotionValue, useMotionValueEvent} from 'motion/react';
 import {FEATURED_ARTWORKS} from '@/data/artworks';
 import {ArtworkLightbox} from '@/components/artworks/ArtworkLightbox';
+import {useReducedMotion} from '@/hooks/useReducedMotion';
 import {
   CardsContainer,
   CardTransformed,
@@ -115,6 +116,7 @@ export function ArtworkStack() {
   const isSnappingRef = useRef(false);
   const snapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const stackProgress = useMotionValue(0);
+  const isReducedMotion = useReducedMotion();
   const activeArtwork = FEATURED_ARTWORKS[activeIndex];
   const artworkCount = FEATURED_ARTWORKS.length;
   const maxPosition = artworkCount - 1;
@@ -137,7 +139,7 @@ export function ArtworkStack() {
     isSnappingRef.current = shouldSnap;
     scrollTweenRef.current?.kill();
 
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    if (isReducedMotion) {
       progressProxyRef.current.value = nextPosition;
       stackProgress.set(nextProgress);
       scrollTweenRef.current = null;
@@ -165,7 +167,7 @@ export function ArtworkStack() {
         }
       },
     });
-  }, [artworkCount, maxPosition, stackProgress]);
+  }, [artworkCount, isReducedMotion, maxPosition, stackProgress]);
 
   const snapToNearestStage = useCallback(() => {
     animateToPosition(Math.round(virtualPositionRef.current), true);

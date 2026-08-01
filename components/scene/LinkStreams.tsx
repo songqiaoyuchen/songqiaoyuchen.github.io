@@ -10,7 +10,7 @@ import {
   TextureLoader,
   Vector3,
 } from 'three';
-import type { Camera, Group, Mesh } from 'three';
+import type { Group, Mesh } from 'three';
 import {
   forwardRef,
   useEffect,
@@ -50,33 +50,10 @@ import vertexShader from '@/shaders/linkStream.vert';
 import fragmentShader from '@/shaders/linkStream.frag';
 import type {SectionId} from '@/config/navigation/linkStreams';
 import {useReducedMotion} from '@/hooks/useReducedMotion';
+import {useCameraFrameState} from './CameraFrameState';
 type RayTransitionPhase = 'idle' | 'out' | 'in';
 
-const CAMERA_MATRIX_VALUE_COUNT = 32;
-
-function cameraChanged(camera: Camera, previous: Float64Array) {
-  const world = camera.matrixWorld.elements;
-  const projection = camera.projectionMatrix.elements;
-
-  for (let index = 0; index < 16; index++) {
-    if (
-      previous[index] !== world[index]
-      || previous[index + 16] !== projection[index]
-    ) {
-      return true;
-    }
-  }
-  return false;
-}
-
-function rememberCamera(camera: Camera, target: Float64Array) {
-  const world = camera.matrixWorld.elements;
-  const projection = camera.projectionMatrix.elements;
-  for (let index = 0; index < 16; index++) {
-    target[index] = world[index];
-    target[index + 16] = projection[index];
-  }
-}
+const ANIMATION_SETTLE_EPSILON = 0.0001;
 
 type LinkStreamsProps = {
   activeId: SectionId | null;
@@ -111,12 +88,15 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
   const transitionPhase = useRef<RayTransitionPhase>('idle');
   const dissolveVisibility = useRef(1);
   const layoutInitialized = useRef(false);
+  const layoutDirty = useRef(true);
+  const layoutAnimating = useRef(false);
+  const interactionAnimating = useRef(false);
   const hitTargetsDirty = useRef(true);
-  const previousCamera = useRef(
-    new Float64Array(CAMERA_MATRIX_VALUE_COUNT).fill(Number.NaN),
-  );
+  const cameraFrameState = useCameraFrameState();
+  const projectedCameraRevision = useRef(-1);
   const isReducedMotion = useReducedMotion();
   const isFocused = activeId !== null;
+  const desiredLayoutMode = getLinkLayoutMode(isFocused, viewportWidth);
   const activeIndex = activeId
     ? LINK_STREAMS.findIndex((run) => run.id === activeId)
     : -1;
@@ -140,9 +120,11 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
       elevation,
       seaLevel,
       linkStreamSettings,
+      activeId,
     ),
     [
       configuredStreams,
+      activeId,
       elevation,
       linkStreamSettings,
       seaLevel,
@@ -174,8 +156,8 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
     meshY: { value: TERRAIN_MESH_CONFIG.position[1] },
     uLift: { value: LINK_STREAM_EFFECT_CONFIG.lift },
     uTime: { value: 0 },
-    uHover: { value: new Float32Array(LINK_STREAMS.length) },
-    uGlitch: { value: new Float32Array(LINK_STREAMS.length) },
+    uHover: { value: hoverValues.current },
+    uGlitch: { value: glitchValues.current },
     uLayoutOffsetX: { value: new Float32Array(LINK_STREAMS.length) },
     uLayoutOffsetZ: { value: new Float32Array(LINK_STREAMS.length) },
     uVerticalOffset: {
@@ -215,21 +197,27 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
   ]);
   useEffect(() => {
     if (hoveredIndex !== null) glitchValues.current[hoveredIndex] = 1;
+    interactionAnimating.current = true;
   }, [hoveredIndex]);
   useEffect(() => {
+    layoutDirty.current = true;
     hitTargetsDirty.current = true;
   }, [elevation, layouts, seaLevel, viewportHeight, viewportWidth]);
+  useEffect(() => {
+    if (desiredLayoutMode === requestedLayoutMode.current) return;
+    requestedLayoutMode.current = desiredLayoutMode;
+    transitionPhase.current = isReducedMotion ? 'idle' : 'out';
+    if (isReducedMotion) layoutDirty.current = true;
+  }, [desiredLayoutMode, isReducedMotion]);
+  useEffect(() => {
+    const material = materialRef.current;
+    if (material) material.uniforms.uActiveStream.value = activeIndex;
+  }, [activeIndex]);
 
   useFrame(({camera}, delta) => {
     const material = materialRef.current;
     if (!material) return;
-    const desiredLayoutMode = getLinkLayoutMode(isFocused, viewportWidth);
     let layoutSwitched = false;
-
-    if (desiredLayoutMode !== requestedLayoutMode.current) {
-      requestedLayoutMode.current = desiredLayoutMode;
-      transitionPhase.current = 'out';
-    }
 
     if (isReducedMotion) {
       layoutSwitched = layoutMode.current !== requestedLayoutMode.current;
@@ -261,51 +249,78 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
       : layoutMode.current === 'focused'
         ? layouts.focused
         : layouts.focusedMobile;
-    const layoutAlpha = isReducedMotion || !layoutInitialized.current || layoutSwitched
-      ? 1
-      : 1 - Math.exp(-LINK_STREAM_EFFECT_CONFIG.layoutDamping * delta);
     const offsetX = material.uniforms.uLayoutOffsetX.value as Float32Array;
     const offsetZ = material.uniforms.uLayoutOffsetZ.value as Float32Array;
     const verticalOffsets = material.uniforms.uVerticalOffset.value as Float32Array;
-    let hitTargetsMoved = !layoutInitialized.current || layoutSwitched;
+    let hitTargetsMoved = layoutSwitched;
 
     material.uniforms.uTime.value += delta;
-    for (const run of LINK_STREAMS) {
-      const target = targetLayout?.[run.index] ?? run.anchor;
-      const targetOffsetX = target[0] - run.anchor[0];
-      const targetOffsetZ = target[1] - run.anchor[1];
-      const previousOffsetX = offsetX[run.index];
-      const previousOffsetZ = offsetZ[run.index];
-      offsetX[run.index] += (targetOffsetX - offsetX[run.index]) * layoutAlpha;
-      offsetZ[run.index] += (targetOffsetZ - offsetZ[run.index]) * layoutAlpha;
-      hitTargetsMoved ||= (
-        previousOffsetX !== offsetX[run.index]
-        || previousOffsetZ !== offsetZ[run.index]
-      );
-      verticalOffsets[run.index] = isOverviewLayout
-        ? run.overviewBottomOffset - run.focusedBottomOffset
-        : 0;
+    const shouldUpdateLayout = (
+      !layoutInitialized.current
+      || layoutDirty.current
+      || layoutAnimating.current
+      || layoutSwitched
+    );
+    if (shouldUpdateLayout) {
+      const layoutAlpha = isReducedMotion || !layoutInitialized.current || layoutSwitched
+        ? 1
+        : 1 - Math.exp(-LINK_STREAM_EFFECT_CONFIG.layoutDamping * delta);
+      let hasUnsettledLayout = false;
+
+      for (const run of LINK_STREAMS) {
+        const target = targetLayout?.[run.index] ?? run.anchor;
+        const targetOffsetX = target[0] - run.anchor[0];
+        const targetOffsetZ = target[1] - run.anchor[1];
+        const previousOffsetX = offsetX[run.index];
+        const previousOffsetZ = offsetZ[run.index];
+        const nextOffsetX = previousOffsetX
+          + (targetOffsetX - previousOffsetX) * layoutAlpha;
+        const nextOffsetZ = previousOffsetZ
+          + (targetOffsetZ - previousOffsetZ) * layoutAlpha;
+        const xSettled = Math.abs(targetOffsetX - nextOffsetX) < ANIMATION_SETTLE_EPSILON;
+        const zSettled = Math.abs(targetOffsetZ - nextOffsetZ) < ANIMATION_SETTLE_EPSILON;
+        offsetX[run.index] = xSettled ? targetOffsetX : nextOffsetX;
+        offsetZ[run.index] = zSettled ? targetOffsetZ : nextOffsetZ;
+        hasUnsettledLayout ||= !xSettled || !zSettled;
+        hitTargetsMoved ||= (
+          previousOffsetX !== offsetX[run.index]
+          || previousOffsetZ !== offsetZ[run.index]
+        );
+        verticalOffsets[run.index] = isOverviewLayout
+          ? run.overviewBottomOffset - run.focusedBottomOffset
+          : 0;
+      }
+
+      layoutInitialized.current = true;
+      layoutDirty.current = false;
+      layoutAnimating.current = hasUnsettledLayout;
+      material.uniforms.uFocused.value = isOverviewLayout ? 0 : 1;
     }
-    layoutInitialized.current = true;
     material.uniforms.uDissolve.value = dissolveVisibility.current;
-    material.uniforms.uActiveStream.value = activeIndex;
-    material.uniforms.uFocused.value = isOverviewLayout ? 0 : 1;
 
-    for (let index = 0; index < LINK_STREAMS.length; index++) {
-      const target = hoveredIndex === index ? 1 : 0;
-      hoverValues.current[index] += (
-        (target - hoverValues.current[index])
-        * Math.min(1, delta * LINK_STREAM_EFFECT_CONFIG.hoverDamping)
-      );
-      glitchValues.current[index] *= Math.exp(
-        -delta * LINK_STREAM_EFFECT_CONFIG.glitchDecay,
-      );
+    if (interactionAnimating.current) {
+      const hoverAlpha = Math.min(1, delta * LINK_STREAM_EFFECT_CONFIG.hoverDamping);
+      const glitchDecay = Math.exp(-delta * LINK_STREAM_EFFECT_CONFIG.glitchDecay);
+      let hasUnsettledInteraction = false;
+
+      for (let index = 0; index < LINK_STREAMS.length; index++) {
+        const hoverTarget = hoveredIndex === index ? 1 : 0;
+        const nextHover = hoverValues.current[index]
+          + (hoverTarget - hoverValues.current[index]) * hoverAlpha;
+        const hoverSettled = Math.abs(hoverTarget - nextHover) < ANIMATION_SETTLE_EPSILON;
+        hoverValues.current[index] = hoverSettled ? hoverTarget : nextHover;
+
+        const nextGlitch = glitchValues.current[index] * glitchDecay;
+        const glitchSettled = nextGlitch < ANIMATION_SETTLE_EPSILON;
+        glitchValues.current[index] = glitchSettled ? 0 : nextGlitch;
+        hasUnsettledInteraction ||= !hoverSettled || !glitchSettled;
+      }
+
+      interactionAnimating.current = hasUnsettledInteraction;
     }
-    (material.uniforms.uHover.value as Float32Array).set(hoverValues.current);
-    (material.uniforms.uGlitch.value as Float32Array).set(glitchValues.current);
 
-    camera.updateMatrixWorld();
-    const cameraMoved = cameraChanged(camera, previousCamera.current);
+    const cameraRevision = cameraFrameState.current.revision;
+    const cameraMoved = projectedCameraRevision.current !== cameraRevision;
     if (!hitTargetsDirty.current && !hitTargetsMoved && !cameraMoved) return;
 
     for (const run of LINK_STREAMS) {
@@ -349,7 +364,7 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
       if (hitButton.style.height !== heightStyle) hitButton.style.height = heightStyle;
       if (hitButton.style.width !== widthStyle) hitButton.style.width = widthStyle;
     }
-    rememberCamera(camera, previousCamera.current);
+    projectedCameraRevision.current = cameraRevision;
     hitTargetsDirty.current = false;
   }, 0.25);
 
