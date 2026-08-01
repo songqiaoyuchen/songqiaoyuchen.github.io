@@ -1,12 +1,27 @@
 'use client';
 
-import {useEffect, useState, type TransitionEvent} from 'react';
+import {
+  lazy,
+  Suspense,
+  useEffect,
+  useState,
+  type TransitionEvent,
+} from 'react';
 import type {SectionId} from '@/config/navigation/linkStreams';
 import type {ArticleSummary} from '@/lib/content/types';
-import {AboutPanel} from './about/AboutPanel';
-import {ArtPanel} from './art/ArtPanel';
-import {BlogPanel} from './blog/BlogPanel';
-import {ProjectsPanel} from './projects/ProjectsPanel';
+
+const AboutPanel = lazy(() => import('./about/AboutPanel').then(
+  ({AboutPanel: Panel}) => ({default: Panel}),
+));
+const ArtPanel = lazy(() => import('./art/ArtPanel').then(
+  ({ArtPanel: Panel}) => ({default: Panel}),
+));
+const BlogPanel = lazy(() => import('./blog/BlogPanel').then(
+  ({BlogPanel: Panel}) => ({default: Panel}),
+));
+const ProjectsPanel = lazy(() => import('./projects/ProjectsPanel').then(
+  ({ProjectsPanel: Panel}) => ({default: Panel}),
+));
 
 const SECTION_LABELS: Record<SectionId, string> = {
   about: 'About',
@@ -79,15 +94,17 @@ export function Drawer({activeId, articles, onClose}: DrawerProps) {
       />
 
       <div className="relative z-10 h-full">
-        {isAbout ? (
-          <AboutPanel isOpen={activeId === 'about'} />
-        ) : isArt ? (
-          <ArtPanel isOpen={activeId === 'art'} />
-        ) : isBlog ? (
-          <BlogPanel articles={articles} isOpen={activeId === 'blog'} />
-        ) : (
-          <ProjectsPanel isOpen={activeId === 'projects'} />
-        )}
+        <Suspense fallback={null}>
+          {isAbout ? (
+            <AboutPanel isOpen={activeId === 'about'} />
+          ) : isArt ? (
+            <ArtPanel isOpen={activeId === 'art'} />
+          ) : isBlog ? (
+            <BlogPanel articles={articles} isOpen={activeId === 'blog'} />
+          ) : (
+            <ProjectsPanel isOpen={activeId === 'projects'} />
+          )}
+        </Suspense>
       </div>
 
       <button

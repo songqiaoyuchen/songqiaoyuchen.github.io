@@ -1,7 +1,17 @@
-import type {IconName} from 'tech-stack-icons';
+type TechnologyIconName =
+  | 'go'
+  | 'mui'
+  | 'neo4j'
+  | 'postgresql'
+  | 'react'
+  | 'redux'
+  | 'supabase'
+  | 'tailwindcss'
+  | 'threejs'
+  | 'typescript';
 
 interface ProjectTechnology {
-  icon: IconName;
+  icon: TechnologyIconName;
   label: string;
 }
 
@@ -53,7 +63,7 @@ export const FEATURED_PROJECTS = [
     subtitle: 'A web forum that supports user discussions, thread management, and secure authentication.',
     technologies: [
       {icon: 'react', label: 'React'},
-      {icon: 'materialui', label: 'Material UI'},
+      {icon: 'mui', label: 'Material UI'},
       {icon: 'postgresql', label: 'PostgreSQL'},
       {icon: 'go', label: 'Golang'},
     ],

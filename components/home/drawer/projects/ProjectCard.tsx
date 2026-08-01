@@ -1,7 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import {useState} from 'react';
-import StackIcon from 'tech-stack-icons';
 import type {FEATURED_PROJECTS} from '@/data/projects';
 import PixelCard from './PixelCard';
 
@@ -80,10 +79,13 @@ export function ProjectCard({index, project}: ProjectCardProps) {
                   bg-surface-strong px-2 py-0.5 font-mono text-micro tracking-meta text-muted"
                 key={technology.label}
               >
-                <StackIcon
+                <Image
+                  alt=""
+                  aria-hidden="true"
                   className="size-3 shrink-0 overflow-hidden rounded-[0.2rem]"
-                  name={technology.icon}
-                  variant="dark"
+                  height={12}
+                  src={`/icons/techstack/${technology.icon}.svg`}
+                  width={12}
                 />
                 <span>{technology.label}</span>
               </li>

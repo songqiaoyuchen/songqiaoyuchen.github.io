@@ -1,7 +1,6 @@
 import type {Metadata} from 'next';
 import Image from 'next/image';
 import {notFound} from 'next/navigation';
-import StackIcon from 'tech-stack-icons';
 import {FEATURED_PROJECTS} from '@/data/projects';
 
 interface ProjectPageProps {
@@ -74,8 +73,14 @@ export default async function ProjectPage({params}: ProjectPageProps) {
                 <li className="inline-flex min-h-9 items-center gap-2 rounded-full border border-line
                   bg-surface-soft px-3 py-1 font-mono text-copy tracking-meta text-muted"
                   key={technology.label}>
-                  <StackIcon className="size-4 rounded-[0.2rem]" name={technology.icon}
-                    variant="dark" />
+                  <Image
+                    alt=""
+                    aria-hidden="true"
+                    className="size-4 rounded-[0.2rem]"
+                    height={16}
+                    src={`/icons/techstack/${technology.icon}.svg`}
+                    width={16}
+                  />
                   <span>{technology.label}</span>
                 </li>
               ))}

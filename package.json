@@ -30,7 +30,6 @@
     "react-dom": "19.2.4",
     "rehype-pretty-code": "^0.14.5",
     "tailwind-merge": "^3.6.0",
-    "tech-stack-icons": "^3.7.1",
     "three": "^0.169.0"
   },
   "devDependencies": {

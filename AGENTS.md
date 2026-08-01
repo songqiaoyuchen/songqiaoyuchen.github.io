@@ -56,9 +56,7 @@ Read `docs` before material product, design, or architecture work. Do not treat 
 
 Before declaring implementation work complete:
 
-- Run lint and the production build when relevant
 - Distinguish code failures from environmental failures such as unavailable font or package networks.
-- Inspect relevant pages using Firefox or Edge at approximately 390 px, 768 px, and 1440 px widths.
 - Check keyboard navigation, focus visibility, touch targets, and reduced-motion behavior for interactive changes.
 - Review the final diff for unrelated edits, stale experiments, and accidental debug UI.
 - Summarize what was verified and what remains uncertain.
