@@ -10,6 +10,7 @@ const FOCUS_BRACKET_PADDING = 0.08;
 const FOCUS_BRACKET_THICKNESS = 0.034;
 
 export interface HorizontalStreamText {
+  alternateText?: string;
   anchor: [number, number];
   bottomOffset: number;
   intensity: number;
@@ -20,6 +21,7 @@ export interface HorizontalStreamText {
 }
 
 type GeometryBuffers = {
+  alternateUvs: number[];
   atlasUvs: number[];
   billboardOffsets: number[];
   borderFlags: number[];
@@ -43,6 +45,10 @@ function createStreamGeometry(buffers: GeometryBuffers) {
   geometry.setAttribute(
     'uv',
     new BufferAttribute(new Float32Array(buffers.atlasUvs), 2),
+  );
+  geometry.setAttribute(
+    'aAlternateUv',
+    new BufferAttribute(new Float32Array(buffers.alternateUvs), 2),
   );
   geometry.setAttribute(
     'aBillboardOffset',
@@ -91,9 +97,15 @@ export function getLinkStreamHeight(stream: LinkStream) {
 }
 
 export function buildHorizontalStreamGeometry(run: HorizontalStreamText) {
+  const alternateText = run.alternateText ?? run.text;
+  if (alternateText.length !== run.text.length) {
+    throw new Error('Horizontal stream alternate text must match the original text length.');
+  }
+
   const buffers: GeometryBuffers = {
     positions: [],
     atlasUvs: [],
+    alternateUvs: [],
     billboardOffsets: [],
     localUvs: [],
     streamIndices: [],
@@ -113,6 +125,9 @@ export function buildHorizontalStreamGeometry(run: HorizontalStreamText) {
     const atlasIndex = run.text.charCodeAt(characterIndex) - FIRST_CODEPOINT;
     const column = atlasIndex % ATLAS_COLUMNS;
     const row = Math.floor(atlasIndex / ATLAS_COLUMNS);
+    const alternateAtlasIndex = alternateText.charCodeAt(characterIndex) - FIRST_CODEPOINT;
+    const alternateColumn = alternateAtlasIndex % ATLAS_COLUMNS;
+    const alternateRow = Math.floor(alternateAtlasIndex / ATLAS_COLUMNS);
     const horizontalCenter = (characterIndex - (run.text.length - 1) * 0.5) * advance;
     const verticalCenter = run.bottomOffset + run.size * 0.5;
     const vertexBase = buffers.positions.length / 3;
@@ -129,6 +144,10 @@ export function buildHorizontalStreamGeometry(run: HorizontalStreamText) {
         buffers.atlasUvs.push(
           (column + localX) / ATLAS_COLUMNS,
           1 - (row + 1 - localY) / ATLAS_ROWS,
+        );
+        buffers.alternateUvs.push(
+          (alternateColumn + localX) / ATLAS_COLUMNS,
+          1 - (alternateRow + 1 - localY) / ATLAS_ROWS,
         );
         buffers.localUvs.push(localX, localY);
         buffers.streamIndices.push(0);
@@ -159,6 +178,7 @@ export function buildHorizontalStreamGeometry(run: HorizontalStreamText) {
 export function buildLinkStreamGeometry(streams: readonly LinkStream[]) {
   const positions: number[] = [];
   const atlasUvs: number[] = [];
+  const alternateUvs: number[] = [];
   const billboardOffsets: number[] = [];
   const localUvs: number[] = [];
   const streamIndices: number[] = [];
@@ -190,6 +210,7 @@ export function buildLinkStreamGeometry(streams: readonly LinkStream[]) {
       positions.push(stream.anchor[0], centerY, stream.anchor[1]);
       billboardOffsets.push(centerX + cornerX * width, cornerY * height);
       atlasUvs.push(0, 0);
+      alternateUvs.push(0, 0);
       localUvs.push(cornerX + 0.5, cornerY + 0.5);
       streamIndices.push(stream.index);
       navGlyphs.push(1);
@@ -260,6 +281,10 @@ export function buildLinkStreamGeometry(streams: readonly LinkStream[]) {
           positions.push(stream.anchor[0], verticalCenter, stream.anchor[1]);
           billboardOffsets.push((localX - 0.5) * glyphWidth, (localY - 0.5) * stream.size);
           atlasUvs.push((column + localX) / ATLAS_COLUMNS, 1 - (row + 1 - localY) / ATLAS_ROWS);
+          alternateUvs.push(
+            (column + localX) / ATLAS_COLUMNS,
+            1 - (row + 1 - localY) / ATLAS_ROWS,
+          );
           localUvs.push(localX, localY);
           streamIndices.push(stream.index);
           navGlyphs.push(
@@ -318,6 +343,7 @@ export function buildLinkStreamGeometry(streams: readonly LinkStream[]) {
   return createStreamGeometry({
     positions,
     atlasUvs,
+    alternateUvs,
     billboardOffsets,
     localUvs,
     streamIndices,

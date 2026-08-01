@@ -3,6 +3,7 @@ import {VIEWPORT_BREAKPOINTS} from '@/config/breakpoints';
 export const HERO_CONTENT = {
   eyebrow: "HELLO, I'M",
   name: 'SQYC',
+  hoverName: 'SONG',
   supportingLines: [
     'CS + MATH AT National University of SG',
     'EXPLORING SOFTWARE AND VISUAL SOLUTIONS',
@@ -25,6 +26,10 @@ export const HERO_SCENE_CONFIG = {
   entranceDelay: 1.42,
   revealSpeed: 2.4,
   hideSpeed: 4.8,
+  hoverHitArea: {
+    width: '16rem',
+    height: '6rem',
+  },
   desktopMinWidth: VIEWPORT_BREAKPOINTS.md,
 } as const;
 

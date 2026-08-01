@@ -25,6 +25,7 @@ import type {
   ContourControlValues,
   TerrainControlValues,
 } from '@/components/debug/useSceneControls';
+import {useReducedMotion} from '@/hooks/useReducedMotion';
 import {useTerrainAssets} from '@/lib/terrain/assets';
 import {
   buildDecorStreamGeometry,
@@ -48,8 +49,12 @@ export const DecorStreams = forwardRef<MeshType, DecorStreamsProps>(function Dec
   forwardedRef,
 ) {
   const compositorDirty = useRef(true);
+  const animationAccumulator = useRef(0);
+  const animationTime = useRef(0);
+  const materialRef = useRef<ShaderMaterial | null>(null);
   const cameraFrameState = useCameraFrameState();
   const renderedCameraRevision = useRef(-1);
+  const isReducedMotion = useReducedMotion();
   const atlas = useLoader(TextureLoader, '/textures/text/decorative-atlas.png');
   const width = useThree((state) => state.size.width);
   const height = useThree((state) => state.size.height);
@@ -91,6 +96,13 @@ export const DecorStreams = forwardRef<MeshType, DecorStreamsProps>(function Dec
       uColor: { value: new Color(contourSettings.minorColor) },
       uHotColor: { value: new Color(contourSettings.majorColor) },
       uEnergy: { value: DECOR_STREAM_CONFIG.energy },
+      uAnimationTime: { value: 0 },
+      uFallRowsPerSecond: {
+        value: DECOR_STREAM_CONFIG.animation.fallRowsPerSecond,
+      },
+      uSwapsPerSecond: {
+        value: DECOR_STREAM_CONFIG.animation.swapsPerSecond,
+      },
     },
     transparent: true,
     depthTest: false,
@@ -148,9 +160,22 @@ export const DecorStreams = forwardRef<MeshType, DecorStreamsProps>(function Dec
   );
 
   useEffect(() => {
+    materialRef.current = material;
+    return () => {
+      if (materialRef.current === material) materialRef.current = null;
+    };
+  }, [material]);
+  useEffect(() => {
     configureBitmapAtlas(atlas);
     compositorDirty.current = true;
   }, [atlas]);
+  useEffect(() => {
+    animationAccumulator.current = 0;
+    animationTime.current = 0;
+    const currentMaterial = materialRef.current;
+    if (currentMaterial) currentMaterial.uniforms.uAnimationTime.value = 0;
+    compositorDirty.current = true;
+  }, [isReducedMotion]);
   useLayoutEffect(() => {
     compositor.setSize(width, height);
     compositorDirty.current = true;
@@ -161,8 +186,22 @@ export const DecorStreams = forwardRef<MeshType, DecorStreamsProps>(function Dec
   useEffect(() => () => compositeGeometry.dispose(), [compositeGeometry]);
 
   useFrame((state, delta) => {
-    // The planned letter scramble can mark this dirty only when its discrete
-    // loop frame advances; the blurred result is reusable between those ticks.
+    if (!isReducedMotion) {
+      const tickDuration = 1 / DECOR_STREAM_CONFIG.animation.tickRate;
+      // Capping the contribution prevents a background-tab resume from
+      // producing catch-up ticks or an abrupt multi-row jump.
+      animationAccumulator.current += Math.min(delta, tickDuration);
+      if (animationAccumulator.current >= tickDuration) {
+        animationAccumulator.current %= tickDuration;
+        animationTime.current += tickDuration;
+        const currentMaterial = materialRef.current;
+        if (currentMaterial) {
+          currentMaterial.uniforms.uAnimationTime.value = animationTime.current;
+        }
+        compositorDirty.current = true;
+      }
+    }
+
     const cameraRevision = cameraFrameState.current.revision;
     if (
       !compositorDirty.current

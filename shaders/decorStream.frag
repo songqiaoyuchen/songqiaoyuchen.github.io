@@ -3,6 +3,9 @@ uniform vec3 uColor;
 uniform vec3 uHotColor;
 uniform float uAtlasColumns;
 uniform float uEnergy;
+uniform float uAnimationTime;
+uniform vec2 uFallRowsPerSecond;
+uniform vec2 uSwapsPerSecond;
 
 varying vec2 vStreamUv;
 varying vec4 vRandom;
@@ -23,10 +26,24 @@ float atlasSample(float character, vec2 glyphUv) {
 }
 
 void main() {
-  float cellPosition = vStreamUv.y * vCharCount;
+  float fallSpeed = mix(uFallRowsPerSecond.x, uFallRowsPerSecond.y, vRandom.y);
+  float cellPosition = vStreamUv.y * vCharCount + uAnimationTime * fallSpeed;
   float cellIndex = floor(cellPosition);
+  float swapRandom = hash12(vec2(
+    cellIndex + vRandom.z * 131.0,
+    vRandom.w * 173.0
+  ));
+  float swapSpeed = mix(uSwapsPerSecond.x, uSwapsPerSecond.y, swapRandom);
+  float swapPhase = hash12(vec2(
+    cellIndex + vRandom.x * 181.0,
+    vRandom.y * 211.0
+  ));
+  float swapEpoch = floor(uAnimationTime * swapSpeed + swapPhase);
   float character = floor(
-    hash12(vec2(cellIndex + vRandom.x * 97.0, vRandom.w * 53.0))
+    hash12(vec2(
+      cellIndex + vRandom.x * 97.0 + swapEpoch * 19.19,
+      vRandom.w * 53.0 + swapEpoch * 37.71
+    ))
     * uAtlasColumns
   );
   vec2 glyphUv = vec2(vStreamUv.x, fract(cellPosition));

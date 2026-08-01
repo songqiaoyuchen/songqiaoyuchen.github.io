@@ -265,3 +265,30 @@ Keeping them together removes an unnecessary gesture and exposes the site index 
 The mobile homepage does not snap or scroll between introduction and navigation stages, and it has no scroll
 cue or scroll-driven stream reveal. Mobile stream placement remains tunable through the existing development
 controls. Desktop and tablet composition remains unchanged.
+
+### D-012: Decorative streams use a restrained stepped glyph cascade
+
+Status: accepted
+Date: 2026-08-01
+Scope: design, animation, performance
+
+**Decision**
+
+DecorStreams keep fixed world-space anchors while their glyph content advances downward in a subtle,
+seeded 12 Hz cascade. Individual glyphs swap independently at varied low frequencies. The blurred depth
+layers refresh only on cascade ticks, and reduced-motion mode freezes the effect on a deterministic frame.
+LinkStreams remain positionally static and retain their existing interaction glitch.
+
+**Reason**
+
+The falling and swapping characters add the requested ambient life without moving navigation, changing the
+scene composition, or forcing the decor compositor to rerender at display refresh rate.
+
+**Consequences**
+
+Decor streams remain a live shader layer and must not be baked into the terrain texture. New tuning should
+preserve asynchronous stream phases, sparse swaps, fixed anchors, and a static reduced-motion presentation.
+
+**Supersedes**
+
+D-006 for DecorStreams only. D-006 continues to govern LinkStreams.

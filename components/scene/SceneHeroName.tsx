@@ -1,6 +1,7 @@
 'use client';
 
 import {forwardRef, useEffect, useMemo, useRef} from 'react';
+import {Html} from '@react-three/drei';
 import {useFrame, useLoader, useThree} from '@react-three/fiber';
 import {
   AdditiveBlending,
@@ -39,6 +40,8 @@ import {sampleHeight} from '@/lib/terrain/height';
 import vertexShader from '@/shaders/linkStream.vert';
 import fragmentShader from '@/shaders/linkStream.frag';
 
+const ANIMATION_SETTLE_EPSILON = 0.0001;
+
 interface SceneHeroNameProps {
   contourSettings: ContourControlValues;
   isHidden: boolean;
@@ -60,6 +63,7 @@ export const SceneHeroName = forwardRef<Mesh, SceneHeroNameProps>(function Scene
   const {elevation, seaLevel} = terrainSettings;
   const {displacementMap, shellBase} = useTerrainAssets();
   const geometry = useMemo(() => buildHorizontalStreamGeometry({
+    alternateText: HERO_CONTENT.hoverName,
     anchor: [0, 0],
     bottomOffset: 0,
     intensity: HERO_SCENE_CONFIG.intensity,
@@ -127,6 +131,7 @@ export const SceneHeroName = forwardRef<Mesh, SceneHeroNameProps>(function Scene
     uTime: {value: 0},
     uHover: {value: new Float32Array(1)},
     uGlitch: {value: new Float32Array(1)},
+    uTextTarget: {value: new Float32Array(1)},
     uLayoutOffsetX: {value: new Float32Array(1)},
     uLayoutOffsetZ: {value: new Float32Array(1)},
     uVerticalOffset: {value: new Float32Array(1)},
@@ -165,12 +170,25 @@ export const SceneHeroName = forwardRef<Mesh, SceneHeroNameProps>(function Scene
     (material.uniforms.uLayoutOffsetZ.value as Float32Array)[0] = layoutPosition[1];
     material.uniforms.uLift.value = sceneLift;
   }, [layoutPosition, sceneLift]);
+  useEffect(() => {
+    if (!isHidden) return;
+    const material = materialRef.current;
+    if (!material) return;
+    (material.uniforms.uTextTarget.value as Float32Array)[0] = 0;
+    (material.uniforms.uGlitch.value as Float32Array)[0] = 0;
+  }, [isHidden]);
 
   useFrame((_, delta) => {
     const material = materialRef.current;
     if (!material) return;
 
     material.uniforms.uTime.value += delta;
+    const glitchValues = material.uniforms.uGlitch.value as Float32Array;
+    if (glitchValues[0] > 0) {
+      const nextGlitch = glitchValues[0]
+        * Math.exp(-delta * LINK_STREAM_EFFECT_CONFIG.glitchDecay);
+      glitchValues[0] = nextGlitch < ANIMATION_SETTLE_EPSILON ? 0 : nextGlitch;
+    }
     if (!introStarted) {
       elapsed.current = 0;
       dissolve.current = 0;
@@ -200,25 +218,54 @@ export const SceneHeroName = forwardRef<Mesh, SceneHeroNameProps>(function Scene
     material.uniforms.uDissolve.value = dissolve.current;
   });
 
+  const hitTargetPosition = [
+    layoutPosition[0],
+    sampleHeight(shellBase, layoutPosition[0], layoutPosition[1], elevation, seaLevel)
+      + centerOffset
+      + sceneLift,
+    layoutPosition[1],
+  ] as const;
+  const isDesktop = viewportWidth >= HERO_SCENE_CONFIG.desktopMinWidth;
+  const setHeroTextTarget = (target: number) => {
+    const material = materialRef.current;
+    if (!material) return;
+    (material.uniforms.uTextTarget.value as Float32Array)[0] = target;
+    (material.uniforms.uGlitch.value as Float32Array)[0] = isReducedMotion ? 0 : 1;
+  };
+
   return (
-    <mesh
-      ref={forwardedRef}
-      frustumCulled={false}
-      geometry={geometry}
-      renderOrder={5}
-      visible={viewportWidth >= HERO_SCENE_CONFIG.desktopMinWidth}
-    >
-      <shaderMaterial
-        ref={materialRef}
-        vertexShader={compiledVertexShader}
-        fragmentShader={fragmentShader}
-        uniforms={uniforms}
-        transparent
-        depthTest={false}
-        depthWrite={false}
-        side={DoubleSide}
-        blending={AdditiveBlending}
-      />
-    </mesh>
+    <>
+      <mesh
+        ref={forwardedRef}
+        frustumCulled={false}
+        geometry={geometry}
+        renderOrder={5}
+        visible={isDesktop}
+      >
+        <shaderMaterial
+          ref={materialRef}
+          vertexShader={compiledVertexShader}
+          fragmentShader={fragmentShader}
+          uniforms={uniforms}
+          transparent
+          depthTest={false}
+          depthWrite={false}
+          side={DoubleSide}
+          blending={AdditiveBlending}
+        />
+      </mesh>
+      {isDesktop ? (
+        <Html center position={hitTargetPosition} zIndexRange={[30, 10]}>
+          <span
+            aria-hidden="true"
+            className={`block bg-transparent ${isHidden ? 'pointer-events-none' : 'pointer-events-auto'}`}
+            data-hero-name-hit-target
+            style={HERO_SCENE_CONFIG.hoverHitArea}
+            onPointerEnter={() => setHeroTextTarget(1)}
+            onPointerLeave={() => setHeroTextTarget(0)}
+          />
+        </Html>
+      ) : null}
+    </>
   );
 });

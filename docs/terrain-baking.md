@@ -123,5 +123,6 @@ Before deleting the live EXR path:
 4. Verify reduced motion and WebGL fallback are unchanged.
 
 Contour geometry can be serialized in a later pass without removing its shader
-animation. Delay decor-stream baking until its planned animation model is
-known, as agreed.
+animation. Keep decor streams out of the static terrain bake: their accepted
+stepped glyph cascade depends on live shader time and a periodically refreshed
+depth-blur compositor (D-012).

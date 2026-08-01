@@ -6,6 +6,7 @@ uniform float uTime;
 uniform float uDissolve;
 
 varying vec2 vAtlasUv;
+varying vec2 vAlternateAtlasUv;
 varying vec2 vLocalUv;
 varying float vNavGlyph;
 varying float vIntensity;
@@ -13,6 +14,7 @@ varying float vSeed;
 varying float vStreamT;
 varying float vHover;
 varying float vGlitch;
+varying float vTextTarget;
 varying float vActive;
 varying float vFocused;
 varying float vBorder;
@@ -21,6 +23,15 @@ float hash12(vec2 p) {
   vec3 p3 = fract(vec3(p.xyx) * 0.1031);
   p3 += dot(p3, p3.yzx + 33.33);
   return fract((p3.x + p3.y) * p3.z);
+}
+
+vec2 atlasUvForGlyph(float glyphIndex, vec2 localUv) {
+  float column = mod(glyphIndex, 16.0);
+  float row = floor(glyphIndex / 16.0);
+  return vec2(
+    (column + localUv.x) / 16.0,
+    1.0 - (row + 1.0 - localUv.y) / 8.0
+  );
 }
 
 void main() {
@@ -36,7 +47,18 @@ void main() {
     return;
   }
 
-  float field = texture2D(uAtlas, vAtlasUv).r;
+  vec2 settledAtlasUv = mix(vAtlasUv, vAlternateAtlasUv, vTextTarget);
+  float scrambleStrength = smoothstep(0.08, 0.96, vGlitch);
+  float settleOrder = hash12(vec2(vSeed * 4.31, 7.17));
+  float scrambleMask = step(settleOrder, scrambleStrength);
+  float randomGlyph = 1.0 + floor(
+    hash12(vec2(vSeed * 19.7, floor(uTime * 18.0))) * 58.0
+  );
+  vec2 scrambledAtlasUv = atlasUvForGlyph(randomGlyph, vLocalUv);
+  float field = texture2D(
+    uAtlas,
+    mix(settledAtlasUv, scrambledAtlasUv, scrambleMask)
+  ).r;
   float width = fwidth(field);
   float smoothing = max(width * 1.2, 0.004);
   // Dilate the SDF threshold as glyphs shrink on screen: keeps distant

@@ -1,4 +1,5 @@
 attribute vec2 aBillboardOffset;
+attribute vec2 aAlternateUv;
 attribute vec2 aLocalUv;
 attribute float aStreamIndex;
 attribute float aNavGlyph;
@@ -20,6 +21,7 @@ uniform float uLift;
 uniform float uTime;
 uniform float uHover[LINK_STREAM_COUNT];
 uniform float uGlitch[LINK_STREAM_COUNT];
+uniform float uTextTarget[LINK_STREAM_COUNT];
 uniform float uLayoutOffsetX[LINK_STREAM_COUNT];
 uniform float uLayoutOffsetZ[LINK_STREAM_COUNT];
 uniform float uVerticalOffset[LINK_STREAM_COUNT];
@@ -29,6 +31,7 @@ uniform float uFocusedSpacingMultiplier;
 uniform float uBillboardTilt;
 
 varying vec2 vAtlasUv;
+varying vec2 vAlternateAtlasUv;
 varying vec2 vLocalUv;
 varying float vNavGlyph;
 varying float vIntensity;
@@ -36,6 +39,7 @@ varying float vSeed;
 varying float vStreamT;
 varying float vHover;
 varying float vGlitch;
+varying float vTextTarget;
 varying float vActive;
 varying float vFocused;
 varying float vBorder;
@@ -65,6 +69,7 @@ float processH(float raw) {
 
 void main() {
   vAtlasUv = uv;
+  vAlternateAtlasUv = aAlternateUv;
   vLocalUv = aLocalUv;
   vNavGlyph = aNavGlyph;
   vIntensity = aIntensity;
@@ -72,6 +77,7 @@ void main() {
   vStreamT = aStreamT;
   vHover = streamValue(uHover, aStreamIndex);
   vGlitch = streamValue(uGlitch, aStreamIndex);
+  vTextTarget = streamValue(uTextTarget, aStreamIndex);
   vActive = 1.0 - step(0.25, abs(aStreamIndex - uActiveStream));
   vFocused = uFocused;
   vBorder = aBorder;

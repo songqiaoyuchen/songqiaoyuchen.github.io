@@ -158,6 +158,7 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
     uTime: { value: 0 },
     uHover: { value: hoverValues.current },
     uGlitch: { value: glitchValues.current },
+    uTextTarget: { value: new Float32Array(LINK_STREAMS.length) },
     uLayoutOffsetX: { value: new Float32Array(LINK_STREAMS.length) },
     uLayoutOffsetZ: { value: new Float32Array(LINK_STREAMS.length) },
     uVerticalOffset: {
@@ -421,6 +422,8 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
                 data-muted={(isFocused && activeId !== run.id) || undefined}
                 onPointerEnter={() => setHoveredIndex(run.index)}
                 onPointerLeave={() => setHoveredIndex(null)}
+                onFocus={() => setHoveredIndex(run.index)}
+                onBlur={() => setHoveredIndex(null)}
                 onPointerDown={(event) => event.stopPropagation()}
                 onClick={(event) => {
                   event.stopPropagation();
