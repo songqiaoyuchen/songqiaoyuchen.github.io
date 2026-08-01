@@ -2,7 +2,7 @@ import {VIEWPORT_BREAKPOINTS} from '@/config/breakpoints';
 
 export const HERO_CONTENT = {
   eyebrow: "HELLO, I'M",
-  name: 'SONG',
+  name: 'SQYC',
   supportingLines: [
     'CS + MATH AT National University of SG',
     'EXPLORING SOFTWARE AND VISUAL SOLUTIONS',

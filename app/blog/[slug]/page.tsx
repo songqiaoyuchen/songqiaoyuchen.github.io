@@ -31,7 +31,7 @@ export async function generateMetadata({params}: ArticlePageProps): Promise<Meta
 
   return {
     description: article.description,
-    title: `${article.title} | Song`,
+    title: `${article.title} | SQYC`,
   };
 }
 

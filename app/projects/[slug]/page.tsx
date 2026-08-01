@@ -24,7 +24,7 @@ export async function generateMetadata({params}: ProjectPageProps): Promise<Meta
 
   return {
     description: project.subtitle,
-    title: `${project.title} | Song`,
+    title: `${project.title} | SQYC`,
   };
 }
 

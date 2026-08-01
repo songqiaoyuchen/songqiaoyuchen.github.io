@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useMemo, useRef, useState } from 'react';
+import {Suspense, useEffect, useMemo, useRef, useState} from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, StatsGl } from '@react-three/drei';
 import { EffectComposer } from '@react-three/postprocessing';
@@ -28,6 +28,7 @@ type TerrainBackgroundProps = {
   activeId: SectionId | null;
   introStarted: boolean;
   onSceneError: (error: Error) => void;
+  onSceneProgress: (progress: number) => void;
   onSceneReady: () => void;
   onStreamClick: (id: SectionId) => void;
 };
@@ -36,6 +37,7 @@ export function TerrainBackground({
   activeId,
   introStarted,
   onSceneError,
+  onSceneProgress,
   onSceneReady,
   onStreamClick,
 }: TerrainBackgroundProps) {
@@ -50,6 +52,14 @@ export function TerrainBackground({
     [contourMesh, linkStreamsMesh],
   );
 
+  useEffect(() => {
+    let progress = 0.18;
+    if (terrainDepthTexture) progress += 0.3;
+    if (contourMesh) progress += 0.16;
+    if (linkStreamsMesh) progress += 0.14;
+    onSceneProgress(progress);
+  }, [contourMesh, linkStreamsMesh, onSceneProgress, terrainDepthTexture]);
+
   return (
     <div className="sticky top-0 z-0 h-svh w-full md:absolute md:inset-0">
       <SaveConfigButton values={settings} />
@@ -58,6 +68,7 @@ export function TerrainBackground({
           camera={{position: CAMERA_CONFIG.overviewPosition, fov: CAMERA_CONFIG.fov}}
           fallback={null}
           gl={{ antialias: false, powerPreference: 'high-performance' }}
+          onCreated={() => onSceneProgress(0.18)}
         >
 
         {process.env.NODE_ENV === 'development' ? (
@@ -101,6 +112,7 @@ export function TerrainBackground({
           />
           <SceneReadySignal
             enabled={bloomSelection.length === 2}
+            onProgress={onSceneProgress}
             onReady={onSceneReady}
           />
         </Suspense>

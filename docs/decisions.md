@@ -223,8 +223,13 @@ Scope: design, architecture, performance
 
 The homepage is covered by a full-screen preloader until the first complete WebGL terrain frame is ready. The
 screen represents genuine loading only: production adds no minimum display time, cached returns pass through
-as soon as the scene is ready, and any return that remains slow receives the same loading treatment. The
-temporary default is the Contour Survey variant while it is compared with the SQYC Type Build variant.
+as soon as the scene is ready, and any return that remains slow receives the same loading treatment. The final
+loader uses a centered, manually drawn SVG contour with a Krypton count below it. The five rings form one
+compound outer-to-inner path with a single uniform travelling highlight, independent of readiness. The visible
+count also runs independently from zero toward 90; genuine scene readiness alone releases 100 and begins the
+exit. Production does not wait for a separate progress-completion animation. The SVG is present in the initial
+rendered markup, and WebGL
+initialization begins only after the browser has painted that lightweight loading surface.
 
 **Reason**
 

@@ -3,8 +3,8 @@ import {ArticleList} from '@/components/blog/ArticleList';
 import {getAllArticles} from '@/lib/content/articles';
 
 export const metadata: Metadata = {
-  description: 'Field notes on design, technology, and creative practice.',
-  title: 'Blog | Song',
+  description: 'Refections, travel journals, and rant.',
+  title: 'Blog | SQYC',
 };
 
 export default async function BlogPage() {

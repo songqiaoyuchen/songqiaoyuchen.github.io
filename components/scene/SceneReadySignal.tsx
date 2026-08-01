@@ -5,10 +5,11 @@ import {useFrame} from '@react-three/fiber';
 
 type SceneReadySignalProps = {
   enabled: boolean;
+  onProgress: (progress: number) => void;
   onReady: () => void;
 };
 
-export function SceneReadySignal({enabled, onReady}: SceneReadySignalProps) {
+export function SceneReadySignal({enabled, onProgress, onReady}: SceneReadySignalProps) {
   const completedFrames = useRef(0);
   const reported = useRef(false);
 
@@ -19,7 +20,10 @@ export function SceneReadySignal({enabled, onReady}: SceneReadySignalProps) {
       return;
     }
     completedFrames.current += 1;
-    if (completedFrames.current < 2) return;
+    if (completedFrames.current < 2) {
+      onProgress(0.9);
+      return;
+    }
     reported.current = true;
     onReady();
   });

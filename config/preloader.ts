@@ -1,10 +1,9 @@
-export type PreloaderVariant = 'contour' | 'type';
-
 export const PRELOADER_CONFIG = {
   bypassDelayMs: 8000,
-  defaultVariant: 'type' as PreloaderVariant,
+  countApproachDurationMs: 8000,
+  countCompletionDurationMs: 360,
+  countLoadingLimit: 90,
   exitDurationMs: 450,
   previewDurationMs: 2500,
   reducedMotionExitDurationMs: 150,
-  visualDelayMs: 200,
 } as const;

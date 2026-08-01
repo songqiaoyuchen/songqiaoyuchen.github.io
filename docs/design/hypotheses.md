@@ -37,7 +37,7 @@ Leave blank until tested. Link screenshots, commits, or prototypes where useful.
 
 ### H-012: Contour Survey versus SQYC Type Build preloader
 
-Status: exploring
+Status: resolved
 Confidence: medium
 
 **Hypothesis**
@@ -69,8 +69,12 @@ feel slower, and hands into the loaded homepage without a visual flash or focus 
 
 **Result**
 
-Both variants are implemented for comparison. Contour Survey is the temporary default; development URLs
-`/#preloader=contour&preview=1` and `/#preloader=type&preview=1` force a short comparison preview.
+2026-07-29 — The two variants were initially combined as a centered SVG mountain-contour icon with a restrained
+SQYC wordmark. On 2026-08-01, user testing exposed an inherent interruption when the one-shot contour drawing
+was synchronized to coarse readiness milestones. The accepted revision uses the user's manually drawn contour:
+its five rings form one compound path with a uniform outer-to-inner loop, while a separate Krypton count runs
+smoothly toward 90 and reserves 100 for genuine scene readiness. The variant switcher remains removed, while
+`/#preview=1` provides a short development preview.
 
 ### H-011: Asymmetric homepage overview
 

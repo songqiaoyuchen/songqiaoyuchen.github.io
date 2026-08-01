@@ -4,8 +4,8 @@ import {ArtworkViewer} from '@/components/artworks/ArtworkViewer';
 import {ARTWORK_SECTIONS} from '@/data/artworks';
 
 export const metadata: Metadata = {
-  title: 'Artworks | Song',
-  description: 'Paintings, drawings, and digital artwork by Song.',
+  title: 'Artworks | SQYC',
+  description: 'Paintings, drawings, and digital artwork by SQYC.',
 };
 
 export default function ArtworksPage() {

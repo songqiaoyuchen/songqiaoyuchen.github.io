@@ -15,7 +15,7 @@ import {Hero} from './Hero';
 import {HomepagePreloader} from './preloader/HomepagePreloader';
 import { Leva } from 'leva';
 import {useReducedMotion} from '@/hooks/useReducedMotion';
-import {PRELOADER_CONFIG, type PreloaderVariant} from '@/config/preloader';
+import {PRELOADER_CONFIG} from '@/config/preloader';
 import {TerrainFallback} from '@/components/scene/TerrainFallback';
 
 interface HomeProps {
@@ -26,9 +26,8 @@ type SceneState = 'loading' | 'exiting' | 'ready' | 'fallback';
 
 export function Home({articles}: HomeProps) {
   const [activeId, setActiveId] = useState<SectionId | null>(null);
-  const [preloaderVariant, setPreloaderVariant] = useState<PreloaderVariant>(
-    PRELOADER_CONFIG.defaultVariant,
-  );
+  const [sceneProgress, setSceneProgress] = useState(0);
+  const [sceneStarted, setSceneStarted] = useState(false);
   const [sceneState, setSceneState] = useState<SceneState>('loading');
   const [showBypass, setShowBypass] = useState(false);
   const sceneResolvedRef = useRef(false);
@@ -55,16 +54,23 @@ export function Home({articles}: HomeProps) {
 
     const applyDevelopmentOptions = () => {
       const parameters = new URLSearchParams(window.location.hash.slice(1));
-      const requestedVariant = parameters.get('preloader');
-      if (requestedVariant === 'contour' || requestedVariant === 'type') {
-        setPreloaderVariant(requestedVariant);
-      }
       previewRef.current = parameters.get('preview') === '1';
       stallRef.current = parameters.get('stall') === '1';
     };
     applyDevelopmentOptions();
     window.addEventListener('hashchange', applyDevelopmentOptions);
     return () => window.removeEventListener('hashchange', applyDevelopmentOptions);
+  }, []);
+
+  useEffect(() => {
+    let secondFrame = 0;
+    const firstFrame = window.requestAnimationFrame(() => {
+      secondFrame = window.requestAnimationFrame(() => setSceneStarted(true));
+    });
+    return () => {
+      window.cancelAnimationFrame(firstFrame);
+      window.cancelAnimationFrame(secondFrame);
+    };
   }, []);
 
   useEffect(() => () => {
@@ -96,6 +102,7 @@ export function Home({articles}: HomeProps) {
     if (sceneResolvedRef.current) return;
     if (process.env.NODE_ENV === 'development' && stallRef.current) return;
     sceneResolvedRef.current = true;
+    setSceneProgress(1);
     const previewStartedAt = previewStartedAtRef.current ?? window.performance.now();
     const previewRemaining = previewRef.current
       ? Math.max(
@@ -110,6 +117,11 @@ export function Home({articles}: HomeProps) {
     }
     readyTimerRef.current = window.setTimeout(finishSceneTransition, previewRemaining);
   }, [finishSceneTransition]);
+
+  const handleSceneProgress = useCallback((progress: number) => {
+    const clampedProgress = Math.min(1, Math.max(0, progress));
+    setSceneProgress((currentProgress) => Math.max(currentProgress, clampedProgress));
+  }, []);
 
   const enterTerrainFallback = useCallback(() => {
     sceneResolvedRef.current = true;
@@ -147,15 +159,16 @@ export function Home({articles}: HomeProps) {
         />
         {sceneState === 'fallback' ? (
           <TerrainFallback />
-        ) : (
+        ) : sceneStarted ? (
           <TerrainBackground
             activeId={activeId}
             introStarted={sceneState === 'ready'}
             onSceneError={handleSceneError}
+            onSceneProgress={handleSceneProgress}
             onSceneReady={handleSceneReady}
             onStreamClick={toggleSection}
           />
-        )}
+        ) : null}
 
         {!isBlocking ? (
           <>
@@ -183,10 +196,10 @@ export function Home({articles}: HomeProps) {
       {isBlocking ? (
         <HomepagePreloader
           onContinueWithoutTerrain={enterTerrainFallback}
+          progress={sceneProgress}
           reducedMotion={isReducedMotion}
           showBypass={showBypass}
           state={sceneState}
-          variant={preloaderVariant}
         />
       ) : null}
     </main>
