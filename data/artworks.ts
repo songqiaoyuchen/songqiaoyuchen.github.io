@@ -17,7 +17,7 @@ export interface ArtworkSection {
 }
 
 const ARTWORKS_BY_ID: Record<string, Artwork> = {
-  amadablam: {id: 'amadablam', src: '/images/artworks/oil/ama-dablam.webp', alt: 'Oil painting of a Ama Dablam, Himalayas.', title: 'Ama Dablam', description: '', material: 'Oil on Canvas', size: '40 x 30 cm', width: 4265, height: 3129},
+  amadablam: {id: 'amadablam', src: '/images/artworks/oil/ama-dablam.webp', alt: 'Oil painting of a Ama Dablam, Himalayas.', title: 'Ama Dablam', description: 'The \'mother\'s charm box\' in the Sherpa language and one of my hardest pieces. I completed half in Singapore and finished in China. Intended as a warmup for my larger piece on Meili\'s 13 peaks.', material: 'Oil on Canvas', size: '40 x 30 cm', width: 4265, height: 3129},
   winter: {id: 'winter', src: '/images/artworks/digital/winter.webp', alt: 'Dark peaked buildings with a red-lit figure in a window', title: 'Winter of 2022', description: 'This piece was drawn over a photograph taken after the first snowfall of the winter of 2022. I was under COVID lockdown at a temporary home in Tianjin. ', material: 'Digital illustration', size: '2066 x 1986 px', width: 2066, height: 1986},
   night: {id: 'night', src: '/images/artworks/digital/night.webp', alt: 'Figure overlooking a red-lit city at night', title: 'Night', description: 'Lights in the night, chaos under structures.', material: 'Digital illustration', size: '1410 x 798 px', width: 1410, height: 798},
   k2: {id: 'k2', src: '/images/artworks/oil/k2.webp', alt: 'Blue-toned painting of K2', title: 'K2', description: 'My first mountainscape painting created during Secondary School, still one of my favourites.', material: 'Oil on Canvas', size: '40 x 30 cm', width: 2403, height: 1807},
@@ -36,7 +36,7 @@ type ArtworkId = keyof typeof ARTWORKS_BY_ID;
 function selectArtworks(ids: readonly ArtworkId[]): readonly Artwork[] { return ids.map((id) => ARTWORKS_BY_ID[id]); }
 
 const ARTWORK_SECTION_DEFINITIONS = [
-  {id: 'oil', label: 'Oil', artworkIds: ['k2', 'autumn', 'spring_thunder', 'cat', 'amadablam']},
+  {id: 'oil', label: 'Oil', artworkIds: ['amadablam', 'k2', 'cat', 'autumn', 'spring_thunder']},
   {id: 'digital', label: 'Digital', artworkIds: ['winter', 'night']},
   {id: 'pencil', label: 'Pencil', artworkIds: ['emma_one', 'emma_two', 'luci', 'einstein', 'alan_rickman', 'tyrion']},
 ] as const satisfies readonly {id: string; label: string; artworkIds: readonly ArtworkId[]}[];

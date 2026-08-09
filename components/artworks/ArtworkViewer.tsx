@@ -47,13 +47,13 @@ export function ArtworkViewer({artwork, priority}: ArtworkViewerProps) {
               ? 'opacity-0'
               : 'group-hover:opacity-100'}`}
         >
-          <span className="font-mono text-micro uppercase tracking-label text-accent-soft">
+          <span className="shrink-0 font-mono text-micro uppercase tracking-label text-accent-soft">
             {artwork.material} <span className="text-dim" aria-hidden="true">/</span> {artwork.size}
           </span>
-          <span className="mt-2 font-serif text-2xl font-normal italic leading-tight text-text">
+          <span className="mt-2 shrink-0 font-serif text-2xl font-normal italic leading-tight text-text">
             {artwork.title}
           </span>
-          <span className="mt-3 max-w-copy font-mono text-copy leading-copy text-muted">
+          <span className="mt-3 line-clamp-2 max-w-copy font-mono text-copy leading-copy text-muted">
             {artwork.description}
           </span>
         </span>
