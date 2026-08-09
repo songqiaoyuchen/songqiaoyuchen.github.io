@@ -30,6 +30,7 @@ type LayoutOptions = {
   count: number;
   bounds: DecorStreamBounds;
   seed: number;
+  centerHeightBias: number;
   depthLayers: number;
   aspect: number;
   camera: {
@@ -68,6 +69,7 @@ export function generateDecorStreamLayers({
   count,
   bounds,
   seed,
+  centerHeightBias,
   depthLayers,
   aspect,
   camera: cameraOptions,
@@ -132,6 +134,14 @@ export function generateDecorStreamLayers({
     }
     selected.push(remaining.splice(bestIndex, 1)[0]);
   }
+
+  // Redistribute height toward the visual center without materially raising
+  // the average glyph count across the whole field.
+  selected.forEach((instance) => {
+    const centerWeight = 1 - Math.min(1, Math.abs(instance.screenX) / 0.96);
+    const heightScale = 1 - centerHeightBias * 0.5 + centerWeight * centerHeightBias;
+    instance.charCount = Math.max(1, Math.round(instance.charCount * heightScale));
+  });
 
   // Lusion's four meshes are depth groups. Sorting before splitting makes the
   // progressive blur correspond to actual camera depth instead of an arbitrary

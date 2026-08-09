@@ -108,6 +108,7 @@ export function TerrainBackground({
             />
             <DecorStreams
               contourSettings={settings.contours}
+              decorStreamSettings={settings.decorStreams}
               terrainSettings={settings.terrain}
             />
             <LinkStreams

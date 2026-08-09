@@ -79,6 +79,11 @@ const EDITABLE_CONFIG = {
     fileName: 'linkStreams.ts',
     keys: ['mobileStartX', 'mobileEndX', 'mobileCenterY'],
   },
+  decorStreams: {
+    directory: 'scene',
+    fileName: 'decorStreams.ts',
+    keys: ['fallRowsPerSecond', 'packetRowsPerSecond'],
+  },
 } as const;
 
 type ConfigScope = keyof typeof EDITABLE_CONFIG;

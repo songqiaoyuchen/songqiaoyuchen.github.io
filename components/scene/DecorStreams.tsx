@@ -12,6 +12,7 @@ import {
   PlaneGeometry,
   ShaderMaterial,
   TextureLoader,
+  Vector2,
 } from 'three';
 import type { Mesh as MeshType } from 'three';
 import {
@@ -23,6 +24,7 @@ import {
 } from '@/config/scene';
 import type {
   ContourControlValues,
+  DecorStreamControlValues,
   TerrainControlValues,
 } from '@/components/debug/useSceneControls';
 import {useReducedMotion} from '@/hooks/useReducedMotion';
@@ -41,15 +43,15 @@ import fragmentShader from '@/shaders/decorStream.frag';
 import {useCameraFrameState} from './CameraFrameState';
 type DecorStreamsProps = {
   contourSettings: ContourControlValues;
+  decorStreamSettings: DecorStreamControlValues;
   terrainSettings: TerrainControlValues;
 };
 
 export const DecorStreams = forwardRef<MeshType, DecorStreamsProps>(function DecorStreams(
-  {contourSettings, terrainSettings},
+  {contourSettings, decorStreamSettings, terrainSettings},
   forwardedRef,
 ) {
   const compositorDirty = useRef(true);
-  const animationAccumulator = useRef(0);
   const animationTime = useRef(0);
   const materialRef = useRef<ShaderMaterial | null>(null);
   const cameraFrameState = useCameraFrameState();
@@ -60,11 +62,14 @@ export const DecorStreams = forwardRef<MeshType, DecorStreamsProps>(function Dec
   const height = useThree((state) => state.size.height);
   const {elevation, seaLevel} = terrainSettings;
   const {displacementMap, shellBase} = useTerrainAssets();
+  const [fallSpeedMin, fallSpeedMax] = decorStreamSettings.fallRowsPerSecond;
+  const [packetSpeedMin, packetSpeedMax] = decorStreamSettings.packetRowsPerSecond;
 
   const layers = useMemo(() => generateDecorStreamLayers({
     count: DECOR_STREAM_CONFIG.count,
     bounds: DECOR_STREAM_CONFIG.bounds,
     seed: DECOR_STREAM_CONFIG.seed,
+    centerHeightBias: DECOR_STREAM_CONFIG.centerHeightBias,
     depthLayers: DECOR_STREAM_CONFIG.depthLayers,
     aspect: (
       SCENE_LAYOUT_CONFIG.referenceViewport.width
@@ -98,10 +103,16 @@ export const DecorStreams = forwardRef<MeshType, DecorStreamsProps>(function Dec
       uEnergy: { value: DECOR_STREAM_CONFIG.energy },
       uAnimationTime: { value: 0 },
       uFallRowsPerSecond: {
-        value: DECOR_STREAM_CONFIG.animation.fallRowsPerSecond,
+        value: new Vector2(
+          DECOR_STREAM_CONFIG.animation.fallRowsPerSecond[0],
+          DECOR_STREAM_CONFIG.animation.fallRowsPerSecond[1],
+        ),
       },
-      uSwapsPerSecond: {
-        value: DECOR_STREAM_CONFIG.animation.swapsPerSecond,
+      uPacketRowsPerSecond: {
+        value: new Vector2(
+          DECOR_STREAM_CONFIG.animation.packetRowsPerSecond[0],
+          DECOR_STREAM_CONFIG.animation.packetRowsPerSecond[1],
+        ),
       },
     },
     transparent: true,
@@ -140,13 +151,9 @@ export const DecorStreams = forwardRef<MeshType, DecorStreamsProps>(function Dec
     }),
     [geometries, material],
   );
-  // The nearest depth group skips the blur pipeline: it renders straight into
-  // the main scene at native resolution so front streams stay crisp while the
-  // blurred stack runs at reduced resolution.
-  const nearMesh = meshes[meshes.length - 1];
   const compositor = useMemo(
     () => new DecorStreamCompositor(
-      meshes.slice(0, -1),
+      meshes,
       1,
       1,
       DECOR_STREAM_CONFIG.compositor,
@@ -166,11 +173,21 @@ export const DecorStreams = forwardRef<MeshType, DecorStreamsProps>(function Dec
     };
   }, [material]);
   useEffect(() => {
+    (material.uniforms.uFallRowsPerSecond.value as Vector2).set(
+      fallSpeedMin,
+      fallSpeedMax,
+    );
+    (material.uniforms.uPacketRowsPerSecond.value as Vector2).set(
+      packetSpeedMin,
+      packetSpeedMax,
+    );
+    compositorDirty.current = true;
+  }, [fallSpeedMax, fallSpeedMin, material, packetSpeedMax, packetSpeedMin]);
+  useEffect(() => {
     configureBitmapAtlas(atlas);
     compositorDirty.current = true;
   }, [atlas]);
   useEffect(() => {
-    animationAccumulator.current = 0;
     animationTime.current = 0;
     const currentMaterial = materialRef.current;
     if (currentMaterial) currentMaterial.uniforms.uAnimationTime.value = 0;
@@ -187,19 +204,14 @@ export const DecorStreams = forwardRef<MeshType, DecorStreamsProps>(function Dec
 
   useFrame((state, delta) => {
     if (!isReducedMotion) {
-      const tickDuration = 1 / DECOR_STREAM_CONFIG.animation.tickRate;
-      // Capping the contribution prevents a background-tab resume from
-      // producing catch-up ticks or an abrupt multi-row jump.
-      animationAccumulator.current += Math.min(delta, tickDuration);
-      if (animationAccumulator.current >= tickDuration) {
-        animationAccumulator.current %= tickDuration;
-        animationTime.current += tickDuration;
-        const currentMaterial = materialRef.current;
-        if (currentMaterial) {
-          currentMaterial.uniforms.uAnimationTime.value = animationTime.current;
-        }
-        compositorDirty.current = true;
+      // Lusion advances the ray shader continuously. Clamping only protects a
+      // resumed background tab from a visible catch-up jump.
+      animationTime.current += Math.min(delta, 1 / 15);
+      const currentMaterial = materialRef.current;
+      if (currentMaterial) {
+        currentMaterial.uniforms.uAnimationTime.value = animationTime.current;
       }
+      compositorDirty.current = true;
     }
 
     const cameraRevision = cameraFrameState.current.revision;
@@ -208,14 +220,13 @@ export const DecorStreams = forwardRef<MeshType, DecorStreamsProps>(function Dec
       && renderedCameraRevision.current === cameraRevision
     ) return;
 
-    compositor.render(state.gl, state.camera, delta);
+    compositor.render(state.gl, state.camera);
     renderedCameraRevision.current = cameraRevision;
     compositorDirty.current = false;
   });
 
   return (
     <>
-      <primitive object={nearMesh} />
       <mesh ref={forwardedRef} geometry={compositeGeometry} frustumCulled={false} renderOrder={3}>
         <shaderMaterial
           vertexShader={compositeVertexShader}

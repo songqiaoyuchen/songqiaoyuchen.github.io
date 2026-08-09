@@ -5,16 +5,16 @@ export const DECOR_STREAM_CONFIG = {
     z: [-1.5, 5.5],
   },
   seed: 17,
+  centerHeightBias: 0.55,
   lift: 0.075,
   energy: 0.62,
   depthLayers: 4,
   animation: {
-    tickRate: 12,
-    fallRowsPerSecond: [0.9, 1.5],
-    swapsPerSecond: [0.35, 0.8],
+    fallRowsPerSecond: [0.1, 2],
+    packetRowsPerSecond: [0.2, 2],
   },
   compositor: {
-    resolutionScale: 0.5,
-    blurScale: 0.2,
+    blurResolutionScale: 0.5,
+    blurRadii: [4, 2, 1],
   },
 } as const;

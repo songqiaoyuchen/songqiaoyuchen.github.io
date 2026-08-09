@@ -292,3 +292,189 @@ preserve asynchronous stream phases, sparse swaps, fixed anchors, and a static r
 **Supersedes**
 
 D-006 for DecorStreams only. D-006 continues to govern LinkStreams.
+
+### D-013: Decorative streams use Lusion's continuous depth-composited rays
+
+Status: accepted
+Date: 2026-08-09
+Scope: design, animation, performance
+
+**Decision**
+
+DecorStreams follow the text-ray treatment used by Lusion's About-page hero. Shader time advances
+continuously, character rows fall at independently seeded rates, and four camera-depth groups accumulate in
+one full-resolution render target. The far-to-near groups receive deterministic separable blur passes at
+16, 8, and 4 pixels before the nearest group is added crisp. Reduced-motion mode freezes the same composition
+on a deterministic frame.
+
+**Reason**
+
+The former 12 Hz reduced-resolution compositor made distant groups visibly flicker as animated glyphs and
+blurred snapshots changed together. Matching the reference's continuous update and full-resolution
+accumulation removes that temporal discontinuity while preserving the intended depth hierarchy.
+
+**Consequences**
+
+DecorStreams render their compositor every active animation frame. Future performance tuning may adjust the
+number of streams or disable animation by quality tier, but must not reintroduce stepped compositor updates,
+independently composited near layers, or alternating reduced-resolution accumulation targets.
+
+**Supersedes**
+
+D-012. D-006 continues to govern LinkStreams.
+
+### D-014: Decorative depth blur is isolated per group
+
+Status: accepted
+Date: 2026-08-09
+Scope: design, animation, performance
+
+**Decision**
+
+Each DecorStreams depth group renders into an isolated layer. The three rear groups receive one assigned
+separable blur at 16, 8, and 4 pixels respectively, the nearest group remains crisp, and the finished layers
+are then added together. Falling-row speeds use the range 1–5 rows per second, half the previously accepted
+range.
+
+**Reason**
+
+Reusing one accumulated image through all three blur stages caused the farthest rays to be blurred at 16,
+then 8, then 4 pixels. That compounded softness was excessive in this scene even though the sequence follows
+the Lusion reference. Isolating the layers preserves a legible depth progression while preventing previously
+blurred pixels from entering another blur pass.
+
+**Consequences**
+
+The compositor needs a full-resolution layer target in addition to its accumulation and half-resolution blur
+targets. Blur tuning remains a per-depth-group concern; do not feed the accumulated image back into a later
+group's blur pass.
+
+**Supersedes**
+
+D-013 for blur accumulation and movement speed. D-013 continues to govern continuous shader time, glyph
+behavior, and the Lusion-derived ray treatment. D-006 continues to govern LinkStreams.
+
+### D-015: Decorative rays use a lighter depth ramp and longer center streams
+
+Status: accepted
+Date: 2026-08-09
+Scope: design, animation
+
+**Decision**
+
+The three rear DecorStreams groups use isolated blur radii of 8, 4, and 2 pixels, with the nearest group
+remaining crisp. All decorative streams are longer than the original layout, and streams projected near the
+screen center receive an additional seeded length boost without changing their anchors.
+
+**Reason**
+
+The former 16-pixel rear layer was visibly over-blurred; the existing 8-pixel second layer already provided
+the desired maximum softness. Longer center-weighted columns strengthen the middle composition and reduce
+the frequency with which the moving packet mask hides a whole short stream.
+
+**Consequences**
+
+Future depth tuning should preserve 8 pixels as the current softness ceiling unless new visual evidence
+supports changing it. Stream-length tuning may change glyph count, but must not reposition the fixed terrain
+anchors.
+
+**Supersedes**
+
+D-014 for numeric blur radii and stream-length tuning. D-014 continues to govern isolated per-group blur and
+the 1–5 rows-per-second movement range.
+
+### D-016: Decorative streams render at full height with a fast local packet
+
+Status: accepted
+Date: 2026-08-09
+Scope: design, animation
+
+**Decision**
+
+Every DecorStream renders across its complete configured length as soon as the scene is visible. A separate
+2–4-character brightness packet travels upward at 8–14 rows per second; falling rows, independently changing
+glyphs, endpoint fades, and depth blur continue normally behind it.
+
+**Reason**
+
+The reference-derived implementation used a 50-row visibility transition. At the site's reduced falling-row
+speed, that transition took roughly 10–50 seconds to cross a stream and made columns look as though they were
+slowly growing. The intended effect is a short, quick packet moving over an already complete column.
+
+**Consequences**
+
+Configured glyph count directly determines the continuously visible column length. Packet speed and width
+remain independent from the slower falling-row speed so future movement tuning cannot reintroduce the long
+reveal.
+
+**Supersedes**
+
+D-013 for packet width, speed, and visibility behavior. D-013 continues to govern continuous shader time and
+glyph randomization; D-015 continues to govern length and blur tuning.
+
+### D-017: Decorative streams return to their original height range
+
+Status: accepted
+Date: 2026-08-09
+Scope: design
+
+**Decision**
+
+DecorStreams use their original seeded 22–42 character range without an additional screen-center length
+boost. Terrain anchors, depth groups, the 8/4/2 blur ramp, half-speed falling rows, and the fast local packet
+remain unchanged.
+
+**Reason**
+
+The center-weighted length increase made the columns taller than desired after packet visibility was corrected.
+
+**Consequences**
+
+Stream height is once again determined only by the original seeded character count and glyph height.
+
+**Supersedes**
+
+D-015 for stream-length tuning only. D-015 continues to govern the 8/4/2 blur ramp.
+
+### D-018: Stream and packet speeds are independently tunable
+
+Status: accepted
+Date: 2026-08-09
+Scope: design, animation, workflow
+
+**Decision**
+
+DecorStreams expose separate minimum/maximum speed ranges for falling character rows and for the local
+brightness packet. Development controls can tune both ranges live and the existing Save Config action writes
+the accepted values back to `config/scene/decorStreams.ts`.
+
+**Reason**
+
+The column motion and the packet serve different visual roles and must not share timing. Independent controls
+allow the slow ambient fall and fast travelling highlight to be tuned without shader edits.
+
+**Consequences**
+
+Both animation speeds are shader uniforms sourced from scene controls. New speed tuning should use the Decor
+Streams control group rather than hardcoded GLSL constants.
+
+### D-019: Decorative stream height is biased toward screen center
+
+Status: accepted
+Date: 2026-08-09
+Scope: design
+
+**Decision**
+
+DecorStream glyph counts use a center-height bias of 0.55. The bias scales projected center streams upward
+and edge streams downward around the original average height instead of increasing every column uniformly.
+
+**Reason**
+
+The composition needs a stronger central height silhouette while retaining the shorter overall stream range
+restored by D-017.
+
+**Consequences**
+
+Changing `centerHeightBias` adjusts the contrast between center and edge columns. A value of zero restores the
+unbiased seeded height distribution.

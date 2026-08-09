@@ -4,6 +4,7 @@ import {useContourControls} from './useContourControls';
 import {usePostControls} from './usePostControls';
 import {useTerrainControls} from './useTerrainControls';
 import {useLinkStreamControls} from './useLinkStreamControls';
+import {useDecorStreamControls} from './useDecorStreamControls';
 
 export function useSceneControls() {
   const terrain = useTerrainControls();
@@ -14,8 +15,9 @@ export function useSceneControls() {
   });
   const postProcessing = usePostControls();
   const linkStreams = useLinkStreamControls();
+  const decorStreams = useDecorStreamControls();
 
-  return {terrain, contours, fog, postProcessing, linkStreams};
+  return {terrain, contours, fog, postProcessing, linkStreams, decorStreams};
 }
 
 export type SceneControlValues = ReturnType<typeof useSceneControls>;
@@ -23,3 +25,4 @@ export type TerrainControlValues = SceneControlValues['terrain'];
 export type ContourControlValues = SceneControlValues['contours'];
 export type FogControlValues = SceneControlValues['fog'];
 export type LinkStreamControlValues = SceneControlValues['linkStreams'];
+export type DecorStreamControlValues = SceneControlValues['decorStreams'];

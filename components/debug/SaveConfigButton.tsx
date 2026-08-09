@@ -13,6 +13,13 @@ function collectConfigValues(groups: SceneControlValues): Record<string, unknown
   const values: Record<string, unknown> = {};
   for (const [scope, group] of Object.entries(groups)) {
     for (const [key, value] of Object.entries(group)) {
+      if (
+        Array.isArray(value)
+        && value.every((item) => typeof item === 'number' && Number.isFinite(item))
+      ) {
+        values[`${scope}.${key}`] = value;
+        continue;
+      }
       const type = typeof value;
       if (type !== 'string' && type !== 'number' && type !== 'boolean') continue;
       values[`${scope}.${key}`] = value;
