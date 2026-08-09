@@ -377,9 +377,15 @@ export default function PixelCard({
   }, [active, handleAnimation, isControlled]);
 
   const isActive = active ?? false;
-  const contentClassName = isActive
-    ? 'opacity-30'
+  const interactionClassName = isControlled
+    ? isActive ? 'border-accent-dim' : ''
+    : 'hover:border-accent-dim focus-within:border-accent-dim';
+  const contentClassName = isControlled
+    ? isActive ? 'opacity-30' : ''
     : 'group-hover:opacity-30 group-focus-within:opacity-30';
+  const overlayClassName = isControlled
+    ? isActive ? 'before:opacity-100' : ''
+    : 'hover:before:opacity-100 focus-within:before:opacity-100';
 
   return (
     <div
@@ -387,15 +393,13 @@ export default function PixelCard({
       className={`
         group relative isolate grid w-full place-items-stretch overflow-hidden
         rounded-2xl border border-accent-soft transition-colors duration-200
-        hover:border-accent-dim focus-within:border-accent-dim
         ease-pixel select-none before:pointer-events-none
         before:absolute before:inset-0 before:z-10 before:m-auto before:aspect-square
         before:bg-pixel-card before:opacity-0
         before:transition-opacity before:duration-400
         before:ease-pixel before:content-['']
-        ${isActive
-          ? 'before:opacity-100'
-          : 'hover:before:opacity-100 focus-within:before:opacity-100'}
+        ${interactionClassName}
+        ${overlayClassName}
         ${className}
       `}
       onMouseEnter={isControlled ? undefined : onMouseEnter}

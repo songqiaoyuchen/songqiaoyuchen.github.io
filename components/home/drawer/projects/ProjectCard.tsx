@@ -1,12 +1,13 @@
+'use client';
+
 import Image from 'next/image';
-import Link from 'next/link';
 import {useState} from 'react';
-import type {FEATURED_PROJECTS} from '@/data/projects';
+import type {Project} from '@/data/projects';
 import PixelCard from './PixelCard';
 
 interface ProjectCardProps {
   index: number;
-  project: (typeof FEATURED_PROJECTS)[number];
+  project: Project;
 }
 
 export function ProjectCard({index, project}: ProjectCardProps) {
@@ -17,17 +18,29 @@ export function ProjectCard({index, project}: ProjectCardProps) {
     setIsHovered(false);
   };
 
+  const handleFocus: React.FocusEventHandler<HTMLAnchorElement> = e => {
+    setIsHovered(e.currentTarget.matches(':focus-visible'));
+  };
+
+  const handlePointerEnter: React.PointerEventHandler<HTMLAnchorElement> = e => {
+    if (e.pointerType === 'mouse') setIsHovered(true);
+  };
+
+  const handlePointerLeave: React.PointerEventHandler<HTMLAnchorElement> = e => {
+    if (e.pointerType === 'mouse') setIsHovered(false);
+  };
+
   return (
-    <Link
-      aria-label={`View ${project.title} project details`}
+    <a
+      aria-label={`View ${project.title} source code on GitHub`}
       className="group/card block rounded-card border border-line bg-surface-soft p-2 no-underline
         transition-[border-color,background-color] duration-interaction ease-out
         hover:bg-surface-hover focus-visible:outline-1
         focus-visible:outline-offset-4 focus-visible:outline-accent"
       onBlur={handleBlur}
-      onFocus={() => setIsHovered(true)}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onFocus={handleFocus}
+      onPointerEnter={handlePointerEnter}
+      onPointerLeave={handlePointerLeave}
       href={project.href}
     >
       <article id={project.id}>
@@ -39,15 +52,25 @@ export function ProjectCard({index, project}: ProjectCardProps) {
           variant="yellow"
         >
           <div className="relative h-[clamp(12rem,18vw,15rem)] w-full overflow-hidden bg-panel">
-            <Image
-              alt={project.imageAlt}
-              className="object-cover object-center opacity-88 transition-opacity duration-500
-                ease-out group-hover/card:opacity-100 motion-reduce:transition-none"
-              fill
-              loading={index === 0 ? 'eager' : 'lazy'}
-              sizes="(max-width: 639px) calc(100vw - 108px), 480px"
-              src={project.image}
-            />
+            {project.image ? (
+              <Image
+                alt={project.imageAlt ?? ''}
+                className="object-cover object-center opacity-88 transition-opacity duration-500
+                  ease-out group-hover/card:opacity-100 motion-reduce:transition-none"
+                fill
+                loading={index === 0 ? 'eager' : 'lazy'}
+                sizes="(max-width: 639px) calc(100vw - 108px), 480px"
+                src={project.image}
+              />
+            ) : (
+              <div
+                aria-hidden="true"
+                className="flex h-full items-center justify-center bg-surface-strong font-mono text-label
+                  tracking-label text-dim uppercase"
+              >
+                {project.title}
+              </div>
+            )}
           </div>
         </PixelCard>
 
@@ -59,11 +82,12 @@ export function ProjectCard({index, project}: ProjectCardProps) {
             </h3>
             <span
               aria-hidden="true"
-              className="shrink-0 font-mono text-base text-dim transition-[color,transform]
+              className="shrink-0 font-mono text-label tracking-label text-dim uppercase
+                transition-[color,transform]
                 duration-interaction group-hover/card:translate-x-1 group-hover/card:text-accent
                 motion-reduce:transition-none motion-reduce:group-hover/card:translate-x-0"
             >
-              &rarr;
+              GitHub ↗
             </span>
           </div>
           <p className="mt-1.5 mb-0 font-mono text-summary leading-summary tracking-[0.025em]
@@ -93,6 +117,6 @@ export function ProjectCard({index, project}: ProjectCardProps) {
           </ul>
         </div>
       </article>
-    </Link>
+    </a>
   );
 }

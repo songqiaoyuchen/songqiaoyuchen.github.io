@@ -498,3 +498,26 @@ rate was approximately 2-6 swaps per second and could only be changed inside the
 **Consequences**
 
 Letter swapping can now be slowed or accelerated without changing falling-row speed or packet travel speed.
+
+### D-021: Projects use one archive and link directly to source
+
+Status: accepted
+Date: 2026-08-09
+Scope: product, design, content
+
+**Decision**
+
+`/projects` is the complete project archive. It presents every project as a concise card, and each card links
+directly to the corresponding GitHub repository. The site does not maintain individual project routes until
+a project has enough original material for a substantive case study.
+
+**Reason**
+
+The existing detail routes repeated the card image, summary, and technology stack without adding meaningful
+context. A direct source link is more useful and honest for the current amount of project writing.
+
+**Consequences**
+
+Project records require a repository URL. The homepage may show a compact selection, while `/projects` owns
+the complete list. Add a project detail route only when it can support a real case study with decisions,
+outcomes, and supporting media.
