@@ -82,12 +82,6 @@ export function AboutPanel({isOpen}: AboutPanelProps) {
         </div>
       </div>
 
-      <div
-        aria-hidden="true"
-        className="about-bottom-reveal pointer-events-none absolute inset-x-0 bottom-0 z-30 h-40
-          transition-opacity duration-220 ease-out group-data-[at-end=true]/about:opacity-0
-          motion-reduce:duration-0"
-      />
     </div>
   );
 }

@@ -76,12 +76,6 @@ export function ProjectsPanel({isOpen}: ProjectsPanelProps) {
         </div>
       </div>
 
-      <div
-        aria-hidden="true"
-        className="about-bottom-reveal pointer-events-none absolute inset-x-0 bottom-0 z-30 h-32
-          transition-opacity duration-220 ease-out group-data-[at-end=true]/projects:opacity-0
-          motion-reduce:duration-0"
-      />
     </div>
   );
 }
