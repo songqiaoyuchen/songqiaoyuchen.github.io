@@ -521,3 +521,28 @@ context. A direct source link is more useful and honest for the current amount o
 Project records require a repository URL. The homepage may show a compact selection, while `/projects` owns
 the complete list. Add a project detail route only when it can support a real case study with decisions,
 outcomes, and supporting media.
+
+### D-022: Preloader animation owns the startup frame budget
+
+Status: accepted
+Date: 2026-08-10
+Scope: architecture, performance
+
+**Decision**
+
+While the homepage preloader is visible, its frame responsiveness takes priority over total scene startup
+speed. Terrain transfer, decompression, contour extraction, smoothing, and geometry-buffer construction run
+in a worker. Main-thread scene attachment and GPU warm-up are split across healthy animation frames, and the
+heavy scene bundle is not evaluated until the lightweight loader has painted.
+
+**Reason**
+
+The travelling SVG contour requires painting on the main thread. Starting all terrain preparation and WebGL
+initialization after only two frames allowed that work to monopolize the same thread and visibly stall the
+loader. Network priority alone cannot protect animation frame time from CPU and GPU initialization work.
+
+**Consequences**
+
+Future startup work must remain cancellable, staged, and outside the loader's frame budget. The loader's
+visual design and genuine-readiness behavior from D-010 remain unchanged; slower total loading is acceptable
+when it preserves responsive animation.

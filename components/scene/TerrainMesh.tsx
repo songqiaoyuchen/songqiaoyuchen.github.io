@@ -1,10 +1,13 @@
 'use client';
 
-import { useEffect, useMemo, useRef } from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import { Color, PlaneGeometry, ShaderMaterial, UniformsLib, UniformsUtils } from 'three';
 import {TERRAIN_MATERIAL_CONFIG, TERRAIN_MESH_CONFIG} from '@/config/scene';
 import type {TerrainControlValues} from '@/components/debug/useSceneControls';
-import {useTerrainAssets} from '@/lib/terrain/assets';
+import {
+  requestTerrainGradient,
+  useTerrainAssets,
+} from '@/lib/terrain/assets';
 import {bakeTerrainLightingMap} from '@/lib/terrain/lightingBake';
 import vertexShader from '@/shaders/terrain.vert';
 import fragmentShader from '@/shaders/terrain.frag';
@@ -13,10 +16,11 @@ export function TerrainMesh({settings}: {settings: TerrainControlValues}) {
   const surfaceMatRef = useRef<ShaderMaterial>(null);
   const {
     displacementMap,
-    gradientMap,
+    gradientMap: initialGradientMap,
     shellBase,
     staticLightingMap: bakedLightingMap,
   } = useTerrainAssets();
+  const [gradientMap, setGradientMap] = useState(initialGradientMap);
 
   const {
     elevation, seaLevel,
@@ -42,6 +46,18 @@ export function TerrainMesh({settings}: {settings: TerrainControlValues}) {
     && light2Y === TERRAIN_MATERIAL_CONFIG.light2Y
     && light2Z === TERRAIN_MATERIAL_CONFIG.light2Z
   );
+  useEffect(() => {
+    if (usesBakedLighting || gradientMap) return;
+    let cancelled = false;
+    void requestTerrainGradient().then((texture) => {
+      if (!cancelled) setGradientMap(texture);
+    }).catch((error: unknown) => {
+      if (!cancelled) console.error('Unable to load the development gradient map.', error);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [gradientMap, usesBakedLighting]);
   const liveLightingMap = useMemo(() => {
     if (usesBakedLighting || !gradientMap) return null;
     return bakeTerrainLightingMap(shellBase, gradientMap, {

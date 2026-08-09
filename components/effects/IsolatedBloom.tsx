@@ -128,6 +128,7 @@ class IsolatedBloomEffect extends BloomEffect {
 }
 
 type IsolatedBloomProps = IsolatedBloomEffectOptions & {
+  onReady?: () => void;
   selection: Object3D[];
 };
 
@@ -140,6 +141,7 @@ export function IsolatedBloom({
   intensity,
   luminanceSmoothing,
   luminanceThreshold,
+  onReady,
   resolutionScale,
   selection,
 }: IsolatedBloomProps) {
@@ -153,13 +155,14 @@ export function IsolatedBloom({
   useLayoutEffect(() => {
     const originalLayerMasks = selection.map((object) => [object, object.layers.mask] as const);
     for (const object of selection) object.layers.enable(BLOOM_LAYER);
+    onReady?.();
 
     return () => {
       for (const [object, layerMask] of originalLayerMasks) {
         object.layers.mask = layerMask;
       }
     };
-  }, [selection]);
+  }, [onReady, selection]);
 
   useEffect(() => () => effect.dispose(), [effect]);
 

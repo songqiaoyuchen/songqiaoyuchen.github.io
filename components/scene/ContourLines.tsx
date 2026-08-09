@@ -1,6 +1,6 @@
 'use client';
 
-import { forwardRef, useEffect, useMemo, useRef } from 'react';
+import {forwardRef, useEffect, useMemo, useRef, useState} from 'react';
 import { useFrame } from '@react-three/fiber';
 import {
   AdditiveBlending,
@@ -15,10 +15,15 @@ import type {
   ContourControlValues,
   TerrainControlValues,
 } from '@/components/debug/useSceneControls';
-import {useTerrainAssets} from '@/lib/terrain/assets';
-import {bakeShellGrid} from '@/lib/terrain/shell';
-import { extractIsolines } from '@/lib/terrain/isolines';
-import { buildContourTubeGeometry } from '@/lib/terrain/lineTube';
+import {
+  requestContourBuffers,
+  useTerrainContourBuffers,
+} from '@/lib/terrain/assets';
+import {
+  getContourBuildKey,
+  getContourBuildOptions,
+} from '@/lib/terrain/contourOptions';
+import {createContourTubeGeometry} from '@/lib/terrain/lineTube';
 import vertexShader from '@/shaders/contourLines.vert';
 import fragmentShader from '@/shaders/contourLines.frag';
 
@@ -40,38 +45,33 @@ export const ContourLines = forwardRef<Mesh, ContourLinesProps>(function Contour
 
   const {elevation, seaLevel} = terrainSettings;
 
-  const {shellBase} = useTerrainAssets();
-
-  const shellGrid = useMemo(
-    () => bakeShellGrid(shellBase, lines.smoothIterations, CONTOURS.smoothFactor),
-    [shellBase, lines.smoothIterations],
+  const initialContours = useTerrainContourBuffers();
+  const contourOptions = useMemo(
+    () => getContourBuildOptions(lines, seaLevel),
+    [lines, seaLevel],
   );
-
-  const isolines = useMemo(
-    () => extractIsolines(shellGrid, {
-      levels: lines.levels,
-      contrast: TERRAIN_MATERIAL_CONFIG.contrast,
-      seaLevel,
-      planeSize: TERRAIN_MESH.planeSize,
-      downsample: CONTOURS.downsample,
-      rdpEpsilon: CONTOURS.rdpEpsilon,
-      chaikinIterations: lines.chaikinIterations,
-      resampleSpacing: lines.resampleSpacing,
-      minLength: CONTOURS.minLength,
-      majorEvery: lines.majorEvery,
-      majorMinHeight: lines.majorMinHeight,
-      spacingJitter: lines.spacingJitter,
-      shadowOffset: lines.shadowOffset,
-      shadowChance: lines.shadowChance,
-    }),
-    [shellGrid, lines.levels, lines.chaikinIterations, lines.resampleSpacing, seaLevel,
-     lines.majorEvery, lines.majorMinHeight, lines.spacingJitter, lines.shadowOffset,
-     lines.shadowChance],
+  const contourKey = useMemo(
+    () => getContourBuildKey(contourOptions),
+    [contourOptions],
   );
+  const [geometryBuffers, setGeometryBuffers] = useState(initialContours.buffers);
+
+  useEffect(() => {
+    if (contourKey === initialContours.key) return;
+    let cancelled = false;
+    void requestContourBuffers(contourOptions).then((buffers) => {
+      if (!cancelled) setGeometryBuffers(buffers);
+    }).catch((error: unknown) => {
+      if (!cancelled) console.error('Unable to rebuild terrain contours.', error);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [contourKey, contourOptions, initialContours.key]);
 
   const geometry = useMemo(
-    () => buildContourTubeGeometry(isolines),
-    [isolines],
+    () => createContourTubeGeometry(geometryBuffers),
+    [geometryBuffers],
   );
 
   useEffect(() => () => geometry.dispose(), [geometry]);

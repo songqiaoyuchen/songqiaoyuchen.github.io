@@ -3,6 +3,7 @@
 import {useEffect, useRef} from 'react';
 import {PRELOADER_CONFIG} from '@/config/preloader';
 import {CountUp} from './CountUp';
+import {PreloaderPixelDissolve} from './PreloaderPixelDissolve';
 
 export type PreloaderState = 'loading' | 'exiting';
 
@@ -100,6 +101,7 @@ export function HomepagePreloader({
       data-reduced-motion={reducedMotion || undefined}
       data-state={state}
     >
+      <PreloaderPixelDissolve reducedMotion={reducedMotion} state={state} />
       <p aria-live="polite" className="sr-only" role="status">
         {showBypass
           ? 'The homepage terrain is taking longer than expected.'

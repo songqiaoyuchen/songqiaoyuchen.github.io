@@ -1,6 +1,6 @@
 'use client';
 
-import {Suspense, useEffect, useMemo, useRef, useState} from 'react';
+import {Suspense, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, StatsGl } from '@react-three/drei';
 import { EffectComposer } from '@react-three/postprocessing';
@@ -24,6 +24,11 @@ import {SceneErrorBoundary} from './SceneErrorBoundary';
 import {SceneReadySignal} from './SceneReadySignal';
 import {CameraFrameProvider} from './CameraFrameState';
 import type {SectionId} from '@/config/navigation/linkStreams';
+import {waitForHealthyFrames} from '@/lib/performance/frameBudget';
+import {
+  retainTerrainPipeline,
+  scheduleTerrainPipelineDisposal,
+} from '@/lib/terrain/assets';
 
 type TerrainBackgroundProps = {
   activeId: SectionId | null;
@@ -43,8 +48,13 @@ export function TerrainBackground({
   onStreamClick,
 }: TerrainBackgroundProps) {
   const orbitcontrolsRef = useRef<OrbitControlsInstance>(null);
+  const [assemblyPhase, setAssemblyPhase] = useState(0);
+  const [canvasReady, setCanvasReady] = useState(false);
   const [contourMesh, setContourMesh] = useState<Mesh | null>(null);
+  const [decorStreamsMesh, setDecorStreamsMesh] = useState<Mesh | null>(null);
+  const [heroMesh, setHeroMesh] = useState<Mesh | null>(null);
   const [linkStreamsMesh, setLinkStreamsMesh] = useState<Mesh | null>(null);
+  const [bloomReady, setBloomReady] = useState(false);
   const [terrainDepthTexture, setTerrainDepthTexture] = useState<DepthTexture | null>(null);
   const isDevelopment = process.env.NODE_ENV === 'development';
   const settings = useSceneControls();
@@ -53,6 +63,50 @@ export function TerrainBackground({
       .filter((mesh): mesh is Mesh => mesh !== null),
     [contourMesh, linkStreamsMesh],
   );
+  const handleBloomReady = useCallback(() => setBloomReady(true), []);
+
+  useEffect(() => {
+    retainTerrainPipeline();
+    return scheduleTerrainPipelineDisposal;
+  }, []);
+
+  useEffect(() => {
+    const targetPhase = !canvasReady
+      ? 0
+      : !terrainDepthTexture
+        ? 1
+        : !contourMesh
+          ? 2
+          : !(decorStreamsMesh && heroMesh && linkStreamsMesh)
+            ? 3
+            : assemblyPhase < 4
+              ? 4
+              : assemblyPhase < 5
+                ? 5
+                : bloomReady
+                  ? 6
+                  : 5;
+    if (targetPhase <= assemblyPhase) return;
+    let cancelled = false;
+    void waitForHealthyFrames().then(() => {
+      if (!cancelled) {
+        setAssemblyPhase(targetPhase);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    assemblyPhase,
+    bloomReady,
+    bloomSelection.length,
+    canvasReady,
+    contourMesh,
+    decorStreamsMesh,
+    heroMesh,
+    linkStreamsMesh,
+    terrainDepthTexture,
+  ]);
 
   useEffect(() => {
     let progress = 0.18;
@@ -70,7 +124,10 @@ export function TerrainBackground({
           camera={{position: CAMERA_CONFIG.overviewPosition, fov: CAMERA_CONFIG.fov}}
           fallback={null}
           gl={{ antialias: false, powerPreference: 'high-performance' }}
-          onCreated={() => onSceneProgress(0.18)}
+          onCreated={() => {
+            setCanvasReady(true);
+            onSceneProgress(0.18);
+          }}
         >
 
         {isDevelopment ? (
@@ -95,18 +152,25 @@ export function TerrainBackground({
           ) : null}
           <SceneFog settings={settings.fog} />
           <Suspense fallback={null}>
+            {assemblyPhase >= 1 ? (
             <CachedTerrain
               fogSettings={settings.fog}
               onDepthTextureChange={setTerrainDepthTexture}
               terrainSettings={settings.terrain}
             />
+            ) : null}
+            {assemblyPhase >= 2 ? (
             <ContourLines
               ref={setContourMesh}
               contourSettings={settings.contours}
               terrainDepthTexture={terrainDepthTexture}
               terrainSettings={settings.terrain}
             />
+            ) : null}
+            {assemblyPhase >= 3 ? (
+              <>
             <DecorStreams
+              ref={setDecorStreamsMesh}
               contourSettings={settings.contours}
               decorStreamSettings={settings.decorStreams}
               terrainSettings={settings.terrain}
@@ -120,13 +184,16 @@ export function TerrainBackground({
               terrainSettings={settings.terrain}
             />
             <SceneHeroName
+              ref={setHeroMesh}
               contourSettings={settings.contours}
               isHidden={activeId !== null}
               introStarted={introStarted}
               terrainSettings={settings.terrain}
             />
+              </>
+            ) : null}
             <SceneReadySignal
-              enabled={bloomSelection.length === 2}
+              enabled={assemblyPhase >= 6}
               onProgress={onSceneProgress}
               onReady={onSceneReady}
             />
@@ -135,10 +202,12 @@ export function TerrainBackground({
         {/* Keep the composer single-sampled: MSAA resolve blits intermittently
             present empty frames on some GPUs. Color-only SMAA smooths edges
             without requesting the composer's sampled depth texture. */}
-        {bloomSelection.length === 2 ? (
+        {assemblyPhase >= 4 && bloomSelection.length === 2 ? (
           <EffectComposer multisampling={0}>
             <ColorOnlySMAA preset={SMAAPreset.MEDIUM} />
+            {assemblyPhase >= 5 ? (
             <IsolatedBloom
+              onReady={handleBloomReady}
               selection={bloomSelection}
               // Preserve the one-pixel contour and glyph cores before the
               // bloom mip chain downsamples them.
@@ -147,6 +216,7 @@ export function TerrainBackground({
               luminanceThreshold={settings.postProcessing.bloomThreshold}
               luminanceSmoothing={settings.postProcessing.bloomSmoothing}
             />
+            ) : <></>}
           </EffectComposer>
         ) : null}
         </Canvas>

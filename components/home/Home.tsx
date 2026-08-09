@@ -1,6 +1,9 @@
 'use client';
 
 import {
+  lazy,
+  startTransition,
+  Suspense,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -9,7 +12,6 @@ import {
 } from 'react';
 import type {SectionId} from '@/config/navigation/linkStreams';
 import type {ArticleSummary} from '@/lib/content/types';
-import {TerrainBackground} from '@/components/scene/TerrainBackground';
 import {Drawer} from './drawer/Drawer';
 import {Hero} from './Hero';
 import {HomepagePreloader} from './preloader/HomepagePreloader';
@@ -17,6 +19,11 @@ import { Leva } from 'leva';
 import {useReducedMotion} from '@/hooks/useReducedMotion';
 import {PRELOADER_CONFIG} from '@/config/preloader';
 import {TerrainFallback} from '@/components/scene/TerrainFallback';
+import {waitForHealthyFrames} from '@/lib/performance/frameBudget';
+
+const TerrainBackground = lazy(() => import('@/components/scene/TerrainBackground').then(
+  ({TerrainBackground: Background}) => ({default: Background}),
+));
 
 interface HomeProps {
   articles: readonly ArticleSummary[];
@@ -63,13 +70,14 @@ export function Home({articles}: HomeProps) {
   }, []);
 
   useEffect(() => {
-    let secondFrame = 0;
-    const firstFrame = window.requestAnimationFrame(() => {
-      secondFrame = window.requestAnimationFrame(() => setSceneStarted(true));
+    let cancelled = false;
+    void waitForHealthyFrames().then(() => {
+      if (!cancelled) {
+        startTransition(() => setSceneStarted(true));
+      }
     });
     return () => {
-      window.cancelAnimationFrame(firstFrame);
-      window.cancelAnimationFrame(secondFrame);
+      cancelled = true;
     };
   }, []);
 
@@ -129,6 +137,9 @@ export function Home({articles}: HomeProps) {
     if (exitTimerRef.current !== null) window.clearTimeout(exitTimerRef.current);
     setShowBypass(false);
     setSceneState('fallback');
+    void import('@/lib/terrain/assets').then(({disposeTerrainPipeline}) => {
+      disposeTerrainPipeline();
+    });
   }, []);
 
   const handleSceneError = useCallback((error: Error) => {
@@ -160,14 +171,16 @@ export function Home({articles}: HomeProps) {
         {sceneState === 'fallback' ? (
           <TerrainFallback />
         ) : sceneStarted ? (
-          <TerrainBackground
-            activeId={activeId}
-            introStarted={sceneState === 'ready'}
-            onSceneError={handleSceneError}
-            onSceneProgress={handleSceneProgress}
-            onSceneReady={handleSceneReady}
-            onStreamClick={toggleSection}
-          />
+          <Suspense fallback={null}>
+            <TerrainBackground
+              activeId={activeId}
+              introStarted={sceneState === 'ready'}
+              onSceneError={handleSceneError}
+              onSceneProgress={handleSceneProgress}
+              onSceneReady={handleSceneReady}
+              onStreamClick={toggleSection}
+            />
+          </Suspense>
         ) : null}
 
         {!isBlocking ? (

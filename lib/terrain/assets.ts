@@ -9,15 +9,45 @@ import {
   RedFormat,
   RGFormat,
 } from 'three';
-import type {HeightGrid, TerrainMaps} from './bake';
-import {loadTerrainManifest, type TerrainArtifact} from './manifest';
+import type {HeightGrid} from './bake';
+import {
+  getContourBuildKey,
+  getContourBuildOptions,
+} from './contourOptions';
+import type {ContourTubeBuffers} from './lineTubeBuffers';
+import type {
+  ContourBuildOptions,
+  TerrainWorkerResponse,
+} from './workerTypes';
 
-export type TerrainAssets = Omit<TerrainMaps, 'gradientMap'> & {
+export type TerrainAssets = {
+  displacementMap: DataTexture;
   gradientMap: DataTexture | null;
+  shellBase: HeightGrid;
   staticLightingMap: DataTexture;
 };
 
+type ContourRequest = {
+  reject: (error: Error) => void;
+  resolve: (buffers: ContourTubeBuffers) => void;
+};
+
+type GradientRequest = {
+  reject: (error: Error) => void;
+  resolve: (texture: DataTexture) => void;
+};
+
 let assetsPromise: Promise<TerrainAssets> | null = null;
+let initialContoursPromise: Promise<ContourTubeBuffers> | null = null;
+let initialContoursReject: ((error: Error) => void) | null = null;
+let initialContoursResolve: ((buffers: ContourTubeBuffers) => void) | null = null;
+let loadReject: ((error: Error) => void) | null = null;
+let terrainWorker: Worker | null = null;
+let disposalTimer: number | null = null;
+let nextRequestId = 1;
+const contourRequests = new Map<number, ContourRequest>();
+let gradientPromise: Promise<DataTexture> | null = null;
+const gradientRequests = new Map<number, GradientRequest>();
 
 function configureTexture(texture: DataTexture) {
   texture.minFilter = LinearFilter;
@@ -29,72 +59,169 @@ function configureTexture(texture: DataTexture) {
   return texture;
 }
 
-async function decompressArtifact(artifact: TerrainArtifact) {
-  const response = await fetch(`/textures/terrain/baked/${artifact.file}`, {
-    cache: 'force-cache',
+function makeWorker() {
+  if (terrainWorker) return terrainWorker;
+  terrainWorker = new Worker(new URL('./terrain.worker.ts', import.meta.url), {
+    name: 'terrain-preparation',
+    type: 'module',
   });
-  if (!response.ok) {
-    throw new Error(`Unable to load terrain artifact ${artifact.file} (${response.status}).`);
-  }
-  if (typeof DecompressionStream === 'undefined') {
-    throw new Error('This browser cannot decompress the terrain assets.');
-  }
-  const stream = response.body?.pipeThrough(new DecompressionStream('gzip'));
-  if (!stream) throw new Error(`Terrain artifact ${artifact.file} returned no body.`);
-  const buffer = await new Response(stream).arrayBuffer();
-  if (buffer.byteLength !== artifact.byteLength) {
-    throw new Error(`Terrain artifact ${artifact.file} has an invalid byte length.`);
-  }
-  return buffer;
+  return terrainWorker;
+}
+
+function rejectAll(error: Error) {
+  loadReject?.(error);
+  loadReject = null;
+  initialContoursReject?.(error);
+  initialContoursReject = null;
+  initialContoursResolve = null;
+  for (const request of contourRequests.values()) request.reject(error);
+  contourRequests.clear();
+  for (const request of gradientRequests.values()) request.reject(error);
+  gradientRequests.clear();
 }
 
 function loadTerrainAssets() {
-  assetsPromise ??= loadTerrainManifest().then(async ({artifacts}) => {
-    const [displacementBuffer, gradientBuffer, shellBuffer, lightingBuffer] = await Promise.all([
-      decompressArtifact(artifacts.displacement),
-      process.env.NODE_ENV === 'development'
-        ? decompressArtifact(artifacts.gradient)
-        : Promise.resolve(null),
-      decompressArtifact(artifacts.shell),
-      decompressArtifact(artifacts.staticLighting),
-    ]);
-    const displacement = artifacts.displacement;
-    const shell = artifacts.shell;
-    const lighting = artifacts.staticLighting;
-    const displacementMap = configureTexture(new DataTexture(
-      new Uint16Array(displacementBuffer),
-      displacement.width,
-      displacement.height,
-      RedFormat,
-      HalfFloatType,
-    ));
-    displacementMap.name = 'Terrain.Displacement';
-    const gradientMap = gradientBuffer === null
-      ? null
-      : configureTexture(new DataTexture(
-        new Uint16Array(gradientBuffer),
-        artifacts.gradient.width,
-        artifacts.gradient.height,
+  if (assetsPromise) return assetsPromise;
+  const contourOptions = getContourBuildOptions();
+  const worker = makeWorker();
+
+  initialContoursPromise = new Promise<ContourTubeBuffers>((resolve, reject) => {
+    initialContoursResolve = resolve;
+    initialContoursReject = reject;
+  });
+
+  assetsPromise = new Promise<TerrainAssets>((resolve, reject) => {
+    loadReject = reject;
+    worker.onmessage = (event: MessageEvent<TerrainWorkerResponse>) => {
+      const response = event.data;
+      if (response.type === 'progress') return;
+      if (response.type === 'error') {
+        const error = new Error(response.message);
+        if (response.requestId === undefined) rejectAll(error);
+        else {
+          contourRequests.get(response.requestId)?.reject(error);
+          contourRequests.delete(response.requestId);
+          if (gradientRequests.has(response.requestId)) gradientPromise = null;
+          gradientRequests.get(response.requestId)?.reject(error);
+          gradientRequests.delete(response.requestId);
+        }
+        return;
+      }
+      if (response.type === 'contours-ready') {
+        contourRequests.get(response.requestId)?.resolve(response.buffers);
+        contourRequests.delete(response.requestId);
+        return;
+      }
+      if (response.type === 'initial-contours-ready') {
+        initialContoursResolve?.(response.buffers);
+        initialContoursResolve = null;
+        initialContoursReject = null;
+        return;
+      }
+      if (response.type === 'gradient-ready') {
+        const gradientMap = configureTexture(new DataTexture(
+          response.gradient.data,
+          response.gradient.width,
+          response.gradient.height,
+          RGFormat,
+          HalfFloatType,
+        ));
+        gradientMap.name = 'Terrain.Gradient';
+        gradientRequests.get(response.requestId)?.resolve(gradientMap);
+        gradientRequests.delete(response.requestId);
+        return;
+      }
+
+      loadReject = null;
+      const {assets} = response;
+      const displacementMap = configureTexture(new DataTexture(
+        assets.displacement.data,
+        assets.displacement.width,
+        assets.displacement.height,
+        RedFormat,
+        HalfFloatType,
+      ));
+      displacementMap.name = 'Terrain.Displacement';
+      const staticLightingMap = configureTexture(new DataTexture(
+        assets.staticLighting.data,
+        assets.staticLighting.width,
+        assets.staticLighting.height,
         RGFormat,
         HalfFloatType,
       ));
-    if (gradientMap) gradientMap.name = 'Terrain.Gradient';
-    const staticLightingMap = configureTexture(new DataTexture(
-      new Uint16Array(lightingBuffer),
-      lighting.width,
-      lighting.height,
-      RGFormat,
-      HalfFloatType,
-    ));
-    staticLightingMap.name = 'Terrain.StaticLighting';
-    const shellBase: HeightGrid = {
-      data: new Float32Array(shellBuffer),
-      height: shell.height,
-      width: shell.width,
+      staticLightingMap.name = 'Terrain.StaticLighting';
+      resolve({
+        displacementMap,
+        gradientMap: null,
+        shellBase: assets.shellBase,
+        staticLightingMap,
+      });
     };
-    return {displacementMap, gradientMap, shellBase, staticLightingMap};
+    worker.onerror = (event) => rejectAll(new Error(
+      event.message || 'Terrain preparation worker failed.',
+    ));
+    worker.postMessage({
+      contourOptions,
+      type: 'load',
+    });
   });
   return assetsPromise;
+}
+
+export function useTerrainContourBuffers() {
+  loadTerrainAssets();
+  if (!initialContoursPromise) {
+    throw new Error('Terrain contour preparation did not start.');
+  }
+  return {
+    buffers: use(initialContoursPromise),
+    key: getContourBuildKey(getContourBuildOptions()),
+  };
+}
+
+export function requestContourBuffers(contourOptions: ContourBuildOptions) {
+  const worker = makeWorker();
+  const requestId = nextRequestId++;
+  return new Promise<ContourTubeBuffers>((resolve, reject) => {
+    contourRequests.set(requestId, {reject, resolve});
+    worker.postMessage({contourOptions, requestId, type: 'contours'});
+  });
+}
+
+export function requestTerrainGradient() {
+  if (gradientPromise) return gradientPromise;
+  const worker = makeWorker();
+  const requestId = nextRequestId++;
+  gradientPromise = new Promise<DataTexture>((resolve, reject) => {
+    gradientRequests.set(requestId, {reject, resolve});
+    worker.postMessage({requestId, type: 'gradient'});
+  });
+  return gradientPromise;
+}
+
+export function disposeTerrainPipeline() {
+  const error = new Error('Terrain preparation was cancelled.');
+  rejectAll(error);
+  terrainWorker?.postMessage({type: 'cancel'});
+  terrainWorker?.terminate();
+  terrainWorker = null;
+  assetsPromise = null;
+  initialContoursPromise = null;
+  gradientPromise = null;
+}
+
+export function retainTerrainPipeline() {
+  if (disposalTimer === null) return;
+  window.clearTimeout(disposalTimer);
+  disposalTimer = null;
+}
+
+export function scheduleTerrainPipelineDisposal() {
+  if (disposalTimer !== null) return;
+  disposalTimer = window.setTimeout(() => {
+    disposalTimer = null;
+    disposeTerrainPipeline();
+  }, 0);
 }
 
 export function useTerrainAssets() {

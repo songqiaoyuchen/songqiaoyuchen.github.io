@@ -1,7 +1,7 @@
 'use client';
 
-import {useRef} from 'react';
-import {useFrame} from '@react-three/fiber';
+import {useLayoutEffect, useRef, useState} from 'react';
+import {useFrame, useThree} from '@react-three/fiber';
 
 type SceneReadySignalProps = {
   enabled: boolean;
@@ -12,10 +12,30 @@ type SceneReadySignalProps = {
 export function SceneReadySignal({enabled, onProgress, onReady}: SceneReadySignalProps) {
   const completedFrames = useRef(0);
   const reported = useRef(false);
+  const [compiled, setCompiled] = useState(false);
+  const camera = useThree((state) => state.camera);
+  const gl = useThree((state) => state.gl);
+  const scene = useThree((state) => state.scene);
+
+  useLayoutEffect(() => {
+    if (!enabled) {
+      completedFrames.current = 0;
+      return;
+    }
+    let cancelled = false;
+    void gl.compileAsync(scene, camera).then(() => {
+      if (!cancelled) {
+        setCompiled(true);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [camera, enabled, gl, scene]);
 
   useFrame(() => {
     if (reported.current) return;
-    if (!enabled) {
+    if (!enabled || !compiled) {
       completedFrames.current = 0;
       return;
     }
