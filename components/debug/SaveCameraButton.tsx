@@ -3,6 +3,7 @@ import {button, useControls} from 'leva';
 import {PerspectiveCamera} from 'three';
 import type {OrbitControls as OrbitControlsInstance} from 'three-stdlib';
 import type {SectionId} from '@/config/navigation/linkStreams';
+import {SCENE_LAYOUT_CONFIG} from '@/config/scene';
 import {postConfigValues} from '@/lib/debug/saveConfig';
 
 const round3 = (value: number) => Math.round(value * 1000) / 1000;
@@ -22,13 +23,17 @@ export function SaveCameraButton({
   activeId: SectionId | null;
   controlsRef: React.RefObject<OrbitControlsInstance | null>;
 }) {
-  const {camera} = useThree();
+  const {camera, size} = useThree();
 
   useControls('Config', {
     // The ref is read only when the user clicks the button.
     // eslint-disable-next-line react-hooks/refs
     'Save Camera': button(() => {
-      const pose = activeId ?? 'overview';
+      const pose = activeId && size.width >= SCENE_LAYOUT_CONFIG.mobileMaxWidth
+        ? activeId
+        : size.width < SCENE_LAYOUT_CONFIG.mobileMaxWidth
+          ? 'mobileOverview'
+          : 'overview';
       const values: Record<string, unknown> = {
         [`camera.${pose}Position`]: toTuple(camera.position),
       };

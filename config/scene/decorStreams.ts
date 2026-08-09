@@ -1,5 +1,6 @@
 export const DECOR_STREAM_CONFIG = {
   count: 24,
+  mobileCount: 12,
   bounds: {
     x: [-9.5, 9.5],
     z: [-1.5, 5.5],

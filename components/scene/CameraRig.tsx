@@ -5,7 +5,11 @@ import { useFrame, useThree } from '@react-three/fiber';
 import {PerspectiveCamera, Vector3} from 'three';
 import type { OrbitControls as OrbitControlsInstance } from 'three-stdlib';
 import type {SectionId} from '@/config/navigation/linkStreams';
-import {CAMERA_CONFIG, getCameraPose, SCENE_LAYOUT_CONFIG} from '@/config/scene';
+import {
+  CAMERA_CONFIG,
+  getCameraPose,
+  SCENE_LAYOUT_CONFIG,
+} from '@/config/scene';
 import {useReducedMotion} from '@/hooks/useReducedMotion';
 import {getHomeFov} from '@/lib/scene/camera';
 
@@ -20,6 +24,7 @@ export function CameraRig({activeId, controlsRef}: CameraRigProps) {
   const isReducedMotion = useReducedMotion();
   const viewportWidth = useThree((state) => state.size.width);
   const viewportHeight = useThree((state) => state.size.height);
+  const isMobile = viewportWidth < SCENE_LAYOUT_CONFIG.mobileMaxWidth;
   const coverFov = useMemo(
     () => getHomeFov(
       viewportWidth,
@@ -29,10 +34,11 @@ export function CameraRig({activeId, controlsRef}: CameraRigProps) {
     ),
     [viewportHeight, viewportWidth],
   );
-  const poseId = activeId && viewportWidth >= SCENE_LAYOUT_CONFIG.mobileMaxWidth
+  const poseId = activeId && !isMobile
     ? activeId
     : null;
-  const configuredPose = getCameraPose(poseId);
+  const poseKey = poseId ?? (isMobile ? 'mobile-overview' : 'overview');
+  const configuredPose = getCameraPose(poseId, isMobile);
   const configuredPosition = useMemo(
     () => new Vector3(...configuredPose.position),
     [configuredPose.position],
@@ -41,8 +47,8 @@ export function CameraRig({activeId, controlsRef}: CameraRigProps) {
     () => new Vector3(...configuredPose.lookAt),
     [configuredPose.lookAt],
   );
-  const initialOverviewPose = getCameraPose(null);
-  const previousPoseId = useRef<SectionId | null>(poseId);
+  const initialOverviewPose = getCameraPose(null, isMobile);
+  const previousPoseKey = useRef(poseKey);
   const isAnimating = useRef(false);
   const initialized = useRef(false);
   const currentLookAt = useRef(new Vector3(...initialOverviewPose.lookAt));
@@ -67,12 +73,21 @@ export function CameraRig({activeId, controlsRef}: CameraRigProps) {
       currentLookAt.current.copy(controls.target);
     }
 
-    if (poseId !== previousPoseId.current) {
-      if (previousPoseId.current === null && poseId !== null) {
-        overviewReturnPosition.current.copy(camera.position);
-        overviewReturnLookAt.current.copy(controls?.target ?? currentLookAt.current);
+    if (poseKey !== previousPoseKey.current) {
+      if (poseId !== null) {
+        if (previousPoseKey.current === 'overview') {
+          overviewReturnPosition.current.copy(camera.position);
+          overviewReturnLookAt.current.copy(controls?.target ?? currentLookAt.current);
+        } else if (previousPoseKey.current === 'mobile-overview') {
+          const desktopOverviewPose = getCameraPose(null);
+          overviewReturnPosition.current.fromArray(desktopOverviewPose.position);
+          overviewReturnLookAt.current.fromArray(desktopOverviewPose.lookAt);
+        }
+      } else if (isMobile || previousPoseKey.current === 'mobile-overview') {
+        overviewReturnPosition.current.copy(configuredPosition);
+        overviewReturnLookAt.current.copy(configuredLookAt);
       }
-      previousPoseId.current = poseId;
+      previousPoseKey.current = poseKey;
       isAnimating.current = true;
     }
 

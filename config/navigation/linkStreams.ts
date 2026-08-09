@@ -9,7 +9,7 @@ export interface LinkStream {
   spacing: number;
   /** Stable vertical baseline used by the focused layout and layout projection. */
   focusedBottomOffset: number;
-  /** Overview-only vertical lift. Does not change X/Z placement or focused layout. */
+  /** Desktop overview-only vertical lift. Mobile overview removes bottom lift. */
   overviewBottomOffset: number;
   /** Negative values move the overview slot lower on screen and closer in depth. */
   overviewYOffset: number;
@@ -22,6 +22,7 @@ export interface MobileLinkStreamSettings {
   mobileStartX: number;
   mobileEndX: number;
   mobileCenterY: number;
+  mobileDepthOffset: number;
 }
 
 /**
@@ -55,7 +56,8 @@ export const LINK_STREAM_LAYOUT = {
 export const MOBILE_LINK_STREAM_CONFIG = {
   mobileStartX: -0.68,
   mobileEndX: 0.68,
-  mobileCenterY: -0.45,
+  mobileCenterY: -1.2,
+  mobileDepthOffset: 9,
 } as const satisfies MobileLinkStreamSettings;
 
 export const LINK_STREAM_EFFECT_CONFIG = {

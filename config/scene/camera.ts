@@ -9,13 +9,15 @@ export type CameraPose = Readonly<{
 export const CAMERA_CONFIG = {
   overviewPosition: [7.051, 13.416, -9.158] as Vector3Tuple,
   overviewLookAt: [3.368, 10.763, 3.04] as Vector3Tuple,
-  projectsPosition: [3.397, 13.444, -6.564] as Vector3Tuple,
+  mobileOverviewPosition: [-10.484, 13.33, -0.779] as Vector3Tuple,
+  mobileOverviewLookAt: [2.503, 10.869, 0.89] as Vector3Tuple,
+  projectsPosition: [6.294, 11.679, -5.879] as Vector3Tuple,
   projectsLookAt: [1.071, 10.028, 3.214] as Vector3Tuple,
-  artPosition: [3.397, 13.444, -6.564] as Vector3Tuple,
+  artPosition: [1.149, 12.424, -8.302] as Vector3Tuple,
   artLookAt: [1.071, 10.028, 3.214] as Vector3Tuple,
   blogPosition: [3.397, 13.444, -6.564] as Vector3Tuple,
   blogLookAt: [1.071, 10.028, 3.214] as Vector3Tuple,
-  aboutPosition: [3.397, 13.444, -6.564] as Vector3Tuple,
+  aboutPosition: [8.62, 14.053, -3.071] as Vector3Tuple,
   aboutLookAt: [1.071, 10.028, 3.214] as Vector3Tuple,
   fov: 38,
   damping: 4.6,
@@ -44,6 +46,15 @@ const CAMERA_POSES: Record<'overview' | SectionId, CameraPose> = {
   },
 };
 
-export function getCameraPose(sectionId: SectionId | null): CameraPose {
+const MOBILE_OVERVIEW_POSE: CameraPose = {
+  position: CAMERA_CONFIG.mobileOverviewPosition,
+  lookAt: CAMERA_CONFIG.mobileOverviewLookAt,
+};
+
+export function getCameraPose(
+  sectionId: SectionId | null,
+  isMobile = false,
+): CameraPose {
+  if (sectionId === null && isMobile) return MOBILE_OVERVIEW_POSE;
   return CAMERA_POSES[sectionId ?? 'overview'];
 }

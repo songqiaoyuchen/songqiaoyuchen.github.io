@@ -20,8 +20,9 @@ import type {
 import {HERO_CONTENT, HERO_SCENE_CONFIG} from '@/config/hero';
 import {LINK_STREAM_EFFECT_CONFIG, LINK_STREAMS} from '@/config/navigation';
 import {
-  CAMERA_CONFIG,
   CONTOUR_CONFIG,
+  getCameraPose,
+  SCENE_LAYOUT_CONFIG,
   TERRAIN_MATERIAL_CONFIG,
   TERRAIN_MESH_CONFIG,
 } from '@/config/scene';
@@ -86,7 +87,11 @@ export const SceneHeroName = forwardRef<Mesh, SceneHeroNameProps>(function Scene
     [elevation, seaLevel, shellBase, viewportHeight, viewportWidth],
   );
   const referenceDepth = useMemo(() => {
-    const cameraPosition = new Vector3(...CAMERA_CONFIG.overviewPosition);
+    const overviewPose = getCameraPose(
+      null,
+      viewportWidth < SCENE_LAYOUT_CONFIG.mobileMaxWidth,
+    );
+    const cameraPosition = new Vector3(...overviewPose.position);
     const distances = LINK_STREAMS.map((run) => {
       const [x, z] = linkLayouts.overview[run.index];
       const y = sampleHeight(shellBase, x, z, elevation, seaLevel)
@@ -96,7 +101,7 @@ export const SceneHeroName = forwardRef<Mesh, SceneHeroNameProps>(function Scene
       return cameraPosition.distanceTo(new Vector3(x, y, z));
     }).sort((a, b) => a - b);
     return distances[Math.floor((distances.length - 1) * 0.5)];
-  }, [elevation, linkLayouts.overview, seaLevel, shellBase]);
+  }, [elevation, linkLayouts.overview, seaLevel, shellBase, viewportWidth]);
   const scenePoint = useMemo(
     () => projectOverviewSlotAtDistance(
       HERO_SCENE_CONFIG.screenPosition,

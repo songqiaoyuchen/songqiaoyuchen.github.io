@@ -18,6 +18,7 @@ import type { Mesh as MeshType } from 'three';
 import {
   CAMERA_CONFIG,
   DECOR_STREAM_CONFIG,
+  getCameraPose,
   SCENE_LAYOUT_CONFIG,
   TERRAIN_MATERIAL_CONFIG,
   TERRAIN_MESH_CONFIG,
@@ -65,26 +66,36 @@ export const DecorStreams = forwardRef<MeshType, DecorStreamsProps>(function Dec
   const [fallSpeedMin, fallSpeedMax] = decorStreamSettings.fallRowsPerSecond;
   const [packetSpeedMin, packetSpeedMax] = decorStreamSettings.packetRowsPerSecond;
   const [swapSpeedMin, swapSpeedMax] = decorStreamSettings.letterSwapsPerSecond;
+  const isMobile = width < SCENE_LAYOUT_CONFIG.mobileMaxWidth;
+  const overviewPose = getCameraPose(
+    null,
+    isMobile,
+  );
+  const layoutAspect = isMobile
+    ? width / Math.max(height, 1)
+    : (
+      SCENE_LAYOUT_CONFIG.referenceViewport.width
+      / SCENE_LAYOUT_CONFIG.referenceViewport.height
+    );
 
   const layers = useMemo(() => generateDecorStreamLayers({
-    count: DECOR_STREAM_CONFIG.count,
+    count: isMobile
+      ? DECOR_STREAM_CONFIG.mobileCount
+      : DECOR_STREAM_CONFIG.count,
     bounds: DECOR_STREAM_CONFIG.bounds,
     seed: DECOR_STREAM_CONFIG.seed,
     centerHeightBias: DECOR_STREAM_CONFIG.centerHeightBias,
     depthLayers: DECOR_STREAM_CONFIG.depthLayers,
-    aspect: (
-      SCENE_LAYOUT_CONFIG.referenceViewport.width
-      / SCENE_LAYOUT_CONFIG.referenceViewport.height
-    ),
+    aspect: layoutAspect,
     camera: {
       fov: CAMERA_CONFIG.fov,
-      position: CAMERA_CONFIG.overviewPosition,
-      target: CAMERA_CONFIG.overviewLookAt,
+      position: overviewPose.position,
+      target: overviewPose.lookAt,
     },
     heightGrid: shellBase,
     elevation,
     seaLevel,
-  }), [elevation, seaLevel, shellBase]);
+  }), [elevation, isMobile, layoutAspect, overviewPose, seaLevel, shellBase]);
 
   const material = useMemo(() => new ShaderMaterial({
     vertexShader,

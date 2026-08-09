@@ -17,7 +17,7 @@ import {sampleHeight} from '@/lib/terrain/height';
 import {getHomeFov} from '@/lib/scene/camera';
 import {getLinkStreamHeight} from './linkStreamGeometry';
 
-export type LinkLayoutMode = 'overview-mobile' | 'overview' | 'focused-mobile' | 'focused';
+export type LinkLayoutMode = 'overview-mobile' | 'overview' | 'focused';
 
 type DesktopMode = Extract<LinkLayoutMode, 'overview' | 'focused'>;
 type LayoutPosition = [number, number];
@@ -33,8 +33,8 @@ const INTERSECTION_DISTANCE = 50;
 
 export function getLinkLayoutMode(isFocused: boolean, width: number): LinkLayoutMode {
   const isMobile = width < SCENE_LAYOUT_CONFIG.mobileMaxWidth;
-  if (isFocused) return isMobile ? 'focused-mobile' : 'focused';
-  return isMobile ? 'overview-mobile' : 'overview';
+  if (isMobile) return 'overview-mobile';
+  return isFocused ? 'focused' : 'overview';
 }
 
 function makeMobileOverviewSlots(
@@ -97,8 +97,11 @@ function makeCamera(
   mode: DesktopMode,
   focusedSectionId: SectionId | null = null,
 ) {
+  const isMobileOverview = mode === 'overview'
+    && width < SCENE_LAYOUT_CONFIG.mobileMaxWidth;
   const pose = getCameraPose(
     mode === 'focused' ? focusedSectionId ?? 'projects' : null,
+    isMobileOverview,
   );
   const camera = new PerspectiveCamera(
     getHomeFov(width, height, CAMERA_CONFIG.fov, SCENE_LAYOUT_CONFIG),
@@ -110,6 +113,24 @@ function makeCamera(
   camera.lookAt(new Vector3().fromArray(pose.lookAt));
   camera.updateMatrixWorld(true);
   return camera;
+}
+
+function pushAwayFromCamera(
+  position: LayoutPosition,
+  camera: PerspectiveCamera,
+  distance: number,
+): LayoutPosition {
+  if (distance <= 0) return position;
+
+  const offsetX = position[0] - camera.position.x;
+  const offsetZ = position[1] - camera.position.z;
+  const horizontalDistance = Math.hypot(offsetX, offsetZ);
+  if (horizontalDistance === 0) return position;
+
+  return [
+    position[0] + offsetX / horizontalDistance * distance,
+    position[1] + offsetZ / horizontalDistance * distance,
+  ];
 }
 
 function projectSlot(
@@ -240,41 +261,25 @@ function makeLayout(
   if (mode === 'focused') {
     return normalizeDepth(streams, slots, camera, heightGrid, elevation, seaLevel);
   }
-  return streams.map((stream, index) => (
-    projectSlot(
+  const isMobileOverview = width < SCENE_LAYOUT_CONFIG.mobileMaxWidth;
+  return streams.map((stream, index) => {
+    const projected = projectSlot(
       slots[index],
       camera,
-      stream.focusedBottomOffset + getLinkStreamHeight(stream) * 0.5,
+      (isMobileOverview ? 0 : stream.focusedBottomOffset)
+        + getLinkStreamHeight(stream) * 0.5,
       heightGrid,
       elevation,
       seaLevel,
-    ).position
-  ));
-}
-
-function makeFocusedMobileLayout(
-  streams: readonly LinkStream[],
-  width: number,
-  height: number,
-  heightGrid: HeightGrid,
-  elevation: number,
-  seaLevel: number,
-  focusedSectionId: SectionId | null,
-) {
-  const camera = makeCamera(width, height, 'focused', focusedSectionId);
-  const slots = streams.map((stream) => {
-    const [x, z] = stream.anchor;
-    const y = sampleHeight(heightGrid, x, z, elevation, seaLevel)
-      + stream.focusedBottomOffset
-      + getLinkStreamHeight(stream) * 0.5;
-    const screenX = new Vector3(x, y, z).project(camera).x;
-    return {position: stream.anchor, screenX};
-  }).sort((a, b) => a.screenX - b.screenX);
-
-  return applyFocusedOrder(
-    streams,
-    slots.map(({position}) => position),
-  );
+    );
+    return isMobileOverview
+      ? pushAwayFromCamera(
+        projected.position,
+        camera,
+        mobileSettings.mobileDepthOffset,
+      )
+      : projected.position;
+  });
 }
 
 export function getLinkLayouts(
@@ -287,17 +292,17 @@ export function getLinkLayouts(
   mobileSettings: MobileLinkStreamSettings = MOBILE_LINK_STREAM_CONFIG,
   focusedSectionId: SectionId | null = null,
 ) {
+  const overview = makeLayout(
+    streams, width, height, 'overview', heightGrid, elevation, seaLevel,
+    mobileSettings, null,
+  );
   return {
-    overview: makeLayout(
-      streams, width, height, 'overview', heightGrid, elevation, seaLevel,
-      mobileSettings, null,
-    ),
-    focused: makeLayout(
-      streams, width, height, 'focused', heightGrid, elevation, seaLevel,
-      mobileSettings, focusedSectionId,
-    ),
-    focusedMobile: makeFocusedMobileLayout(
-      streams, width, height, heightGrid, elevation, seaLevel, focusedSectionId,
-    ),
+    overview,
+    focused: width < SCENE_LAYOUT_CONFIG.mobileMaxWidth
+      ? overview
+      : makeLayout(
+        streams, width, height, 'focused', heightGrid, elevation, seaLevel,
+        mobileSettings, focusedSectionId,
+      ),
   };
 }

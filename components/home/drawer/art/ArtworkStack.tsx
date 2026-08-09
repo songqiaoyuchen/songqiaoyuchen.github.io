@@ -301,13 +301,15 @@ export function ArtworkStack() {
           />
         </ContainerScroll>
 
-        <div
-          aria-hidden="true"
-          className="absolute bottom-6 left-1/2 flex -translate-x-1/2 flex-col items-center"
-        >
-          <span className="art-scroll-chevron" />
-          <span className="art-scroll-chevron" />
-        </div>
+        {activeIndex < maxPosition && (
+          <div
+            aria-hidden="true"
+            className="absolute bottom-6 left-1/2 flex -translate-x-1/2 flex-col items-center"
+          >
+            <span className="art-scroll-chevron" />
+            <span className="art-scroll-chevron" />
+          </div>
+        )}
       </div>
 
       <div aria-atomic="true" aria-live="polite" className="mt-4">

@@ -35,6 +35,7 @@ const EDITABLE_CONFIG = {
     fileName: 'camera.ts',
     keys: [
       'overviewPosition', 'overviewLookAt',
+      'mobileOverviewPosition', 'mobileOverviewLookAt',
       'projectsPosition', 'projectsLookAt',
       'artPosition', 'artLookAt',
       'blogPosition', 'blogLookAt',
@@ -77,7 +78,7 @@ const EDITABLE_CONFIG = {
   linkStreams: {
     directory: 'navigation',
     fileName: 'linkStreams.ts',
-    keys: ['mobileStartX', 'mobileEndX', 'mobileCenterY'],
+    keys: ['mobileStartX', 'mobileEndX', 'mobileCenterY', 'mobileDepthOffset'],
   },
   decorStreams: {
     directory: 'scene',

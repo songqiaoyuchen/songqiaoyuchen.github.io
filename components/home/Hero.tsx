@@ -42,7 +42,7 @@ export function Hero({isHidden, useHtmlDesktopName = false}: HeroProps) {
     <section
       aria-hidden={isHidden}
       aria-labelledby="home-hero-title"
-      className={`absolute inset-0 z-30 flex flex-col justify-start px-6 pt-28 pb-8 font-mono text-left
+      className={`absolute inset-0 z-30 flex flex-col justify-start px-6 pt-18 pb-8 font-mono text-left
         transition-[opacity,transform] duration-300 ease-out motion-reduce:transition-opacity
         motion-reduce:duration-150 md:block md:w-auto md:max-w-none md:p-0 md:pointer-events-none
         ${

@@ -25,6 +25,7 @@ import {
 } from '@/config/navigation';
 import {
   CONTOUR_CONFIG,
+  SCENE_LAYOUT_CONFIG,
   TERRAIN_MATERIAL_CONFIG,
   TERRAIN_MESH_CONFIG,
 } from '@/config/scene';
@@ -97,6 +98,7 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
   const isReducedMotion = useReducedMotion();
   const isFocused = activeId !== null;
   const desiredLayoutMode = getLinkLayoutMode(isFocused, viewportWidth);
+  const isMobileViewport = viewportWidth < SCENE_LAYOUT_CONFIG.mobileMaxWidth;
   const activeIndex = activeId
     ? LINK_STREAMS.findIndex((run) => run.id === activeId)
     : -1;
@@ -226,7 +228,27 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
     if (!material) return;
     let layoutSwitched = false;
 
-    if (isReducedMotion) {
+    if (isMobileViewport) {
+      layoutSwitched = layoutMode.current !== 'overview-mobile';
+      layoutMode.current = 'overview-mobile';
+      const visibilityTarget = activeId === null ? 1 : 0;
+      if (isReducedMotion) {
+        dissolveVisibility.current = visibilityTarget;
+      } else if (visibilityTarget < dissolveVisibility.current) {
+        dissolveVisibility.current = Math.max(
+          visibilityTarget,
+          dissolveVisibility.current
+            - delta * LINK_STREAM_EFFECT_CONFIG.dissolveOutSpeed,
+        );
+      } else if (visibilityTarget > dissolveVisibility.current) {
+        dissolveVisibility.current = Math.min(
+          visibilityTarget,
+          dissolveVisibility.current
+            + delta * LINK_STREAM_EFFECT_CONFIG.dissolveInSpeed,
+        );
+      }
+      transitionPhase.current = 'idle';
+    } else if (isReducedMotion) {
       layoutSwitched = layoutMode.current !== requestedLayoutMode.current;
       layoutMode.current = requestedLayoutMode.current;
       transitionPhase.current = 'idle';
@@ -251,11 +273,10 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
 
     const isOverviewLayout = layoutMode.current === 'overview'
       || layoutMode.current === 'overview-mobile';
+    const isMobileOverviewLayout = layoutMode.current === 'overview-mobile';
     const targetLayout = isOverviewLayout
       ? layouts.overview
-      : layoutMode.current === 'focused'
-        ? layouts.focused
-        : layouts.focusedMobile;
+      : layouts.focused;
     const offsetX = material.uniforms.uLayoutOffsetX.value as Float32Array;
     const offsetZ = material.uniforms.uLayoutOffsetZ.value as Float32Array;
     const verticalOffsets = material.uniforms.uVerticalOffset.value as Float32Array;
@@ -293,9 +314,11 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
           previousOffsetX !== offsetX[run.index]
           || previousOffsetZ !== offsetZ[run.index]
         );
-        verticalOffsets[run.index] = isOverviewLayout
-          ? run.overviewBottomOffset - run.focusedBottomOffset
-          : 0;
+        verticalOffsets[run.index] = isMobileOverviewLayout
+          ? -run.focusedBottomOffset
+          : isOverviewLayout
+            ? run.overviewBottomOffset - run.focusedBottomOffset
+            : 0;
       }
 
       layoutInitialized.current = true;
@@ -342,8 +365,10 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
       const streamHeight = getLinkStreamHeight(run);
       const y =
         sampleHeight(shellBase, x, z, elevation, seaLevel) +
-        (isOverviewLayout
-          ? run.overviewBottomOffset
+        (isMobileOverviewLayout
+          ? 0
+          : isOverviewLayout
+            ? run.overviewBottomOffset
           : run.focusedBottomOffset) +
         streamHeight * 0.5;
       hitTarget.position.set(x, y, z);
@@ -398,7 +423,7 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
         const position: [number, number, number] = [
           run.anchor[0],
           sampleHeight(shellBase, run.anchor[0], run.anchor[1], elevation, seaLevel)
-            + run.overviewBottomOffset
+            + (isMobileViewport ? 0 : run.overviewBottomOffset)
             + getLinkStreamHeight(run) * 0.5,
           run.anchor[1],
         ];
