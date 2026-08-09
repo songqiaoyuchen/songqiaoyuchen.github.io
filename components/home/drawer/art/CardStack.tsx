@@ -47,6 +47,7 @@ type CardStickyProps = HTMLMotionProps<'div'>
     incrementY?: number;
     incrementZ?: number;
     incrementRotation?: number;
+    revealOnPreviousExit?: boolean;
   };
 
 interface ContainerScrollContextValue {
@@ -114,16 +115,16 @@ ContainerScroll.displayName = 'ContainerScroll';
 
 export const CardsContainer = React.forwardRef<
   HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
+  HTMLMotionProps<'div'>
 >(({children, className, ...props}, ref) => (
-  <div
+  <motion.div
     className={cn('relative', className)}
     ref={ref}
     style={{perspective: '1000px', ...props.style}}
     {...props}
   >
     {children}
-  </div>
+  </motion.div>
 ));
 CardsContainer.displayName = 'CardsContainer';
 
@@ -135,6 +136,7 @@ export const CardTransformed = React.forwardRef<HTMLDivElement, CardStickyProps>
       incrementY = 10,
       incrementZ = 10,
       incrementRotation = -index + 90,
+      revealOnPreviousExit = false,
       className,
       variant,
       style,
@@ -150,9 +152,14 @@ export const CardTransformed = React.forwardRef<HTMLDivElement, CardStickyProps>
       () => [range[0] - 1.5, range[1] / 1.5],
       [range],
     );
+    const revealRange = React.useMemo<[number, number]>(() => {
+      const revealStart = index === 0 ? -1 : (index - 1) / (arrayLength + 1);
+      return [revealStart, revealStart + 0.0001];
+    }, [arrayLength, index]);
 
     const y = useTransform(scrollYProgress, range, ['0%', '-180%']);
     const rotate = useTransform(scrollYProgress, rotateRange, [incrementRotation, 0]);
+    const revealedOpacity = useTransform(scrollYProgress, revealRange, [0, 1]);
     const translateZ = index === 0 ? 0.001 : index * incrementZ;
     const transform = useMotionTemplate`translateZ(${translateZ}px) translateY(${y}) rotate(${rotate}deg)`;
 
@@ -169,6 +176,7 @@ export const CardTransformed = React.forwardRef<HTMLDivElement, CardStickyProps>
       backfaceVisibility: 'hidden' as const,
       zIndex: (arrayLength - index) * incrementZ,
       filter,
+      ...(revealOnPreviousExit ? {opacity: revealedOpacity} : {}),
       ...style,
     };
 

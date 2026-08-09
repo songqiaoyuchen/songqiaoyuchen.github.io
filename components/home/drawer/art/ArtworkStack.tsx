@@ -12,7 +12,7 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from 'react';
 import {gsap} from 'gsap';
-import {useMotionValue, useMotionValueEvent} from 'motion/react';
+import {useMotionValue, useMotionValueEvent, useTransform} from 'motion/react';
 import {FEATURED_ARTWORKS} from '@/data/artworks';
 import {ArtworkLightbox} from '@/components/artworks/ArtworkLightbox';
 import {useReducedMotion} from '@/hooks/useReducedMotion';
@@ -31,11 +31,17 @@ const SCROLL_DAMPING_DURATION = 0.3;
 const SNAP_DELAY = 140;
 const SNAP_DURATION = 0.36;
 const WHEEL_STAGE_DISTANCE = 200;
+const ARTWORK_PROGRESS_STOPS = FEATURED_ARTWORKS.map(
+  (_, index) => index / (FEATURED_ARTWORKS.length + 1),
+);
+const ARTWORK_ASPECT_RATIOS = FEATURED_ARTWORKS.map(
+  (artwork) => artwork.width / artwork.height,
+);
 
 interface ArtworkStackContentProps {
   onActiveIndexChange: (index: number) => void;
   onArtworkOpen: (index: number) => void;
-  interactionProps: ComponentPropsWithRef<'div'>;
+  interactionProps: ComponentPropsWithRef<typeof CardsContainer>;
 }
 
 function ArtworkStackContent({
@@ -45,6 +51,11 @@ function ArtworkStackContent({
 }: ArtworkStackContentProps) {
   const {scrollYProgress} = useContainerScrollContext();
   const artworkCount = FEATURED_ARTWORKS.length;
+  const cardAspectRatio = useTransform(
+    scrollYProgress,
+    ARTWORK_PROGRESS_STOPS,
+    ARTWORK_ASPECT_RATIOS,
+  );
 
   useMotionValueEvent(scrollYProgress, 'change', (progress) => {
     const nextIndex = Math.max(
@@ -61,20 +72,19 @@ function ArtworkStackContent({
     <CardsContainer
       className={`sticky top-2 mx-auto w-[60%] max-w-120 touch-none ${FOCUS_RING}`}
       role="group"
-      style={{
-        aspectRatio: Math.min(
-          ...FEATURED_ARTWORKS.map((artwork) => artwork.width / artwork.height),
-        ),
-      }}
+      style={{aspectRatio: cardAspectRatio}}
       {...interactionProps}
     >
       {FEATURED_ARTWORKS.map((artwork, index) => (
         <CardTransformed
           arrayLength={artworkCount}
           className="h-auto w-full overflow-hidden border-0 bg-transparent p-0 backdrop-blur-none"
+          incrementRotation={0}
+          incrementY={0}
           index={index}
           key={artwork.id}
           layout={false}
+          revealOnPreviousExit
           style={{aspectRatio: artwork.width / artwork.height}}
         >
           <button
@@ -290,6 +300,14 @@ export function ArtworkStack() {
             }}
           />
         </ContainerScroll>
+
+        <div
+          aria-hidden="true"
+          className="absolute bottom-6 left-1/2 flex -translate-x-1/2 flex-col items-center"
+        >
+          <span className="art-scroll-chevron" />
+          <span className="art-scroll-chevron" />
+        </div>
       </div>
 
       <div aria-atomic="true" aria-live="polite" className="mt-4">

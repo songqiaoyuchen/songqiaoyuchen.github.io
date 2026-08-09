@@ -379,6 +379,36 @@ html[data-home-loading="true"] {
   }
 }
 
+.art-scroll-chevron {
+  width: 1rem;
+  height: 1rem;
+  border-right: 0.24rem solid currentColor;
+  border-bottom: 0.24rem solid currentColor;
+  border-radius: 0.08rem;
+  color: var(--color-text);
+  opacity: 0;
+  transform: rotate(45deg);
+  animation: art-scroll-chevron-glow 1.8s ease-in-out infinite both;
+}
+
+.art-scroll-chevron + .art-scroll-chevron {
+  margin-top: -0.35rem;
+  animation-delay: 620ms;
+}
+
+@keyframes art-scroll-chevron-glow {
+  0%, 34%, 100% {
+    opacity: 0;
+    filter: drop-shadow(0 0 0 rgb(242 238 230 / 0%));
+  }
+  12%, 22% {
+    opacity: 1;
+    filter:
+      drop-shadow(0 0 0.25rem rgb(242 238 230 / 78%))
+      drop-shadow(0 0 0.55rem rgb(242 238 230 / 32%));
+  }
+}
+
 @utility preview-backdrop {
   border-right: 1px solid rgb(255 255 255 / 5%);
   background: linear-gradient(
@@ -827,6 +857,16 @@ html[data-home-loading="true"] {
   .hero-type-reveal {
     animation: none;
     clip-path: none;
+  }
+
+  .art-scroll-chevron {
+    animation: none;
+    opacity: 0.24;
+  }
+
+  .art-scroll-chevron + .art-scroll-chevron {
+    opacity: 1;
+    filter: drop-shadow(0 0 0.3rem rgb(242 238 230 / 55%));
   }
 
   .code-block-copy {
