@@ -40,8 +40,8 @@ export function ArtworkLightbox({artwork, onClose}: ArtworkLightboxProps) {
       >
         <button
           aria-label="Close viewer"
-          className="absolute right-2 top-2 z-10 grid size-11 place-items-center border-0 bg-panel/90
-            p-0 font-mono text-xl text-muted transition-colors hover:text-text
+          className="absolute right-2 top-2 z-10 grid size-11 place-items-center border-0 bg-transparent
+            p-0 font-mono text-xl text-muted transition-colors hover:text-text sm:bg-panel/90
             focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent"
           onClick={onClose}
           type="button"
