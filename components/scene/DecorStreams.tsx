@@ -64,6 +64,7 @@ export const DecorStreams = forwardRef<MeshType, DecorStreamsProps>(function Dec
   const {displacementMap, shellBase} = useTerrainAssets();
   const [fallSpeedMin, fallSpeedMax] = decorStreamSettings.fallRowsPerSecond;
   const [packetSpeedMin, packetSpeedMax] = decorStreamSettings.packetRowsPerSecond;
+  const [swapSpeedMin, swapSpeedMax] = decorStreamSettings.letterSwapsPerSecond;
 
   const layers = useMemo(() => generateDecorStreamLayers({
     count: DECOR_STREAM_CONFIG.count,
@@ -112,6 +113,12 @@ export const DecorStreams = forwardRef<MeshType, DecorStreamsProps>(function Dec
         value: new Vector2(
           DECOR_STREAM_CONFIG.animation.packetRowsPerSecond[0],
           DECOR_STREAM_CONFIG.animation.packetRowsPerSecond[1],
+        ),
+      },
+      uLetterSwapsPerSecond: {
+        value: new Vector2(
+          DECOR_STREAM_CONFIG.animation.letterSwapsPerSecond[0],
+          DECOR_STREAM_CONFIG.animation.letterSwapsPerSecond[1],
         ),
       },
     },
@@ -181,8 +188,20 @@ export const DecorStreams = forwardRef<MeshType, DecorStreamsProps>(function Dec
       packetSpeedMin,
       packetSpeedMax,
     );
+    (material.uniforms.uLetterSwapsPerSecond.value as Vector2).set(
+      swapSpeedMin,
+      swapSpeedMax,
+    );
     compositorDirty.current = true;
-  }, [fallSpeedMax, fallSpeedMin, material, packetSpeedMax, packetSpeedMin]);
+  }, [
+    fallSpeedMax,
+    fallSpeedMin,
+    material,
+    packetSpeedMax,
+    packetSpeedMin,
+    swapSpeedMax,
+    swapSpeedMin,
+  ]);
   useEffect(() => {
     configureBitmapAtlas(atlas);
     compositorDirty.current = true;

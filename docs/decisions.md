@@ -478,3 +478,23 @@ restored by D-017.
 
 Changing `centerHeightBias` adjusts the contrast between center and edge columns. A value of zero restores the
 unbiased seeded height distribution.
+
+### D-020: Letter-swap speed is independently tunable and reduced
+
+Status: accepted
+Date: 2026-08-09
+Scope: design, animation, workflow
+
+**Decision**
+
+DecorStreams expose a separate minimum/maximum rate for character replacement, initially set to 1-3 swaps
+per second. The development control updates the shader live and Save Config persists the selected range.
+
+**Reason**
+
+Glyph replacement was visually faster than the surrounding stream and packet motion. Its previous effective
+rate was approximately 2-6 swaps per second and could only be changed inside the shader.
+
+**Consequences**
+
+Letter swapping can now be slowed or accelerated without changing falling-row speed or packet travel speed.

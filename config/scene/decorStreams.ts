@@ -12,6 +12,7 @@ export const DECOR_STREAM_CONFIG = {
   animation: {
     fallRowsPerSecond: [0.1, 2],
     packetRowsPerSecond: [0.2, 2],
+    letterSwapsPerSecond: [1, 3],
   },
   compositor: {
     blurResolutionScale: 0.5,

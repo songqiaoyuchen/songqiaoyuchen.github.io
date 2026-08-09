@@ -6,6 +6,7 @@ uniform float uEnergy;
 uniform float uAnimationTime;
 uniform vec2 uFallRowsPerSecond;
 uniform vec2 uPacketRowsPerSecond;
+uniform vec2 uLetterSwapsPerSecond;
 
 varying vec2 vStreamUv;
 varying vec4 vRandom;
@@ -29,15 +30,18 @@ void main() {
   float fallSpeed = mix(uFallRowsPerSecond.x, uFallRowsPerSecond.y, vRandom.y);
   float cellPosition = vStreamUv.y * vCharCount - uAnimationTime * fallSpeed;
   float cellIndex = floor(mod(cellPosition, uAtlasColumns));
-  float characterTime = uAnimationTime * mix(
-    1.0,
-    2.0,
+  float swapRandom = 0.5 * (
     vRandom.y + hash43(vec3(cellIndex, -100.0, vRandom.z)).x
+  );
+  float characterTime = uAnimationTime * mix(
+    uLetterSwapsPerSecond.x,
+    uLetterSwapsPerSecond.y,
+    swapRandom
   );
   vec4 characterRandom = hash43(vec3(
     cellIndex,
     vRandom.w,
-    floor(characterTime * -2.0)
+    floor(characterTime * -1.0)
   ));
   float character = mod(
     cellIndex + floor(characterRandom.x * uAtlasColumns),

@@ -19,5 +19,12 @@ export function useDecorStreamControls() {
       step: 0.1,
       label: 'Packet Speed',
     },
+    letterSwapsPerSecond: {
+      value: [...ANIMATION.letterSwapsPerSecond],
+      min: 0,
+      max: 12,
+      step: 0.1,
+      label: 'Letter Swap Speed',
+    },
   });
 }

@@ -82,7 +82,11 @@ const EDITABLE_CONFIG = {
   decorStreams: {
     directory: 'scene',
     fileName: 'decorStreams.ts',
-    keys: ['fallRowsPerSecond', 'packetRowsPerSecond'],
+    keys: [
+      'fallRowsPerSecond',
+      'packetRowsPerSecond',
+      'letterSwapsPerSecond',
+    ],
   },
 } as const;
 
