@@ -173,6 +173,8 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
       value: LINK_STREAM_EFFECT_CONFIG.focusedSpacingMultiplier,
     },
     uBillboardTilt: { value: 0 },
+    uJiggleStrength: { value: LINK_STREAM_EFFECT_CONFIG.jiggleStrength },
+    uSequencedLetterSwap: { value: 1 },
     uAtlas: { value: atlas },
     uDecorationColor: { value: new Color(CONTOUR_CONFIG.minorColor) },
     uStreamColor: { value: new Color(CONTOUR_CONFIG.majorColor) },
@@ -197,9 +199,13 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
     seaLevel,
   ]);
   useEffect(() => {
-    if (hoveredIndex !== null) glitchValues.current[hoveredIndex] = 1;
+    if (isReducedMotion) {
+      glitchValues.current.fill(0);
+    } else if (hoveredIndex !== null) {
+      glitchValues.current[hoveredIndex] = 1;
+    }
     interactionAnimating.current = true;
-  }, [hoveredIndex]);
+  }, [hoveredIndex, isReducedMotion]);
   useEffect(() => {
     layoutDirty.current = true;
     hitTargetsDirty.current = true;
@@ -301,7 +307,6 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
 
     if (interactionAnimating.current) {
       const hoverAlpha = Math.min(1, delta * LINK_STREAM_EFFECT_CONFIG.hoverDamping);
-      const glitchDecay = Math.exp(-delta * LINK_STREAM_EFFECT_CONFIG.glitchDecay);
       let hasUnsettledInteraction = false;
 
       for (let index = 0; index < LINK_STREAMS.length; index++) {
@@ -311,8 +316,12 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
         const hoverSettled = Math.abs(hoverTarget - nextHover) < ANIMATION_SETTLE_EPSILON;
         hoverValues.current[index] = hoverSettled ? hoverTarget : nextHover;
 
-        const nextGlitch = glitchValues.current[index] * glitchDecay;
-        const glitchSettled = nextGlitch < ANIMATION_SETTLE_EPSILON;
+        const nextGlitch = Math.max(
+          0,
+          glitchValues.current[index]
+            - delta / LINK_STREAM_EFFECT_CONFIG.letterSwapDuration,
+        );
+        const glitchSettled = nextGlitch === 0;
         glitchValues.current[index] = glitchSettled ? 0 : nextGlitch;
         hasUnsettledInteraction ||= !hoverSettled || !glitchSettled;
       }

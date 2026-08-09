@@ -29,6 +29,7 @@ uniform float uActiveStream;
 uniform float uFocused;
 uniform float uFocusedSpacingMultiplier;
 uniform float uBillboardTilt;
+uniform float uJiggleStrength;
 
 varying vec2 vAtlasUv;
 varying vec2 vAlternateAtlasUv;
@@ -100,7 +101,12 @@ void main() {
   float band = floor(aLocalUv.y * 7.0);
   float slice = hash12(vec2(band + aSeed * 31.0, floor(uTime * 18.0)));
   float glitchOffset =
-    (slice - 0.5) * step(0.5, slice) * vGlitch * 0.42 * (1.0 - vBorder);
+    (slice - 0.5)
+    * step(0.5, slice)
+    * vGlitch
+    * uJiggleStrength
+    * 0.42
+    * (1.0 - vBorder);
 
   vec2 billboardOffset = vec2(
     aBillboardOffset.x + glitchOffset,

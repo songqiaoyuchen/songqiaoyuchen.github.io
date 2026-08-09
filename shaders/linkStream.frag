@@ -4,6 +4,7 @@ uniform vec3 uStreamColor;
 uniform vec3 uHotColor;
 uniform float uTime;
 uniform float uDissolve;
+uniform float uSequencedLetterSwap;
 
 varying vec2 vAtlasUv;
 varying vec2 vAlternateAtlasUv;
@@ -48,12 +49,32 @@ void main() {
   }
 
   vec2 settledAtlasUv = mix(vAtlasUv, vAlternateAtlasUv, vTextTarget);
-  float scrambleStrength = smoothstep(0.08, 0.96, vGlitch);
-  float settleOrder = hash12(vec2(vSeed * 4.31, 7.17));
-  float scrambleMask = step(settleOrder, scrambleStrength);
-  float randomGlyph = 1.0 + floor(
-    hash12(vec2(vSeed * 19.7, floor(uTime * 18.0))) * 58.0
-  );
+  float scrambleMask;
+  float randomGlyph;
+  if (uSequencedLetterSwap > 0.5) {
+    float swapProgress = clamp(1.0 - vGlitch, 0.0, 1.0);
+    float startDelay = hash12(vec2(vSeed * 6.17, 2.43)) * 0.18;
+    float localProgress = clamp(
+      (swapProgress - startDelay) / max(1.0 - startDelay, 0.001),
+      0.0,
+      1.0
+    );
+    float swapCount = 2.0 + step(0.5, hash12(vec2(vSeed * 8.13, 3.71)));
+    float swapPhase = min(floor(localProgress * swapCount), swapCount - 1.0);
+    scrambleMask = step(startDelay, swapProgress)
+      * (1.0 - step(1.0, localProgress))
+      * step(0.001, vGlitch);
+    randomGlyph = 1.0 + floor(
+      hash12(vec2(vSeed * 19.7, swapPhase + 11.0)) * 58.0
+    );
+  } else {
+    float scrambleStrength = smoothstep(0.08, 0.96, vGlitch);
+    float settleOrder = hash12(vec2(vSeed * 4.31, 7.17));
+    scrambleMask = step(settleOrder, scrambleStrength);
+    randomGlyph = 1.0 + floor(
+      hash12(vec2(vSeed * 19.7, floor(uTime * 18.0))) * 58.0
+    );
+  }
   vec2 scrambledAtlasUv = atlasUvForGlyph(randomGlyph, vLocalUv);
   float field = texture2D(
     uAtlas,

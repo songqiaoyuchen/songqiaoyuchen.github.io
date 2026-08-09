@@ -65,6 +65,8 @@ export const LINK_STREAM_EFFECT_CONFIG = {
   dissolveOutSpeed: 4.8,
   dissolveInSpeed: 3.2,
   hoverDamping: 9,
+  letterSwapDuration: 0.4,
+  jiggleStrength: 0.5,
   glitchDecay: 3.6,
 } as const;
 

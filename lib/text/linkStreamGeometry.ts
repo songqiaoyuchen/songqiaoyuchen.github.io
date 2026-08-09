@@ -13,6 +13,7 @@ export interface HorizontalStreamText {
   alternateText?: string;
   anchor: [number, number];
   bottomOffset: number;
+  glyphWidthToHeightRatio?: number;
   intensity: number;
   seed: number;
   size: number;
@@ -117,7 +118,7 @@ export function buildHorizontalStreamGeometry(run: HorizontalStreamText) {
     borderFlags: [],
     indices: [],
   };
-  const glyphWidth = run.size * 0.62;
+  const glyphWidth = run.size * (run.glyphWidthToHeightRatio ?? 0.62);
   const advance = glyphWidth + run.spacing;
   const denominator = Math.max(1, run.text.length - 1);
 

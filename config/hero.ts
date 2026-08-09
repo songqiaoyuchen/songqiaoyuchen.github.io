@@ -3,7 +3,7 @@ import {VIEWPORT_BREAKPOINTS} from '@/config/breakpoints';
 export const HERO_CONTENT = {
   eyebrow: "HELLO, I'M",
   name: 'SQYC',
-  hoverName: 'SONG',
+  hoverName: 'NIRO',
   supportingLines: [
     'CS + MATH AT National University of SG',
     'EXPLORING SOFTWARE AND VISUAL SOLUTIONS',
@@ -17,7 +17,8 @@ export const HERO_CONTENT = {
 export const HERO_SCENE_CONFIG = {
   screenPosition: [0.36, -0.02] as const,
   size: 1.3,
-  spacing: -0.3,
+  glyphWidthToHeightRatio: 1,
+  spacing: -0.5,
   bottomOffset: 0.7,
   intensity: 0.72,
   seed: 24.7,
