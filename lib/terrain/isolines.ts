@@ -1,6 +1,6 @@
 import type {HeightGrid} from './bake';
-import {marchLevel} from './marchingSquares';
-import {resamplePolyline, simplifyPolyline, smoothPolyline} from './polyline';
+import {marchLevel} from './marchingSquares.ts';
+import {resamplePolyline, simplifyPolyline, smoothPolyline} from './polyline.ts';
 
 export interface Isoline {
   points: Float32Array;

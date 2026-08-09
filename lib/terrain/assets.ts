@@ -82,7 +82,6 @@ function rejectAll(error: Error) {
 
 function loadTerrainAssets() {
   if (assetsPromise) return assetsPromise;
-  const contourOptions = getContourBuildOptions();
   const worker = makeWorker();
 
   initialContoursPromise = new Promise<ContourTubeBuffers>((resolve, reject) => {
@@ -160,10 +159,7 @@ function loadTerrainAssets() {
     worker.onerror = (event) => rejectAll(new Error(
       event.message || 'Terrain preparation worker failed.',
     ));
-    worker.postMessage({
-      contourOptions,
-      type: 'load',
-    });
+    worker.postMessage({type: 'load'});
   });
   return assetsPromise;
 }

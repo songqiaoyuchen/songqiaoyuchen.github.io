@@ -531,9 +531,10 @@ Scope: architecture, performance
 **Decision**
 
 While the homepage preloader is visible, its frame responsiveness takes priority over total scene startup
-speed. Terrain transfer, decompression, contour extraction, smoothing, and geometry-buffer construction run
-in a worker. Main-thread scene attachment and GPU warm-up are split across healthy animation frames, and the
-heavy scene bundle is not evaluated until the lightweight loader has painted.
+speed. Default contour extraction, smoothing, and geometry-buffer construction happen in the checked-in
+terrain bake; development-only rebuilds run in a worker. Terrain transfer and decompression also run in the
+worker. Main-thread scene attachment and GPU warm-up are split across healthy animation frames, and the heavy
+scene bundle is not evaluated until the lightweight loader has painted.
 
 **Reason**
 

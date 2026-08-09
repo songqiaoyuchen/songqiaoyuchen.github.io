@@ -1,5 +1,6 @@
 import {loadTerrainManifest, type TerrainArtifact} from './manifest';
 import {extractIsolines} from './isolines';
+import {unpackContourTubeBuffers} from './contourArtifact';
 import {
   buildContourTubeBuffers,
   getContourTubeTransferables,
@@ -25,7 +26,7 @@ function reportProgress(progress: number) {
   port.postMessage({progress, type: 'progress'});
 }
 
-async function decompressArtifact(artifact: TerrainArtifact) {
+async function decompressArtifact(artifact: Pick<TerrainArtifact, 'byteLength' | 'file'>) {
   const response = await fetch(`/textures/terrain/baked/${artifact.file}`, {
     cache: 'force-cache',
     signal: abortController.signal,
@@ -55,9 +56,7 @@ function buildContours(options: ContourBuildOptions) {
   return buildContourTubeBuffers(extractIsolines(smoothedShell, options));
 }
 
-async function loadAssets(
-  contourOptions: ContourBuildOptions,
-) {
+async function loadAssets() {
   abortController = new AbortController();
   const manifest = await loadTerrainManifest();
   reportProgress(0.24);
@@ -100,7 +99,11 @@ async function loadAssets(
   ];
   port.postMessage(response, transferables);
 
-  const contourBuffers = buildContours(contourOptions);
+  const contourBuffer = await decompressArtifact(manifest.artifacts.contours);
+  const contourBuffers = unpackContourTubeBuffers(
+    contourBuffer,
+    manifest.artifacts.contours.buffers,
+  );
   reportProgress(0.78);
   port.postMessage(
     {buffers: contourBuffers, type: 'initial-contours-ready'},
@@ -117,7 +120,7 @@ port.onmessage = (event) => {
   }
 
   if (request.type === 'load') {
-    void loadAssets(request.contourOptions).catch((error: unknown) => {
+    void loadAssets().catch((error: unknown) => {
       if (abortController.signal.aborted) return;
       port.postMessage({
         message: error instanceof Error ? error.message : 'Terrain worker failed.',

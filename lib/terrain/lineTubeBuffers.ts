@@ -119,5 +119,5 @@ export function buildContourTubeBuffers(lines: Isoline[]): ContourTubeBuffers {
 }
 
 export function getContourTubeTransferables(buffers: ContourTubeBuffers) {
-  return Object.values(buffers).map((array) => array.buffer);
+  return Array.from(new Set(Object.values(buffers).map((array) => array.buffer)));
 }

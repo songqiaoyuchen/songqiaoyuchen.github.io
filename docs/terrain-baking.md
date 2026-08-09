@@ -15,10 +15,10 @@ The legacy browser pipeline was:
 2. Convert its first channel from half-float and sRGB.
 3. Blur and downsample a displacement grid.
 4. Calculate the two-channel height gradient at full source resolution.
-5. Smooth the CPU shell grid and extract contour geometry.
+5. Smooth the CPU shell grid, extract contour polylines, and expand their tube buffers.
 
-Steps 1-4 are deterministic for the checked-in heightmap and scene config, so
-they are the safest first bake. Keep decor-stream geometry live for now.
+All five steps are deterministic for the checked-in heightmap and scene config.
+Keep decor-stream geometry live because its content is animated at runtime.
 
 ## Implemented artifact pipeline
 
@@ -30,38 +30,47 @@ The script should produce this directory:
 ```text
 public/textures/terrain/baked/
   manifest.json
+  contours.<content-hash>.contour-v1.bin.gz
   displacement.<content-hash>.r16f.bin.gz
   gradient.<content-hash>.rg16f.bin.gz
   shell.<content-hash>.f32.bin.gz
   static-lighting.<content-hash>.rg16f.bin.gz
 ```
 
+- `contours.contour-v1.bin`: packed index and vertex-attribute buffers for the
+  default contour geometry, ready for direct Three.js attachment.
 - `displacement.r16f.bin`: the existing downsampled half-float height texture.
 - `gradient.rg16f.bin`: the existing two-channel half-float gradient texture.
 - `shell.f32.bin`: the displacement grid as floats for `sampleHeight`, link
-  layout, contour extraction, and any other CPU consumers.
+  layout, development contour rebuilds, and any other CPU consumers.
 - `static-lighting.*.rg16f.bin.gz`: the two baked scalar light contributions.
 - `manifest.json`: dimensions, formats, byte lengths, source hash, and a config
-  hash covering terrain geometry, displacement, and lighting inputs.
+  hash covering terrain geometry, contour generation, displacement, and
+  lighting inputs.
 
-The raw values remain exact. Production downloads only the displacement, shell,
-and static-lighting artifacts (approximately 5.5 MB compressed), while removing
-EXR decoding and all deterministic blur, gradient, and lighting loops from the
-startup path. The full-resolution gradient artifact is development-only because
-it is needed solely when live-lighting controls diverge from the baked config.
+The raw values remain exact. Production downloads the displacement, shell,
+static-lighting, and contour artifacts (approximately 6.3 MB compressed), while
+removing EXR decoding and all deterministic blur, gradient, lighting, smoothing,
+marching-squares, polyline, and tube-expansion loops from the startup path. The
+full-resolution gradient artifact is development-only because it is needed
+solely when live-lighting controls diverge from the baked config.
 
-In production, the Suspense-compatible loader fetches the manifest and three
-compressed buffers in parallel, decompresses and validates them, and creates:
+In production, the dedicated terrain worker fetches the manifest and compressed
+buffers sequentially to bound CPU and memory contention, then decompresses and
+validates them. The main thread creates:
 
 - a `RedFormat` / `HalfFloatType` displacement `DataTexture`;
 - a `Float32Array`-backed `HeightGrid` for CPU sampling.
-- an `RGFormat` / `HalfFloatType` static-lighting `DataTexture`.
+- an `RGFormat` / `HalfFloatType` static-lighting `DataTexture`;
+- a `BufferGeometry` adapter over the transferred, prebaked contour attributes.
 
 The loader uses the same linear filters, clamp wrapping, and disabled mipmaps
 as the legacy path. Production requests neither the EXR nor the gradient.
 Development additionally loads an `RGFormat` / `HalfFloatType` gradient
 `DataTexture`, allowing controls to fall back to a live lighting rebake when a
-scalar lighting value differs from the checked-in configuration.
+scalar lighting value differs from the checked-in configuration. Changing a
+development contour geometry control requests a worker rebuild while retaining
+the previous geometry until the replacement is ready.
 
 ## Static terrain lighting
 
@@ -122,7 +131,7 @@ Before deleting the live EXR path:
    frame time, and artifact transfer size for both paths.
 4. Verify reduced motion and WebGL fallback are unchanged.
 
-Contour geometry can be serialized in a later pass without removing its shader
-animation. Keep decor streams out of the static terrain bake: their accepted
-stepped glyph cascade depends on live shader time and a periodically refreshed
-depth-blur compositor (D-012).
+The contour shader animation remains live; only its deterministic default
+geometry is serialized. Keep decor streams out of the static terrain bake:
+their accepted stepped glyph cascade depends on live shader time and a
+periodically refreshed depth-blur compositor (D-012).

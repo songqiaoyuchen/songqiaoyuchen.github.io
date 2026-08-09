@@ -1,5 +1,49 @@
 {
   "artifacts": {
+    "contours": {
+      "buffers": {
+        "index": {
+          "byteOffset": 0,
+          "length": 358038
+        },
+        "lineId": {
+          "byteOffset": 1432152,
+          "length": 59994
+        },
+        "major": {
+          "byteOffset": 1672128,
+          "length": 59994
+        },
+        "normal": {
+          "byteOffset": 1912104,
+          "length": 179982
+        },
+        "position": {
+          "byteOffset": 2632032,
+          "length": 179982
+        },
+        "shadow": {
+          "byteOffset": 3351960,
+          "length": 59994
+        },
+        "t": {
+          "byteOffset": 3591936,
+          "length": 59994
+        },
+        "totalLength": {
+          "byteOffset": 3831912,
+          "length": 59994
+        },
+        "travelDirection": {
+          "byteOffset": 4071888,
+          "length": 59994
+        }
+      },
+      "byteLength": 4311864,
+      "compressedByteLength": 802922,
+      "file": "contours.c14d832a4ca6d819.contour-v1.bin.gz",
+      "format": "contour-v1"
+    },
     "displacement": {
       "byteLength": 1959420,
       "channels": 1,
@@ -37,7 +81,7 @@
       "width": 867
     }
   },
-  "configHash": "7c99d791930ea59fffe1b2e69d84bfd3f8841fe2ee805848ce8652111fc426e6",
+  "configHash": "b390e68ce8f1244d23b29481467b0afdfd1f96f420e58e3e0b337a01c432b08d",
   "sourceHash": "333f2c7b63f79252665b3efdaf215fd1a34ace934d3df47947a77a15da15e1a7",
-  "version": 1
+  "version": 2
 }

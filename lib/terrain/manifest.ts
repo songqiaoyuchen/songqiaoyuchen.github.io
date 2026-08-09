@@ -1,3 +1,5 @@
+import type {ContourBufferLayout} from './contourArtifact';
+
 export type TerrainArtifact = {
   byteLength: number;
   channels: number;
@@ -8,8 +10,17 @@ export type TerrainArtifact = {
   width: number;
 };
 
+export type ContourArtifact = {
+  buffers: ContourBufferLayout;
+  byteLength: number;
+  compressedByteLength: number;
+  file: string;
+  format: 'contour-v1';
+};
+
 export type TerrainManifest = {
   artifacts: {
+    contours: ContourArtifact;
     displacement: TerrainArtifact;
     gradient: TerrainArtifact;
     shell: TerrainArtifact;
@@ -17,7 +28,7 @@ export type TerrainManifest = {
   };
   configHash: string;
   sourceHash: string;
-  version: 1;
+  version: 2;
 };
 
 const MANIFEST_URL = '/textures/terrain/baked/manifest.json';
@@ -29,7 +40,7 @@ export function loadTerrainManifest() {
       throw new Error(`Unable to load terrain manifest (${response.status}).`);
     }
     const manifest = await response.json() as TerrainManifest;
-    if (manifest.version !== 1) throw new Error('Unsupported terrain manifest version.');
+    if (manifest.version !== 2) throw new Error('Unsupported terrain manifest version.');
     return manifest;
   });
   return manifestPromise;

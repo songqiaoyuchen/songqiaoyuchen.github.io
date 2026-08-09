@@ -16,7 +16,6 @@ export type TerrainWorkerAssets = {
 
 export type TerrainWorkerRequest =
   | {
-    contourOptions: ContourBuildOptions;
     type: 'load';
   }
   | {

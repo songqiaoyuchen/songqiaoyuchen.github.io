@@ -1,13 +1,18 @@
 import {createHash} from 'node:crypto';
 import {mkdir, readFile, stat, writeFile} from 'node:fs/promises';
 import path from 'node:path';
-import {gzipSync} from 'node:zlib';
+import {gunzipSync, gzipSync} from 'node:zlib';
 import {DataUtils} from 'three';
 import {EXRLoader} from 'three/addons/loaders/EXRLoader.js';
 import {
   TERRAIN_MATERIAL_CONFIG,
   TERRAIN_MESH_CONFIG,
 } from '../config/scene/terrain.ts';
+import {CONTOUR_CONFIG} from '../config/scene/contours.ts';
+import {packContourTubeBuffers} from '../lib/terrain/contourArtifact.ts';
+import {extractIsolines} from '../lib/terrain/isolines.ts';
+import {buildContourTubeBuffers} from '../lib/terrain/lineTubeBuffers.ts';
+import {bakeShellGrid} from '../lib/terrain/shell.ts';
 
 const ROOT = process.cwd();
 const SOURCE_PATH = path.join(ROOT, 'public/textures/terrain/heightmap.exr');
@@ -50,6 +55,28 @@ function stableConfig() {
       softMin: SHADOW_SOFT_MIN,
       softMax: SHADOW_SOFT_MAX,
     },
+    contours: contourBuildOptions(),
+  };
+}
+
+function contourBuildOptions() {
+  return {
+    chaikinIterations: CONTOUR_CONFIG.chaikinIterations,
+    contrast: TERRAIN_MATERIAL_CONFIG.contrast,
+    downsample: CONTOUR_CONFIG.downsample,
+    levels: CONTOUR_CONFIG.levels,
+    majorEvery: CONTOUR_CONFIG.majorEvery,
+    majorMinHeight: CONTOUR_CONFIG.majorMinHeight,
+    minLength: CONTOUR_CONFIG.minLength,
+    planeSize: TERRAIN_MESH_CONFIG.planeSize,
+    rdpEpsilon: CONTOUR_CONFIG.rdpEpsilon,
+    resampleSpacing: CONTOUR_CONFIG.resampleSpacing,
+    seaLevel: TERRAIN_MATERIAL_CONFIG.seaLevel,
+    shadowChance: CONTOUR_CONFIG.shadowChance,
+    shadowOffset: CONTOUR_CONFIG.shadowOffset,
+    smoothFactor: CONTOUR_CONFIG.smoothFactor,
+    smoothIterations: CONTOUR_CONFIG.smoothIterations,
+    spacingJitter: CONTOUR_CONFIG.spacingJitter,
   };
 }
 
@@ -393,14 +420,59 @@ async function checkManifest(sourceHash, configHash) {
     const manifest = JSON.parse(await readFile(MANIFEST_PATH, 'utf8'));
     const artifacts = Object.values(manifest.artifacts ?? {});
     const filesExist = (await Promise.all(artifacts.map(artifactExists))).every(Boolean);
-    return manifest.version === 1
+    const metadataIsCurrent = manifest.version === 2
       && manifest.sourceHash === sourceHash
       && manifest.configHash === configHash
-      && artifacts.length === 4
+      && artifacts.length === 5
+      && manifest.artifacts.contours?.format === 'contour-v1'
       && filesExist;
+    if (!metadataIsCurrent) return false;
+    return validateContourArtifact(manifest);
   } catch {
     return false;
   }
+}
+
+async function validateContourArtifact(manifest) {
+  const shellArtifact = manifest.artifacts.shell;
+  const shellCompressed = await readFile(path.join(OUTPUT_DIRECTORY, shellArtifact.file));
+  const shellRaw = gunzipSync(shellCompressed);
+  if (shellRaw.byteLength !== shellArtifact.byteLength) return false;
+  const shellData = new Float32Array(
+    shellRaw.buffer.slice(shellRaw.byteOffset, shellRaw.byteOffset + shellRaw.byteLength),
+  );
+  const options = contourBuildOptions();
+  const shell = bakeShellGrid(
+    {data: shellData, width: shellArtifact.width, height: shellArtifact.height},
+    options.smoothIterations,
+    options.smoothFactor,
+  );
+  const expected = packContourTubeBuffers(buildContourTubeBuffers(
+    extractIsolines(shell, options),
+  ));
+
+  const artifact = manifest.artifacts.contours;
+  const compressed = await readFile(path.join(OUTPUT_DIRECTORY, artifact.file));
+  const raw = gunzipSync(compressed);
+  return raw.byteLength === artifact.byteLength
+    && raw.equals(Buffer.from(expected.buffer))
+    && JSON.stringify(artifact.buffers) === JSON.stringify(expected.layout);
+}
+
+async function writeContourArtifact(buffers) {
+  const packed = packContourTubeBuffers(buffers);
+  const raw = Buffer.from(packed.buffer);
+  const contentHash = hash(raw).slice(0, 16);
+  const file = `contours.${contentHash}.contour-v1.bin.gz`;
+  const compressed = gzipSync(raw, {level: 9});
+  await writeFile(path.join(OUTPUT_DIRECTORY, file), compressed);
+  return {
+    buffers: packed.layout,
+    byteLength: raw.byteLength,
+    compressedByteLength: compressed.byteLength,
+    file,
+    format: 'contour-v1',
+  };
 }
 
 async function writeArtifact(name, format, width, height, channels, array) {
@@ -457,6 +529,17 @@ async function main() {
     height: displacement.height,
   };
 
+  console.log('Baking default contour geometry…');
+  const contourOptions = contourBuildOptions();
+  const contourShell = bakeShellGrid(
+    shellGrid,
+    contourOptions.smoothIterations,
+    contourOptions.smoothFactor,
+  );
+  const contourBuffers = buildContourTubeBuffers(
+    extractIsolines(contourShell, contourOptions),
+  );
+
   console.log('Baking static terrain lighting…');
   const staticLighting = bakeStaticLighting(
     shellGrid,
@@ -467,6 +550,7 @@ async function main() {
 
   console.log('Compressing terrain artifacts…');
   const artifacts = {
+    contours: await writeContourArtifact(contourBuffers),
     displacement: await writeArtifact(
       'displacement',
       'r16f',
@@ -504,7 +588,7 @@ async function main() {
     artifacts,
     configHash,
     sourceHash,
-    version: 1,
+    version: 2,
   };
   await writeFile(MANIFEST_PATH, `${JSON.stringify(manifest, null, 2)}\n`);
   const compressedTotal = Object.values(artifacts)
