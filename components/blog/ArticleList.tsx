@@ -64,7 +64,7 @@ export function ArticleList({articles}: ArticleListProps) {
         </ol>
       ) : (
         <p className="m-0 border-y border-line py-16 text-center font-serif text-2xl text-text">
-          No articles published yet.
+          I&apos;ll write something here later... :)
         </p>
       )}
     </section>

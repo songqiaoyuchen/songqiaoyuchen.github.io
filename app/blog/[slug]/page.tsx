@@ -45,7 +45,7 @@ export default async function ArticlePage({params}: ArticlePageProps) {
 
   return (
     <main className="relative min-h-svh overflow-x-clip bg-background pb-32 text-text sm:pt-32 pt-18">
-      <div aria-hidden="true" className="blog-contours blog-contours-article" />
+      <div aria-hidden="true"/>
       <article className="relative mx-auto max-w-6xl px-6 sm:px-10">
         <header className="border-b border-line pb-8 sm:pb-12">
           <Link

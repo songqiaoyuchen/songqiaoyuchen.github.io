@@ -507,26 +507,6 @@ html[data-home-loading="true"] {
   );
 }
 
-.blog-contours {
-  position: absolute;
-  inset: 0 0 auto;
-  height: 24rem;
-  background-image:
-    repeating-radial-gradient(
-      ellipse 70% 45% at 84% -10%,
-      transparent 0 1.25rem,
-      rgb(232 199 122 / 9%) 1.3rem 1.34rem,
-      transparent 1.39rem 2.7rem
-    );
-  mask-image: linear-gradient(to bottom, black, transparent 88%);
-  pointer-events: none;
-}
-
-.blog-contours-article {
-  opacity: 0.72;
-  transform: scaleX(-1);
-}
-
 .article-title,
 .article-deck,
 .article-body {

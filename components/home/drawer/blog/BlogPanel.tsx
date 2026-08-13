@@ -109,7 +109,7 @@ export function BlogPanel({articles, isOpen}: BlogPanelProps) {
             </ol>
           ) : (
             <p className="border-y border-line py-5 font-mono text-copy leading-copy text-muted">
-              No articles published yet.
+              I&apos;ll write something here later... ;)
             </p>
           )}
 

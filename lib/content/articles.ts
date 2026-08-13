@@ -23,7 +23,14 @@ function isArticleMetadata(value: unknown): value is Omit<ArticleMetadata, 'slug
 }
 
 export const getArticleSlugs = cache(async () => {
-  const entries = await readdir(ARTICLES_DIRECTORY, {withFileTypes: true});
+  let entries;
+
+  try {
+    entries = await readdir(ARTICLES_DIRECTORY, {withFileTypes: true});
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return [];
+    throw error;
+  }
 
   return entries
     .filter((entry) => entry.isDirectory() && SLUG_PATTERN.test(entry.name))
