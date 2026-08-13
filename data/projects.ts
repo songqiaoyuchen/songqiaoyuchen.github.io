@@ -38,7 +38,7 @@ export interface Project {
 export const PROJECTS = [
   {
     featured: true,
-    href: 'https://github.com/songqiaoyuchen/sqyc',
+    href: 'https://github.com/songqiaoyuchen/songqiaoyuchen.github.io',
     id: 'this-site',
     image: thisSiteImage,
     imageAlt: "This website's interface",
