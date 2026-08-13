@@ -1,4 +1,4 @@
-# Song Qiao Yuchen
+# SQYC
 
 My personal website and digital archive for projects, writing, and artwork.
 
