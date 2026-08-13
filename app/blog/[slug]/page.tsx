@@ -20,7 +20,9 @@ export const dynamicParams = false;
 
 export async function generateStaticParams() {
   const slugs = await getArticleSlugs();
-  return slugs.map((slug) => ({slug}));
+  const staticSlugs = slugs.length > 0 ? slugs : ['__placeholder__'];
+
+  return staticSlugs.map((slug) => ({slug}));
 }
 
 export async function generateMetadata({params}: ArticlePageProps): Promise<Metadata> {
