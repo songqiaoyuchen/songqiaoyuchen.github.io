@@ -1,68 +1,53 @@
 # Architecture
 
-Status: evolving  
-Last reviewed: 2026-07-19
+Current implementation map, not a fixed design direction. Update when structure changes.
 
-## Current stack
+## Stack and ownership
 
-- Next.js App Router with React and TypeScript.
-- Tailwind CSS patterns should dominate styling.
-- React Three Fiber, Three.js, Drei, and post-processing for the terrain experience.
-- GSAP ScrollTrigger for the homepage's coordinated DOM/WebGL scroll-transition timeline.
-- Rehype Pretty Code and Shiki for build-time article syntax highlighting.
-- Custom GLSL shaders and generated font/texture atlases.
-- Static assets in `public/` and tuned visual configuration in `config/`.
+Next.js App Router, React, TypeScript, Tailwind; React Three Fiber/Three.js,
+Drei, post-processing, and GLSL for terrain. Motion and GSAP support interactions.
 
-## Intended system boundaries
+| Location | Responsibility |
+| --- | --- |
+| `app/` | Routes, layout, metadata, global styles, development API |
+| `app/page.tsx` → `components/home/Home.tsx` | Server-loaded article summaries → client scene readiness, fallback, preview state |
+| `components/home/drawer/` | Lazy About, project, art, and blog previews |
+| `components/scene/`, `shaders/` | Terrain, effects, scene-mounted HTML stream controls |
+| `components/artworks/`, `components/blog/` | Archive/viewer and editorial UI |
+| `data/` | Projects, artworks, About timeline/contact |
+| `lib/content/`, `content/`, `mdx-components.tsx` | Server MDX loader, articles, registered components |
+| `lib/terrain/`, `lib/text/` | Terrain worker/assets and glyph geometry |
+| `config/`, `app/globals.css` | Tunable scene/layout values and shared style tokens |
+| `public/`, `scripts/` | Local fonts/media/baked assets and generation utilities |
 
-### Content and routes
+The homepage is a single viewport with a preloader, WebGL scene, and preview
+drawers. Archives live at `/projects`, `/artworks`, and `/blog`; About/contact
+currently lives in its drawer. Project cards link directly to repositories.
 
-Pages, headings, navigation, article text, metadata, and links should be represented by semantic HTML rendered through the App Router. Pages should be Server Components unless they need state, events, or browser APIs.
+Articles use `content/<lowercase-hyphenated-slug>/index.mdx` with an exported
+`article` record defined by `lib/content/types.ts`. The server adapter discovers
+articles and generates `/blog/[slug]`; `_placeholder` is unpublished. Syntax
+highlighting runs at build time.
 
-### Interactive UI
+Terrain is baked offline, worker-loaded, and attached in stages. See the
+[terrain runbook](terrain-baking.md) for inputs and artifacts.
+Krypton is local; article classes use a separate system serif stack.
+Content pages scroll; full-screen overflow belongs to the homepage.
 
-Small Client Components own interaction state and connect HTML/SVG interface elements to visual effects. Client boundaries should stay narrow so content does not inherit unnecessary JavaScript.
+## Commands and deployment
 
-### Terrain and atmosphere
+| Command | Purpose |
+| --- | --- |
+| `npm ci` / `npm run dev` | Install / develop |
+| `npm run build` | Validate terrain bake, compile, type-check, generate routes |
+| `npm run lint` | ESLint |
+| `npm run bake:terrain` / `npm run check:terrain-bake` | Generate / validate terrain artifacts |
+| `npm run sync:artwork-dimensions` | Update artwork dimensions |
 
-The WebGL scene owns terrain rendering, shader animation, contour lines, and atmospheric effects. It should not be the only representation of navigation or content.
+`.github/workflows/nextjs.yml` enables `GITHUB_PAGES=true`, omits the dev API
+route, and exports to `out/`. That mode disables Next image optimization.
+`NEXT_PUBLIC_BASE_PATH` configures the base path; `NEXT_PUBLIC_SITE_URL`
+configures metadata's origin. Next server cache headers do not apply to Pages.
 
-### Content source
-
-Writing uses local MDX in `content/<slug>/index.mdx` (D-007). A server-only adapter in
-`lib/content/articles.ts` discovers articles and normalizes their metadata for route layouts and indexes.
-Route components should depend on that normalized record rather than on filesystem details so a future CMS
-can replace the loader without redesigning the editorial UI.
-
-## Page-depth model
-
-| Depth | Rendering emphasis | Visual intensity |
-| --- | --- | --- |
-| Homepage | Semantic shell plus optional WebGL enhancement | High |
-| Section index | Server-rendered editorial layout | Low to medium |
-| Article or case study | Server-rendered reading layout | Minimal |
-
-## Current implementation risks to address incrementally
-
-- The homepage page component currently establishes a broad client boundary.
-- Full-screen global overflow behavior will conflict with scrolling content pages.
-- Development controls and free camera controls are present in the scene composition.
-- Remote Google font fetching makes production builds dependent on font-network availability.
-- No automated browser, accessibility, or content-route tests exist yet.
-
-These are not instructions to refactor everything immediately. Address them in the smallest relevant vertical slice.
-
-## Verification strategy
-
-- Static checks: lint, TypeScript through the production build, and build output.
-- Visual checks: representative desktop, tablet, and mobile viewports.
-- Interaction checks: keyboard, pointer, touch, Escape/focus behavior, and reduced motion.
-- Failure checks: WebGL unavailable, asset failure, and slow initial loading.
-- Content checks: semantic heading structure, route metadata, crawlable links, and readable no-animation states.
-
-## Open architecture questions
-
-- Shape of project, article, art, and blog content records.
-- ~~Whether scroll choreography needs a small motion dependency or can remain native.~~ Resolved by D-005: GSAP ScrollTrigger owns the homepage transition timeline.
-- Performance quality tiers for mobile and lower-power GPUs.
-- Deployment, analytics, search, and image-delivery choices.
+Verification behavior lives in [workflow](workflow.md); known gaps live in
+`todos/`. Neither needs to be duplicated here.

@@ -11,3 +11,9 @@ The homepage is an atmospheric, interactive landscape inspired by topography and
 - [Projects](https://songqiaoyuchen.github.io/projects/) — selected software and creative work
 - [Artwork](https://songqiaoyuchen.github.io/artworks/) — drawings, paintings, and digital pieces
 - [Writing](https://songqiaoyuchen.github.io/blog/) — essays, notes, and technical reflections
+
+## Development
+
+See [architecture](docs/architecture.md) for the implementation map and commands,
+[workflow](docs/workflow.md) for work modes and automatic checks, and
+[todos](docs/todos/) for deferred improvements.
