@@ -180,6 +180,7 @@ export function TerrainBackground({
             {assemblyPhase >= 1 ? (
             <CachedTerrain
               artMedium={artMedium}
+              preloadIllustrations={hideHomeScene}
               fogSettings={settings.fog}
               onDepthTextureChange={setTerrainDepthTexture}
               terrainSettings={settings.terrain}

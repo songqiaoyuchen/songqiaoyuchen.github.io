@@ -50,10 +50,12 @@ their respective `oilIllustration.ts` / `pencilIllustration.ts` configs.
 `CachedTerrain` composites all three through one descending elevation-contour wipe,
 reconstructing the terrain's world height from cached depth; open sky blends separately.
 The same mask replaces the outgoing style with the incoming style, preserving
-both through the transition. Rapid selections finish the active wipe before
-starting the latest requested medium. Reduced motion skips medium animations.
-`useIllustrationTexture` loads textures on first entry and retains them; pending
-or failed loads leave the previous treatment visible. Changing the Art pose requires new images.
+both through the transition. Rapid selections accelerate the active wipe to finish
+within 150 ms of animation time before starting the latest requested medium.
+Reduced motion skips medium animations.
+`useIllustrationTexture` loads and uploads both textures on Art entry, while the
+camera is arriving, and retains them. Pending or failed loads leave the previous
+treatment visible. Changing the Art pose requires new images.
 The older oil bake and pencil surface shaders are no longer on the active path.
 All media share the Art camera pose, independent of material transitions.
 In development, Leva's Art Camera folder enables orbit/pan/zoom and numeric

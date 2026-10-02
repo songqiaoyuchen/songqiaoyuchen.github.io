@@ -1,10 +1,12 @@
 'use client';
 
 import {useEffect, useState} from 'react';
+import {useThree} from '@react-three/fiber';
 import {SRGBColorSpace, TextureLoader, type Texture} from 'three';
 
-/** Load each image once on first use; keep it available as an outgoing style. */
+/** Prepare images on Art entry and retain them across subsequent selections. */
 export function useIllustrationTexture(active: boolean, imageUrl: string, medium: 'oil' | 'pencil') {
+  const gl = useThree((state) => state.gl);
   const [requested, setRequested] = useState(active);
   const [texture, setTexture] = useState<Texture | null>(null);
   if (active && !requested) setRequested(true);
@@ -17,9 +19,11 @@ export function useIllustrationTexture(active: boolean, imageUrl: string, medium
       loaded.name = `Art.${medium}Illustration`;
       loaded.anisotropy = 8;
       loaded.needsUpdate = true;
+      // Upload now so selecting this medium does not pay the first-use GPU cost.
+      gl.initTexture(loaded);
       setTexture(loaded);
     }, undefined, () => console.warn(`${medium} illustration unavailable; retaining previous terrain treatment.`));
     return () => { cancelled = true; image.dispose(); };
-  }, [requested, imageUrl, medium]);
+  }, [requested, imageUrl, medium, gl]);
   return texture;
 }

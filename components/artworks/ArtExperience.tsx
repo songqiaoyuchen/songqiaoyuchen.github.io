@@ -363,20 +363,6 @@ export function ArtExperience() {
                   );
                 })}
               </div>
-                <button
-                  className="art-arrow art-arrow-previous"
-                  onClick={() => select(index - 1)}
-                  aria-label="Previous artwork"
-                >
-                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6-6 6 6 6" /></svg>
-                </button>
-                <button
-                  className="art-arrow art-arrow-next"
-                  onClick={() => select(index + 1)}
-                  aria-label="Next artwork"
-                >
-                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m10 6 6 6-6 6" /></svg>
-                </button>
               </div>
               <div className="art-caption" aria-live="polite" aria-atomic="true">
                 <div key={selected.id}>

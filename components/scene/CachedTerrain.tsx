@@ -49,6 +49,7 @@ function renderTerrain(
 
 type CachedTerrainProps = {
   artMedium?: ArtMedium | null;
+  preloadIllustrations: boolean;
   fogSettings: FogControlValues;
   onDepthTextureChange: (texture: ReturnType<typeof useFBO>['depthTexture']) => void;
   terrainSettings: TerrainControlValues;
@@ -62,6 +63,7 @@ type CachedTerrainProps = {
  */
 export function CachedTerrain({
   artMedium = null,
+  preloadIllustrations,
   fogSettings,
   onDepthTextureChange,
   terrainSettings,
@@ -81,8 +83,8 @@ export function CachedTerrain({
   const cameraFrameState = useCameraFrameState();
   const renderedCameraRevision = useRef(-1);
   const reducedMotion = useReducedMotion();
-  const oil = useIllustrationTexture(artMedium === 'oil', OIL_ILLUSTRATION_CONFIG.image, 'oil');
-  const pencil = useIllustrationTexture(artMedium === 'pencil', PENCIL_ILLUSTRATION_CONFIG.image, 'pencil');
+  const oil = useIllustrationTexture(preloadIllustrations, OIL_ILLUSTRATION_CONFIG.image, 'oil');
+  const pencil = useIllustrationTexture(preloadIllustrations, PENCIL_ILLUSTRATION_CONFIG.image, 'pencil');
   const transition = useRef(settledMedium(0));
   const {shellBase} = useTerrainAssets();
   const peakHeight = useMemo(() => {

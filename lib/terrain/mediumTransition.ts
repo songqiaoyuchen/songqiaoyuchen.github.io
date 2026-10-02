@@ -5,8 +5,10 @@ export function settledMedium(medium: MediumId): MediumTransition {
   return {from: medium, to: medium, progress: 1};
 }
 
-/** Finish the visible replacement before accepting the latest selection.
- * This coalesces rapid input without dropping either side of a partial wipe. */
+// Retain both sides of an interrupted wipe, but yield to new input promptly.
+const INTERRUPTED_DURATION = .15;
+
+/** Coalesce rapid input, finishing an interrupted wipe in at most 150 ms. */
 export function advanceMediumTransition(
   state: MediumTransition,
   requested: MediumId,
@@ -15,7 +17,8 @@ export function advanceMediumTransition(
   duration: number,
 ): MediumTransition {
   if (reducedMotion) return settledMedium(requested);
-  const step = Math.min(Math.max(delta, 0), .05) / duration;
+  const effectiveDuration = requested === state.to ? duration : Math.min(duration, INTERRUPTED_DURATION);
+  const step = Math.min(Math.max(delta, 0), .05) / effectiveDuration;
   if (state.progress < 1) {
     const progress = Math.min(1, state.progress + step);
     if (progress < 1) return {...state, progress};
