@@ -57,10 +57,9 @@ export function ArtInspection({
       }}
     >
       <div className="art-inspection-toolbar">
-        <span className="art-eyebrow">A closer look</span>
         <a
           ref={close}
-          className="art-text-link"
+          className="art-text-link ml-auto"
           href={collectionHref}
           onClick={(event) => {
             event.preventDefault();

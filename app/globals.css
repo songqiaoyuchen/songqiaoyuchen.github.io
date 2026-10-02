@@ -53,6 +53,7 @@
   --shadow-route: 0 0 10px rgb(232 199 122 / 12%);
   --shadow-route-marker: 0 0 9px rgb(232 199 122 / 34%);
   --spacing-drawer: clamp(21.25rem, 45vw, 38.75rem);
+  --spacing-page-gutter: 1.25rem;
   --spacing-hero-top: clamp(5.75rem, 11svh, 6.75rem);
   --text-card: 1.3125rem;
   --text-copy: 0.6875rem;
@@ -77,6 +78,12 @@
 }
 
 @layer base {
+  @media (min-width: 40rem) {
+    :root {
+      --spacing-page-gutter: 2.5rem;
+    }
+  }
+
   html,
   body {
     @apply m-0 min-h-full bg-background p-0 text-foreground;

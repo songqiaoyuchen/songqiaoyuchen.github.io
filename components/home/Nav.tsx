@@ -17,7 +17,7 @@ export function Nav() {
     <nav
       aria-label="Site navigation"
       className="top-nav-glass fixed inset-x-0 top-0 z-50 flex flex-nowrap items-center
-        justify-between gap-3 px-5 py-2.5 text-xs sm:px-10 sm:py-5"
+        justify-between gap-3 px-page-gutter py-2.5 text-xs sm:py-5"
     >
       <Link
         aria-current={pathname === '/' ? 'page' : undefined}

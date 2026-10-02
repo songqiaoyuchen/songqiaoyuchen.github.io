@@ -19,9 +19,11 @@ import {
   FEATURED_ARTWORKS,
   getArtwork,
   getArtworkMedium,
+  type ArtMedium,
 } from '@/data/artworks';
 import {useArtScene} from './ArtSceneContext';
 import {ArtInspection} from './ArtInspection';
+import {ArtworkSectionNav} from './ArtworkSectionNav';
 
 // Keep the gallery server-rendered; only URL query synchronization needs a
 // client boundary on statically exported routes.
@@ -41,6 +43,7 @@ export function ArtExperience() {
   const {setMedium} = useArtScene();
   const stageRef = useRef<HTMLDivElement>(null);
   const [stageSize, setStageSize] = useState({width: 0, height: 0, vertical: false});
+  const [collectionMedium, setCollectionMedium] = useState<ArtMedium>(getArtworkMedium(ALL_ARTWORKS[0]));
   const pointer = useRef<{x: number; y: number} | null>(null);
   const dragged = useRef(false);
   const openedHere = useRef(false);
@@ -56,11 +59,9 @@ export function ArtExperience() {
   const filter = ARTWORK_SECTIONS.some(({id}) => id === search.get('medium')) ? search.get('medium')! : 'all';
   const selected = FEATURED_ARTWORKS.find(({id}) => id === search.get('selected')) ?? FEATURED_ARTWORKS[0];
   const index = FEATURED_ARTWORKS.indexOf(selected);
-  const collection = all
-    ? ALL_ARTWORKS.filter((artwork) => filter === 'all' || getArtworkMedium(artwork) === filter)
-    : FEATURED_ARTWORKS;
-  const active = inspecting ?? selected;
-  const medium = getArtworkMedium(active);
+  const medium = inspecting
+    ? getArtworkMedium(inspecting)
+    : all ? collectionMedium : getArtworkMedium(selected);
   const params = new URLSearchParams(search.toString());
   params.set('view', all ? 'all' : 'selected');
   const query = params.size ? `?${params}` : '';
@@ -97,6 +98,7 @@ export function ArtExperience() {
     );
     return {width, height: width / ratio};
   }
+  const center = frameSize(selected);
 
   useEffect(() => {
     const wasInspecting = previousInspection.current;
@@ -195,68 +197,63 @@ export function ArtExperience() {
       </Suspense>
       <main className={`art-section ${all ? 'art-section-all' : ''}`} data-medium={medium}>
         <h1 className="sr-only">{all ? 'All artworks' : 'Art'}</h1>
-        <div className="art-collection-bar">
+        <nav className="art-collection-bar" aria-label="Art navigation">
             <Link className="art-text-link art-home" href="/">← Home</Link>
-            <Link className="art-text-link" href={scopeHref(all ? 'selected' : 'all')} scroll={false}>
+            <Link className="art-text-link" href={scopeHref(all ? 'selected' : 'all')}>
               {all ? '← Selected works' : 'All works ↗'}
             </Link>
-        </div>
+        </nav>
 
         <section className="art-gallery" aria-label={all ? 'All artworks' : 'Selected artworks'}>
 
           {all ? (
             <>
-              <div className="art-filters" aria-label="Filter artworks by medium">
-                {[{id: 'all', label: 'All'}, ...ARTWORK_SECTIONS].map(({id, label}) => (
-                  <Link
-                    aria-current={filter === id ? 'true' : undefined}
-                    className="art-filter"
-                    href={scopeHref('all', id)}
-                    key={id}
-                    scroll={false}
-                  >
-                    {label}
-                    <span>
-                      {id === 'all'
-                        ? ALL_ARTWORKS.length
-                        : ARTWORK_SECTIONS.find((section) => section.id === id)!.artworks.length}
-                    </span>
-                  </Link>
-                ))}
-              </div>
-              <p className="sr-only" role="status">
-                {collection.length} artworks
-              </p>
-              <div className="art-grid">
-                {collection.map((artwork) => (
-                  <Link
-                    className="art-grid-work"
-                    href={`/artworks/${artwork.id}${query}`}
-                    key={artwork.id}
-                    data-artwork-id={artwork.id}
-                    onClick={() => rememberCollection(artwork.id)}
-                    scroll={false}
-                  >
-                    <div className="art-grid-image">
-                      <Image
-                        alt={artwork.alt}
-                        src={artwork.src}
-                        width={artwork.width}
-                        height={artwork.height}
-                        sizes="(max-width: 767px) 44vw, 26vw"
-                      />
-                    </div>
-                    <h2>{artwork.title}</h2>
-                    <p>{artwork.material}</p>
-                  </Link>
-                ))}
-              </div>
+              <p className="sr-only">{ALL_ARTWORKS.length} artworks</p>
+              {ARTWORK_SECTIONS.map((section) => (
+                <section className="art-medium-section" id={section.id} key={section.id}
+                  aria-labelledby={`${section.id}-title`}>
+                  <h2 className="art-medium-title" id={`${section.id}-title`}>{section.label}</h2>
+                  <div className="art-grid">
+                    {section.artworks.map((artwork) => (
+                      <Link
+                        className="art-grid-work"
+                        href={`/artworks/${artwork.id}${query}`}
+                        key={artwork.id}
+                        data-artwork-id={artwork.id}
+                        onClick={() => rememberCollection(artwork.id)}
+                        scroll={false}
+                      >
+                        <div className="art-grid-image">
+                          <Image
+                            alt={artwork.alt}
+                            src={artwork.src}
+                            width={artwork.width}
+                            height={artwork.height}
+                            sizes="(max-width: 479px) 90vw, (max-width: 1023px) 44vw, 30vw"
+                          />
+                          <div className="art-grid-details">
+                            <p className="art-grid-meta">
+                              {artwork.material} <span aria-hidden="true">/</span> {artwork.size}
+                            </p>
+                            <h3>{artwork.title}</h3>
+                            {artwork.description && <p className="art-grid-description">{artwork.description}</p>}
+                          </div>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </section>
+              ))}
+              <ArtworkSectionNav activeMedium={collectionMedium} onMediumChange={setCollectionMedium} />
             </>
           ) : (
             <>
               <div className="art-stage">
               <div
                 className="art-carousel"
+                style={center.height > 0
+                  ? {'--art-frame-half-height': `${center.height / 2}px`} as CSSProperties
+                  : undefined}
                 ref={stageRef}
                 role="region"
                 aria-roledescription="carousel"
@@ -308,7 +305,6 @@ export function ArtExperience() {
                   if (offset > FEATURED_ARTWORKS.length / 2) offset -= FEATURED_ARTWORKS.length;
                   const current = offset === 0;
                   const visible = Math.abs(offset) <= 1;
-                  const center = frameSize(selected);
                   const natural = frameSize(artwork);
                   const crossAxis = stageSize.vertical ? 'width' : 'height';
                   const scale = current || !natural[crossAxis]

@@ -13,7 +13,7 @@ Drei, post-processing, and GLSL for terrain. Motion and GSAP support interaction
 | `app/(experience)/layout.tsx` → `components/home/Home.tsx` | Persistent Home/Art terrain, article summaries, readiness, fallback and preview state |
 | `components/home/drawer/` | Lazy About, project, and blog previews |
 | `components/scene/`, `shaders/` | Terrain, effects, scene-mounted HTML stream controls |
-| `components/artworks/` | Art carousel, collection filters, route-backed inspection, terrain-medium context and section styles |
+| `components/artworks/` | Art carousel, collection medium navigation, route-backed inspection, terrain-medium context and section styles |
 | `components/blog/` | Editorial UI |
 | `data/` | Projects, artworks, About timeline/contact |
 | `lib/content/`, `content/`, `mdx-components.tsx` | Server MDX loader, articles, registered components |
@@ -31,7 +31,12 @@ Art hides all scene text from navigation start, independently of medium loading.
 
 Art routes are `/artworks` (selected), `/artworks/all` (collection), and
 `/artworks/[id]` (statically generated inspection). Query parameters preserve
-`selected`, `medium`, and inspection source `view`. Carousel selection replaces
+`selected`, `medium`, and inspection source `view`. All works uses a full-width
+grid grouped into continuously scrolling medium sections; a fixed bottom bar
+jumps between sections and highlights the current medium. Scrolling between
+medium sections switches the terrain treatment through the same transition as
+featured selection; an inspected artwork takes precedence. The `medium` query
+parameter scrolls to a section on collection entry. Carousel selection replaces
 the current history entry; collection/detail navigation adds entries. Inspection
 uses a native dialog, restoring focus and scroll on return; direct details return
 to All works. Query synchronization has its own small Suspense boundary so the

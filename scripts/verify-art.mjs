@@ -106,16 +106,31 @@ try {
     await page.getByRole('link', {name: 'Close artwork and return to collection'}).click();
     await page.getByRole('dialog').waitFor({state: 'detached'});
   });
-  await check('Full collection, filtering, detail return and scroll preservation', async () => {
+  await check('Full-width collection, medium scrolling, detail return and scroll preservation', async () => {
     await page.getByRole('link', {name: 'All works'}).click();
     await page.waitForFunction(() => document.querySelectorAll('.art-grid-work').length === 13);
+    assert.equal(await page.locator('.art-medium-section').count(), 3);
+    assert.equal(await page.locator('.art-gallery').evaluate((element) => {
+      const section = element.closest('.art-section');
+      const style = getComputedStyle(section);
+      return Math.abs(element.getBoundingClientRect().width - section.clientWidth
+        + parseFloat(style.paddingLeft) + parseFloat(style.paddingRight)) < 2;
+    }), true);
     await capture('desktop-all');
-    await page.getByRole('link', {name: /^Oil\s*5$/}).click();
-    await page.waitForFunction(() => document.querySelectorAll('.art-grid-work').length === 5);
-    await page.getByRole('link', {name: /^Digital\s*2$/}).click();
-    await page.waitForFunction(() => document.querySelectorAll('.art-grid-work').length === 2);
-    await page.getByRole('link', {name: /^Pencil\s*6$/}).click();
-    await page.waitForFunction(() => document.querySelectorAll('.art-grid-work').length === 6);
+    for (const id of ['oil', 'digital', 'pencil']) {
+      const link = page.locator(`.art-medium-nav a[href="#${id}"]`);
+      await link.click();
+      await page.waitForFunction((medium) => {
+        const section = document.getElementById(medium);
+        const top = section.getBoundingClientRect().top + scrollY
+          - parseFloat(getComputedStyle(section).scrollMarginTop);
+        const target = Math.min(top, document.documentElement.scrollHeight - innerHeight);
+        return Math.abs(scrollY - target) < 2
+          && document.querySelector('.art-section')?.getAttribute('data-medium') === medium
+          && document.querySelector('.art-medium-nav [aria-current]')?.getAttribute('href') === `#${medium}`;
+      }, id);
+      assert.equal(await page.locator('.art-grid-work').count(), 13);
+    }
     const work = page.locator('.art-grid-work').last();
     await work.scrollIntoViewIfNeeded();
     const scroll = await page.evaluate(() => scrollY);
@@ -124,7 +139,7 @@ try {
     await page.getByRole('link', {name: 'Close artwork and return to collection'}).click();
     await page.getByRole('dialog').waitFor({state: 'detached'});
     assert.match(page.url(), /medium=pencil/);
-    assert.equal(await page.locator('.art-grid-work').count(), 6);
+    assert.equal(await page.locator('.art-grid-work').count(), 13);
     assert.ok(Math.abs(await page.evaluate(() => scrollY) - scroll) < 5);
     await page.getByRole('link', {name: 'Selected works', exact: false}).click();
     await caption('Emma Watson');
