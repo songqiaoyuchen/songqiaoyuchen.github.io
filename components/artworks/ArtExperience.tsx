@@ -24,6 +24,7 @@ import {
 import {useArtScene} from './ArtSceneContext';
 import {ArtInspection} from './ArtInspection';
 import {ArtworkSectionNav} from './ArtworkSectionNav';
+import {useGalleryTransition} from './useGalleryTransition';
 
 // Keep the gallery server-rendered; only URL query synchronization needs a
 // client boundary on statically exported routes.
@@ -56,6 +57,7 @@ export function ArtExperience() {
     pathname.endsWith('/all') ||
     search.get('view') === 'all' ||
     (!!inspecting && search.get('view') !== 'selected');
+  const {galleryRef, captureGallery} = useGalleryTransition(all);
   const filter = ARTWORK_SECTIONS.some(({id}) => id === search.get('medium')) ? search.get('medium')! : 'all';
   const selected = FEATURED_ARTWORKS.find(({id}) => id === search.get('selected')) ?? FEATURED_ARTWORKS[0];
   const index = FEATURED_ARTWORKS.indexOf(selected);
@@ -195,11 +197,12 @@ export function ArtExperience() {
       <Suspense>
         <ArtQuerySync onChange={setQueryString} />
       </Suspense>
-      <main className={`art-section ${all ? 'art-section-all' : ''}`} data-medium={medium}>
+      <main ref={galleryRef} className={`art-section ${all ? 'art-section-all' : ''}`} data-medium={medium}>
         <h1 className="sr-only">{all ? 'All artworks' : 'Art'}</h1>
         <nav className="art-collection-bar" aria-label="Art navigation">
             <Link className="art-text-link art-home" href="/">← Home</Link>
-            <Link className="art-text-link" href={scopeHref(all ? 'selected' : 'all')}>
+            <Link className="art-text-link" href={scopeHref(all ? 'selected' : 'all')}
+              onNavigate={captureGallery} scroll={false}>
               {all ? '← Selected works' : 'All works ↗'}
             </Link>
         </nav>

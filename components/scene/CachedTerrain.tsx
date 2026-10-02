@@ -9,7 +9,7 @@ import {
 } from 'three';
 import type {ArtMedium} from '@/data/artworks';
 import {useReducedMotion} from '@/hooks/useReducedMotion';
-import type {FogControlValues, TerrainControlValues} from '@/components/debug/useSceneControls';
+import type {ContourControlValues, FogControlValues, TerrainControlValues} from '@/components/debug/useSceneControls';
 import {FOG_CONFIG, TERRAIN_MATERIAL_CONFIG, TERRAIN_MESH_CONFIG} from '@/config/scene';
 import {ART_ILLUSTRATION_CONFIG} from '@/config/scene/artIllustration';
 import {OIL_ILLUSTRATION_CONFIG} from '@/config/scene/oilIllustration';
@@ -49,6 +49,7 @@ function renderTerrain(
 
 type CachedTerrainProps = {
   artMedium?: ArtMedium | null;
+  contourSettings: ContourControlValues;
   preloadIllustrations: boolean;
   fogSettings: FogControlValues;
   onDepthTextureChange: (texture: ReturnType<typeof useFBO>['depthTexture']) => void;
@@ -63,6 +64,7 @@ type CachedTerrainProps = {
  */
 export function CachedTerrain({
   artMedium = null,
+  contourSettings,
   preloadIllustrations,
   fogSettings,
   onDepthTextureChange,
@@ -108,9 +110,14 @@ export function CachedTerrain({
       uTexture: {value: target.texture},
       uTerrainDepth: {value: target.depthTexture},
       uClipToWorld: {value: new Matrix4()},
+      uClipToView: {value: new Matrix4()},
+      uRevealFog: {value: new Vector2()},
       uTerrainHeight: {value: new Vector2()},
       uResolution: {value: new Vector2()},
       uDigitalAccent: {value: new Color('#e8c77a')},
+      uRevealColor: {value: new Color(contourSettings.majorColor)},
+      uRevealIntensity: {value: contourSettings.majorIntensity},
+      uRevealRadius: {value: contourSettings.majorRadius},
       uBackground: {value: new Color(FOG_CONFIG.color)},
       uOil: {value: target.texture},
       uPencil: {value: target.texture},
@@ -120,7 +127,8 @@ export function CachedTerrain({
       uArtOpacity: {value: 0},
       uScreenToImage: {value: new Matrix3()},
     }),
-    [target.depthTexture, target.texture],
+    [contourSettings.majorColor, contourSettings.majorIntensity, contourSettings.majorRadius,
+      target.depthTexture, target.texture],
   );
 
   useLayoutEffect(() => {
@@ -144,6 +152,7 @@ export function CachedTerrain({
     values.uOil.value = oil ?? target.texture;
     values.uPencil.value = pencil ?? target.texture;
     values.uResolution.value.set(width, height);
+    values.uRevealFog.value.set(fogSettings.near, fogSettings.far);
     // Invert the authoring plane's screen projection to preserve image framing
     // across viewport sizes and the short camera departure from Art.
     projection.clip.copy(camera.projectionMatrix).multiply(camera.matrixWorldInverse).multiply(projection.plane);
@@ -172,6 +181,7 @@ export function CachedTerrain({
     renderTerrain(gl, scene, camera, target);
     // Keep reconstruction paired with the camera that produced the cached depth.
     values.uClipToWorld.value.copy(camera.matrixWorld).multiply(camera.projectionMatrixInverse);
+    values.uClipToView.value.copy(camera.projectionMatrixInverse);
     const peak = Math.min(1, Math.max(0,
       (peakHeight - terrainSettings.seaLevel) / Math.max(1 - terrainSettings.seaLevel, .0001)));
     values.uTerrainHeight.value.set(TERRAIN_MESH_CONFIG.position[1],

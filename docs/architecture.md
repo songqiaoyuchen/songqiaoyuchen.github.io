@@ -43,6 +43,11 @@ to All works. Query synchronization has its own small Suspense boundary so the
 collection and detail HTML remain visible without JavaScript.
 
 The desktop carousel is horizontal; narrow/touch layouts are vertical.
+`useGalleryTransition` snapshots visible artwork positions before collection
+navigation and animates them into the destination layout, reversing on return.
+Image transforms retain the carousel's perspective and intrinsic proportions;
+the carousel edge mask expands with the tiles and contracts on return.
+It skips animation for reduced motion and releases snapshots on input or resize.
 `CachedTerrain` caches the original terrain and retains its depth for streams.
 Digital uses `shaders/terrainComposite.frag`: cached lighting maps
 to dots in the CSS accent gold. Dot size carries brightness across the full terrain.

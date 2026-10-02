@@ -29,6 +29,11 @@
   padding: 84px var(--spacing-page-gutter) 28px;
   isolation: isolate;
 }
+.art-section[data-medium='digital'] {
+  --art-scrim-middle: 20%;
+  --art-scrim-right: 35%;
+  --art-scrim-radius: 40%;
+}
 .art-section::before {
   content: '';
   position: fixed;
@@ -37,8 +42,9 @@
   pointer-events: none;
   /* Shared scrim keeps the complete terrain visible behind every medium. */
   background:
-    radial-gradient(ellipse at 72% 86%, rgb(10 10 10 / 68%), transparent 62%),
-    linear-gradient(90deg, transparent 20%, rgb(10 10 10 / 42%) 44%, rgb(10 10 10 / 68%) 85%);
+    radial-gradient(ellipse at 72% 86%, rgb(10 10 10 / 68%), transparent var(--art-scrim-radius, 62%)),
+    linear-gradient(90deg, transparent 20%, rgb(10 10 10 / var(--art-scrim-middle, 42%)) 44%,
+      rgb(10 10 10 / var(--art-scrim-right, 68%)) 85%);
 }
 .art-collection-bar {
   grid-column: 2;
@@ -114,6 +120,19 @@
 }
 .art-carousel-slide[inert] {
   pointer-events: none;
+}
+.art-transition-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  overflow: hidden;
+  pointer-events: none;
+}
+.art-section[data-gallery-transition] .art-carousel-slide {
+  transition: none;
+}
+.art-section[data-gallery-transition] .art-caption > div {
+  animation: none;
 }
 .art-frame {
   display: flex;

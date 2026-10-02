@@ -179,6 +179,7 @@ export function TerrainBackground({
           <Suspense fallback={null}>
             {assemblyPhase >= 1 ? (
             <CachedTerrain
+              contourSettings={settings.contours}
               artMedium={artMedium}
               preloadIllustrations={hideHomeScene}
               fogSettings={settings.fog}
