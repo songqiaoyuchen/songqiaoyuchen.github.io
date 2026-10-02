@@ -1,0 +1,120 @@
+{
+  "source": "tmp/pencil-overlay/pencil-before-left-shoulder-edit.webp",
+  "method": "Built-in image_gen; bounded removal of isolated far-left upper shoulder, preserving ascending foreground diagonal and lower slopes.",
+  "prompt": "Edit only the isolated far-left upper shoulder in the supplied approved pencil image. This is a bounded removal from immutable source pencil-before-left-shoulder-edit.webp (1774×887). Preserve original 2:1 canvas, framing, mountain positions, foreground exposure, warm pale ochre coarse pencil/crayon marks, hatching and paper grain.\n\nThe ONE removal target is the small secondary mountain shoulder entering from the FAR LEFT edge around y=315, descending toward (200,395), sitting ABOVE/LEFT of the main foreground's ascending diagonal ridge. Native pixel selection polygon (top-left origin): [(0,303),(88,309),(158,336),(235,364),(218,405),(145,458),(65,515),(0,550)]. Remove this isolated shoulder's upper contour, all its interior drawing and shading, replacing it with the same near-black textured paper as the surrounding sky. This polygon identifies the geographic target and is not a shape to draw.\n\nCRITICAL PROTECTED FOREGROUND: retain the ascending foreground diagonal boundary running approximately from (0,550) through (120,475),(205,408) to (265,352), and retain everything BELOW and RIGHT of that boundary. The existing foreground ridge should now meet empty dark paper along this diagonal. Do not delete the diagonal line, do not trim away the lower-left slopes, and do not create a straight geometric edge: preserve the drawing's naturally irregular and broken marks. Protect the main summit near (480,235), its connecting slopes, all main-mountain internal shading and every lower foreground ridge. Semantic foreground protection overrides the selection polygon.\n\nOutside the removed far-left shoulder, keep drawing materially stable, including color, brightness, mark weight, hatching density, foreground shape, deliberate unfinished stroke endings near midpoint, and quiet empty right half x>=887. Preserve the already empty background with no rear mountains. No global restyling, moving, zooming, crop, fade, vignette, gradient, fog, blur, straight cut, new linework, text or objects. Use only minimal local blending to match paper where shoulder marks were removed. Acceptance: far-left shoulder absent, lower-left foreground diagonal and main mountain unchanged, negative space expanded only in the selected shoulder area.\n",
+  "editContract": {
+    "edit_id": "EDT-pencil-left-shoulder",
+    "source_asset_id": "pencil-illustration-v5",
+    "source_checkpoint": "tmp/pencil-overlay/pencil-before-left-shoulder-edit.webp",
+    "mode": "annotation_guided",
+    "source_geometry": {
+      "width": 1774,
+      "height": 887
+    },
+    "annotation_space": "pixels",
+    "targets": [
+      {
+        "target_id": "isolated-far-left-shoulder",
+        "semantic_target": "Isolated far-left secondary shoulder above and left of protected diagonal foreground ridge",
+        "geometry": {
+          "kind": "polygon",
+          "points": [
+            [
+              0,
+              303
+            ],
+            [
+              88,
+              309
+            ],
+            [
+              158,
+              336
+            ],
+            [
+              235,
+              364
+            ],
+            [
+              218,
+              405
+            ],
+            [
+              145,
+              458
+            ],
+            [
+              65,
+              515
+            ],
+            [
+              0,
+              550
+            ]
+          ]
+        },
+        "confidence": 0.99
+      }
+    ],
+    "requested_mutations": [
+      "Remove isolated far-left upper shoulder; replace it with matching near-black paper."
+    ],
+    "forbidden_mutations": [
+      "No main foreground ridge/slope removal, restyling, exposure change, crop, move, fade, vignette, blur, hard cut or added content."
+    ],
+    "identity_locks": [
+      "Main summit at (480,235), connected foreground slopes and diagonal ascending boundary remain materially stable."
+    ],
+    "geometry_locks": [
+      "1774x887 framing; foreground diagonal from (0,550) through (120,475),(205,408) to (265,352) protected."
+    ],
+    "style_locks": [
+      "Warm pale ochre pencil marks, selective hatching, exposure, grain and rough endings preserved."
+    ],
+    "mutation_budget": "one",
+    "protected_regions": [
+      {
+        "region_id": "foreground",
+        "rule": "Protect diagonal foreground boundary (0,550)→(120,475)→(205,408)→(265,352) and all drawing below/right, overriding polygon.",
+        "geometry": null
+      },
+      {
+        "region_id": "complement",
+        "rule": "Protect all non-target image content including summit and entire empty right half.",
+        "geometry": null
+      }
+    ],
+    "acceptance_checks": [
+      "Far-left isolated upper shoulder gone.",
+      "Ascending foreground diagonal and all lower slopes preserved.",
+      "Main summit, palette/exposure and right negative space materially stable.",
+      "No fade, hard edge cut or global restyling."
+    ],
+    "iteration": 1,
+    "status": "ready",
+    "execution_allowed": true
+  },
+  "generatedOriginal": "C:/Users/songq/.codex/generated_images/01a0fc9e-975b-78d3-be50-a7332d4493ac/exec-10f4fa64-221e-48ed-b3a5-0bbb47044fd3.png",
+  "dimensions": {
+    "width": 1774,
+    "height": 887
+  },
+  "qa": {
+    "result": "Accepted after generated-image inspection; no browser review.",
+    "mainMountain": {
+      "beforeMean": 38.926,
+      "afterMean": 39.567,
+      "relativeChange": 0.016
+    },
+    "lowerForeground": {
+      "beforeMean": 28.138,
+      "afterMean": 28.623,
+      "relativeChange": 0.017
+    },
+    "right": {
+      "beforeMean": 13.045,
+      "afterMean": 12.767,
+      "relativeChange": -0.021
+    }
+  }
+}

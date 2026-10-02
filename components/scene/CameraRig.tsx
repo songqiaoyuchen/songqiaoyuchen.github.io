@@ -15,12 +15,13 @@ import {getHomeFov} from '@/lib/scene/camera';
 
 type CameraRigProps = {
   activeId: SectionId | null;
+  onPoseSettled?: (pose: SectionId | null | undefined) => void;
   controlsRef?: React.RefObject<OrbitControlsInstance | null>;
 };
 
 const SETTLE_EPSILON = 0.0001;
 
-export function CameraRig({activeId, controlsRef}: CameraRigProps) {
+export function CameraRig({activeId, controlsRef, onPoseSettled}: CameraRigProps) {
   const isReducedMotion = useReducedMotion();
   const viewportWidth = useThree((state) => state.size.width);
   const viewportHeight = useThree((state) => state.size.height);
@@ -34,7 +35,7 @@ export function CameraRig({activeId, controlsRef}: CameraRigProps) {
     ),
     [viewportHeight, viewportWidth],
   );
-  const poseId = activeId && !isMobile
+  const poseId = activeId && (!isMobile || activeId === 'art')
     ? activeId
     : null;
   const poseKey = poseId ?? (isMobile ? 'mobile-overview' : 'overview');
@@ -69,6 +70,7 @@ export function CameraRig({activeId, controlsRef}: CameraRigProps) {
       camera.lookAt(currentLookAt.current);
       controls?.target.copy(currentLookAt.current);
       initialized.current = true;
+      onPoseSettled?.(poseId);
     } else if (!isAnimating.current && controls) {
       currentLookAt.current.copy(controls.target);
     }
@@ -89,6 +91,7 @@ export function CameraRig({activeId, controlsRef}: CameraRigProps) {
       }
       previousPoseKey.current = poseKey;
       isAnimating.current = true;
+      onPoseSettled?.(undefined);
     }
 
     if (isAnimating.current) {
@@ -98,7 +101,8 @@ export function CameraRig({activeId, controlsRef}: CameraRigProps) {
       const destinationLookAt = poseId === null
         ? overviewReturnLookAt.current
         : configuredLookAt;
-      const alpha = isReducedMotion ? 1 : 1 - Math.exp(-CAMERA_CONFIG.damping * delta);
+      // A stalled frame must not skip the visible journey to the destination.
+      const alpha = isReducedMotion ? 1 : 1 - Math.exp(-CAMERA_CONFIG.damping * Math.min(delta, 1 / 30));
 
       camera.position.lerp(destinationPosition, alpha);
       currentLookAt.current.lerp(destinationLookAt, alpha);
@@ -114,6 +118,7 @@ export function CameraRig({activeId, controlsRef}: CameraRigProps) {
         camera.lookAt(currentLookAt.current);
         controls?.target.copy(currentLookAt.current);
         isAnimating.current = false;
+        onPoseSettled?.(poseId);
       }
     }
   }, -2);

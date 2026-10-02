@@ -20,7 +20,9 @@ export async function postConfigValues(label: string, values: Record<string, unk
     if (!response.ok) throw new Error(result.error ?? response.statusText);
     const missed = result.missed?.length ? ` (not in config: ${result.missed.join(', ')})` : '';
     console.log(`[config] ${label}: saved ${result.saved} values${missed}`);
+    return !result.missed?.length && result.saved === Object.keys(values).length;
   } catch (error) {
     console.error(`[config] ${label} failed:`, error);
+    return false;
   }
 }

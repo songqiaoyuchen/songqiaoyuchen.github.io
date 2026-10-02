@@ -57,6 +57,7 @@ type RayTransitionPhase = 'idle' | 'out' | 'in';
 const ANIMATION_SETTLE_EPSILON = 0.0001;
 
 type LinkStreamsProps = {
+  hidden?: boolean;
   activeId: SectionId | null;
   contourSettings: ContourControlValues;
   linkStreamSettings: MobileLinkStreamSettings;
@@ -66,6 +67,7 @@ type LinkStreamsProps = {
 
 export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStreams(
   {
+    hidden = false,
     activeId,
     contourSettings,
     linkStreamSettings,
@@ -405,7 +407,7 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
 
   return (
     <>
-      <mesh ref={forwardedRef} geometry={geometry} frustumCulled={false} renderOrder={4}>
+      <mesh visible={!hidden} ref={forwardedRef} geometry={geometry} frustumCulled={false} renderOrder={4}>
         <shaderMaterial
           ref={materialRef}
           vertexShader={compiledVertexShader}
@@ -419,7 +421,7 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
         />
       </mesh>
 
-      {LINK_STREAMS.map((run) => {
+      {!hidden && LINK_STREAMS.map((run) => {
         const position: [number, number, number] = [
           run.anchor[0],
           sampleHeight(shellBase, run.anchor[0], run.anchor[1], elevation, seaLevel)

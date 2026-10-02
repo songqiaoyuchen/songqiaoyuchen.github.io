@@ -1,0 +1,12 @@
+[
+  {
+    "reducedMotion": false,
+    "passed": true,
+    "sampledFrames": 81
+  },
+  {
+    "reducedMotion": true,
+    "passed": true,
+    "sampledFrames": 5
+  }
+]

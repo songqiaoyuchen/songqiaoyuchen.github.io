@@ -46,6 +46,10 @@ export function Nav() {
                 focus-visible:outline-1 focus-visible:outline-offset-4
                 focus-visible:outline-accent`}
               href={item.href}
+              onClick={(event) => {
+                if (item.href === '/artworks' && pathname.startsWith('/artworks')
+                  && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) event.preventDefault();
+              }}
             >
               {item.label}
             </Link>

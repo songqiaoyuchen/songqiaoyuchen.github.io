@@ -1,7 +1,15 @@
 # Stage 2: Navigation, URLs and view hierarchy
 
-Status: direction accepted; design and implementation pending.
+Status: Art navigation implemented; other section navigation remains deferred.
 Design alongside the [Art journey](stage-2-art-journey.md).
+
+## Implemented Art slice
+
+`/artworks`, `/artworks/all`, and `/artworks/[id]` share the persistent experience
+layout. Both Art entry points use the selected gallery. Query state preserves
+selection/filter/source; details restore scroll and focus on local return.
+Direct details return to All works. Re-selecting active Art leaves the current
+view intact. Other section destinations keep their current behavior.
 
 ## Accepted decisions
 
@@ -26,22 +34,20 @@ Design alongside the [Art journey](stage-2-art-journey.md).
 
 ## Current issue and ownership
 
-[Nav](../../components/home/Nav.tsx) links to archives, while
-[Home](../../components/home/Home.tsx) opens previews from linkstreams. The same
-section label therefore currently leads to different depths of content.
+[Nav](../../components/home/Nav.tsx) and [Home](../../components/home/Home.tsx)
+now share the Art destination. Other sections still have separate previews and
+archives; migrate those only within their own workstreams.
 [Layout](../../app/layout.tsx) owns the persistent top nav.
 
 ## Open design and implementation choices
 
-- Map section, collection, and detail states to routes or query parameters.
-  `/artworks`, `/artworks?view=all`, and `/artworks/work-name` were illustrative,
-  not a locked URL specification.
+- Apply lessons from Art's implemented route map to future section work.
 - Design the handover from streams to top nav, including its homepage prominence,
   smaller-screen treatment, and complete section coverage such as About/contact.
 - Define a predictable local return for directly opened details with no prior
   collection history. Preserve browser history without creating navigation loops.
-- Choose route/layout/state architecture with the
-  [loading workstream](stage-2-loading-and-return.md); scene persistence is unresolved.
+- Extend route/layout/state architecture with the
+  [loading workstream](stage-2-loading-and-return.md); Home/Art persistence is implemented.
 - Include the accepted [Travel](stage-2-travel.md), [About](stage-2-about-path.md),
   and [lake](stage-2-lake-exploration.md) directions in future route/view design.
   The lake's entry is the basin; its additional navigation representation is open.
@@ -63,5 +69,5 @@ section label therefore currently leads to different depths of content.
   with top-nav switching and Art as the first prototype. Actual route syntax and
   appearance remain open.
 - Source: stage 2 discussion in this chat. No external reference is selected.
-- No prototype yet. Append dated artifacts, observations, alternatives, and reasons
-  for decisions here.
+- Art's complete route journey is implemented and browser-verified. See
+  [architecture](../architecture.md) for routes and the repeatable check command.

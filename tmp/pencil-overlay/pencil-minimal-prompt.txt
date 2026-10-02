@@ -1,0 +1,18 @@
+Use case: style-transfer. Edit target: the supplied original terrain capture. Keep its 2:1 framing, overall composition, main peak placement and recognizable mountain structure for an overlay; retain the deliberate local inaccuracies and awkward hand-drawn marks requested below. Keep the near-black background. No UI, text, borders or watermarks.
+
+将场景提炼成一幅极简，稚拙而具有成熟审美控制的线描。准确保持主体身份，数量，朝向，关键结构，比例，山脊形态和原有材质和色彩氛围。仅进行轻微的旅行杂志，独立出版物或摄影展调色，加入极薄的胶片颗粒。保留让主体一眼可辨的最少视觉事实：数量，整体外轮廓，朝向，最重要的比例关系，关键结构，和一条解释环境的线索。线条必须呈现：
+
+- 明显偏粗
+- 压力不均
+- 蜡质颗粒
+- 纸纹阻力
+- 自然断裂
+- 局部露白（露黑）
+- 偶尔堆积
+- 迟疑和回折
+- 轻微双线
+- 局部错位
+- 未闭合轮廓
+- 次要结构主动停笔
+
+不要绘制完整阴影，不要平滑渐变，不要正确而圆滑的透视，应该像一名经验丰富的插画者，刻意保留有点笨拙的手感。整体具有：简单，安静，松弛，像是旅行中翻开纸本随手画下的小稿。可以稚拙但不能幼稚，可以简单但不能潦草，可以不准确但主体身份姿态和结构必须准确。avoid children's classroom drawing, kindergarden cartoon.

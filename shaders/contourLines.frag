@@ -1,6 +1,7 @@
 #include <fog_pars_fragment>
 
 uniform float uIntroTime;
+uniform float uVisibility;
 uniform float uIntroTravelSpeed;
 uniform float uEdgeFeather;
 uniform sampler2D uTerrainDepth;
@@ -68,5 +69,5 @@ void main() {
 
   float alpha = clamp(max(color.r, max(color.g, color.b)), 0.0, 1.0);
   alpha *= edgeOpacity;
-  gl_FragColor = vec4(color, alpha);
+  gl_FragColor = vec4(color, alpha * uVisibility);
 }

@@ -14,7 +14,7 @@ import {
   TextureLoader,
   Vector2,
 } from 'three';
-import type { Mesh as MeshType } from 'three';
+import type {Group, Mesh as MeshType} from 'three';
 import {
   CAMERA_CONFIG,
   DECOR_STREAM_CONFIG,
@@ -43,18 +43,21 @@ import vertexShader from '@/shaders/decorStream.vert';
 import fragmentShader from '@/shaders/decorStream.frag';
 import {useCameraFrameState} from './CameraFrameState';
 type DecorStreamsProps = {
+  hidden?: boolean;
   contourSettings: ContourControlValues;
   decorStreamSettings: DecorStreamControlValues;
   terrainSettings: TerrainControlValues;
 };
 
 export const DecorStreams = forwardRef<MeshType, DecorStreamsProps>(function DecorStreams(
-  {contourSettings, decorStreamSettings, terrainSettings},
+  {hidden = false, contourSettings, decorStreamSettings, terrainSettings},
   forwardedRef,
 ) {
   const compositorDirty = useRef(true);
   const animationTime = useRef(0);
   const materialRef = useRef<ShaderMaterial | null>(null);
+  const compositeMaterialRef = useRef<ShaderMaterial | null>(null);
+  const layerRef = useRef<Group>(null);
   const cameraFrameState = useCameraFrameState();
   const renderedCameraRevision = useRef(-1);
   const isReducedMotion = useReducedMotion();
@@ -180,7 +183,7 @@ export const DecorStreams = forwardRef<MeshType, DecorStreamsProps>(function Dec
   );
   const compositeGeometry = useMemo(() => new PlaneGeometry(2, 2), []);
   const compositeUniforms = useMemo(
-    () => ({ uTexture: { value: compositor.texture } }),
+    () => ({ uTexture: { value: compositor.texture }, uVisibility: {value: 1} }),
     [compositor],
   );
 
@@ -233,6 +236,14 @@ export const DecorStreams = forwardRef<MeshType, DecorStreamsProps>(function Dec
   useEffect(() => () => compositeGeometry.dispose(), [compositeGeometry]);
 
   useFrame((state, delta) => {
+    const visibility = compositeMaterialRef.current?.uniforms.uVisibility;
+    const target = hidden ? 0 : 1;
+    if (visibility) {
+      visibility.value = isReducedMotion || Math.abs(visibility.value - target) < 0.001
+        ? target
+        : visibility.value + (target - visibility.value) * (1 - Math.exp(-4 * Math.min(delta, 1 / 30)));
+      if (layerRef.current) layerRef.current.visible = visibility.value > 0;
+    }
     if (!isReducedMotion) {
       // Lusion advances the ray shader continuously. Clamping only protects a
       // resumed background tab from a visible catch-up jump.
@@ -256,9 +267,10 @@ export const DecorStreams = forwardRef<MeshType, DecorStreamsProps>(function Dec
   });
 
   return (
-    <>
+    <group ref={layerRef}>
       <mesh ref={forwardedRef} geometry={compositeGeometry} frustumCulled={false} renderOrder={3}>
         <shaderMaterial
+          ref={compositeMaterialRef}
           vertexShader={compositeVertexShader}
           fragmentShader={compositeFragmentShader}
           uniforms={compositeUniforms}
@@ -275,6 +287,6 @@ export const DecorStreams = forwardRef<MeshType, DecorStreamsProps>(function Dec
           toneMapped={false}
         />
       </mesh>
-    </>
+    </group>
   );
 });

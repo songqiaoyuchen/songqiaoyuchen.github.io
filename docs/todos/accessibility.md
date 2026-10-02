@@ -7,9 +7,9 @@ Observed in the 2026-09-29 review; recheck against current code before acting.
 
 Coordinate with the [Art journey](stage-2-art-journey.md).
 
-- [ ] **Artwork dialog focus:** opening Ama Dablam then pressing Tab focuses K2
-  behind the dialog. Add initial focus, containment, and background inertness in
-  `components/artworks/ArtworkLightbox.tsx`; preserve trigger focus restoration.
+- [x] **Artwork dialog focus:** the replacement `ArtInspection` uses a native
+  modal, contained Tab navigation, initial close-control focus, and collection
+  trigger focus restoration. Verified through the Art browser checks.
 
 ## Navigation and section views
 
@@ -24,8 +24,9 @@ new interaction structure rather than preserving the current drawer as a constra
 
 ## Shared structure and readability
 
-- [ ] **Semantic structure:** `app/artworks/page.tsx` lacks a page H1; responsive
-  Hero instances duplicate `home-hero-title` in `components/home/Home.tsx`.
+- [ ] **Semantic structure:** responsive Hero instances duplicate
+  `home-hero-title` in `components/home/Home.tsx`. The rebuilt Art section has
+  one H1 and visible, non-hover captions.
 - [ ] **Reading and control access:** review small/muted copy, artwork captions
   available on hover, keyboard/touch access, zoom, and reduced motion after the
   visual system settles. Full accessibility testing remains unperformed.

@@ -9,44 +9,57 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  type ReactNode,
 } from 'react';
+import {usePathname, useRouter} from 'next/navigation';
+import {useArtScene} from '@/components/artworks/ArtSceneContext';
 import type {SectionId} from '@/config/navigation/linkStreams';
 import type {ArticleSummary} from '@/lib/content/types';
 import {Drawer} from './drawer/Drawer';
 import {Hero} from './Hero';
 import {HomepagePreloader} from './preloader/HomepagePreloader';
-import { Leva } from 'leva';
+import {Leva, LevaPanel, useCreateStore} from 'leva';
 import {useReducedMotion} from '@/hooks/useReducedMotion';
 import {PRELOADER_CONFIG} from '@/config/preloader';
 import {TerrainFallback} from '@/components/scene/TerrainFallback';
 import {waitForHealthyFrames} from '@/lib/performance/frameBudget';
 
-const TerrainBackground = lazy(() => import('@/components/scene/TerrainBackground').then(
-  ({TerrainBackground: Background}) => ({default: Background}),
-));
+const TerrainBackground = lazy(() =>
+  import('@/components/scene/TerrainBackground').then(({TerrainBackground: Background}) => ({
+    default: Background,
+  })),
+);
 
 interface HomeProps {
   articles: readonly ArticleSummary[];
+  children?: ReactNode;
 }
 
 type SceneState = 'loading' | 'exiting' | 'ready' | 'fallback';
 
-export function Home({articles}: HomeProps) {
+export function Home({articles, children}: HomeProps) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const isArt = pathname.startsWith('/artworks');
+  const {medium} = useArtScene();
   const [activeId, setActiveId] = useState<SectionId | null>(null);
+  const [artCameraEditing, setArtCameraEditing] = useState(false);
+  const artCameraStore = useCreateStore();
+  const [settledPose, setSettledPose] = useState<SectionId | null | undefined>(isArt ? 'art' : null);
   const [sceneProgress, setSceneProgress] = useState(0);
   const [sceneStarted, setSceneStarted] = useState(false);
   const [sceneState, setSceneState] = useState<SceneState>('loading');
   const [showBypass, setShowBypass] = useState(false);
   const sceneResolvedRef = useRef(false);
   const previewRef = useRef(
-    process.env.NODE_ENV === 'development'
-      && typeof window !== 'undefined'
-      && new URLSearchParams(window.location.hash.slice(1)).get('preview') === '1',
+    process.env.NODE_ENV === 'development' &&
+      typeof window !== 'undefined' &&
+      new URLSearchParams(window.location.hash.slice(1)).get('preview') === '1',
   );
   const stallRef = useRef(
-    process.env.NODE_ENV === 'development'
-      && typeof window !== 'undefined'
-      && new URLSearchParams(window.location.hash.slice(1)).get('stall') === '1',
+    process.env.NODE_ENV === 'development' &&
+      typeof window !== 'undefined' &&
+      new URLSearchParams(window.location.hash.slice(1)).get('stall') === '1',
   );
   const previewStartedAtRef = useRef<number | null>(
     typeof window === 'undefined' ? null : window.performance.now(),
@@ -54,6 +67,10 @@ export function Home({articles}: HomeProps) {
   const readyTimerRef = useRef<number | null>(null);
   const exitTimerRef = useRef<number | null>(null);
   const isReducedMotion = useReducedMotion();
+
+  // An Art visit dismisses the old homepage preview, including entry via Nav.
+  // Adjust before rendering so Home always returns to the landscape overview.
+  if (isArt && activeId !== null) setActiveId(null);
 
   useLayoutEffect(() => {
     previewStartedAtRef.current = window.performance.now();
@@ -81,22 +98,26 @@ export function Home({articles}: HomeProps) {
     };
   }, []);
 
-  useEffect(() => () => {
-    if (readyTimerRef.current !== null) window.clearTimeout(readyTimerRef.current);
-    if (exitTimerRef.current !== null) window.clearTimeout(exitTimerRef.current);
-  }, []);
+  useEffect(
+    () => () => {
+      if (readyTimerRef.current !== null) window.clearTimeout(readyTimerRef.current);
+      if (exitTimerRef.current !== null) window.clearTimeout(exitTimerRef.current);
+    },
+    [],
+  );
 
   useEffect(() => {
     if (sceneState !== 'loading') return;
-    const timer = window.setTimeout(
-      () => setShowBypass(true),
-      PRELOADER_CONFIG.bypassDelayMs,
-    );
+    const timer = window.setTimeout(() => setShowBypass(true), PRELOADER_CONFIG.bypassDelayMs);
     return () => window.clearTimeout(timer);
   }, [sceneState]);
 
   const finishSceneTransition = useCallback(() => {
     setShowBypass(false);
+    if (isArt) {
+      setSceneState('ready');
+      return;
+    }
     setSceneState('exiting');
     const duration = isReducedMotion
       ? PRELOADER_CONFIG.reducedMotionExitDurationMs
@@ -104,7 +125,7 @@ export function Home({articles}: HomeProps) {
     exitTimerRef.current = window.setTimeout(() => {
       setSceneState('ready');
     }, duration);
-  }, [isReducedMotion]);
+  }, [isArt, isReducedMotion]);
 
   const handleSceneReady = useCallback(() => {
     if (sceneResolvedRef.current) return;
@@ -113,11 +134,7 @@ export function Home({articles}: HomeProps) {
     setSceneProgress(1);
     const previewStartedAt = previewStartedAtRef.current ?? window.performance.now();
     const previewRemaining = previewRef.current
-      ? Math.max(
-        0,
-        PRELOADER_CONFIG.previewDurationMs
-          - (window.performance.now() - previewStartedAt),
-      )
+      ? Math.max(0, PRELOADER_CONFIG.previewDurationMs - (window.performance.now() - previewStartedAt))
       : 0;
     if (previewRemaining === 0) {
       finishSceneTransition();
@@ -142,38 +159,61 @@ export function Home({articles}: HomeProps) {
     });
   }, []);
 
-  const handleSceneError = useCallback((error: Error) => {
-    console.error('Homepage terrain failed to initialize.', error);
-    enterTerrainFallback();
-  }, [enterTerrainFallback]);
+  const handleSceneError = useCallback(
+    (error: Error) => {
+      console.error('Homepage terrain failed to initialize.', error);
+      enterTerrainFallback();
+    },
+    [enterTerrainFallback],
+  );
 
   function toggleSection(id: SectionId) {
-    setActiveId((currentId) => currentId === id ? null : id);
+    if (id === 'art') {
+      // Start from the live camera pose, even while the route is being fetched.
+      setActiveId('art');
+      router.push('/artworks');
+      return;
+    }
+    setActiveId((currentId) => (currentId === id ? null : id));
   }
 
-  const isBlocking = sceneState === 'loading' || sceneState === 'exiting';
+  const isBlocking = !isArt && (sceneState === 'loading' || sceneState === 'exiting');
+  const artArriving = isArt && settledPose !== 'art' && sceneState !== 'fallback';
 
   return (
-    <main
-      className="relative h-svh w-full overflow-hidden bg-background text-foreground"
+    <div
+      className={`relative min-h-svh w-full bg-background text-foreground
+        ${isArt ? 'art-environment' : 'h-svh overflow-hidden'}`}
       aria-busy={isBlocking}
+      data-art-arriving={artArriving}
+      data-camera-editing={isArt && artCameraEditing}
     >
       <div aria-hidden={isBlocking} className="contents" inert={isBlocking}>
         <Leva
           collapsed={true}
-          hidden={process.env.NODE_ENV !== 'development'}
+          hidden={process.env.NODE_ENV !== 'development' || isArt}
           theme={{
             sizes: {
-              rootWidth: '400px',
+              rootWidth: 'min(400px, calc(100vw - 20px))',
             },
           }}
         />
+        {process.env.NODE_ENV === 'development' && isArt && (
+          <LevaPanel store={artCameraStore} titleBar={{title: 'Art Camera', filter: false}}
+            theme={{sizes: {rootWidth: 'min(360px, calc(100vw - 20px))'}}} />
+        )}
         {sceneState === 'fallback' ? (
           <TerrainFallback />
         ) : sceneStarted ? (
           <Suspense fallback={null}>
             <TerrainBackground
-              activeId={activeId}
+              activeId={isArt ? 'art' : activeId}
+              artMedium={isArt && !artArriving ? medium : null}
+              artActive={isArt}
+              artCameraEditing={artCameraEditing && !artArriving}
+              artCameraStore={artCameraStore}
+              onArtCameraEditingChange={setArtCameraEditing}
+              onPoseSettled={setSettledPose}
               introStarted={sceneState === 'ready'}
               onSceneError={handleSceneError}
               onSceneProgress={handleSceneProgress}
@@ -183,29 +223,32 @@ export function Home({articles}: HomeProps) {
           </Suspense>
         ) : null}
 
-        {!isBlocking ? (
-          <>
+        {!isBlocking && !isArt ? (
+          <main>
             <div className="pointer-events-none relative -mt-[100svh] h-svh md:hidden">
-              <Hero
-                isHidden={activeId !== null}
-                useHtmlDesktopName={sceneState === 'fallback'}
-              />
+              <Hero isHidden={activeId !== null} useHtmlDesktopName={sceneState === 'fallback'} />
             </div>
 
             <div className="hidden md:block">
-              <Hero
-                isHidden={activeId !== null}
-                useHtmlDesktopName={sceneState === 'fallback'}
-              />
+              <Hero isHidden={activeId !== null} useHtmlDesktopName={sceneState === 'fallback'} />
             </div>
-          </>
+          </main>
         ) : null}
         <Drawer
-          activeId={activeId}
+          activeId={isArt || activeId === 'art' ? null : activeId}
           articles={articles}
           onClose={() => setActiveId(null)}
         />
       </div>
+      <div className="art-content" inert={artArriving || (isArt && artCameraEditing)}
+        aria-hidden={artArriving || undefined}>
+        {children}
+      </div>
+      {isArt && sceneState === 'loading' ? (
+        <p className="art-scene-status" role="status">
+          Preparing the landscape…
+        </p>
+      ) : null}
       {isBlocking ? (
         <HomepagePreloader
           onContinueWithoutTerrain={enterTerrainFallback}
@@ -215,6 +258,6 @@ export function Home({articles}: HomeProps) {
           state={sceneState}
         />
       ) : null}
-    </main>
+    </div>
   );
 }

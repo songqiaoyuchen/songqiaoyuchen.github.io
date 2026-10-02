@@ -1,0 +1,32 @@
+{
+  "source": "diffuse_map.png",
+  "terrainSource": "shell.8d9bc954ee1aef4d.f32.bin.gz",
+  "crop": {
+    "x": 1494,
+    "y": 0,
+    "width": 2603,
+    "height": 3390
+  },
+  "width": 2048,
+  "height": 2667,
+  "strokeCount": 34741,
+  "layerCounts": [
+    {
+      "name": "underpainting",
+      "count": 3366
+    },
+    {
+      "name": "planes",
+      "count": 10304
+    },
+    {
+      "name": "broken edges",
+      "count": 10690
+    },
+    {
+      "name": "accents",
+      "count": 10381
+    }
+  ],
+  "method": "Continuous slate-blue to ochre pigments selected by slope lighting and source waterways; preserved layered strokes and raised bristle relief."
+}

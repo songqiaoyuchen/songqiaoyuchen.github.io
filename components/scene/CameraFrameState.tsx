@@ -45,7 +45,9 @@ function rememberCamera(camera: Camera, target: Float64Array) {
 }
 
 export function CameraFrameProvider({children}: {children: ReactNode}) {
-  const frameState = useRef<CameraFrameState>({revision: 0});
+  const frameState = useRef<CameraFrameState>({
+    revision: 0,
+  });
   const previousCamera = useRef(
     new Float64Array(CAMERA_MATRIX_VALUE_COUNT).fill(Number.NaN),
   );

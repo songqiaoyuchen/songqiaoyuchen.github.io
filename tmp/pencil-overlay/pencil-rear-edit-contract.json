@@ -1,0 +1,100 @@
+{
+  "edit_id": "EDT-pencil-rear-range",
+  "source_asset_id": "pencil-illustration-v4",
+  "source_checkpoint": "tmp/pencil-overlay/pencil-before-rear-edit.webp",
+  "mode": "annotation_guided",
+  "source_geometry": {
+    "width": 1774,
+    "height": 887
+  },
+  "annotation_space": "pixels",
+  "targets": [
+    {
+      "target_id": "rear-left-range",
+      "semantic_target": "Only high rear-left mountain range, excluding main foreground summit and connected foreground slopes",
+      "geometry": {
+        "kind": "polygon",
+        "points": [
+          [
+            0,
+            45
+          ],
+          [
+            660,
+            45
+          ],
+          [
+            680,
+            195
+          ],
+          [
+            600,
+            218
+          ],
+          [
+            535,
+            224
+          ],
+          [
+            500,
+            219
+          ],
+          [
+            455,
+            229
+          ],
+          [
+            402,
+            260
+          ],
+          [
+            260,
+            266
+          ],
+          [
+            0,
+            245
+          ]
+        ]
+      },
+      "confidence": 0.99
+    }
+  ],
+  "requested_mutations": [
+    "Erase the high rear-left mountain range and replace its marks with matching near-black paper background."
+  ],
+  "forbidden_mutations": [
+    "No global restyling, exposure change, reframing, recentering, cropping, blur, fade, vignette, hard cut or other content removal."
+  ],
+  "identity_locks": [
+    "Foreground main summit near (480,235) and all connected lower-left slopes, ridges and hatching are protected, overriding target polygon."
+  ],
+  "geometry_locks": [
+    "1774x887, 2:1 framing, all unaffected peaks/ridges and stroke endpoints remain materially stable."
+  ],
+  "style_locks": [
+    "Warm pale ochre coarse pencil/crayon texture, existing shading and paper grain; quiet right half."
+  ],
+  "mutation_budget": "one",
+  "protected_regions": [
+    {
+      "region_id": "foreground",
+      "rule": "Protect summit near (480,235) and all connected lower-left foreground slopes even if they overlap editable polygon.",
+      "geometry": null
+    },
+    {
+      "region_id": "complement",
+      "rule": "All non-target content remains materially stable, including lower foreground and empty right side x>=887.",
+      "geometry": null
+    }
+  ],
+  "acceptance_checks": [
+    "High rear-left range removed.",
+    "Foreground summit, slopes, exposure and mark detail stable.",
+    "Right negative space and rough stroke endpoints stable.",
+    "No visible patch boundary, global restyling, fading or viewport change."
+  ],
+  "iteration": 1,
+  "status": "ready",
+  "execution_allowed": true
+}

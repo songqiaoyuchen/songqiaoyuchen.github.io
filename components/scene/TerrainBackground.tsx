@@ -7,8 +7,10 @@ import { EffectComposer } from '@react-three/postprocessing';
 import { SMAAPreset } from 'postprocessing';
 import type {DepthTexture, Mesh} from 'three';
 import type { OrbitControls as OrbitControlsInstance } from 'three-stdlib';
+import type {useCreateStore} from 'leva';
 import {CAMERA_CONFIG, FOG_CONFIG} from '@/config/scene';
 import { SaveCameraButton } from '@/components/debug/SaveCameraButton';
+import {ArtCameraControls} from '@/components/debug/ArtCameraControls';
 import { ColorOnlySMAA } from '@/components/effects/ColorOnlySMAA';
 import {IsolatedBloom} from '@/components/effects/IsolatedBloom';
 import { SaveConfigButton } from '@/components/debug/SaveConfigButton';
@@ -24,6 +26,7 @@ import {SceneErrorBoundary} from './SceneErrorBoundary';
 import {SceneReadySignal} from './SceneReadySignal';
 import {CameraFrameProvider} from './CameraFrameState';
 import type {SectionId} from '@/config/navigation/linkStreams';
+import type {ArtMedium} from '@/data/artworks';
 import {waitForHealthyFrames} from '@/lib/performance/frameBudget';
 import {
   retainTerrainPipeline,
@@ -31,7 +34,13 @@ import {
 } from '@/lib/terrain/assets';
 
 type TerrainBackgroundProps = {
+  artActive?: boolean;
+  artCameraEditing?: boolean;
+  artCameraStore: ReturnType<typeof useCreateStore>;
+  onArtCameraEditingChange: (editing: boolean) => void;
+  artMedium?: ArtMedium | null;
   activeId: SectionId | null;
+  onPoseSettled?: (pose: SectionId | null | undefined) => void;
   introStarted: boolean;
   onSceneError: (error: Error) => void;
   onSceneProgress: (progress: number) => void;
@@ -40,7 +49,13 @@ type TerrainBackgroundProps = {
 };
 
 export function TerrainBackground({
+  artActive = false,
+  artCameraEditing = false,
+  artCameraStore,
+  onArtCameraEditingChange,
+  artMedium = null,
   activeId,
+  onPoseSettled,
   introStarted,
   onSceneError,
   onSceneProgress,
@@ -117,8 +132,10 @@ export function TerrainBackground({
   }, [contourMesh, linkStreamsMesh, onSceneProgress, terrainDepthTexture]);
 
   return (
-    <div className="sticky top-0 z-0 h-svh w-full md:absolute md:inset-0">
-      <SaveConfigButton values={settings} />
+    <div className={artActive
+      ? `${artCameraEditing ? 'pointer-events-auto' : 'pointer-events-none'} fixed inset-0 z-0 h-svh w-full`
+      : 'sticky top-0 z-0 h-svh w-full md:absolute md:inset-0'}>
+      {!artMedium && <SaveConfigButton values={settings} />}
       <SceneErrorBoundary onError={onSceneError}>
         <Canvas
           camera={{position: CAMERA_CONFIG.overviewPosition, fov: CAMERA_CONFIG.fov}}
@@ -130,7 +147,7 @@ export function TerrainBackground({
           }}
         >
 
-        {isDevelopment ? (
+        {isDevelopment && !artMedium ? (
           <StatsGl className="fixed right-0 bottom-0 z-10000" />
         ) : null}
         
@@ -138,6 +155,8 @@ export function TerrainBackground({
         {isDevelopment ? (
           <OrbitControls
             ref={orbitcontrolsRef}
+            enabled={artActive ? artCameraEditing : activeId !== 'art'}
+            enableDamping={!artActive && activeId !== 'art'}
             target={CAMERA_CONFIG.overviewLookAt}
             makeDefault
           />
@@ -145,15 +164,21 @@ export function TerrainBackground({
         <CameraFrameProvider>
           <CameraRig
             activeId={activeId}
+            onPoseSettled={onPoseSettled}
             controlsRef={isDevelopment ? orbitcontrolsRef : undefined}
           />
-          {isDevelopment ? (
+          {isDevelopment && !artActive && activeId !== 'art' ? (
             <SaveCameraButton activeId={activeId} controlsRef={orbitcontrolsRef} />
+          ) : null}
+          {isDevelopment && artActive ? (
+            <ArtCameraControls store={artCameraStore} controlsRef={orbitcontrolsRef}
+              onEditingChange={onArtCameraEditingChange} />
           ) : null}
           <SceneFog settings={settings.fog} />
           <Suspense fallback={null}>
             {assemblyPhase >= 1 ? (
             <CachedTerrain
+              artMedium={artMedium}
               fogSettings={settings.fog}
               onDepthTextureChange={setTerrainDepthTexture}
               terrainSettings={settings.terrain}
@@ -161,6 +186,7 @@ export function TerrainBackground({
             ) : null}
             {assemblyPhase >= 2 ? (
             <ContourLines
+              hidden={!!artMedium}
               ref={setContourMesh}
               contourSettings={settings.contours}
               terrainDepthTexture={terrainDepthTexture}
@@ -170,12 +196,14 @@ export function TerrainBackground({
             {assemblyPhase >= 3 ? (
               <>
             <DecorStreams
+              hidden={!!artMedium}
               ref={setDecorStreamsMesh}
               contourSettings={settings.contours}
               decorStreamSettings={settings.decorStreams}
               terrainSettings={settings.terrain}
             />
             <LinkStreams
+              hidden={!!artMedium}
               ref={setLinkStreamsMesh}
               activeId={activeId}
               contourSettings={settings.contours}

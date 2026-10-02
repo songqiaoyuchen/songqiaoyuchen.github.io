@@ -13,9 +13,6 @@ import type {ArticleSummary} from '@/lib/content/types';
 const AboutPanel = lazy(() => import('./about/AboutPanel').then(
   ({AboutPanel: Panel}) => ({default: Panel}),
 ));
-const ArtPanel = lazy(() => import('./art/ArtPanel').then(
-  ({ArtPanel: Panel}) => ({default: Panel}),
-));
 const BlogPanel = lazy(() => import('./blog/BlogPanel').then(
   ({BlogPanel: Panel}) => ({default: Panel}),
 ));
@@ -23,21 +20,21 @@ const ProjectsPanel = lazy(() => import('./projects/ProjectsPanel').then(
   ({ProjectsPanel: Panel}) => ({default: Panel}),
 ));
 
-const SECTION_LABELS: Record<SectionId, string> = {
+type PreviewSectionId = Exclude<SectionId, 'art'>;
+const SECTION_LABELS: Record<PreviewSectionId, string> = {
   about: 'About',
-  art: 'Art',
   blog: 'Blog',
   projects: 'Projects',
 };
 
 interface DrawerProps {
-  activeId: SectionId | null;
+  activeId: PreviewSectionId | null;
   articles: readonly ArticleSummary[];
   onClose: () => void;
 }
 
 export function Drawer({activeId, articles, onClose}: DrawerProps) {
-  const [displayedId, setDisplayedId] = useState<SectionId | null>(activeId);
+  const [displayedId, setDisplayedId] = useState<PreviewSectionId | null>(activeId);
 
   useEffect(() => {
     if (activeId === null) return;
@@ -67,7 +64,6 @@ export function Drawer({activeId, articles, onClose}: DrawerProps) {
 
   const sectionLabel = SECTION_LABELS[displayedId];
   const isAbout = displayedId === 'about';
-  const isArt = displayedId === 'art';
   const isBlog = displayedId === 'blog';
 
   return (
@@ -97,8 +93,6 @@ export function Drawer({activeId, articles, onClose}: DrawerProps) {
         <Suspense fallback={null}>
           {isAbout ? (
             <AboutPanel isOpen={activeId === 'about'} />
-          ) : isArt ? (
-            <ArtPanel isOpen={activeId === 'art'} />
           ) : isBlog ? (
             <BlogPanel articles={articles} isOpen={activeId === 'blog'} />
           ) : (

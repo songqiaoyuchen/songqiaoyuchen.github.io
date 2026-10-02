@@ -1,6 +1,13 @@
 # Stage 2: Loading and return continuity
 
-Status: queued for design; supports the navigation and Art prototype.
+Status: Home/Art continuity implemented; other section lifecycles remain deferred.
+
+Home and Art share a mounted canvas through the experience route-group layout.
+Direct Art entry renders useful content while terrain prepares and skips the
+homepage entrance. Returning Home retains the scene. Collection/detail URLs
+preserve context; local return restores focus and scroll. Leaving this route
+group still releases its scene resources; other sections keep their existing
+lifecycle behavior until their own rebuilds.
 
 This document tracks exploration, decisions, references, and implementation for
 this workstream. Accepted requirements are recorded separately from open design choices.
@@ -20,14 +27,14 @@ ordinary navigation, and actual waiting without hiding unfinished scene setup.
 
 ## Findings and evidence
 
-- In the 2026-09-29 local desktop review, opening `/artworks` and using browser
-  Back replayed the full homepage loader.
+- The original `/artworks` Back path replayed the homepage loader; the shared
+  Home/Art layout now keeps the canvas and readiness state mounted.
 - [Home](../../components/home/Home.tsx) starts in `loading` on each mount.
   [TerrainBackground](../../components/scene/TerrainBackground.tsx) schedules
   cleanup; [terrain assets](../../lib/terrain/assets.ts) disposes prepared resources.
   HTTP-cached files do not imply a ready CPU/GPU scene.
-- Section selection and artwork position currently live in component state;
-  the accepted navigation behavior requires restoration beyond component remounts.
+- Art selection and filter now live in the URL. Other section state remains
+  component-local and will need restoration as those sections are rebuilt.
 
 ## Exploration and open decisions
 
@@ -73,5 +80,5 @@ Append dated decisions with rationale, alternatives considered, and evidence.
 
 ## Experiments and review notes
 
-No prototype selected yet. Record each experiment's artifact/link, observation,
-and next action here.
+The Home/Art persistent-layout approach is implemented and browser-verified.
+Other lifecycle options remain relevant when rebuilding additional sections.

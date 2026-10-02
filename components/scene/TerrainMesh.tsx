@@ -1,8 +1,9 @@
 'use client';
 
 import {useEffect, useMemo, useRef, useState} from 'react';
-import { Color, PlaneGeometry, ShaderMaterial, UniformsLib, UniformsUtils } from 'three';
-import {TERRAIN_MATERIAL_CONFIG, TERRAIN_MESH_CONFIG} from '@/config/scene';
+import { Color, PlaneGeometry, ShaderMaterial, UniformsLib, UniformsUtils, Vector2, type Texture } from 'three';
+import {FOG_CONFIG, TERRAIN_MATERIAL_CONFIG, TERRAIN_MESH_CONFIG} from '@/config/scene';
+import {PENCIL_TERRAIN_CONFIG} from '@/config/scene/pencil';
 import type {TerrainControlValues} from '@/components/debug/useSceneControls';
 import {
   requestTerrainGradient,
@@ -11,8 +12,15 @@ import {
 import {bakeTerrainLightingMap} from '@/lib/terrain/lightingBake';
 import vertexShader from '@/shaders/terrain.vert';
 import fragmentShader from '@/shaders/terrain.frag';
+import pencilFragmentShader from '@/shaders/pencilTerrain.frag';
 
-export function TerrainMesh({settings}: {settings: TerrainControlValues}) {
+export function TerrainMesh({settings, pencilTextures}: {
+  settings: TerrainControlValues;
+  pencilTextures?: {noise: Texture; dark: Texture; bright: Texture};
+}) {
+  const pencilNoise = pencilTextures?.noise;
+  const pencilDark = pencilTextures?.dark;
+  const pencilBright = pencilTextures?.bright;
   const surfaceMatRef = useRef<ShaderMaterial>(null);
   const {
     displacementMap,
@@ -119,21 +127,31 @@ export function TerrainMesh({settings}: {settings: TerrainControlValues}) {
     staticLightingMap,
   ]);
 
-  const uniforms = useMemo(() => UniformsUtils.merge([
-    UniformsLib.fog,
-    {
-      heightmap:      { value: displacementMap },
-      staticLightingMap: { value: staticLightingMap },
-      elevation:      { value: TERRAIN_MATERIAL_CONFIG.elevation },
-      contrast:       { value: TERRAIN_MATERIAL_CONFIG.contrast },
-      seaLevel:       { value: TERRAIN_MATERIAL_CONFIG.seaLevel },
-      baseColor:      { value: new Color(TERRAIN_MATERIAL_CONFIG.baseColor) },
-      ridgeColor:     { value: new Color(TERRAIN_MATERIAL_CONFIG.ridgeColor) },
-      lightColor:     { value: new Color(TERRAIN_MATERIAL_CONFIG.lightColor) },
-      light2Color:    { value: new Color(TERRAIN_MATERIAL_CONFIG.light2Color) },
-      edgeFeather:    { value: TERRAIN_MESH_CONFIG.edgeFeather },
-    },
-  ]), [displacementMap, staticLightingMap]);
+  // Retain the loaded textures: their wrapping is configured after render.
+  const uniforms = useMemo(() => ({
+    ...UniformsUtils.clone(UniformsLib.fog),
+    heightmap:      { value: displacementMap },
+    staticLightingMap: { value: staticLightingMap },
+    elevation:      { value: TERRAIN_MATERIAL_CONFIG.elevation },
+    contrast:       { value: TERRAIN_MATERIAL_CONFIG.contrast },
+    seaLevel:       { value: TERRAIN_MATERIAL_CONFIG.seaLevel },
+    baseColor:      { value: new Color(TERRAIN_MATERIAL_CONFIG.baseColor) },
+    ridgeColor:     { value: new Color(TERRAIN_MATERIAL_CONFIG.ridgeColor) },
+    lightColor:     { value: new Color(TERRAIN_MATERIAL_CONFIG.lightColor) },
+    light2Color:    { value: new Color(TERRAIN_MATERIAL_CONFIG.light2Color) },
+    edgeFeather:    { value: TERRAIN_MESH_CONFIG.edgeFeather },
+    ...(pencilNoise ? {
+      noiseTexture: {value: pencilNoise},
+      hatchDark: {value: pencilDark},
+      hatchBright: {value: pencilBright},
+      heightTexel: {value: new Vector2(1 / displacementMap.image.width, 1 / displacementMap.image.height)},
+      planeSize: {value: TERRAIN_MESH_CONFIG.planeSize},
+      inkColor: {value: new Color(PENCIL_TERRAIN_CONFIG.inkColor)},
+      paperColor: {value: new Color(FOG_CONFIG.color)},
+      hatchScale: {value: PENCIL_TERRAIN_CONFIG.scale},
+      pencilExposure: {value: PENCIL_TERRAIN_CONFIG.exposure},
+    } : {}),
+  }), [displacementMap, staticLightingMap, pencilNoise, pencilDark, pencilBright]);
 
   const geometry = useMemo(
     () => new PlaneGeometry(
@@ -154,7 +172,7 @@ export function TerrainMesh({settings}: {settings: TerrainControlValues}) {
       <shaderMaterial
         ref={surfaceMatRef}
         vertexShader={vertexShader}
-        fragmentShader={fragmentShader}
+        fragmentShader={pencilNoise ? pencilFragmentShader : fragmentShader}
         uniforms={uniforms}
         transparent
         fog

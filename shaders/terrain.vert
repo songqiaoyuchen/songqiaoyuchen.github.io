@@ -7,6 +7,7 @@ uniform float seaLevel;
 
 varying float vHeight;
 varying vec2  vUv;
+varying vec3 vWorldPosition;
 
 float processH(float raw) {
   float h = pow(max(raw, 0.0), contrast);
@@ -21,6 +22,7 @@ void main() {
 
   vec3 pos = position;
   pos.z += h * elevation;
+  vWorldPosition = (modelMatrix * vec4(pos, 1.0)).xyz;
 
   vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
   gl_Position = projectionMatrix * mvPosition;

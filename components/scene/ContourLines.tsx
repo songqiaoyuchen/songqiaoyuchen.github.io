@@ -9,7 +9,7 @@ import {
   UniformsLib,
   UniformsUtils,
 } from 'three';
-import type {DepthTexture, Mesh} from 'three';
+import type {DepthTexture, Group, Mesh} from 'three';
 import {CONTOUR_CONFIG, TERRAIN_MATERIAL_CONFIG, TERRAIN_MESH_CONFIG} from '@/config/scene';
 import type {
   ContourControlValues,
@@ -26,22 +26,26 @@ import {
 import {createContourTubeGeometry} from '@/lib/terrain/lineTube';
 import vertexShader from '@/shaders/contourLines.vert';
 import fragmentShader from '@/shaders/contourLines.frag';
+import {useReducedMotion} from '@/hooks/useReducedMotion';
 
 const CONTOURS = CONTOUR_CONFIG;
 const TERRAIN_MESH = TERRAIN_MESH_CONFIG;
 
 type ContourLinesProps = {
+  hidden?: boolean;
   contourSettings: ContourControlValues;
   terrainDepthTexture: DepthTexture | null;
   terrainSettings: TerrainControlValues;
 };
 
 export const ContourLines = forwardRef<Mesh, ContourLinesProps>(function ContourLines(
-  {contourSettings: lines, terrainDepthTexture, terrainSettings},
+  {hidden = false, contourSettings: lines, terrainDepthTexture, terrainSettings},
   forwardedRef,
 ) {
   const matRef = useRef<ShaderMaterial>(null);
+  const layerRef = useRef<Group>(null);
   const introStart = useRef<number | null>(null);
+  const reducedMotion = useReducedMotion();
 
   const {elevation, seaLevel} = terrainSettings;
 
@@ -79,6 +83,7 @@ export const ContourLines = forwardRef<Mesh, ContourLinesProps>(function Contour
   const uniforms = useMemo(() => ({
     ...UniformsUtils.clone(UniformsLib.fog),
     uTime:            { value: 0 },
+    uVisibility:      { value: 1 },
     uIntroTime:       { value: 0 },
     uIntroTravelSpeed: { value: CONTOURS.introTravelSpeed },
 
@@ -145,12 +150,18 @@ export const ContourLines = forwardRef<Mesh, ContourLinesProps>(function Contour
     const material = matRef.current;
     if (!material) return;
     material.uniforms.uTime.value += delta;
+    const visibility = material.uniforms.uVisibility;
+    const target = hidden ? 0 : 1;
+    visibility.value = reducedMotion || Math.abs(visibility.value - target) < 0.001
+      ? target
+      : visibility.value + (target - visibility.value) * (1 - Math.exp(-4 * Math.min(delta, 1 / 30)));
+    if (layerRef.current) layerRef.current.visible = visibility.value > 0;
     if (introStart.current === null) introStart.current = state.clock.elapsedTime;
     material.uniforms.uIntroTime.value = state.clock.elapsedTime - introStart.current;
   });
 
   return (
-    <mesh ref={forwardedRef} geometry={geometry} frustumCulled={false} renderOrder={1}>
+    <group ref={layerRef}><mesh ref={forwardedRef} geometry={geometry} frustumCulled={false} renderOrder={1}>
       <shaderMaterial
         ref={matRef}
         vertexShader={vertexShader}
@@ -161,6 +172,6 @@ export const ContourLines = forwardRef<Mesh, ContourLinesProps>(function Contour
         blending={AdditiveBlending}
         fog
       />
-    </mesh>
+    </mesh></group>
   );
 });

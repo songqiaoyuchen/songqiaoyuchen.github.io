@@ -3,14 +3,22 @@
 import {useFBO} from '@react-three/drei';
 import {createPortal, useFrame, useThree} from '@react-three/fiber';
 import {useLayoutEffect, useMemo, useRef} from 'react';
-import {HalfFloatType, Scene, type Camera, type WebGLRenderer} from 'three';
-import type {
-  FogControlValues,
-  TerrainControlValues,
-} from '@/components/debug/useSceneControls';
+import {
+  Color, HalfFloatType, Matrix3, Matrix4, PerspectiveCamera, Scene, Vector2, Vector3,
+  type Camera, type ShaderMaterial, type WebGLRenderer,
+} from 'three';
+import type {ArtMedium} from '@/data/artworks';
+import {useReducedMotion} from '@/hooks/useReducedMotion';
+import type {FogControlValues, TerrainControlValues} from '@/components/debug/useSceneControls';
 import {FOG_CONFIG} from '@/config/scene';
+import {ART_ILLUSTRATION_CONFIG} from '@/config/scene/artIllustration';
+import {OIL_ILLUSTRATION_CONFIG} from '@/config/scene/oilIllustration';
+import {PENCIL_ILLUSTRATION_CONFIG} from '@/config/scene/pencilIllustration';
+import {advanceMediumTransition, settledMedium, type MediumId} from '@/lib/terrain/mediumTransition';
+import fragmentShader from '@/shaders/terrainComposite.frag';
 import {SceneFog} from './SceneFog';
 import {TerrainMesh} from './TerrainMesh';
+import {useIllustrationTexture} from './useIllustrationTexture';
 import {useCameraFrameState} from './CameraFrameState';
 
 const vertexShader = /* glsl */ `
@@ -19,15 +27,6 @@ const vertexShader = /* glsl */ `
   void main() {
     vUv = uv;
     gl_Position = vec4(position.xy, 0.0, 1.0);
-  }
-`;
-
-const fragmentShader = /* glsl */ `
-  uniform sampler2D uTexture;
-  varying vec2 vUv;
-
-  void main() {
-    gl_FragColor = texture2D(uTexture, vUv);
   }
 `;
 
@@ -48,6 +47,7 @@ function renderTerrain(
 }
 
 type CachedTerrainProps = {
+  artMedium?: ArtMedium | null;
   fogSettings: FogControlValues;
   onDepthTextureChange: (texture: ReturnType<typeof useFBO>['depthTexture']) => void;
   terrainSettings: TerrainControlValues;
@@ -60,11 +60,13 @@ type CachedTerrainProps = {
  * depth texture is exposed so contours can reject only their hidden fragments.
  */
 export function CachedTerrain({
+  artMedium = null,
   fogSettings,
   onDepthTextureChange,
   terrainSettings,
 }: CachedTerrainProps) {
   const scene = useMemo(() => new Scene(), []);
+  const materialRef = useRef<ShaderMaterial>(null);
   const target = useFBO({
     depthBuffer: true,
     stencilBuffer: false,
@@ -77,10 +79,42 @@ export function CachedTerrain({
   const dirty = useRef(true);
   const cameraFrameState = useCameraFrameState();
   const renderedCameraRevision = useRef(-1);
+  const reducedMotion = useReducedMotion();
+  const oil = useIllustrationTexture(artMedium === 'oil', OIL_ILLUSTRATION_CONFIG.image, 'oil');
+  const pencil = useIllustrationTexture(artMedium === 'pencil', PENCIL_ILLUSTRATION_CONFIG.image, 'pencil');
+  const transition = useRef(settledMedium(0));
+  const projection = useMemo(() => {
+    const config = ART_ILLUSTRATION_CONFIG;
+    const camera = new PerspectiveCamera(config.fov, config.aspect, .1, 100);
+    camera.position.fromArray(config.position);
+    camera.lookAt(new Vector3().fromArray(config.lookAt));
+    const halfHeight = config.projectionDistance * Math.tan(config.fov * Math.PI / 360);
+    const position = new Vector3(0, 0, -config.projectionDistance)
+      .applyQuaternion(camera.quaternion).add(camera.position);
+    return {camera, clip: new Matrix4(), plane: new Matrix4().compose(position,
+      camera.quaternion, new Vector3(halfHeight * config.aspect, halfHeight, 1))};
+  }, []);
   const uniforms = useMemo(
-    () => ({uTexture: {value: target.texture}}),
+    () => ({
+      uTexture: {value: target.texture},
+      uResolution: {value: new Vector2()},
+      uDigitalAccent: {value: new Color('#e8c77a')},
+      uBackground: {value: new Color(FOG_CONFIG.color)},
+      uOil: {value: target.texture},
+      uPencil: {value: target.texture},
+      uFrom: {value: 0},
+      uTo: {value: 0},
+      uProgress: {value: 1},
+      uArtOpacity: {value: 0},
+      uScreenToImage: {value: new Matrix3()},
+    }),
     [target.texture],
   );
+
+  useLayoutEffect(() => {
+    const accent = getComputedStyle(document.documentElement).getPropertyValue('--color-accent').trim();
+    if (accent) uniforms.uDigitalAccent.value.set(accent);
+  }, [uniforms]);
 
   useLayoutEffect(() => {
     onDepthTextureChange(target.depthTexture);
@@ -91,7 +125,35 @@ export function CachedTerrain({
     dirty.current = true;
   }, [dpr, fogSettings, height, target, terrainSettings, width]);
 
-  useFrame(({camera, gl}) => {
+  useFrame(({camera, gl}, delta) => {
+    const values = materialRef.current?.uniforms;
+    if (!values) return;
+    const step = Math.min(delta, .05);
+    values.uOil.value = oil ?? target.texture;
+    values.uPencil.value = pencil ?? target.texture;
+    values.uResolution.value.set(width, height);
+    // Invert the authoring plane's screen projection to preserve image framing
+    // across viewport sizes and the short camera departure from Art.
+    projection.clip.copy(camera.projectionMatrix).multiply(camera.matrixWorldInverse).multiply(projection.plane);
+    const e = projection.clip.elements;
+    values.uScreenToImage.value.set(e[0], e[4], e[12], e[1], e[5], e[13], e[3], e[7], e[15]).invert();
+    const registered = camera.position.distanceToSquared(projection.camera.position) < .0004
+      && camera.quaternion.angleTo(projection.camera.quaternion) < .002;
+    if (artMedium && registered) {
+      // An unloaded image leaves the currently displayed medium intact.
+      const requested: MediumId = artMedium === 'digital' ? 3
+        : artMedium === 'oil' && oil ? 1 : artMedium === 'pencil' && pencil ? 2 : transition.current.to;
+      transition.current = advanceMediumTransition(transition.current, requested, delta,
+        reducedMotion, ART_ILLUSTRATION_CONFIG.revealSeconds);
+      values.uArtOpacity.value = 1;
+    } else {
+      values.uArtOpacity.value = reducedMotion ? 0
+        : Math.max(0, values.uArtOpacity.value - step / ART_ILLUSTRATION_CONFIG.dissolveSeconds);
+      if (values.uArtOpacity.value === 0) transition.current = settledMedium(0);
+    }
+    values.uFrom.value = transition.current.from;
+    values.uTo.value = transition.current.to;
+    values.uProgress.value = transition.current.progress;
     const cameraRevision = cameraFrameState.current.revision;
     if (!dirty.current && renderedCameraRevision.current === cameraRevision) return;
 
@@ -113,6 +175,7 @@ export function CachedTerrain({
       <mesh frustumCulled={false} renderOrder={-1000}>
         <planeGeometry args={[2, 2]} />
         <shaderMaterial
+          ref={materialRef}
           depthTest={false}
           depthWrite={false}
           fragmentShader={fragmentShader}

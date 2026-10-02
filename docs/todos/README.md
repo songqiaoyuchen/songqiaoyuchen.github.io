@@ -8,16 +8,16 @@ Checklists remain unchecked until the work is implemented and verified.
 
 | Tracker | Owns | Next step |
 | --- | --- | --- |
-| [Navigation and URLs](stage-2-navigation.md) | Shared destinations, top-nav handover, URLs and history | Define the view/route map using Art |
-| [Unified Art journey](stage-2-art-journey.md) | Selected works, full collection, inspection and local return | Prototype the complete Art journey |
+| [Navigation and URLs](stage-2-navigation.md) | Shared destinations, top-nav handover, URLs and history | Extend the Art pattern when other sections are rebuilt |
+| [Unified Art journey](stage-2-art-journey.md) | Selected works, full collection, inspection and local return | Implemented and verified; future curation stays in Content |
 | [Section interactions](stage-2-section-interactions.md) | Shared interaction rules, attention and scope | Apply lessons from Art one section at a time |
 | [Lake exploration](stage-2-lake-exploration.md) | Dive, sonar, forgiving navigation and personal letter | Prototype movement and course boundaries |
 | [Travel](stage-2-travel.md) | Terrain-to-globe transition, real trips and media | Prototype the continuous change of scale |
 | [About experience path](stage-2-about-path.md) | Metaphorical terrain timeline and experience details | Prototype linked list/checkpoint selection |
 
-Navigation and Art should be designed together. Art is the first prototype, not a
-requirement to convert every section into a full-page overlay. Exact URL syntax,
-visual treatment, and implementation architecture remain open.
+Art is the first implemented section journey, not a requirement to convert every
+section into a full-page overlay. Its route/layout behavior is documented in
+[architecture](../architecture.md); other sections retain their existing scope.
 
 The four experience directions are accepted for future work. Blog remains unchanged;
 Projects changes are limited to the existing navigation work. Recording these plans

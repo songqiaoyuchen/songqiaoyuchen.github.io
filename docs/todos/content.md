@@ -11,7 +11,7 @@ Noted 2026-09-29; revisit when relevant material or a design prompt is available
   `data/projects.ts` with role, decisions, and outcome evidence when requested.
   Current Projects scope is navigation only.
 - [ ] **Art archive:** review captions, dates/context, image crops, and ordering
-  in `data/artworks.ts` and `app/artworks/page.tsx`, alongside the
+  in `data/artworks.ts` and `components/artworks/ArtExperience.tsx`, alongside the
   [unified Art journey](stage-2-art-journey.md).
 
 ## Identity, naming and typography

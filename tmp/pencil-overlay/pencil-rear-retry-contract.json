@@ -1,0 +1,59 @@
+{
+  "edit_id": "EDT-pencil-all-rear-ridges",
+  "source_asset_id": "pencil-illustration-v4",
+  "source_checkpoint": "tmp/pencil-overlay/pencil-before-rear-edit.webp",
+  "mode": "annotation_guided",
+  "source_geometry": {
+    "width": 1774,
+    "height": 887
+  },
+  "annotation_space": "pixels",
+  "targets": [
+    {
+      "target_id": "all-rear-ridges",
+      "semantic_target": "All detached rear mountains and ridge marks above and behind foreground silhouette, including rear-right V and lower rear-left ridge",
+      "geometry": {
+        "kind": "semantic"
+      },
+      "confidence": 0.99
+    }
+  ],
+  "requested_mutations": [
+    "Remove all detached rear mountain ranges/ridges, leaving only the main lower-left foreground mountain group against dark paper."
+  ],
+  "forbidden_mutations": [
+    "No global restyling, exposure change, reframing, recentering, cropping, blur, fade, vignette, hard cut or other content removal.",
+    "Do not retain rear-right rising V or low detached rear-left ridge."
+  ],
+  "identity_locks": [
+    "Foreground main summit near (480,235) and all connected lower-left slopes, ridges and hatching are protected, overriding target polygon."
+  ],
+  "geometry_locks": [
+    "1774x887, 2:1 framing, all unaffected peaks/ridges and stroke endpoints remain materially stable."
+  ],
+  "style_locks": [
+    "Warm pale ochre coarse pencil/crayon texture, existing shading and paper grain; quiet right half."
+  ],
+  "mutation_budget": "one",
+  "protected_regions": [
+    {
+      "region_id": "foreground",
+      "rule": "Protect summit near (480,235) and all connected lower-left foreground slopes even if they overlap editable polygon.",
+      "geometry": null
+    },
+    {
+      "region_id": "complement",
+      "rule": "All non-target content remains materially stable, including lower foreground and empty right side x>=887.",
+      "geometry": null
+    }
+  ],
+  "acceptance_checks": [
+    "No high rear mountains, low rear-left ridge or rear-right rising V remain.",
+    "Foreground peak at (480,235), left foreground ledge at y310 and all connected lower slopes remain materially stable.",
+    "Right negative space and rough stroke endpoints stable.",
+    "No global exposure/style/composition drift or visible erase boundary."
+  ],
+  "iteration": 2,
+  "status": "ready",
+  "execution_allowed": true
+}
