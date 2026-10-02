@@ -10,11 +10,12 @@ import {
 import type {ArtMedium} from '@/data/artworks';
 import {useReducedMotion} from '@/hooks/useReducedMotion';
 import type {FogControlValues, TerrainControlValues} from '@/components/debug/useSceneControls';
-import {FOG_CONFIG} from '@/config/scene';
+import {FOG_CONFIG, TERRAIN_MATERIAL_CONFIG, TERRAIN_MESH_CONFIG} from '@/config/scene';
 import {ART_ILLUSTRATION_CONFIG} from '@/config/scene/artIllustration';
 import {OIL_ILLUSTRATION_CONFIG} from '@/config/scene/oilIllustration';
 import {PENCIL_ILLUSTRATION_CONFIG} from '@/config/scene/pencilIllustration';
 import {advanceMediumTransition, settledMedium, type MediumId} from '@/lib/terrain/mediumTransition';
+import {useTerrainAssets} from '@/lib/terrain/assets';
 import fragmentShader from '@/shaders/terrainComposite.frag';
 import {SceneFog} from './SceneFog';
 import {TerrainMesh} from './TerrainMesh';
@@ -83,6 +84,12 @@ export function CachedTerrain({
   const oil = useIllustrationTexture(artMedium === 'oil', OIL_ILLUSTRATION_CONFIG.image, 'oil');
   const pencil = useIllustrationTexture(artMedium === 'pencil', PENCIL_ILLUSTRATION_CONFIG.image, 'pencil');
   const transition = useRef(settledMedium(0));
+  const {shellBase} = useTerrainAssets();
+  const peakHeight = useMemo(() => {
+    let peak = 0;
+    for (const height of shellBase.data) peak = Math.max(peak, height);
+    return Math.pow(peak, TERRAIN_MATERIAL_CONFIG.contrast);
+  }, [shellBase]);
   const projection = useMemo(() => {
     const config = ART_ILLUSTRATION_CONFIG;
     const camera = new PerspectiveCamera(config.fov, config.aspect, .1, 100);
@@ -97,6 +104,9 @@ export function CachedTerrain({
   const uniforms = useMemo(
     () => ({
       uTexture: {value: target.texture},
+      uTerrainDepth: {value: target.depthTexture},
+      uClipToWorld: {value: new Matrix4()},
+      uTerrainHeight: {value: new Vector2()},
       uResolution: {value: new Vector2()},
       uDigitalAccent: {value: new Color('#e8c77a')},
       uBackground: {value: new Color(FOG_CONFIG.color)},
@@ -108,7 +118,7 @@ export function CachedTerrain({
       uArtOpacity: {value: 0},
       uScreenToImage: {value: new Matrix3()},
     }),
-    [target.texture],
+    [target.depthTexture, target.texture],
   );
 
   useLayoutEffect(() => {
@@ -158,6 +168,12 @@ export function CachedTerrain({
     if (!dirty.current && renderedCameraRevision.current === cameraRevision) return;
 
     renderTerrain(gl, scene, camera, target);
+    // Keep reconstruction paired with the camera that produced the cached depth.
+    values.uClipToWorld.value.copy(camera.matrixWorld).multiply(camera.projectionMatrixInverse);
+    const peak = Math.min(1, Math.max(0,
+      (peakHeight - terrainSettings.seaLevel) / Math.max(1 - terrainSettings.seaLevel, .0001)));
+    values.uTerrainHeight.value.set(TERRAIN_MESH_CONFIG.position[1],
+      Math.max(peak * terrainSettings.elevation, .0001));
     renderedCameraRevision.current = cameraRevision;
     dirty.current = false;
   }, 0.5);

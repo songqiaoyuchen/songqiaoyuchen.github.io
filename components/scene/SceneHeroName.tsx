@@ -38,6 +38,8 @@ import {
 } from '@/lib/text/linkStreamLayout';
 import {useTerrainAssets} from '@/lib/terrain/assets';
 import {sampleHeight} from '@/lib/terrain/height';
+import {advanceTextVisibility} from '@/lib/scene/textTransition';
+import {useCameraFrameState} from './CameraFrameState';
 import vertexShader from '@/shaders/linkStream.vert';
 import fragmentShader from '@/shaders/linkStream.frag';
 
@@ -58,6 +60,7 @@ export const SceneHeroName = forwardRef<Mesh, SceneHeroNameProps>(function Scene
   const materialRef = useRef<ShaderMaterial>(null);
   const elapsed = useRef(0);
   const dissolve = useRef(0);
+  const cameraFrameState = useCameraFrameState();
   const viewportWidth = useThree((state) => state.size.width);
   const viewportHeight = useThree((state) => state.size.height);
   const isReducedMotion = useReducedMotion();
@@ -208,20 +211,9 @@ export const SceneHeroName = forwardRef<Mesh, SceneHeroNameProps>(function Scene
     const isDesktop = viewportWidth >= HERO_SCENE_CONFIG.desktopMinWidth;
     const entranceComplete = isReducedMotion
       || elapsed.current >= HERO_SCENE_CONFIG.entranceDelay;
-    const target = !isHidden && isDesktop && entranceComplete ? 1 : 0;
-
-    if (isReducedMotion) {
-      dissolve.current = target;
-    } else {
-      const speed = target > dissolve.current
-        ? HERO_SCENE_CONFIG.revealSpeed
-        : HERO_SCENE_CONFIG.hideSpeed;
-      const direction = Math.sign(target - dissolve.current);
-      dissolve.current += direction * Math.min(
-        Math.abs(target - dissolve.current),
-        delta * speed,
-      );
-    }
+    const visible = !isHidden && isDesktop && entranceComplete && !cameraFrameState.current.transitioning;
+    dissolve.current = advanceTextVisibility(dissolve.current, visible, delta, isReducedMotion,
+      HERO_SCENE_CONFIG.revealSpeed, HERO_SCENE_CONFIG.hideSpeed);
 
     material.uniforms.uDissolve.value = dissolve.current;
   });
@@ -235,6 +227,7 @@ export const SceneHeroName = forwardRef<Mesh, SceneHeroNameProps>(function Scene
   ] as const;
   const isDesktop = viewportWidth >= HERO_SCENE_CONFIG.desktopMinWidth;
   const setHeroTextTarget = (target: number) => {
+    if (isHidden || cameraFrameState.current.transitioning || dissolve.current < 1) return;
     const material = materialRef.current;
     if (!material) return;
     (material.uniforms.uTextTarget.value as Float32Array)[0] = target;

@@ -1,4 +1,8 @@
 uniform sampler2D uTexture;
+uniform sampler2D uTerrainDepth;
+uniform mat4 uClipToWorld;
+// World-space base elevation and height span up to the terrain's peak.
+uniform vec2 uTerrainHeight;
 uniform sampler2D uOil;
 uniform sampler2D uPencil;
 uniform vec2 uResolution;
@@ -10,10 +14,6 @@ uniform float uProgress;
 uniform float uArtOpacity;
 uniform mat3 uScreenToImage;
 varying vec2 vUv;
-
-float hash(vec2 p) {
-  return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
-}
 
 vec2 imageUv(vec2 screenUv) {
   vec3 p = uScreenToImage * vec3(screenUv * 2.0 - 1.0, 1.0);
@@ -28,31 +28,14 @@ vec3 digital() {
   vec3 sampleColor = texture2D(uTexture, sampleUv).rgb;
   float illumination = dot(sampleColor, vec3(.2126, .7152, .0722));
   float tone = 1.0 - exp(-max(0.0, illumination - .0035) * 16.0);
-  vec2 artUv = imageUv(sampleUv);
   float radius = .42 * sqrt(tone);
   float distanceToCenter = length(fract(vUv * grid) - .5);
   float aa = max(fwidth(distanceToCenter), .015);
   float dotShape = (1.0 - smoothstep(radius - aa, radius + aa, distanceToCenter)) * step(.025, tone);
 
-  // Match the image treatments' camera framing. Finish whole dots at staggered
-  // positions just before the midpoint, with no horizontal opacity gradient.
-  float end = .435 + .055 * hash(vec2(floor(artUv.y * 48.0), 17.0));
-  float drawn = 1.0 - step(end, artUv.x);
-
-  // Remove the far-left secondary shoulder above the main mountain's diagonal
-  // silhouette. Authoring-image coordinates keep the cut registered on resize.
-  if (artUv.x < .169) {
-    float boundary = mix(.654, .602, clamp(artUv.x / .068, 0.0, 1.0));
-    boundary = mix(boundary, .543, clamp((artUv.x - .068) / .048, 0.0, 1.0));
-    boundary = mix(boundary, .462, clamp((artUv.x - .116) / .022, 0.0, 1.0));
-    boundary = mix(boundary, .410, clamp((artUv.x - .138) / .031, 0.0, 1.0));
-    float roughness = (hash(vec2(floor(artUv.x * 240.0), 29.0)) - .5) * .006;
-    drawn *= step(boundary + roughness, 1.0 - artUv.y);
-  }
-
   // Full-size dot cores retain the actual accent. Brightness is carried by
   // coverage, never by an amber tint or an exposure multiplier on the color.
-  return mix(uBackground, uDigitalAccent, dotShape * drawn);
+  return mix(uBackground, uDigitalAccent, dotShape);
 }
 
 vec3 mediumColor(float medium, vec3 original, vec2 uv) {
@@ -67,12 +50,18 @@ vec3 mediumColor(float medium, vec3 original, vec2 uv) {
 float replacementMask() {
   if (uProgress <= 0.0) return 0.0;
   if (uProgress >= 1.0) return 1.0;
-  // One top-down edge replaces both styles together, including their backgrounds.
-  float column = vUv.x * 35.0;
-  float uneven = mix(hash(vec2(floor(column), 3.0)), hash(vec2(floor(column) + 1.0, 3.0)),
-    smoothstep(0.0, 1.0, fract(column))) - .5;
+  float depth = texture2D(uTerrainDepth, vUv).r;
+  // Open sky has no surface to follow; blend it without a moving screen edge.
+  if (depth >= 1.0) return smoothstep(0.0, .2, uProgress);
+
+  vec4 world = uClipToWorld * vec4(vUv * 2.0 - 1.0, depth * 2.0 - 1.0, 1.0);
+  float height = clamp((world.y / world.w - uTerrainHeight.x) / uTerrainHeight.y, 0.0, 1.0);
+  // Descend from peaks to valleys along actual elevation contours. The same
+  // surface mask replaces both media, including the painted image treatments.
+  float arrival = 1.0 - height;
+  float feather = max(.012, fwidth(arrival));
   float front = mix(-.035, 1.035, uProgress);
-  return 1.0 - smoothstep(front - .012, front + .012, 1.0 - vUv.y + uneven * .025);
+  return 1.0 - smoothstep(front - feather, front + feather, arrival);
 }
 
 void main() {

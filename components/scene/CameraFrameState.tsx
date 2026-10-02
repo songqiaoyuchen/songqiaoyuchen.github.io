@@ -15,6 +15,8 @@ const CAMERA_FRAME_PRIORITY = -0.5;
 
 type CameraFrameState = {
   revision: number;
+  transitioning: boolean;
+  setTransitioning: (transitioning: boolean) => void;
 };
 
 const CameraFrameContext = createContext<MutableRefObject<CameraFrameState> | null>(null);
@@ -47,6 +49,8 @@ function rememberCamera(camera: Camera, target: Float64Array) {
 export function CameraFrameProvider({children}: {children: ReactNode}) {
   const frameState = useRef<CameraFrameState>({
     revision: 0,
+    transitioning: false,
+    setTransitioning: (transitioning) => { frameState.current.transitioning = transitioning; },
   });
   const previousCamera = useRef(
     new Float64Array(CAMERA_MATRIX_VALUE_COUNT).fill(Number.NaN),

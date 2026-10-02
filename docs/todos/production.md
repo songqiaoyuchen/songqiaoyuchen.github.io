@@ -14,6 +14,8 @@ Evidence below is from 2026-09-29, not a guarantee of current failures.
 - [ ] **Metadata/discovery:** set `NEXT_PUBLIC_SITE_URL` in the Pages workflow;
   `app/layout.tsx` falls back to localhost. Review social titles/descriptions,
   canonical URLs, sitemap, and robots behavior before release.
+  Add a site icon: on 2026-10-02, Chrome requested `/favicon.ico` and received
+  HTTP 404 during scene-transition checks; no icon is declared in `app/layout.tsx`.
 - [ ] **Delivery/performance:** inspect static-export image delivery and terrain
   startup/GPU cost on representative hardware. Reviewed source totals were
   6.31 MB compressed terrain and 10.84 MB artwork, not measured page transfers.

@@ -29,6 +29,8 @@ import type {
   TerrainControlValues,
 } from '@/components/debug/useSceneControls';
 import {useReducedMotion} from '@/hooks/useReducedMotion';
+import {LINK_STREAM_EFFECT_CONFIG} from '@/config/navigation';
+import {advanceTextVisibility} from '@/lib/scene/textTransition';
 import {useTerrainAssets} from '@/lib/terrain/assets';
 import {
   buildDecorStreamGeometry,
@@ -183,7 +185,7 @@ export const DecorStreams = forwardRef<MeshType, DecorStreamsProps>(function Dec
   );
   const compositeGeometry = useMemo(() => new PlaneGeometry(2, 2), []);
   const compositeUniforms = useMemo(
-    () => ({ uTexture: { value: compositor.texture }, uVisibility: {value: 1} }),
+    () => ({ uTexture: { value: compositor.texture }, uVisibility: {value: 0} }),
     [compositor],
   );
 
@@ -237,11 +239,10 @@ export const DecorStreams = forwardRef<MeshType, DecorStreamsProps>(function Dec
 
   useFrame((state, delta) => {
     const visibility = compositeMaterialRef.current?.uniforms.uVisibility;
-    const target = hidden ? 0 : 1;
+    const visible = !hidden && !cameraFrameState.current.transitioning;
     if (visibility) {
-      visibility.value = isReducedMotion || Math.abs(visibility.value - target) < 0.001
-        ? target
-        : visibility.value + (target - visibility.value) * (1 - Math.exp(-4 * Math.min(delta, 1 / 30)));
+      visibility.value = advanceTextVisibility(visibility.value, visible, delta, isReducedMotion,
+        LINK_STREAM_EFFECT_CONFIG.dissolveInSpeed, LINK_STREAM_EFFECT_CONFIG.dissolveOutSpeed);
       if (layerRef.current) layerRef.current.visible = visibility.value > 0;
     }
     if (!isReducedMotion) {

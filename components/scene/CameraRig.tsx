@@ -12,6 +12,7 @@ import {
 } from '@/config/scene';
 import {useReducedMotion} from '@/hooks/useReducedMotion';
 import {getHomeFov} from '@/lib/scene/camera';
+import {useCameraFrameState} from './CameraFrameState';
 
 type CameraRigProps = {
   activeId: SectionId | null;
@@ -22,6 +23,7 @@ type CameraRigProps = {
 const SETTLE_EPSILON = 0.0001;
 
 export function CameraRig({activeId, controlsRef, onPoseSettled}: CameraRigProps) {
+  const cameraFrameState = useCameraFrameState();
   const isReducedMotion = useReducedMotion();
   const viewportWidth = useThree((state) => state.size.width);
   const viewportHeight = useThree((state) => state.size.height);
@@ -121,6 +123,7 @@ export function CameraRig({activeId, controlsRef, onPoseSettled}: CameraRigProps
         onPoseSettled?.(poseId);
       }
     }
+    cameraFrameState.current.setTransitioning(isAnimating.current);
   }, -2);
 
   return null;

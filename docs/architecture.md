@@ -25,6 +25,9 @@ The homepage is a single viewport with a preloader, WebGL scene, and preview
 drawers. Home and Art share a persistent route-group layout; direct Art entry
 exposes content while the terrain prepares, and a warm return Home retains the
 canvas. Other sections retain their existing lifecycles.
+Scene text dissolves into pixels on section changes. Link layouts change only
+while fully hidden; link streams and the hero name reveal after camera arrival.
+Art hides all scene text from navigation start, independently of medium loading.
 
 Art routes are `/artworks` (selected), `/artworks/all` (collection), and
 `/artworks/[id]` (statically generated inspection). Query parameters preserve
@@ -37,21 +40,20 @@ collection and detail HTML remain visible without JavaScript.
 The desktop carousel is horizontal; narrow/touch layouts are vertical.
 `CachedTerrain` caches the original terrain and retains its depth for streams.
 Digital uses `shaders/terrainComposite.frag`: cached lighting maps
-to dots in the CSS accent gold. Dot size carries brightness; complete dots stop
-at staggered positions before the composition midpoint, keeping the right half
-dark. Oil and pencil use generated images of the foreground left mountain
-with deliberately unfinished marks and quiet upper/right negative space. Both
+to dots in the CSS accent gold. Dot size carries brightness across the full terrain.
+Oil and pencil use full-width illustrations including the rear ranges and foreground
+slopes. A shared responsive CSS scrim in `components/artworks/art.css` darkens
+the terrain behind the gallery and caption across all three media. Both illustrations
 project onto the fixed authoring camera in `config/scene/artIllustration.ts`;
 viewport changes crop through the live camera projection. Image paths live in
 their respective `oilIllustration.ts` / `pencilIllustration.ts` configs.
-`CachedTerrain` composites all three through one top-down irregular wipe;
-the same mask replaces the outgoing style with the incoming style, preserving
+`CachedTerrain` composites all three through one descending elevation-contour wipe,
+reconstructing the terrain's world height from cached depth; open sky blends separately.
+The same mask replaces the outgoing style with the incoming style, preserving
 both through the transition. Rapid selections finish the active wipe before
 starting the latest requested medium. Reduced motion skips medium animations.
 `useIllustrationTexture` loads textures on first entry and retains them; pending
 or failed loads leave the previous treatment visible. Changing the Art pose requires new images.
-The far-left secondary shoulder is omitted in both illustrations and in digital's
-authoring-coordinate dot mask, retaining the main foreground slope.
 The older oil bake and pencil surface shaders are no longer on the active path.
 All media share the Art camera pose, independent of material transitions.
 In development, Leva's Art Camera folder enables orbit/pan/zoom and numeric
@@ -89,6 +91,8 @@ Content pages scroll; full-screen overflow belongs to the homepage.
 | `node scripts/capture-pencil-source.mjs` | Capture the unstyled Art view for pencil image generation |
 | `node scripts/verify-pencil-overlay.mjs` | Opt-in shared medium wipe, image resize, and reduced-motion checks |
 | `node scripts/test-medium-transition.mjs` | Check transition continuity and rapid selection behavior |
+| `node scripts/test-text-transition.mjs` | Check scene text visibility, retargeting and reduced motion |
+| `node scripts/verify-text-transitions.mjs` | Opt-in desktop/mobile text transition and navigation regression checks |
 
 For Art verification, set `ART_BASE_URL` to a running server, `ARTIFACT_DIR` to
 the output directory, and `PLAYWRIGHT_MODULE` if Playwright is outside normal

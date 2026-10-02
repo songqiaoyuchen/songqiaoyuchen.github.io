@@ -16,7 +16,6 @@ import {
   useEffect,
   useMemo,
   useRef,
-  useState,
 } from 'react';
 import {
   LINK_STREAM_EFFECT_CONFIG,
@@ -42,6 +41,7 @@ import {
   configureSdfAtlas,
 } from '@/lib/text/atlas';
 import {sampleHeight} from '@/lib/terrain/height';
+import {advanceTextTransition} from '@/lib/scene/textTransition';
 import {
   getLinkLayoutMode,
   getLinkLayouts,
@@ -52,8 +52,6 @@ import fragmentShader from '@/shaders/linkStream.frag';
 import type {SectionId} from '@/config/navigation/linkStreams';
 import {useReducedMotion} from '@/hooks/useReducedMotion';
 import {useCameraFrameState} from './CameraFrameState';
-type RayTransitionPhase = 'idle' | 'out' | 'in';
-
 const ANIMATION_SETTLE_EPSILON = 0.0001;
 
 type LinkStreamsProps = {
@@ -80,16 +78,16 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
   const viewportWidth = useThree((state) => state.size.width);
   const viewportHeight = useThree((state) => state.size.height);
   const initialLayoutMode = getLinkLayoutMode(activeId !== null, viewportWidth);
+  const transitionKey = `${initialLayoutMode}:${activeId ?? 'home'}`;
   const materialRef = useRef<ShaderMaterial>(null);
   const hitTargetRefs = useRef<Array<Group | null>>([]);
   const hitButtonRefs = useRef<Array<HTMLButtonElement | null>>([]);
-  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const hoveredIndex = useRef<number | null>(null);
   const hoverValues = useRef(new Float32Array(LINK_STREAMS.length));
   const glitchValues = useRef(new Float32Array(LINK_STREAMS.length));
   const layoutMode = useRef<LinkLayoutMode>(initialLayoutMode);
-  const requestedLayoutMode = useRef<LinkLayoutMode>(initialLayoutMode);
-  const transitionPhase = useRef<RayTransitionPhase>('idle');
-  const dissolveVisibility = useRef(1);
+  const transition = useRef({key: transitionKey,
+    visibility: hidden || (initialLayoutMode === 'overview-mobile' && activeId !== null) ? 0 : 1});
   const layoutInitialized = useRef(false);
   const layoutDirty = useRef(true);
   const layoutAnimating = useRef(false);
@@ -170,7 +168,7 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
         run.overviewBottomOffset - run.focusedBottomOffset
       ))),
     },
-    uDissolve: { value: 1 },
+    uDissolve: { value: 0 },
     uActiveStream: { value: -1 },
     uFocused: { value: 0 },
     uFocusedSpacingMultiplier: {
@@ -205,21 +203,13 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
   useEffect(() => {
     if (isReducedMotion) {
       glitchValues.current.fill(0);
-    } else if (hoveredIndex !== null) {
-      glitchValues.current[hoveredIndex] = 1;
     }
     interactionAnimating.current = true;
-  }, [hoveredIndex, isReducedMotion]);
+  }, [isReducedMotion]);
   useEffect(() => {
     layoutDirty.current = true;
     hitTargetsDirty.current = true;
   }, [elevation, layouts, seaLevel, viewportHeight, viewportWidth]);
-  useEffect(() => {
-    if (desiredLayoutMode === requestedLayoutMode.current) return;
-    requestedLayoutMode.current = desiredLayoutMode;
-    transitionPhase.current = isReducedMotion ? 'idle' : 'out';
-    if (isReducedMotion) layoutDirty.current = true;
-  }, [desiredLayoutMode, isReducedMotion]);
   useEffect(() => {
     const material = materialRef.current;
     if (material) material.uniforms.uActiveStream.value = activeIndex;
@@ -228,50 +218,19 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
   useFrame(({camera}, delta) => {
     const material = materialRef.current;
     if (!material) return;
-    let layoutSwitched = false;
-
-    if (isMobileViewport) {
-      layoutSwitched = layoutMode.current !== 'overview-mobile';
-      layoutMode.current = 'overview-mobile';
-      const visibilityTarget = activeId === null ? 1 : 0;
-      if (isReducedMotion) {
-        dissolveVisibility.current = visibilityTarget;
-      } else if (visibilityTarget < dissolveVisibility.current) {
-        dissolveVisibility.current = Math.max(
-          visibilityTarget,
-          dissolveVisibility.current
-            - delta * LINK_STREAM_EFFECT_CONFIG.dissolveOutSpeed,
-        );
-      } else if (visibilityTarget > dissolveVisibility.current) {
-        dissolveVisibility.current = Math.min(
-          visibilityTarget,
-          dissolveVisibility.current
-            + delta * LINK_STREAM_EFFECT_CONFIG.dissolveInSpeed,
-        );
-      }
-      transitionPhase.current = 'idle';
-    } else if (isReducedMotion) {
-      layoutSwitched = layoutMode.current !== requestedLayoutMode.current;
-      layoutMode.current = requestedLayoutMode.current;
-      transitionPhase.current = 'idle';
-      dissolveVisibility.current = 1;
-    } else if (transitionPhase.current === 'out') {
-      dissolveVisibility.current = Math.max(
-        0,
-        dissolveVisibility.current - delta * LINK_STREAM_EFFECT_CONFIG.dissolveOutSpeed,
-      );
-      if (dissolveVisibility.current === 0) {
-        layoutMode.current = requestedLayoutMode.current;
-        transitionPhase.current = 'in';
-        layoutSwitched = true;
-      }
-    } else if (transitionPhase.current === 'in') {
-      dissolveVisibility.current = Math.min(
-        1,
-        dissolveVisibility.current + delta * LINK_STREAM_EFFECT_CONFIG.dissolveInSpeed,
-      );
-      if (dissolveVisibility.current === 1) transitionPhase.current = 'idle';
+    const previousKey = transition.current.key;
+    const ready = !cameraFrameState.current.transitioning;
+    const visible = !hidden && (!isMobileViewport || activeId === null);
+    if ((!visible || !ready) && hoveredIndex.current !== null) {
+      hoveredIndex.current = null;
+      glitchValues.current.fill(0);
+      interactionAnimating.current = true;
     }
+    transition.current = advanceTextTransition(transition.current,
+      {key: transitionKey, visible, ready}, delta, isReducedMotion,
+      LINK_STREAM_EFFECT_CONFIG.dissolveInSpeed, LINK_STREAM_EFFECT_CONFIG.dissolveOutSpeed);
+    const layoutSwitched = previousKey !== transition.current.key;
+    if (layoutSwitched) layoutMode.current = desiredLayoutMode;
 
     const isOverviewLayout = layoutMode.current === 'overview'
       || layoutMode.current === 'overview-mobile';
@@ -285,7 +244,7 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
     let hitTargetsMoved = layoutSwitched;
 
     material.uniforms.uTime.value += delta;
-    const shouldUpdateLayout = (
+    const shouldUpdateLayout = (transition.current.key === transitionKey || !layoutInitialized.current) && (
       !layoutInitialized.current
       || layoutDirty.current
       || layoutAnimating.current
@@ -328,14 +287,14 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
       layoutAnimating.current = hasUnsettledLayout;
       material.uniforms.uFocused.value = isOverviewLayout ? 0 : 1;
     }
-    material.uniforms.uDissolve.value = dissolveVisibility.current;
+    material.uniforms.uDissolve.value = transition.current.visibility;
 
     if (interactionAnimating.current) {
       const hoverAlpha = Math.min(1, delta * LINK_STREAM_EFFECT_CONFIG.hoverDamping);
       let hasUnsettledInteraction = false;
 
       for (let index = 0; index < LINK_STREAMS.length; index++) {
-        const hoverTarget = hoveredIndex === index ? 1 : 0;
+        const hoverTarget = visible && hoveredIndex.current === index ? 1 : 0;
         const nextHover = hoverValues.current[index]
           + (hoverTarget - hoverValues.current[index]) * hoverAlpha;
         const hoverSettled = Math.abs(hoverTarget - nextHover) < ANIMATION_SETTLE_EPSILON;
@@ -356,6 +315,9 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
 
     const cameraRevision = cameraFrameState.current.revision;
     const cameraMoved = projectedCameraRevision.current !== cameraRevision;
+    for (const button of hitButtonRefs.current) {
+      if (button) button.disabled = !visible || !ready || transition.current.visibility < 1;
+    }
     if (!hitTargetsDirty.current && !hitTargetsMoved && !cameraMoved) return;
 
     for (const run of LINK_STREAMS) {
@@ -405,9 +367,15 @@ export const LinkStreams = forwardRef<Mesh, LinkStreamsProps>(function LinkStrea
     hitTargetsDirty.current = false;
   }, 0.25);
 
+  const setHoveredIndex = (index: number | null) => {
+    hoveredIndex.current = index;
+    if (index !== null && !isReducedMotion) glitchValues.current[index] = 1;
+    interactionAnimating.current = true;
+  };
+
   return (
     <>
-      <mesh visible={!hidden} ref={forwardedRef} geometry={geometry} frustumCulled={false} renderOrder={4}>
+      <mesh ref={forwardedRef} geometry={geometry} frustumCulled={false} renderOrder={4}>
         <shaderMaterial
           ref={materialRef}
           vertexShader={compiledVertexShader}

@@ -35,22 +35,10 @@
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  background: linear-gradient(90deg, transparent 20%, rgb(10 10 10 / 18%) 44%, rgb(10 10 10 / 76%) 85%);
-}
-.art-section::after {
-  content: '';
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 1200ms ease;
+  /* Shared scrim keeps the complete terrain visible behind every medium. */
   background:
-    radial-gradient(ellipse at 72% 72%, rgb(10 10 10 / 32%), transparent 65%),
-    linear-gradient(0deg, rgb(10 10 10 / 72%), transparent 54%);
-}
-.art-section[data-medium='oil']::after {
-  opacity: 1;
+    radial-gradient(ellipse at 72% 86%, rgb(10 10 10 / 68%), transparent 62%),
+    linear-gradient(90deg, transparent 20%, rgb(10 10 10 / 42%) 44%, rgb(10 10 10 / 68%) 85%);
 }
 .art-collection-bar {
   grid-column: 1 / -1;
@@ -382,7 +370,6 @@
   .art-section::before {
     background: linear-gradient(0deg, rgb(10 10 10 / 88%), rgb(10 10 10 / 45%) 55%, rgb(10 10 10 / 35%));
   }
-  .art-section::after { display: none; }
   .art-gallery { grid-column: 1; gap: 12px; }
   .art-carousel { --art-fade-axis: 180deg; }
   .art-carousel-slide {
@@ -437,7 +424,6 @@
   .art-caption h2 { font-size: 22px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .art-section::after { transition: none; }
   .art-environment .art-content {
     transition: none;
   }

@@ -73,6 +73,7 @@ export function TerrainBackground({
   const [terrainDepthTexture, setTerrainDepthTexture] = useState<DepthTexture | null>(null);
   const isDevelopment = process.env.NODE_ENV === 'development';
   const settings = useSceneControls();
+  const hideHomeScene = artActive || activeId === 'art';
   const bloomSelection = useMemo(
     () => [contourMesh, linkStreamsMesh]
       .filter((mesh): mesh is Mesh => mesh !== null),
@@ -186,7 +187,7 @@ export function TerrainBackground({
             ) : null}
             {assemblyPhase >= 2 ? (
             <ContourLines
-              hidden={!!artMedium}
+              hidden={hideHomeScene}
               ref={setContourMesh}
               contourSettings={settings.contours}
               terrainDepthTexture={terrainDepthTexture}
@@ -196,14 +197,14 @@ export function TerrainBackground({
             {assemblyPhase >= 3 ? (
               <>
             <DecorStreams
-              hidden={!!artMedium}
+              hidden={hideHomeScene}
               ref={setDecorStreamsMesh}
               contourSettings={settings.contours}
               decorStreamSettings={settings.decorStreams}
               terrainSettings={settings.terrain}
             />
             <LinkStreams
-              hidden={!!artMedium}
+              hidden={hideHomeScene}
               ref={setLinkStreamsMesh}
               activeId={activeId}
               contourSettings={settings.contours}
@@ -214,7 +215,7 @@ export function TerrainBackground({
             <SceneHeroName
               ref={setHeroMesh}
               contourSettings={settings.contours}
-              isHidden={activeId !== null}
+              isHidden={hideHomeScene || activeId !== null}
               introStarted={introStarted}
               terrainSettings={settings.terrain}
             />

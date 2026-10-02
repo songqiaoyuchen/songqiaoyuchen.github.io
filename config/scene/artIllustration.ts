@@ -8,6 +8,6 @@ export const ART_ILLUSTRATION_CONFIG = {
   position: [5.822, 9.894, -6.385] as Vector3Tuple,
   lookAt: [-3.397, 7.305, -2.975] as Vector3Tuple,
   projectionDistance: 10,
-  revealSeconds: 1.5,
+  revealSeconds: 3,
   dissolveSeconds: 0.3,
 } as const;
