@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {carouselLayout, loopOffset} from '../lib/artworks/carouselLayout.ts';
+import {carouselLayout, loopOffset, NEIGHBOR_OPACITY, NEIGHBOR_SCALE} from '../lib/artworks/carouselLayout.ts';
 
 const sizes = [
   {width: 600, height: 400}, {width: 300, height: 400}, {width: 500, height: 280},
@@ -19,8 +19,11 @@ for (const vertical of [false, true]) {
       const offset = loopOffset(slide - selected, sizes.length);
       near(pose.offset, offset, 'Offset');
       assert.equal(pose.front, offset === 0);
-      near(pose.opacity, offset === 0 ? 1 : Math.abs(offset) === 1 ? .48 : 0, 'Opacity');
+      near(pose.opacity, offset === 0 ? 1 : Math.abs(offset) === 1 ? NEIGHBOR_OPACITY : 0, 'Opacity');
       if (offset === 0) near(pose.width, sizes[slide].width, 'Selected frame keeps natural size');
+      // Neighbours recede: never larger than the scaled selected frame across the carousel.
+      const cross = vertical ? 'width' : 'height';
+      if (offset !== 0) assert(pose[cross] <= sizes[selected][cross] * NEIGHBOR_SCALE + 1e-6, 'Neighbour recedes');
     });
   }
 }

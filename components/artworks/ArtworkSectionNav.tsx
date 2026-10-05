@@ -62,7 +62,7 @@ export function ArtworkSectionNav({activeMedium, onMediumChange}: {
               layoutId="artwork-section-nav-active-pill"
               transition={reducedMotion ? {duration: 0} : {duration: 0.32, ease: [0.2, 0.75, 0.2, 1]}} />
           )}
-          {label}<span className="art-medium-count">{artworks.length}</span>
+          {label} <span className="art-medium-count">{artworks.length}</span>
         </a>
       ))}
     </nav>

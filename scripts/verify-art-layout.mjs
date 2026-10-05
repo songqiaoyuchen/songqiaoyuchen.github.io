@@ -35,7 +35,7 @@ try {
           neighbors: slides.filter((slide) => slide.dataset.current !== 'true')
             .map((slide) => slide.getBoundingClientRect().toJSON()),
           title: document.querySelector('.art-caption h2').textContent,
-          description: document.querySelector('.art-description')?.textContent,
+          description: document.querySelector('.art-label-description')?.textContent,
         };
       });
       const name = `${width}x${height}-${work}`;
@@ -51,7 +51,8 @@ try {
         assert(visible >= Math.min(40, neighbor[axis[2]] * 0.2), `${name}: neighbor is a sliver`);
       }
       results.push({name, ...layout, passed: true});
-      await page.getByRole('button', {name: 'Next artwork'}).click();
+      // Desktop has no arrows; keys browse every layout (touch layouts also have the swipe rail).
+      await page.locator('.art-carousel').press('ArrowRight');
     }
     await page.waitForTimeout(850);
     await page.getByRole('link', {name: 'View K2', exact: true}).click();
@@ -62,7 +63,7 @@ try {
     await page.getByRole('link', {name: 'All works', exact: false}).click();
     await page.waitForFunction(() => document.querySelectorAll('.art-grid-work').length === 13);
     assert.equal(await page.locator('.art-grid-work').count(), 13);
-    await page.getByRole('link', {name: 'Home', exact: false}).click();
+    await page.getByRole('link', {name: 'SQYC', exact: true}).click();
     await page.waitForURL(`${base}/`);
     assert.deepEqual(errors, []);
     console.log(`PASS ${width}x${height}: six works fit, neighbors, inspection, collection and Home`);

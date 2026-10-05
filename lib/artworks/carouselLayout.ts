@@ -1,6 +1,10 @@
 export type FrameSize = {width: number; height: number};
 export type SlidePose = FrameSize & {offset: number; shift: number; opacity: number; front: boolean};
 
+/** Neighbours recede so the selected work clearly dominates, even beside same-sized works. */
+export const NEIGHBOR_SCALE = 0.8;
+export const NEIGHBOR_OPACITY = 0.42;
+
 const wrap = (value: number, count: number) => ((value % count) + count) % count;
 
 /** Signed distance on a loop of `count` slides, in [-count / 2, count / 2). */
@@ -13,7 +17,9 @@ function settledPose(sizes: FrameSize[], slide: number, offset: number, vertical
   const center = sizes[wrap(slide - offset, sizes.length)];
   const natural = sizes[slide];
   const cross = vertical ? 'width' : 'height';
-  const scale = offset === 0 || !natural[cross] ? 1 : Math.min(1, center[cross] / natural[cross]);
+  const scale = offset === 0 || !natural[cross]
+    ? 1
+    : Math.min(1, center[cross] / natural[cross]) * NEIGHBOR_SCALE;
   const width = natural.width * scale;
   const height = natural.height * scale;
   const along = vertical ? height : width;
@@ -21,7 +27,7 @@ function settledPose(sizes: FrameSize[], slide: number, offset: number, vertical
     width,
     height,
     shift: offset * ((vertical ? center.height : center.width) / 2 + along * 0.4 + 20),
-    opacity: offset === 0 ? 1 : Math.abs(offset) === 1 ? 0.48 : 0,
+    opacity: offset === 0 ? 1 : Math.abs(offset) === 1 ? NEIGHBOR_OPACITY : 0,
   };
 }
 

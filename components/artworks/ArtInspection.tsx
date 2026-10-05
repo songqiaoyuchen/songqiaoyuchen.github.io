@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import {useEffect, useRef, useState} from 'react';
 import type {Artwork} from '@/data/artworks';
+import {ArtworkLabel} from './ArtworkLabel';
 
 export function ArtInspection({
   artwork,
@@ -98,15 +99,8 @@ export function ArtInspection({
           onError={() => setImageState('failed')}
         />
       </div>
-      <div className="art-inspection-caption">
-        <div>
-          <h2 id="inspection-title">{artwork.title}</h2>
-          <p className="art-eyebrow">
-            {artwork.material} · {artwork.size}
-          </p>
-        </div>
-        <p id="inspection-description">{artwork.description || artwork.alt}</p>
-      </div>
+      <ArtworkLabel artwork={artwork} className="art-inspection-caption" description="alt"
+        titleId="inspection-title" descriptionId="inspection-description" />
     </dialog>
   );
 }

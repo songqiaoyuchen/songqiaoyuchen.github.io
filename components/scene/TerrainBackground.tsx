@@ -11,6 +11,7 @@ import type {useCreateStore} from 'leva';
 import {CAMERA_CONFIG, FOG_CONFIG} from '@/config/scene';
 import { SaveCameraButton } from '@/components/debug/SaveCameraButton';
 import {ArtCameraControls} from '@/components/debug/ArtCameraControls';
+import {ArtCursorControls} from '@/components/debug/ArtCursorControls';
 import {ArtTransitionControls} from '@/components/debug/ArtTransitionControls';
 import {useArtScene} from '@/components/artworks/ArtSceneContext';
 import {ArtCaptureExport} from './ArtCaptureExport';
@@ -181,6 +182,7 @@ export function TerrainBackground({
               <ArtCameraControls store={artCameraStore} controlsRef={orbitcontrolsRef}
                 onEditingChange={onArtCameraEditingChange} />
               <ArtTransitionControls store={artCameraStore} />
+              <ArtCursorControls store={artCameraStore} />
             </>
           ) : null}
           <SceneFog settings={settings.fog} />

@@ -245,7 +245,9 @@ export function Home({articles, children}: HomeProps) {
         aria-hidden={artArriving || undefined}>
         {children}
       </div>
-      {isArt && !artArriving && sceneState !== 'fallback' ? <ArtCapturePanel /> : null}
+      {process.env.NODE_ENV === 'development' && isArt && !artArriving && sceneState !== 'fallback'
+        ? <ArtCapturePanel />
+        : null}
       {isArt && sceneState === 'loading' ? (
         <p className="art-scene-status" role="status">
           Preparing the landscape…

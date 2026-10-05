@@ -11,6 +11,7 @@ import type {ArtMedium} from '@/data/artworks';
 import {useReducedMotion} from '@/hooks/useReducedMotion';
 import type {ContourControlValues, FogControlValues, TerrainControlValues} from '@/components/debug/useSceneControls';
 import {FOG_CONFIG, TERRAIN_MATERIAL_CONFIG, TERRAIN_MESH_CONFIG} from '@/config/scene';
+import {ART_CURSOR_CONFIG} from '@/config/scene/artCursor';
 import {ART_ILLUSTRATION_CONFIG} from '@/config/scene/artIllustration';
 import {OIL_ILLUSTRATION_CONFIG} from '@/config/scene/oilIllustration';
 import {PENCIL_ILLUSTRATION_CONFIG} from '@/config/scene/pencilIllustration';
@@ -20,6 +21,7 @@ import {artTransitionSettings} from '@/lib/scene/artTransitionSettings';
 import fragmentShader from '@/shaders/terrainComposite.frag';
 import {SceneFog} from './SceneFog';
 import {TerrainMesh} from './TerrainMesh';
+import {useArtCursor} from './useArtCursor';
 import {useIllustrationTexture} from './useIllustrationTexture';
 import {useCameraFrameState} from './CameraFrameState';
 import {useArtScene} from '@/components/artworks/ArtSceneContext';
@@ -32,6 +34,16 @@ const vertexShader = /* glsl */ `
     gl_Position = vec4(position.xy, 0.0, 1.0);
   }
 `;
+
+const {pencil: pencilCursor, dots: dotsCursor} = ART_CURSOR_CONFIG;
+// Shader constants must be written as floats.
+const defines = Object.fromEntries(Object.entries({
+  DIGITAL_CELL: dotsCursor.cell,
+  DOTS_SHADE: dotsCursor.shade,
+  DOTS_SKY: dotsCursor.sky,
+  PENCIL_SPACING: pencilCursor.spacing,
+  PENCIL_WIDTH: pencilCursor.width,
+}).map(([name, value]) => [name, value.toFixed(4)]));
 
 function renderTerrain(
   renderer: WebGLRenderer,
@@ -88,6 +100,7 @@ export function CachedTerrain({
   const cameraFrameState = useCameraFrameState();
   const renderedCameraRevision = useRef(-1);
   const reducedMotion = useReducedMotion();
+  const cursor = useArtCursor(!!artMedium && !reducedMotion && !capture.enabled);
   const oil = useIllustrationTexture(preloadIllustrations, OIL_ILLUSTRATION_CONFIG.image, 'oil');
   const pencil = useIllustrationTexture(preloadIllustrations, PENCIL_ILLUSTRATION_CONFIG.image, 'pencil');
   const transition = useRef(settledMedium(0));
@@ -134,6 +147,14 @@ export function CachedTerrain({
       uCaptureSource: {value: -1},
       uCaptureAdjust: {value: new Vector3(0, 1, 1)},
       uCaptureReady: {value: 0},
+      uTouch: {value: target.texture},
+      uTouchAmount: {value: 0},
+      uSmudge: {value: target.texture},
+      uSmudgeAmount: {value: 0},
+      uPixelRatio: {value: 1},
+      uStrokeColor: {value: new Color(pencilCursor.strokeColor)},
+      uPencilLines: {value: 0},
+      uDotsLight: {value: 0},
     }),
     [contourSettings.majorColor, contourSettings.majorIntensity, contourSettings.majorRadius,
       target.depthTexture, target.texture],
@@ -161,6 +182,7 @@ export function CachedTerrain({
     values.uOil.value = oil ?? target.texture;
     values.uPencil.value = pencil ?? target.texture;
     values.uResolution.value.set(width, height);
+    values.uPixelRatio.value = dpr;
     // Invert the authoring plane's screen projection to preserve image framing
     // across viewport sizes and the short camera departure from Art.
     projection.clip.copy(camera.projectionMatrix).multiply(camera.matrixWorldInverse).multiply(projection.plane);
@@ -198,6 +220,8 @@ export function CachedTerrain({
     values.uFrom.value = transition.current.from;
     values.uTo.value = transition.current.to;
     values.uProgress.value = transition.current.progress;
+    cursor.update({renderer: gl, delta, uniforms: values, medium: transition.current.to,
+      active: !!artMedium && registered && !reducedMotion && !capture.enabled, width, height});
     if (scene.fog instanceof Fog) {
       // SceneFog blends in the Art flight fog; redraw the cache whenever it moves.
       const {near, far} = scene.fog;
@@ -234,6 +258,7 @@ export function CachedTerrain({
         <shaderMaterial
           ref={materialRef}
           depthTest={false}
+          defines={defines}
           depthWrite={false}
           fragmentShader={fragmentShader}
           toneMapped={false}

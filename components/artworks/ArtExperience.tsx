@@ -27,7 +27,8 @@ import {useReducedMotion} from '@/hooks/useReducedMotion';
 import {carouselLayout, loopOffset} from '@/lib/artworks/carouselLayout';
 import {useArtScene} from './ArtSceneContext';
 import {ArtInspection} from './ArtInspection';
-import {ArtworkSectionNav} from './ArtworkSectionNav';
+import {ArtCollection} from './ArtCollection';
+import {ArtworkLabel} from './ArtworkLabel';
 import {useGalleryTransition} from './useGalleryTransition';
 
 // Critically damped: retargeting keeps the current velocity, so rapid input
@@ -41,10 +42,19 @@ type StageSize = {width: number; height: number; vertical: boolean};
 function frameSize(artwork: {width: number; height: number}, stage: StageSize) {
   const ratio = artwork.width / artwork.height;
   const width = Math.min(
-    stage.width * (stage.vertical ? 0.8 : 0.66),
+    // Vertical layouts leave the right edge clear for the swipe rail.
+    stage.width * (stage.vertical ? 0.76 : 0.66),
     stage.height * (stage.vertical ? 0.6 : 0.88) * ratio,
   );
   return {width, height: width / ratio};
+}
+
+// The wall label spans the widest selected work's edges, so it holds still
+// while works of other proportions pass above it.
+function captionInset(stage: StageSize) {
+  if (!stage.width) return undefined;
+  const widest = Math.max(...FEATURED_ARTWORKS.map((artwork) => frameSize(artwork, stage).width));
+  return {'--art-work-inset': `${Math.max(0, (stage.width - widest) / 2)}px`} as CSSProperties;
 }
 
 function selectedIndexFromUrl() {
@@ -185,13 +195,17 @@ export function ArtExperience() {
     returnContext.current = {id, scroll: window.scrollY};
   }
 
+  // The outgoing label fades beneath the incoming one, outside the live region.
+  const [leaving, setLeaving] = useState<(typeof FEATURED_ARTWORKS)[number] | null>(null);
   const select = useCallback((next: number) => {
     animateSelection.current = true;
     const artwork = FEATURED_ARTWORKS[(next + FEATURED_ARTWORKS.length) % FEATURED_ARTWORKS.length];
+    const previous = FEATURED_ARTWORKS[selectedIndexFromUrl()];
+    if (previous !== artwork && !reducedMotion) setLeaving(previous);
     const nextParams = new URLSearchParams(window.location.search);
     nextParams.set('selected', artwork.id);
     window.history.replaceState(null, '', `${window.location.pathname}?${nextParams}`);
-  }, []);
+  }, [reducedMotion]);
 
   useEffect(() => {
     const stage = stageRef.current;
@@ -243,6 +257,20 @@ export function ArtExperience() {
     return `/artworks${view === 'all' ? '/all' : ''}${next.size ? `?${next}` : ''}`;
   }
 
+  // Selected works leads deeper into All works; All works leads back. Each sits
+  // at the right end of its view's title row.
+  const scopeLink = (
+    <Link className="art-text-link art-scope-link" href={scopeHref(all ? 'selected' : 'all')}
+      onNavigate={() => {
+        setLeaving(null);
+        captureGallery();
+      }} scroll={false}>
+      {all
+        ? <><span aria-hidden="true">←</span> Selected works</>
+        : <>All works <span aria-hidden="true">→</span></>}
+    </Link>
+  );
+
   function closeInspection() {
     if (openedHere.current) {
       router.back();
@@ -255,57 +283,20 @@ export function ArtExperience() {
         <ArtQuerySync onChange={setQueryString} />
       </Suspense>
       <main ref={galleryRef} className={`art-section ${all ? 'art-section-all' : ''}`} data-medium={medium}>
-        <h1 className="sr-only">{all ? 'All artworks' : 'Art'}</h1>
-        <nav className="art-collection-bar" aria-label="Art navigation">
-            <Link className="art-text-link art-home" href="/">← Home</Link>
-            <Link className="art-text-link" href={scopeHref(all ? 'selected' : 'all')}
-              onNavigate={captureGallery} scroll={false}>
-              {all ? '← Selected works' : 'All works ↗'}
-            </Link>
-        </nav>
+        {all ? (
+          <header className="art-collection-head">
+            <h1 className="art-collection-title">
+              All works <span className="art-medium-total" aria-hidden="true">{ALL_ARTWORKS.length}</span>
+            </h1>
+            {scopeLink}
+          </header>
+        ) : <h1 className="sr-only">Art</h1>}
 
         <section className="art-gallery" aria-label={all ? 'All artworks' : 'Selected artworks'}>
 
           {all ? (
-            <>
-              <p className="sr-only">{ALL_ARTWORKS.length} artworks</p>
-              {ARTWORK_SECTIONS.map((section) => (
-                <section className="art-medium-section" id={section.id} key={section.id}
-                  aria-labelledby={`${section.id}-title`}>
-                  <h2 className="art-medium-title" id={`${section.id}-title`}>{section.label}</h2>
-                  <div className="art-grid">
-                    {section.artworks.map((artwork) => (
-                      <Link
-                        className="art-grid-work"
-                        href={`/artworks/${artwork.id}${query}`}
-                        key={artwork.id}
-                        data-artwork-id={artwork.id}
-                        onClick={() => rememberCollection(artwork.id)}
-                        scroll={false}
-                      >
-                        <div className="art-grid-image">
-                          <Image
-                            alt={artwork.alt}
-                            src={artwork.src}
-                            width={artwork.width}
-                            height={artwork.height}
-                            sizes="(max-width: 479px) 90vw, (max-width: 1023px) 44vw, 30vw"
-                          />
-                          <div className="art-grid-details">
-                            <p className="art-grid-meta">
-                              {artwork.material} <span aria-hidden="true">/</span> {artwork.size}
-                            </p>
-                            <h3>{artwork.title}</h3>
-                            {artwork.description && <p className="art-grid-description">{artwork.description}</p>}
-                          </div>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                </section>
-              ))}
-              <ArtworkSectionNav activeMedium={collectionMedium} onMediumChange={setCollectionMedium} />
-            </>
+            <ArtCollection query={query} activeMedium={collectionMedium}
+              onMediumChange={setCollectionMedium} onOpen={rememberCollection} />
           ) : (
             <>
               <div className="art-stage">
@@ -410,18 +401,40 @@ export function ArtExperience() {
                   );
                 })}
               </div>
+              {/* Touch layouts only (CSS): a hairline rail hints at vertical swiping. */}
+              <div className="art-swipe" role="group" aria-label="Browse selected works">
+                <button type="button" className="art-swipe-step" aria-label="Previous artwork"
+                  onClick={() => select(selectedIndexFromUrl() - 1)}>
+                  <span aria-hidden="true">↑</span>
+                </button>
+                <span className="art-swipe-track" aria-hidden="true">
+                  <span className="art-swipe-marker"
+                    style={{'--index': index, '--count': FEATURED_ARTWORKS.length} as CSSProperties} />
+                </span>
+                <button type="button" className="art-swipe-step art-swipe-next" aria-label="Next artwork"
+                  onClick={() => select(selectedIndexFromUrl() + 1)}>
+                  <span aria-hidden="true">↓</span>
+                </button>
               </div>
-              <div className="art-caption" aria-live="polite" aria-atomic="true">
-                <div key={selected.id}>
-                  <span className="sr-only">Work {index + 1} of {FEATURED_ARTWORKS.length}. </span>
-                  <h2>{selected.title}</h2>
-                  <p className="art-eyebrow">
-                    {selected.material}
-                    <span aria-hidden="true"> · </span>
-                    {selected.size}
-                  </p>
-                  {selected.description && <p className="art-description">{selected.description}</p>}
+              </div>
+              <div className="art-caption" style={captionInset(stageSize)}>
+                <div className="art-caption-live" aria-live="polite" aria-atomic="true">
+                  <div className="art-caption-item" key={selected.id}>
+                    <span className="sr-only">Work {index + 1} of {FEATURED_ARTWORKS.length}. </span>
+                    <ArtworkLabel artwork={selected} />
+                  </div>
                 </div>
+                {leaving && leaving !== selected && (
+                  <div className="art-caption-item" data-leaving="" key={`leaving-${leaving.id}`}
+                    aria-hidden="true" inert
+                    onAnimationEnd={(event) => {
+                      if (event.target === event.currentTarget) setLeaving(null);
+                    }}>
+                    <ArtworkLabel artwork={leaving} />
+                  </div>
+                )}
+                {/* After the label in reading order; shares the title's baseline. */}
+                <div className="art-caption-scope">{scopeLink}</div>
               </div>
             </>
           )}

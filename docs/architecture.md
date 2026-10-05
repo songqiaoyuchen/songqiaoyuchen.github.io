@@ -32,9 +32,14 @@ Art hides all scene text from navigation start, independently of medium loading.
 
 Art routes are `/artworks` (selected), `/artworks/all` (collection), and
 `/artworks/[id]` (statically generated inspection). Query parameters preserve
-`selected`, `medium`, and inspection source `view`. All works uses a full-width
-grid grouped into continuously scrolling medium sections; a fixed bottom bar
-jumps between sections and highlights the current medium. Scrolling between
+`selected`, `medium`, and inspection source `view`. Every view captions works
+with `ArtworkLabel` (title, material · size, note), a museum-style wall label.
+All works (`ArtCollection`) uses CSS-only justified rows: each work carries its
+aspect ratio as an inline `--ratio`, phones get one work per row, and labels sit
+below each work. Hover devices reveal each note over its work; touch shows it
+below the label. Medium sections scroll continuously under left-aligned headers
+with counts. A fixed bottom bar jumps between sections and highlights the
+current medium. Scrolling between
 medium sections switches the terrain treatment through the same transition as
 featured selection; an inspected artwork takes precedence. The `medium` query
 parameter scrolls to a section on collection entry. Carousel selection replaces
@@ -44,10 +49,20 @@ to All works. Query synchronization has its own small Suspense boundary so the
 collection and detail HTML remain visible without JavaScript.
 
 The desktop carousel is horizontal; narrow/touch layouts are vertical.
-`useGalleryTransition` snapshots visible artwork positions before collection
-navigation and animates them into the destination layout, reversing on return.
-Image transforms retain the carousel's perspective and intrinsic proportions;
-the carousel edge mask expands with the tiles and contracts on return.
+Works hang on a shared bottom line; a fixed-height wall label spans the widest
+selected work's edges, so it never moves between works; the outgoing label fades
+in place, outside the aria-live region. View links share their title rows: "All
+works →" ends Selected's label title row; All works' visible heading pairs with
+"← Selected works". The SQYC wordmark is the only way Home. Neighbours recede (`NEIGHBOR_SCALE`/`NEIGHBOR_OPACITY`
+in `lib/artworks/carouselLayout.ts`, plus CSS depth). Desktop browses by wheel,
+drag and keys; touch layouts add a hairline swipe rail with previous/next buttons.
+Art's Screenshot mode is development-only.
+`useGalleryTransition` snapshots visible artwork poses before collection
+navigation (Back/Forward via the Navigation API's traverse event, `popstate` as
+fallback). Works fall from their poses onto one orthographic "table" holding the
+collection's arrangement, then the table rises rigidly into the grid; the return
+runs the same path backwards. Keyframes are sampled `matrix3d` values; text only
+fades. The carousel edge mask clears on the table and returns on arrival.
 It skips animation for reduced motion and releases snapshots on input or resize.
 `CachedTerrain` caches the original terrain and retains its depth for streams.
 Digital uses `shaders/terrainComposite.frag`: cached lighting maps
@@ -64,6 +79,18 @@ The same mask replaces the outgoing style with the incoming style, preserving
 both through the transition. Rapid selections leave the active wipe at its normal
 speed, then start only the latest requested medium; intermediate requests are discarded.
 Reduced motion skips medium animations.
+Pointer movement over Art drives full-screen cursor treatments (`useArtCursor`,
+tuned in `config/scene/artCursor.ts`; Leva's Art Cursor folder tunes and saves
+light radius, heal times and strengths). Oil keeps a screen-space smudge
+(`lib/scene/cursorSmudge.ts`): the brush drags the illustration along the stroke
+as pure distortion, without mixing colours; the offsets settle back, including
+through a medium change. Pencil and Digital share one coarse trail of light
+(`lib/scene/cursorTouch.ts`) that wakes with movement and dims at rest;
+`terrainComposite.frag` answers it per medium. Pencil cross-hatches slopes with
+evenly spaced elevation contours and open sky with a diagonal hatch. Digital
+swells dots by how squarely the surface faces the viewer and fills open sky with
+small dots. The carousel and collection keep the treatments faint, artworks and
+inspection pause them, and reduced motion and Screenshot mode disable them.
 `useIllustrationTexture` loads and uploads both textures on Art entry, while the
 camera is arriving, and retains them. Pending or failed loads leave the previous
 treatment visible. Changing the Art pose requires new images.

@@ -81,9 +81,9 @@ try {
     assert.equal(await page.locator('.art-carousel-slide:not([inert])').count(), 3);
     assert.equal(await page.getByRole('link', {name: /^Enlarge /}).count(), 1);
     await capture('desktop-digital');
-    await page.getByRole('button', {name: 'Next artwork'}).click();
+    await page.locator('.art-carousel').press('ArrowRight');
     await caption("Gwen's Cat");
-    await page.getByRole('button', {name: 'Next artwork'}).click();
+    await page.locator('.art-carousel').press('ArrowRight');
     await caption('Emma Watson');
     await capture('desktop-pencil');
   });
@@ -162,7 +162,7 @@ try {
     await page.getByRole('button', {name: 'Open art preview', exact: true}).click();
     await caption('Ama Dablam');
     assert.equal(await page.locator('canvas[data-engine]').getAttribute('data-persistence-test'), 'retained');
-    await page.getByRole('button', {name: 'Next artwork'}).click();
+    await page.locator('.art-carousel').press('ArrowRight');
     await caption('K2');
     await page.getByRole('link', {name: 'Art', exact: true}).click();
     await caption('K2');
@@ -215,7 +215,7 @@ try {
     await noOverflow();
     await page.emulateMedia({reducedMotion: 'reduce'});
     await page.setViewportSize({width: 1440, height: 1000});
-    await page.getByRole('button', {name: 'Next artwork'}).click();
+    await page.locator('.art-carousel').press('ArrowRight');
     await caption('Night');
     assert.equal(await page.locator('.art-carousel-slide').first().evaluate((el) => getComputedStyle(el).transitionDuration), '0s');
     await capture('reduced-motion');
@@ -226,7 +226,7 @@ try {
     const p = await noJS.newPage();
     await p.goto(`${base}/artworks/all`, {waitUntil: 'networkidle'});
     assert.equal(await p.locator('.art-grid-work').count(), 13);
-    assert.equal(await p.locator('h1').textContent(), 'All artworks');
+    assert.match(await p.locator('h1').textContent(), /^All works/);
     await p.locator('.art-grid-work').filter({hasText: 'Winter of 2022'}).click();
     assert.equal(await p.locator('#inspection-title').textContent(), 'Winter of 2022');
     assert.equal(await p.getByRole('dialog').isVisible(), true);
@@ -271,7 +271,7 @@ try {
     await p.goto(`${base}/artworks`, {waitUntil: 'networkidle'});
     const heading = await p.locator('.art-stage').boundingBox();
     assert.ok(heading.y < 200, 'Fallback terrain must not push the gallery below the viewport');
-    await p.getByRole('button', {name: 'Next artwork'}).click();
+    await p.locator('.art-carousel').press('ArrowRight');
     await p.getByRole('link', {name: 'Enlarge K2'}).click();
     await p.getByRole('dialog').waitFor();
     await p.getByRole('link', {name: 'Close artwork and return to collection'}).click();

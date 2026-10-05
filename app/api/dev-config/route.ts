@@ -43,6 +43,11 @@ const EDITABLE_CONFIG = {
       'fov', 'artTransitionSeconds',
     ],
   },
+  artCursor: {
+    directory: 'scene',
+    fileName: 'artCursor.ts',
+    keys: ['touchRadius', 'healSeconds', 'smudgeDrag', 'smudgeHealSeconds', 'pencilStrength', 'dotsStrength'],
+  },
   artIllustration: {
     directory: 'scene',
     fileName: 'artIllustration.ts',

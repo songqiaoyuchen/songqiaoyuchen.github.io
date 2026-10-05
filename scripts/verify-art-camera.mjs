@@ -112,7 +112,7 @@ async function verify(name, options, entry) {
   const forward = [-2 * (x * z + w * y), -2 * (y * z - w * x), -(1 - 2 * (x * x + y * y))];
   assert(distance(forward, look.map((value) => value / magnitude)) < 0.001, 'Look-at must reach Art focus');
   for (let artwork = 0; artwork < 6; artwork++) {
-    await page.getByRole('button', {name: 'Next artwork', exact: true}).click();
+    await page.locator('.art-carousel').press('ArrowRight');
     await page.waitForTimeout(1600);
     const pose = await page.evaluate(() => {
       const {camera} = window.cameraStore.getState();
