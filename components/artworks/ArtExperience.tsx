@@ -21,10 +21,36 @@ import {
   getArtworkMedium,
   type ArtMedium,
 } from '@/data/artworks';
+import {useSpring} from 'motion/react';
+import {ART_ILLUSTRATION_CONFIG} from '@/config/scene/artIllustration';
+import {useReducedMotion} from '@/hooks/useReducedMotion';
+import {carouselLayout, loopOffset} from '@/lib/artworks/carouselLayout';
 import {useArtScene} from './ArtSceneContext';
 import {ArtInspection} from './ArtInspection';
 import {ArtworkSectionNav} from './ArtworkSectionNav';
 import {useGalleryTransition} from './useGalleryTransition';
+
+// Critically damped: retargeting keeps the current velocity, so rapid input
+// reads as one continuous rotation instead of a restart per step.
+const CAROUSEL_SPRING = {stiffness: 140, damping: 24, restDelta: 0.0005, restSpeed: 0.005};
+// Server and first client render, before the stage is measured.
+const INITIAL_POSES = carouselLayout(FEATURED_ARTWORKS.map(() => ({width: 0, height: 0})), 0, false).slides;
+
+type StageSize = {width: number; height: number; vertical: boolean};
+
+function frameSize(artwork: {width: number; height: number}, stage: StageSize) {
+  const ratio = artwork.width / artwork.height;
+  const width = Math.min(
+    stage.width * (stage.vertical ? 0.8 : 0.66),
+    stage.height * (stage.vertical ? 0.6 : 0.88) * ratio,
+  );
+  return {width, height: width / ratio};
+}
+
+function selectedIndexFromUrl() {
+  const id = new URLSearchParams(window.location.search).get('selected');
+  return Math.max(0, FEATURED_ARTWORKS.findIndex((artwork) => artwork.id === id));
+}
 
 // Keep the gallery server-rendered; only URL query synchronization needs a
 // client boundary on statically exported routes.
@@ -50,7 +76,7 @@ export function ArtExperience() {
   const openedHere = useRef(false);
   const returnContext = useRef<{id: string; scroll: number} | null>(null);
   const previousInspection = useRef(false);
-  const wheel = useRef({delta: 0, last: 0, locked: false, timer: 0});
+  const wheel = useRef({delta: 0, timer: 0});
   const inspectionId = pathname.split('/').filter(Boolean)[1];
   const inspecting = inspectionId ? getArtwork(inspectionId) : undefined;
   const all =
@@ -71,8 +97,17 @@ export function ArtExperience() {
   returnParams.delete('view');
   const collectionHref = `/artworks${all ? '/all' : ''}${returnParams.size ? `?${returnParams}` : ''}`;
 
+  // The gallery follows input immediately; the scene waits for browsing to
+  // pause so passing through other media never starts their wipes.
+  const sceneMediumSet = useRef(false);
   useEffect(() => {
-    setMedium(medium);
+    if (!sceneMediumSet.current) {
+      sceneMediumSet.current = true;
+      setMedium(medium);
+      return;
+    }
+    const timer = window.setTimeout(() => setMedium(medium), ART_ILLUSTRATION_CONFIG.settleSeconds * 1000);
+    return () => window.clearTimeout(timer);
   }, [medium, setMedium]);
 
   useLayoutEffect(() => {
@@ -92,15 +127,43 @@ export function ArtExperience() {
     };
   }, [all]);
 
-  function frameSize(artwork: typeof selected) {
-    const ratio = artwork.width / artwork.height;
-    const width = Math.min(
-      stageSize.width * (stageSize.vertical ? 0.8 : 0.66),
-      stageSize.height * (stageSize.vertical ? 0.6 : 0.88) * ratio,
-    );
-    return {width, height: width / ratio};
-  }
-  const center = frameSize(selected);
+  // One unwrapped position drives every slide; it advances by the shortest
+  // loop distance so wrapping never spins the carousel the long way round.
+  const reducedMotion = useReducedMotion();
+  const position = useSpring(0, CAROUSEL_SPRING);
+  const positionTarget = useRef(0);
+  const animateSelection = useRef(false);
+  useLayoutEffect(() => {
+    positionTarget.current += loopOffset(index - positionTarget.current, FEATURED_ARTWORKS.length);
+    // URL restores and history navigation place the carousel without motion.
+    if (animateSelection.current && !reducedMotion) position.set(positionTarget.current);
+    else position.jump(positionTarget.current);
+    animateSelection.current = false;
+  }, [index, position, reducedMotion]);
+
+  // Write poses directly each frame; React never renders the animated values.
+  useLayoutEffect(() => {
+    const stage = stageRef.current;
+    if (!stage || !stageSize.width) return;
+    const sizes = FEATURED_ARTWORKS.map((artwork) => frameSize(artwork, stageSize));
+    const slides = Array.from(stage.children) as HTMLElement[];
+    const apply = (value: number) => {
+      const layout = carouselLayout(sizes, value, stageSize.vertical);
+      stage.style.setProperty('--art-frame-half-height', `${layout.centerHeight / 2}px`);
+      layout.slides.forEach((pose, slideIndex) => {
+        const style = slides[slideIndex].style;
+        style.setProperty('--offset', `${pose.offset}`);
+        style.setProperty('--abs-offset', `${Math.abs(pose.offset)}`);
+        style.setProperty('--shift', `${pose.shift}px`);
+        style.width = `${pose.width}px`;
+        style.height = `${pose.height}px`;
+        style.opacity = `${pose.opacity}`;
+        style.zIndex = pose.front ? '1' : '0';
+      });
+    };
+    apply(position.get());
+    return position.on('change', apply);
+  }, [all, position, stageSize]);
 
   useEffect(() => {
     const wasInspecting = previousInspection.current;
@@ -123,6 +186,7 @@ export function ArtExperience() {
   }
 
   const select = useCallback((next: number) => {
+    animateSelection.current = true;
     const artwork = FEATURED_ARTWORKS[(next + FEATURED_ARTWORKS.length) % FEATURED_ARTWORKS.length];
     const nextParams = new URLSearchParams(window.location.search);
     nextParams.set('selected', artwork.id);
@@ -133,35 +197,28 @@ export function ArtExperience() {
     const stage = stageRef.current;
     if (!stage || all || inspecting) return;
     const gesture = wheel.current;
+    // Every wheel step moves the carousel; fast or reversed scrolling is never ignored.
     const onWheel = (event: WheelEvent) => {
       if (event.ctrlKey) return;
       event.preventDefault();
-      const now = performance.now();
-      if (now - gesture.last > 180) {
-        gesture.delta = 0;
-        gesture.locked = false;
-      }
-      gesture.last = now;
       window.clearTimeout(gesture.timer);
-      gesture.timer = window.setTimeout(() => {
-        gesture.locked = false;
-        gesture.delta = 0;
-      }, 180);
-      if (gesture.locked) return;
-      const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
-      gesture.delta += delta * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? stage.clientHeight : 1);
-      if (Math.abs(gesture.delta) >= 45) {
-        select(index + Math.sign(gesture.delta));
-        gesture.locked = true;
-        gesture.delta = 0;
-      }
+      gesture.timer = window.setTimeout(() => { gesture.delta = 0; }, 180);
+      const raw = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
+      const delta = raw * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? stage.clientHeight : 1);
+      // Reversing discards travel accumulated in the old direction.
+      if (Math.sign(delta) !== Math.sign(gesture.delta)) gesture.delta = 0;
+      gesture.delta += delta;
+      if (Math.abs(gesture.delta) < 45) return;
+      // Read the URL, not render state: several steps can land before React re-renders.
+      select(selectedIndexFromUrl() + Math.sign(gesture.delta));
+      gesture.delta = 0;
     };
     stage.addEventListener('wheel', onWheel, {passive: false});
     return () => {
       stage.removeEventListener('wheel', onWheel);
       window.clearTimeout(gesture.timer);
     };
-  }, [all, index, inspecting, select]);
+  }, [all, inspecting, select]);
 
   const endPointer = (event: PointerEvent<HTMLDivElement>) => {
     const start = pointer.current;
@@ -171,7 +228,7 @@ export function ArtExperience() {
     const distance = vertical ? start.y - event.clientY : start.x - event.clientX;
     if (Math.abs(distance) > 35) {
       dragged.current = true;
-      select(index + Math.sign(distance));
+      select(selectedIndexFromUrl() + Math.sign(distance));
     }
   };
 
@@ -254,9 +311,6 @@ export function ArtExperience() {
               <div className="art-stage">
               <div
                 className="art-carousel"
-                style={center.height > 0
-                  ? {'--art-frame-half-height': `${center.height / 2}px`} as CSSProperties
-                  : undefined}
                 ref={stageRef}
                 role="region"
                 aria-roledescription="carousel"
@@ -273,7 +327,7 @@ export function ArtExperience() {
                         ? 0
                         : event.key === 'End'
                           ? FEATURED_ARTWORKS.length - 1
-                          : index + (['ArrowRight', 'ArrowDown'].includes(event.key) ? 1 : -1),
+                          : selectedIndexFromUrl() + (['ArrowRight', 'ArrowDown'].includes(event.key) ? 1 : -1),
                     );
                   }
                 }}
@@ -308,13 +362,8 @@ export function ArtExperience() {
                   if (offset > FEATURED_ARTWORKS.length / 2) offset -= FEATURED_ARTWORKS.length;
                   const current = offset === 0;
                   const visible = Math.abs(offset) <= 1;
-                  const natural = frameSize(artwork);
-                  const crossAxis = stageSize.vertical ? 'width' : 'height';
-                  const scale = current || !natural[crossAxis]
-                    ? 1 : Math.min(1, center[crossAxis] / natural[crossAxis]);
-                  const size = {width: natural.width * scale, height: natural.height * scale};
-                  const axis = stageSize.vertical ? 'height' : 'width';
-                  const shift = offset * (center[axis] / 2 + size[axis] * 0.4 + 20);
+                  // Constant across renders: the position spring owns the live pose.
+                  const initial = INITIAL_POSES[artworkIndex];
                   return (
                     <div
                       className="art-carousel-slide"
@@ -324,11 +373,10 @@ export function ArtExperience() {
                       inert={!visible}
                       style={
                         {
-                          '--offset': offset,
-                          '--abs-offset': Math.abs(offset),
-                          '--shift': `${shift}px`,
-                          ...(size.width > 0 ? {width: size.width, height: size.height} : {}),
-                          opacity: visible ? (current ? 1 : 0.48) : 0,
+                          '--offset': initial.offset,
+                          '--abs-offset': Math.abs(initial.offset),
+                          '--shift': `${initial.shift}px`,
+                          opacity: initial.opacity,
                         } as CSSProperties
                       }
                     >

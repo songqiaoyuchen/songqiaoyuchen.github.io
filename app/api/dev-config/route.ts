@@ -40,8 +40,13 @@ const EDITABLE_CONFIG = {
       'artPosition', 'artLookAt',
       'blogPosition', 'blogLookAt',
       'aboutPosition', 'aboutLookAt',
-      'fov',
+      'fov', 'artTransitionSeconds',
     ],
+  },
+  artIllustration: {
+    directory: 'scene',
+    fileName: 'artIllustration.ts',
+    keys: ['revealSeconds', 'fogReleaseSeconds'],
   },
   contours: {
     directory: 'scene',
@@ -58,7 +63,7 @@ const EDITABLE_CONFIG = {
   fog: {
     directory: 'scene',
     fileName: 'fog.ts',
-    keys: ['near', 'far'],
+    keys: ['near', 'far', 'flightNear', 'flightFar'],
   },
   postProcessing: {
     directory: 'scene',

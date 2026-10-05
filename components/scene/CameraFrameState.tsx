@@ -16,6 +16,9 @@ const CAMERA_FRAME_PRIORITY = -0.5;
 type CameraFrameState = {
   revision: number;
   transitioning: boolean;
+  // Flight fog weight: raised by Art camera journeys, released by the arrival wipe.
+  artFog: number;
+  setArtFog: (weight: number) => void;
   setTransitioning: (transitioning: boolean) => void;
 };
 
@@ -50,6 +53,8 @@ export function CameraFrameProvider({children}: {children: ReactNode}) {
   const frameState = useRef<CameraFrameState>({
     revision: 0,
     transitioning: false,
+    artFog: 0,
+    setArtFog: (weight) => { frameState.current.artFog = weight; },
     setTransitioning: (transitioning) => { frameState.current.transitioning = transitioning; },
   });
   const previousCamera = useRef(

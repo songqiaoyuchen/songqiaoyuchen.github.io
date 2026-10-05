@@ -1,1 +1,0 @@
-Restored tmp/pencil-overlay/pencil-full-shaded-previous.webp directly. No new image-generation prompt was used. Retain full terrain geometry, warm pencil marks, hatching and dark paper. Apply gallery and caption darkening separately in CSS.

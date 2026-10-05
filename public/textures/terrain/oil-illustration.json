@@ -1,11 +1,31 @@
 {
-  "method": "Restored rear-range checkpoint; extended missing right-hand terrain with built-in image_gen.",
-  "source": "tmp/oil-overlay/oil-before-rear-edit.webp",
-  "geometryReference": "tmp/pencil-overlay/pencil-full-shaded-previous.webp",
-  "generatedSource": "C:/Users/songq/.codex/generated_images/01a0fce7-003c-78f2-bb55-be2f46a85c3b/exec-b8e1ec35-58a0-4470-b15b-6069d37f1e5c.png",
+  "method": "Built-in image_gen style transfer from the new Art camera capture, using the previous illustration as style reference.",
+  "mainPrompt": "/art-prompts/oil.txt",
+  "source": "tmp/pencil-overlay/terrain-source.png",
+  "camera": {
+    "position": [
+      -0.9219999999999997,
+      10.343,
+      7.177
+    ],
+    "quaternion": [
+      -0.06923924556841467,
+      -0.602948215348441,
+      -0.052643611814795786,
+      0.7930246065642225
+    ],
+    "fov": 38,
+    "aspect": 2
+  },
+  "lookAt": [
+    6.542,
+    8.98,
+    5.106
+  ],
   "dimensions": {
     "width": 1774,
     "height": 887
   },
-  "presentation": "Full terrain; darkening is applied separately by the shared CSS scrim."
+  "presentation": "Full terrain; darkening is applied separately by the shared CSS scrim.",
+  "registration": "Shifted down 31px by scripts/register-illustration.mjs to match the source capture."
 }

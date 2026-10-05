@@ -18,6 +18,7 @@ Drei, post-processing, and GLSL for terrain. Motion and GSAP support interaction
 | `data/` | Projects, artworks, About timeline/contact |
 | `lib/content/`, `content/`, `mdx-components.tsx` | Server MDX loader, articles, registered components |
 | `lib/terrain/`, `lib/text/` | Terrain worker/assets and glyph geometry |
+| `lib/artworks/` | Art carousel layout interpolation |
 | `config/`, `app/globals.css` | Tunable scene/layout values and shared style tokens |
 | `public/`, `scripts/` | Local fonts/media/baked assets and generation utilities |
 
@@ -60,8 +61,8 @@ their respective `oilIllustration.ts` / `pencilIllustration.ts` configs.
 `CachedTerrain` composites all three through one descending elevation-contour wipe,
 reconstructing the terrain's world height from cached depth; open sky blends separately.
 The same mask replaces the outgoing style with the incoming style, preserving
-both through the transition. Rapid selections accelerate the active wipe to finish
-within 150 ms of animation time before starting the latest requested medium.
+both through the transition. Rapid selections leave the active wipe at its normal
+speed, then start only the latest requested medium; intermediate requests are discarded.
 Reduced motion skips medium animations.
 `useIllustrationTexture` loads and uploads both textures on Art entry, while the
 camera is arriving, and retains them. Pending or failed loads leave the previous
@@ -72,7 +73,22 @@ In development, Leva's Art Camera folder enables orbit/pan/zoom and numeric
 position/target editing. Save Art View persists that shared pose to
 `config/scene/camera.ts`; Reset restores the last saved view. Reduced motion
 settles section transitions immediately.
+Camera journeys interpolate position and orientation independently with eased
+departure/arrival; the focus follows the rotation so large turns cannot cross
+the camera. The rig applies its pose after development orbit controls.
+The Art pose sits near the terrain boundary, so journeys to and from Art blend
+`SceneFog` toward denser flight fog (`FOG_CONFIG.flightNear/flightFar`); arrival
+holds it until the first medium wipe completes, then eases it out. Leva's Art
+Transition folder tunes journey/wipe durations and flight fog live
+(`lib/scene/artTransitionSettings.ts`) and saves them to config.
 Artworks are ordinary HTML images.
+Art's Screenshot mode uses `ArtCapturePanel` and the shared Art scene context.
+It hides the gallery/scrim/navigation, frames the terrain at 2:1, and applies
+temporary exposure/contrast/saturation in the terrain compositor. `ArtCaptureExport`
+reads the completed composer frame to PNG at 2048 or 4096 pixels wide without
+retaining the drawing buffer; it restores device pixel ratio on exit. Settings
+export records the live camera and adjustments. One consolidated prompt per
+medium lives in `public/art-prompts/`, alongside a brief capture guide.
 Archives remain at `/projects` and `/blog`; About/contact lives in its drawer.
 Project cards link directly to repositories.
 
@@ -101,9 +117,12 @@ Content pages scroll; full-screen overflow belongs to the homepage.
 | `npm run sync:artwork-dimensions` | Update artwork dimensions |
 | `node scripts/verify-art.mjs` | Opt-in browser journey checks and screenshots; requires externally available Playwright |
 | `node scripts/capture-pencil-source.mjs` | Capture the unstyled Art view for pencil image generation |
+| `node scripts/register-illustration.mjs oil --apply` | Measure (and with `--apply`, correct) a generated oil or pencil image's drift from the terrain capture |
 | `node scripts/verify-pencil-overlay.mjs` | Opt-in shared medium wipe, image resize, and reduced-motion checks |
 | `node scripts/test-medium-transition.mjs` | Check transition continuity and rapid selection behavior |
 | `node scripts/test-text-transition.mjs` | Check scene text visibility, retargeting and reduced motion |
+| `node scripts/test-camera-transition.mjs` | Check camera rotation, arrival, retargeting and reduced motion |
+| `node scripts/test-carousel-layout.mjs` | Check carousel settled poses, wrapping and continuous rotation |
 | `node scripts/verify-text-transitions.mjs` | Opt-in desktop/mobile text transition and navigation regression checks |
 
 For Art verification, set `ART_BASE_URL` to a running server, `ARTIFACT_DIR` to

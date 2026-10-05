@@ -13,6 +13,7 @@ import {
 } from 'react';
 import {usePathname, useRouter} from 'next/navigation';
 import {useArtScene} from '@/components/artworks/ArtSceneContext';
+import {ArtCapturePanel} from '@/components/artworks/ArtCapturePanel';
 import type {SectionId} from '@/config/navigation/linkStreams';
 import type {ArticleSummary} from '@/lib/content/types';
 import {Drawer} from './drawer/Drawer';
@@ -41,7 +42,7 @@ export function Home({articles, children}: HomeProps) {
   const pathname = usePathname();
   const router = useRouter();
   const isArt = pathname.startsWith('/artworks');
-  const {medium} = useArtScene();
+  const {medium, capture} = useArtScene();
   const [activeId, setActiveId] = useState<SectionId | null>(null);
   const [artCameraEditing, setArtCameraEditing] = useState(false);
   const artCameraStore = useCreateStore();
@@ -198,7 +199,7 @@ export function Home({articles, children}: HomeProps) {
             },
           }}
         />
-        {process.env.NODE_ENV === 'development' && isArt && (
+        {process.env.NODE_ENV === 'development' && isArt && !capture.enabled && (
           <LevaPanel store={artCameraStore} titleBar={{title: 'Art Camera', filter: false}}
             theme={{sizes: {rootWidth: 'min(360px, calc(100vw - 20px))'}}} />
         )}
@@ -210,7 +211,7 @@ export function Home({articles, children}: HomeProps) {
               activeId={isArt ? 'art' : activeId}
               artMedium={isArt && !artArriving ? medium : null}
               artActive={isArt}
-              artCameraEditing={artCameraEditing && !artArriving}
+              artCameraEditing={artCameraEditing && !artArriving && !capture.enabled}
               artCameraStore={artCameraStore}
               onArtCameraEditingChange={setArtCameraEditing}
               onPoseSettled={setSettledPose}
@@ -240,10 +241,11 @@ export function Home({articles, children}: HomeProps) {
           onClose={() => setActiveId(null)}
         />
       </div>
-      <div className="art-content" inert={artArriving || (isArt && artCameraEditing)}
+      <div className="art-content" inert={artArriving || (isArt && artCameraEditing && !capture.enabled)}
         aria-hidden={artArriving || undefined}>
         {children}
       </div>
+      {isArt && !artArriving && sceneState !== 'fallback' ? <ArtCapturePanel /> : null}
       {isArt && sceneState === 'loading' ? (
         <p className="art-scene-status" role="status">
           Preparing the landscape…

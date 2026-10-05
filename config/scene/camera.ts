@@ -13,14 +13,16 @@ export const CAMERA_CONFIG = {
   mobileOverviewLookAt: [2.503, 10.869, 0.89] as Vector3Tuple,
   projectsPosition: [6.294, 11.679, -5.879] as Vector3Tuple,
   projectsLookAt: [1.071, 10.028, 3.214] as Vector3Tuple,
-  artPosition: [5.822, 9.894, -6.385] as Vector3Tuple,
-  artLookAt: [-3.397, 7.305, -2.975] as Vector3Tuple,
+  artPosition: [-0.922, 10.343, 7.177] as Vector3Tuple,
+  artLookAt: [6.542, 8.98, 5.106] as Vector3Tuple,
   blogPosition: [3.397, 13.444, -6.564] as Vector3Tuple,
   blogLookAt: [1.071, 10.028, 3.214] as Vector3Tuple,
-  aboutPosition: [8.62, 14.053, -3.071] as Vector3Tuple,
-  aboutLookAt: [1.071, 10.028, 3.214] as Vector3Tuple,
+  aboutPosition: [5.822, 9.894, -6.385] as Vector3Tuple,
+  aboutLookAt: [-3.397, 7.305, -2.975] as Vector3Tuple,
   fov: 38,
-  damping: 4.6,
+  transitionSeconds: 1.8,
+  // Journeys into and out of Art.
+  artTransitionSeconds: 1.5,
 } as const;
 
 const CAMERA_POSES: Record<'overview' | SectionId, CameraPose> = {

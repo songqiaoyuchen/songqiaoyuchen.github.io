@@ -26,7 +26,8 @@ export function ArtCameraControls({controlsRef, onEditingChange, store}: Props) 
     position: {
       value: [...CAMERA_CONFIG.artPosition], step: 0.01, label: 'Position',
       onChange: (value: [number, number, number], _path, context) => {
-        if (!context.fromPanel) return;
+        // Leva's mount call is marked fromPanel; it must not cut the camera's journey.
+        if (!context.fromPanel || context.initial) return;
         camera.position.fromArray(value);
         controlsRef.current?.update();
       },
@@ -34,7 +35,7 @@ export function ArtCameraControls({controlsRef, onEditingChange, store}: Props) 
     target: {
       value: [...CAMERA_CONFIG.artLookAt], step: 0.01, label: 'Look at',
       onChange: (value: [number, number, number], _path, context) => {
-        if (!context.fromPanel) return;
+        if (!context.fromPanel || context.initial) return;
         controlsRef.current?.target.fromArray(value);
         controlsRef.current?.update();
       },

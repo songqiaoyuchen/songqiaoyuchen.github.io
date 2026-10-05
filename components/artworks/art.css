@@ -1,3 +1,45 @@
+.art-capture-open {
+  position: fixed;
+  bottom: 12px;
+  left: var(--spacing-page-gutter);
+  z-index: 40;
+}
+body[data-art-capture] {
+  overflow: hidden;
+}
+body[data-art-capture] :is(.art-section, .art-inspection, .top-nav-glass, [class*="leva-c-"], nextjs-portal) {
+  display: none !important;
+}
+body[data-art-capture] [data-art-capture-frame] {
+  width: min(100vw, 200svh);
+  height: min(50vw, 100svh);
+  inset: 50% auto auto 50%;
+  transform: translate(-50%, -50%);
+}
+.art-capture-panel {
+  position: fixed;
+  z-index: 60;
+  top: 12px;
+  right: 12px;
+  width: min(340px, calc(100vw - 24px));
+  max-height: calc(100svh - 24px);
+  overflow: auto;
+  padding: 20px;
+  background: var(--color-background);
+  border: 1px solid var(--color-muted);
+  color: var(--color-foreground);
+  font-size: 12px;
+}
+.art-capture-panel[hidden] { display: none; }
+.art-capture-panel p { margin: 12px 0; color: var(--color-muted); }
+.art-capture-panel label { display: block; margin: 16px 0; }
+.art-capture-panel :is(input, select) { display: block; width: 100%; margin-top: 8px; }
+.art-capture-panel select { padding: 8px; background: var(--color-background); color: inherit; }
+.art-capture-panel output { float: right; }
+.art-capture-panel :is(button, a) { color: var(--color-accent); min-height: 32px; cursor: pointer; }
+.art-capture-panel :disabled { opacity: .5; cursor: wait; }
+.art-capture-panel :focus-visible { outline: 1px solid var(--color-accent); outline-offset: 3px; }
+
 .art-environment .terrain-static-fallback {
   position: fixed;
   inset: 0;
@@ -112,8 +154,7 @@
   justify-content: center;
   transform: translate(-50%, -50%) translateX(var(--shift, 0px))
     translateZ(calc(var(--abs-offset) * -80px)) rotateY(calc(var(--offset) * -22deg));
-  transition: top 650ms var(--ease-timeline), transform 650ms var(--ease-timeline), opacity 450ms ease, width 650ms var(--ease-timeline),
-    height 650ms var(--ease-timeline);
+  /* ArtExperience animates the pose with a spring; transitions would lag it. */
 }
 .art-carousel-slide[data-current='true'] {
   z-index: 1;
@@ -127,9 +168,6 @@
   z-index: 45;
   overflow: hidden;
   pointer-events: none;
-}
-.art-section[data-gallery-transition] .art-carousel-slide {
-  transition: none;
 }
 .art-section[data-gallery-transition] .art-caption > div {
   animation: none;
@@ -552,9 +590,6 @@
     transition: none;
   }
   .art-environment .art-content {
-    transition: none;
-  }
-  .art-carousel-slide {
     transition: none;
   }
   .art-caption > div,

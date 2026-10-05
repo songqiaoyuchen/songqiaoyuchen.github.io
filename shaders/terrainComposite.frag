@@ -18,6 +18,8 @@ uniform float uTo;
 uniform float uProgress;
 uniform float uArtOpacity;
 uniform mat3 uScreenToImage;
+uniform float uCaptureSource;
+uniform vec3 uCaptureAdjust;
 varying vec2 vUv;
 
 vec2 imageUv(vec2 screenUv) {
@@ -93,6 +95,15 @@ float replacementMask(out float glow) {
 
 void main() {
   vec4 original = texture2D(uTexture, vUv);
+  if (uCaptureSource >= 0.0) {
+    vec3 color = mediumColor(uCaptureSource, original.rgb, imageUv(vUv));
+    color *= exp2(uCaptureAdjust.x);
+    float luminance = dot(color, vec3(.2126, .7152, .0722));
+    color = max(vec3(0.0), mix(vec3(luminance), color, uCaptureAdjust.z));
+    color = pow(color / .18, vec3(uCaptureAdjust.y)) * .18;
+    gl_FragColor = vec4(color, 1.0);
+    return;
+  }
   if (uArtOpacity < .0001) {
     gl_FragColor = original;
     return;

@@ -2,7 +2,7 @@
 
 import { useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import {PerspectiveCamera, Vector3} from 'three';
+import {MathUtils, PerspectiveCamera, Vector3} from 'three';
 import type { OrbitControls as OrbitControlsInstance } from 'three-stdlib';
 import type {SectionId} from '@/config/navigation/linkStreams';
 import {
@@ -12,6 +12,8 @@ import {
 } from '@/config/scene';
 import {useReducedMotion} from '@/hooks/useReducedMotion';
 import {getHomeFov} from '@/lib/scene/camera';
+import {artTransitionSettings} from '@/lib/scene/artTransitionSettings';
+import {CameraTransition} from '@/lib/scene/cameraTransition';
 import {useCameraFrameState} from './CameraFrameState';
 
 type CameraRigProps = {
@@ -19,8 +21,6 @@ type CameraRigProps = {
   onPoseSettled?: (pose: SectionId | null | undefined) => void;
   controlsRef?: React.RefObject<OrbitControlsInstance | null>;
 };
-
-const SETTLE_EPSILON = 0.0001;
 
 export function CameraRig({activeId, controlsRef, onPoseSettled}: CameraRigProps) {
   const cameraFrameState = useCameraFrameState();
@@ -53,6 +53,9 @@ export function CameraRig({activeId, controlsRef, onPoseSettled}: CameraRigProps
   const initialOverviewPose = getCameraPose(null, isMobile);
   const previousPoseKey = useRef(poseKey);
   const isAnimating = useRef(false);
+  const artJourney = useRef(false);
+  const artFogStart = useRef(0);
+  const transition = useMemo(() => new CameraTransition(), []);
   const initialized = useRef(false);
   const currentLookAt = useRef(new Vector3(...initialOverviewPose.lookAt));
   const overviewReturnPosition = useRef(new Vector3(...initialOverviewPose.position));
@@ -91,40 +94,47 @@ export function CameraRig({activeId, controlsRef, onPoseSettled}: CameraRigProps
         overviewReturnPosition.current.copy(configuredPosition);
         overviewReturnLookAt.current.copy(configuredLookAt);
       }
+      artJourney.current = poseKey === 'art' || previousPoseKey.current === 'art';
+      artFogStart.current = cameraFrameState.current.artFog;
       previousPoseKey.current = poseKey;
+      transition.begin(
+        camera,
+        currentLookAt.current,
+        poseId === null ? overviewReturnPosition.current : configuredPosition,
+        poseId === null ? overviewReturnLookAt.current : configuredLookAt,
+      );
       isAnimating.current = true;
       onPoseSettled?.(undefined);
     }
 
     if (isAnimating.current) {
-      const destinationPosition = poseId === null
-        ? overviewReturnPosition.current
-        : configuredPosition;
-      const destinationLookAt = poseId === null
-        ? overviewReturnLookAt.current
-        : configuredLookAt;
-      // A stalled frame must not skip the visible journey to the destination.
-      const alpha = isReducedMotion ? 1 : 1 - Math.exp(-CAMERA_CONFIG.damping * Math.min(delta, 1 / 30));
-
-      camera.position.lerp(destinationPosition, alpha);
-      currentLookAt.current.lerp(destinationLookAt, alpha);
-      camera.lookAt(currentLookAt.current);
+      const settled = transition.advance(
+        camera, currentLookAt.current, delta,
+        artJourney.current ? artTransitionSettings.cameraSeconds : CAMERA_CONFIG.transitionSeconds,
+        isReducedMotion,
+      );
       controls?.target.copy(currentLookAt.current);
-
-      if (
-        camera.position.distanceToSquared(destinationPosition) < SETTLE_EPSILON &&
-        currentLookAt.current.distanceToSquared(destinationLookAt) < SETTLE_EPSILON
-      ) {
-        camera.position.copy(destinationPosition);
-        currentLookAt.current.copy(destinationLookAt);
-        camera.lookAt(currentLookAt.current);
-        controls?.target.copy(currentLookAt.current);
+      if (artJourney.current) {
+        // Art lies near the terrain boundary: thicken fog gradually over the flight's
+        // time so the edge stays hidden. Arrival keeps it until the medium wipe releases it.
+        const {progress} = transition;
+        if (poseId === 'art') {
+          cameraFrameState.current.setArtFog(
+            MathUtils.lerp(artFogStart.current, 1, MathUtils.smootherstep(progress, 0, .7)));
+        } else {
+          // Departure reveals the terrain within the image dissolve, so rise sooner.
+          const rise = MathUtils.lerp(artFogStart.current, 1, MathUtils.smootherstep(progress, 0, .3));
+          cameraFrameState.current.setArtFog(rise * (1 - MathUtils.smootherstep(progress, .45, 1)));
+        }
+      }
+      if (settled) {
         isAnimating.current = false;
         onPoseSettled?.(poseId);
       }
     }
     cameraFrameState.current.setTransitioning(isAnimating.current);
-  }, -2);
+  // Own the final pose after development OrbitControls (-1), before cache capture (-0.5).
+  }, -0.75);
 
   return null;
 }

@@ -4,7 +4,7 @@ import {useFBO} from '@react-three/drei';
 import {createPortal, useFrame, useThree} from '@react-three/fiber';
 import {useLayoutEffect, useMemo, useRef} from 'react';
 import {
-  Color, HalfFloatType, Matrix3, Matrix4, PerspectiveCamera, Scene, Vector2, Vector3,
+  Color, Fog, HalfFloatType, MathUtils, Matrix3, Matrix4, PerspectiveCamera, Scene, Vector2, Vector3,
   type Camera, type ShaderMaterial, type WebGLRenderer,
 } from 'three';
 import type {ArtMedium} from '@/data/artworks';
@@ -16,11 +16,13 @@ import {OIL_ILLUSTRATION_CONFIG} from '@/config/scene/oilIllustration';
 import {PENCIL_ILLUSTRATION_CONFIG} from '@/config/scene/pencilIllustration';
 import {advanceMediumTransition, settledMedium, type MediumId} from '@/lib/terrain/mediumTransition';
 import {useTerrainAssets} from '@/lib/terrain/assets';
+import {artTransitionSettings} from '@/lib/scene/artTransitionSettings';
 import fragmentShader from '@/shaders/terrainComposite.frag';
 import {SceneFog} from './SceneFog';
 import {TerrainMesh} from './TerrainMesh';
 import {useIllustrationTexture} from './useIllustrationTexture';
 import {useCameraFrameState} from './CameraFrameState';
+import {useArtScene} from '@/components/artworks/ArtSceneContext';
 
 const vertexShader = /* glsl */ `
   varying vec2 vUv;
@@ -71,6 +73,7 @@ export function CachedTerrain({
   terrainSettings,
 }: CachedTerrainProps) {
   const scene = useMemo(() => new Scene(), []);
+  const {capture} = useArtScene();
   const materialRef = useRef<ShaderMaterial>(null);
   const target = useFBO({
     depthBuffer: true,
@@ -88,6 +91,8 @@ export function CachedTerrain({
   const oil = useIllustrationTexture(preloadIllustrations, OIL_ILLUSTRATION_CONFIG.image, 'oil');
   const pencil = useIllustrationTexture(preloadIllustrations, PENCIL_ILLUSTRATION_CONFIG.image, 'pencil');
   const transition = useRef(settledMedium(0));
+  const fogDistance = useMemo(() => new Vector2(), []);
+  const fogRelease = useRef({from: 0, elapsed: -1});
   const {shellBase} = useTerrainAssets();
   const peakHeight = useMemo(() => {
     let peak = 0;
@@ -126,6 +131,9 @@ export function CachedTerrain({
       uProgress: {value: 1},
       uArtOpacity: {value: 0},
       uScreenToImage: {value: new Matrix3()},
+      uCaptureSource: {value: -1},
+      uCaptureAdjust: {value: new Vector3(0, 1, 1)},
+      uCaptureReady: {value: 0},
     }),
     [contourSettings.majorColor, contourSettings.majorIntensity, contourSettings.majorRadius,
       target.depthTexture, target.texture],
@@ -149,10 +157,10 @@ export function CachedTerrain({
     const values = materialRef.current?.uniforms;
     if (!values) return;
     const step = Math.min(delta, .05);
+    const frameState = cameraFrameState.current;
     values.uOil.value = oil ?? target.texture;
     values.uPencil.value = pencil ?? target.texture;
     values.uResolution.value.set(width, height);
-    values.uRevealFog.value.set(fogSettings.near, fogSettings.far);
     // Invert the authoring plane's screen projection to preserve image framing
     // across viewport sizes and the short camera departure from Art.
     projection.clip.copy(camera.projectionMatrix).multiply(camera.matrixWorldInverse).multiply(projection.plane);
@@ -160,14 +168,29 @@ export function CachedTerrain({
     values.uScreenToImage.value.set(e[0], e[4], e[12], e[1], e[5], e[13], e[3], e[7], e[15]).invert();
     const registered = camera.position.distanceToSquared(projection.camera.position) < .0004
       && camera.quaternion.angleTo(projection.camera.quaternion) < .002;
+    values.uCaptureSource.value = capture.enabled ? capture.source : -1;
+    values.uCaptureAdjust.value.set(capture.exposure, capture.contrast, capture.saturation);
+    values.uCaptureReady.value = capture.enabled && artMedium
+      && (capture.source !== 1 || oil) && (capture.source !== 2 || pencil) ? 1 : 0;
     if (artMedium && registered) {
       // An unloaded image leaves the currently displayed medium intact.
       const requested: MediumId = artMedium === 'digital' ? 3
         : artMedium === 'oil' && oil ? 1 : artMedium === 'pencil' && pencil ? 2 : transition.current.to;
       transition.current = advanceMediumTransition(transition.current, requested, delta,
-        reducedMotion, ART_ILLUSTRATION_CONFIG.revealSeconds);
+        reducedMotion, artTransitionSettings.revealSeconds);
       values.uArtOpacity.value = 1;
+      // Hold the flight fog until the arrival wipe has covered the terrain boundary.
+      const {from, to} = transition.current;
+      const release = fogRelease.current;
+      if (reducedMotion) frameState.setArtFog(0);
+      else if (from !== 0 && to !== 0) {
+        if (release.elapsed < 0) Object.assign(release, {from: frameState.artFog, elapsed: 0});
+        release.elapsed += step;
+        const t = Math.min(release.elapsed / artTransitionSettings.fogReleaseSeconds, 1);
+        frameState.setArtFog(release.from * (1 - MathUtils.smootherstep(t, 0, 1)));
+      } else release.elapsed = -1;
     } else {
+      fogRelease.current.elapsed = -1;
       values.uArtOpacity.value = reducedMotion ? 0
         : Math.max(0, values.uArtOpacity.value - step / ART_ILLUSTRATION_CONFIG.dissolveSeconds);
       if (values.uArtOpacity.value === 0) transition.current = settledMedium(0);
@@ -175,7 +198,13 @@ export function CachedTerrain({
     values.uFrom.value = transition.current.from;
     values.uTo.value = transition.current.to;
     values.uProgress.value = transition.current.progress;
-    const cameraRevision = cameraFrameState.current.revision;
+    if (scene.fog instanceof Fog) {
+      // SceneFog blends in the Art flight fog; redraw the cache whenever it moves.
+      const {near, far} = scene.fog;
+      if (!values.uRevealFog.value.equals(fogDistance.set(near, far))) dirty.current = true;
+      values.uRevealFog.value.copy(fogDistance);
+    }
+    const cameraRevision = frameState.revision;
     if (!dirty.current && renderedCameraRevision.current === cameraRevision) return;
 
     renderTerrain(gl, scene, camera, target);

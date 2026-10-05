@@ -11,6 +11,9 @@ import type {useCreateStore} from 'leva';
 import {CAMERA_CONFIG, FOG_CONFIG} from '@/config/scene';
 import { SaveCameraButton } from '@/components/debug/SaveCameraButton';
 import {ArtCameraControls} from '@/components/debug/ArtCameraControls';
+import {ArtTransitionControls} from '@/components/debug/ArtTransitionControls';
+import {useArtScene} from '@/components/artworks/ArtSceneContext';
+import {ArtCaptureExport} from './ArtCaptureExport';
 import { ColorOnlySMAA } from '@/components/effects/ColorOnlySMAA';
 import {IsolatedBloom} from '@/components/effects/IsolatedBloom';
 import { SaveConfigButton } from '@/components/debug/SaveConfigButton';
@@ -63,6 +66,8 @@ export function TerrainBackground({
   onStreamClick,
 }: TerrainBackgroundProps) {
   const orbitcontrolsRef = useRef<OrbitControlsInstance>(null);
+  const {capture} = useArtScene();
+  const capturing = artActive && capture.enabled;
   const [assemblyPhase, setAssemblyPhase] = useState(0);
   const [canvasReady, setCanvasReady] = useState(false);
   const [contourMesh, setContourMesh] = useState<Mesh | null>(null);
@@ -133,7 +138,7 @@ export function TerrainBackground({
   }, [contourMesh, linkStreamsMesh, onSceneProgress, terrainDepthTexture]);
 
   return (
-    <div className={artActive
+    <div data-art-capture-frame={capturing || undefined} className={artActive
       ? `${artCameraEditing ? 'pointer-events-auto' : 'pointer-events-none'} fixed inset-0 z-0 h-svh w-full`
       : 'sticky top-0 z-0 h-svh w-full md:absolute md:inset-0'}>
       {!artMedium && <SaveConfigButton values={settings} />}
@@ -171,9 +176,12 @@ export function TerrainBackground({
           {isDevelopment && !artActive && activeId !== 'art' ? (
             <SaveCameraButton activeId={activeId} controlsRef={orbitcontrolsRef} />
           ) : null}
-          {isDevelopment && artActive ? (
-            <ArtCameraControls store={artCameraStore} controlsRef={orbitcontrolsRef}
-              onEditingChange={onArtCameraEditingChange} />
+          {isDevelopment && artActive && !capturing ? (
+            <>
+              <ArtCameraControls store={artCameraStore} controlsRef={orbitcontrolsRef}
+                onEditingChange={onArtCameraEditingChange} />
+              <ArtTransitionControls store={artCameraStore} />
+            </>
           ) : null}
           <SceneFog settings={settings.fog} />
           <Suspense fallback={null}>
@@ -250,6 +258,7 @@ export function TerrainBackground({
             ) : <></>}
           </EffectComposer>
         ) : null}
+        {capturing && assemblyPhase >= 4 && bloomSelection.length === 2 ? <ArtCaptureExport /> : null}
         </Canvas>
       </SceneErrorBoundary>
     </div>
