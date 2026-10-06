@@ -1,4 +1,6 @@
 // Scene text dissolve: visibility stepping and layout swaps that happen only while hidden.
+import type {Mesh, Object3D, ShaderMaterial} from 'three';
+
 export type TextTransition = {key: string; visibility: number};
 
 export function advanceTextVisibility(
@@ -29,4 +31,10 @@ export function advanceTextTransition(
   const visible = request.visible && request.ready && state.key === request.key;
   const visibility = advanceTextVisibility(state.visibility, visible, delta, false, revealSpeed, hideSpeed);
   return {key: visibility === 0 ? request.key : state.key, visibility};
+}
+
+/** Scene text at zero dissolve discards every fragment, so it draws nothing. */
+export function isDissolved(object: Object3D) {
+  const dissolve = ((object as Mesh).material as ShaderMaterial | undefined)?.uniforms?.uDissolve;
+  return !!dissolve && dissolve.value <= 0;
 }

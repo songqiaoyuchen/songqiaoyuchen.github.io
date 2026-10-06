@@ -14,9 +14,16 @@ import {
   type TextureDataType,
   type WebGLRenderer,
 } from 'three';
+import {isDissolved} from '@/lib/scene/textTransition';
 
 const BLOOM_LAYER = 10;
 const CLEAR_COLOR = new Color(0x000000);
+
+/** Whether an object reaches the screen: it and its parents are visible and it is not fully dissolved. */
+function isDrawn(object: Object3D) {
+  for (let node: Object3D | null = object; node; node = node.parent) if (!node.visible) return false;
+  return !isDissolved(object);
+}
 
 type IsolatedBloomEffectOptions = {
   intensity: number;
@@ -31,6 +38,9 @@ class IsolatedBloomEffect extends BloomEffect {
   private readonly selectionTarget: WebGLRenderTarget;
   private readonly resolutionScale: number;
   private readonly savedClearColor = new Color();
+  // Objects on the bloom layer; while none is drawn the bloom stays black and its passes are skipped.
+  private selection: Object3D[] = [];
+  private idle = false;
 
   constructor(
     scene: Scene,
@@ -58,6 +68,11 @@ class IsolatedBloomEffect extends BloomEffect {
     this.selectionTarget.texture.name = 'IsolatedBloom.Selection';
   }
 
+  setSelection(selection: Object3D[]) {
+    this.selection = selection;
+    this.idle = false;
+  }
+
   get luminanceThreshold() {
     return this.luminanceMaterial.threshold;
   }
@@ -79,6 +94,11 @@ class IsolatedBloomEffect extends BloomEffect {
     _inputBuffer: WebGLRenderTarget,
     deltaTime?: number,
   ) {
+    // Render one pass after the selection disappears (leaving the bloom black), then skip until it returns.
+    const drawn = this.selection.some(isDrawn);
+    if (!drawn && this.idle) return;
+    this.idle = !drawn;
+
     const previousTarget = renderer.getRenderTarget();
     const previousAutoClear = renderer.autoClear;
     const previousClearAlpha = renderer.getClearAlpha();
@@ -110,6 +130,7 @@ class IsolatedBloomEffect extends BloomEffect {
     const scaledHeight = Math.max(1, Math.round(height * this.resolutionScale));
     this.selectionTarget.setSize(scaledWidth, scaledHeight);
     super.setSize(scaledWidth, scaledHeight);
+    this.idle = false;
   }
 
   override initialize(
@@ -156,6 +177,7 @@ export function IsolatedBloom({
   useLayoutEffect(() => {
     const originalLayerMasks = selection.map((object) => [object, object.layers.mask] as const);
     for (const object of selection) object.layers.enable(BLOOM_LAYER);
+    effect.setSelection(selection);
     onReady?.();
 
     return () => {
@@ -163,7 +185,7 @@ export function IsolatedBloom({
         object.layers.mask = layerMask;
       }
     };
-  }, [onReady, selection]);
+  }, [effect, onReady, selection]);
 
   useEffect(() => () => effect.dispose(), [effect]);
 

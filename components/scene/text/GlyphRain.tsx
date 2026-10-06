@@ -24,6 +24,7 @@ import {
   SCENE_LINK_EFFECT_CONFIG,
 } from '@/config/scene';
 import {useReducedMotion} from '@/hooks/useReducedMotion';
+import {markFrameChanged} from '@/lib/scene/stillFrames';
 import {advanceTextVisibility} from '@/lib/scene/textTransition';
 import {useTerrainAssets} from '@/lib/terrain/assets';
 import {configureBitmapAtlas} from '@/lib/text/atlas';
@@ -207,6 +208,8 @@ export const GlyphRain = forwardRef<MeshType, GlyphRainProps>(function GlyphRain
       }
       compositorDirty.current = true;
     }
+    // Fully faded out (Art, camera journeys): skip the offscreen passes; they redraw on return.
+    if (layerRef.current?.visible === false) return;
 
     const cameraRevision = cameraFrameState.current.revision;
     if (
@@ -215,6 +218,7 @@ export const GlyphRain = forwardRef<MeshType, GlyphRainProps>(function GlyphRain
     ) return;
 
     compositor.render(state.gl, state.camera);
+    markFrameChanged();
     renderedCameraRevision.current = cameraRevision;
     compositorDirty.current = false;
   });

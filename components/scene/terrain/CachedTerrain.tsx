@@ -19,6 +19,7 @@ import type {ArtMedium} from '@/data/artworks';
 import {useReducedMotion} from '@/hooks/useReducedMotion';
 import {advanceBackdropWipe, settledBackdrop} from '@/lib/art/backdropWipe';
 import {artTransitionSettings} from '@/lib/art/transitionSettings';
+import {markFrameChanged} from '@/lib/scene/stillFrames';
 import {useTerrainAssets} from '@/lib/terrain/assets';
 import fragmentShader from '@/shaders/terrain/terrainComposite.frag';
 import {releaseFlightFog, requestedBackdrop, type FogRelease} from '../backdrop/backdropFrame';
@@ -158,6 +159,8 @@ export function CachedTerrain({
     values.uProgress.value = wipe.current.progress;
     cursor.update({renderer: gl, delta, uniforms: values, backdrop: wipe.current.to,
       active: !!backdrop && registered && !reducedMotion && !capture.enabled, width, height});
+    // Cursor trails redraw their textures every frame while they exist.
+    if (values.uSmudgeAmount.value || values.uTouchAmount.value) markFrameChanged();
     if (scene.fog instanceof Fog) {
       // SceneFog blends in the Art flight fog; redraw the cache whenever it moves.
       const {near, far} = scene.fog;
@@ -168,6 +171,7 @@ export function CachedTerrain({
     if (!dirty.current && renderedCameraRevision.current === cameraRevision) return;
 
     renderTerrain(gl, scene, camera, target);
+    markFrameChanged();
     // Keep reconstruction paired with the camera that produced the cached depth.
     values.uClipToWorld.value.copy(camera.matrixWorld).multiply(camera.projectionMatrixInverse);
     values.uClipToView.value.copy(camera.projectionMatrixInverse);

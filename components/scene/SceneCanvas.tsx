@@ -6,7 +6,7 @@ import {Suspense, useCallback, useEffect, useMemo, useRef, useState} from 'react
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, StatsGl } from '@react-three/drei';
 import { EffectComposer } from '@react-three/postprocessing';
-import { SMAAPreset } from 'postprocessing';
+import {SMAAPreset, type EffectComposer as EffectComposerImpl} from 'postprocessing';
 import type {DepthTexture, Mesh} from 'three';
 import type { OrbitControls as OrbitControlsInstance } from 'three-stdlib';
 import type {useCreateStore} from 'leva';
@@ -31,6 +31,7 @@ import { ColorOnlySMAA } from './effects/ColorOnlySMAA';
 import {IsolatedBloom} from './effects/IsolatedBloom';
 import {SceneErrorBoundary} from './SceneErrorBoundary';
 import {SceneReadySignal} from './SceneReadySignal';
+import {StillFrameGate} from './StillFrameGate';
 import {CachedTerrain} from './terrain/CachedTerrain';
 import { Contours } from './terrain/Contours';
 import { SceneFog } from './terrain/SceneFog';
@@ -70,6 +71,7 @@ export function SceneCanvas({
   onLinkClick,
 }: SceneCanvasProps) {
   const orbitcontrolsRef = useRef<OrbitControlsInstance>(null);
+  const composerRef = useRef<EffectComposerImpl>(null);
   const {capture} = useArtScene();
   const capturing = artActive && capture.enabled;
   const [canvasReady, setCanvasReady] = useState(false);
@@ -211,7 +213,7 @@ export function SceneCanvas({
               present empty frames on some GPUs. Color-only SMAA smooths edges
               without requesting the composer's sampled depth texture. */}
           {assemblyPhase >= 4 && bloomSelection.length === 2 ? (
-            <EffectComposer multisampling={0}>
+            <EffectComposer ref={composerRef} multisampling={0}>
               <ColorOnlySMAA preset={SMAAPreset.MEDIUM} />
               {assemblyPhase >= 5 ? (
                 <IsolatedBloom
@@ -228,6 +230,7 @@ export function SceneCanvas({
             </EffectComposer>
           ) : null}
           {capturing && assemblyPhase >= 4 && bloomSelection.length === 2 ? <CaptureExport /> : null}
+          <StillFrameGate enabled={hideHomeScene && assemblyPhase >= 6 && !capturing} composerRef={composerRef} />
         </Canvas>
       </SceneErrorBoundary>
     </div>

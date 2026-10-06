@@ -128,6 +128,10 @@ Transition folder tunes journey/wipe durations and flight fog live
 (`lib/art/transitionSettings.ts`) and saves them to config.
 Artworks are ordinary HTML images.
 
+To save GPU time, layers that are fully faded out skip their offscreen work: glyph rain while hidden, bloom while no
+contour or scene link is drawn. On Art, `StillFrameGate` skips frames identical to the last drawn one
+(`lib/scene/stillFrames.ts`), so a still gallery leaves the GPU idle.
+
 Art's Screenshot mode uses `CapturePanel` and the shared Art scene context.
 It hides the gallery/scrim/navigation, frames the terrain at 2:1, and applies
 temporary exposure/contrast/saturation in the terrain compositor. `CaptureExport`
