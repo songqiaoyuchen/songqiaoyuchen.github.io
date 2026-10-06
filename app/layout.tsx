@@ -1,7 +1,8 @@
+// Root layout: html/body shell, Krypton font, site metadata and the global nav.
 import type {Metadata} from 'next';
 import localFont from 'next/font/local';
-import {Nav} from '@/components/home/Nav';
-import './globals.css';
+import {Nav} from '@/components/site/Nav';
+import '@/styles/globals.css';
 
 const krypton = localFont({
   src: '../public/fonts/monospace_krypton.ttf',

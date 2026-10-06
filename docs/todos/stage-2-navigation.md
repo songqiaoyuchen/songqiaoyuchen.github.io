@@ -5,7 +5,7 @@ Design alongside the [Art journey](stage-2-art-journey.md).
 
 ## Implemented Art slice
 
-`/artworks`, `/artworks/all`, and `/artworks/[id]` share the persistent experience
+`/artworks`, `/artworks/all`, and `/artworks/[id]` share the persistent `(scene)`
 layout. Both Art entry points use the selected gallery. Query state preserves
 selection/filter/source; details restore scroll and focus on local return.
 Direct details return to All works. Re-selecting active Art leaves the current
@@ -34,7 +34,7 @@ view intact. Other section destinations keep their current behavior.
 
 ## Current issue and ownership
 
-[Nav](../../components/home/Nav.tsx) and [Home](../../components/home/Home.tsx)
+[Nav](../../components/site/Nav.tsx) and [SceneShell](../../components/shell/SceneShell.tsx)
 now share the Art destination. Other sections still have separate previews and
 archives; migrate those only within their own workstreams.
 [Layout](../../app/layout.tsx) owns the persistent top nav.

@@ -1,3 +1,5 @@
+// Artwork catalogue: every work, its medium section and the featured carousel order.
+// Run npm run sync:artwork-dimensions after replacing an image.
 export interface Artwork {
   id: string;
   src: string;

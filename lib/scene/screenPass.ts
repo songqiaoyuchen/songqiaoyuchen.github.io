@@ -1,3 +1,4 @@
+// Full-screen quad pass into an offscreen target (used by the Art cursor fields).
 import {
   Mesh, OrthographicCamera, PlaneGeometry, Scene, ShaderMaterial,
   type IUniform, type WebGLRenderTarget, type WebGLRenderer,

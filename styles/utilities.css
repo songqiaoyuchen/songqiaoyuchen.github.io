@@ -1,0 +1,9 @@
+/* Generic custom Tailwind utilities; component-specific ones live beside their component (Nav.css, Drawer.css). */
+@utility no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}

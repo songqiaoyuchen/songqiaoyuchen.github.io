@@ -1,18 +1,11 @@
+// Attaches prebuilt contour tube buffers to a Three.js BufferGeometry.
 import {BufferAttribute, BufferGeometry} from 'three';
-import type {Isoline} from './isolines';
-import {
-  buildContourTubeBuffers,
-  type ContourTubeBuffers,
-} from './lineTubeBuffers';
+import type {ContourTubeBuffers} from './lineTubeBuffers';
 
 /**
- * Expand contour polylines into tube geometry. The worker uses the pure buffer
- * builder; this adapter performs only the inexpensive Three.js attachment.
+ * The worker builds the pure buffers; this adapter performs only the
+ * inexpensive Three.js attachment.
  */
-export function buildContourTubeGeometry(lines: Isoline[]): BufferGeometry {
-  return createContourTubeGeometry(buildContourTubeBuffers(lines));
-}
-
 export function createContourTubeGeometry({
   index,
   lineId,

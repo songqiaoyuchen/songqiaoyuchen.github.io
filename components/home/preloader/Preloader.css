@@ -1,0 +1,223 @@
+/* Homepage preloader (Preloader.tsx): full-screen cover, contour mark, progress readout, bypass offer,
+   and the exit (pixel dissolve, or a short fade with reduced motion). */
+html[data-home-loading="true"] {
+  overflow: hidden;
+}
+
+.homepage-preloader {
+  /* Gold glows (--color-accent). */
+  --preloader-glow: rgb(232 199 122 / 4%);
+  --preloader-mark-glow: rgb(232 199 122 / 8%);
+  --preloader-readout-glow: rgb(232 199 122 / 16%);
+
+  position: fixed;
+  z-index: 2147483000; /* above everything; literal because the minifier rounds large tokens */
+  inset: 0;
+  isolation: isolate;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 62% 48% at 50% 78%, var(--preloader-glow), transparent 72%),
+    var(--color-background);
+  color: var(--color-text);
+  font-family: var(--font-krypton), monospace;
+}
+
+.preloader-pixel-dissolve {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.homepage-preloader[data-state="exiting"] {
+  background: transparent;
+}
+
+.homepage-preloader[data-state="exiting"] .preloader-pixel-dissolve {
+  opacity: 1;
+}
+
+.homepage-preloader[data-reduced-motion="true"] .preloader-pixel-dissolve {
+  display: none;
+}
+
+.homepage-preloader[data-reduced-motion="true"][data-state="exiting"] {
+  background: var(--color-background);
+  animation: preloader-reduced-exit 150ms linear forwards;
+}
+
+.homepage-preloader[data-reduced-motion="true"][data-state="exiting"]
+  .preloader-mountain-variant {
+  animation: none;
+}
+
+.preloader-mountain-variant {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  opacity: 1;
+}
+
+.homepage-preloader[data-state="exiting"] .preloader-mountain-variant {
+  animation: preloader-content-exit 220ms steps(4, end) forwards;
+}
+
+.preloader-mountain-lockup {
+  display: grid;
+  justify-items: center;
+  gap: 1.15rem;
+}
+
+.preloader-mountain-icon {
+  width: clamp(10rem, 18vw, 13.5rem);
+  overflow: visible;
+  filter: drop-shadow(0 0 12px var(--preloader-mark-glow));
+}
+
+.preloader-mountain-icon path {
+  fill: none;
+  stroke: var(--color-accent);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.preloader-mountain-base path {
+  stroke-width: 1;
+  opacity: 0.3;
+}
+
+/* A short dash runs around the joined contour path. */
+.preloader-mountain-spiral {
+  stroke-dasharray: 0.18 0.82;
+  stroke-dashoffset: 0;
+  stroke-width: 1.25;
+  opacity: 0.98;
+  animation: preloader-contour-spiral 2.1s linear infinite;
+  will-change: stroke-dashoffset;
+}
+
+.preloader-progress-readout {
+  display: grid;
+  grid-template-columns: 3ch auto;
+  gap: 0.16em;
+  align-items: baseline;
+  color: var(--color-accent);
+  font-family: var(--font-krypton), monospace;
+  font-size: var(--text-card);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--tracking-label);
+  line-height: 1;
+  text-shadow: 0 0 12px var(--preloader-readout-glow);
+}
+
+.preloader-progress-value {
+  text-align: right;
+}
+
+.preloader-progress-unit {
+  color: var(--color-accent-muted);
+  font-size: var(--text-meta);
+}
+
+.preloader-bypass {
+  position: absolute;
+  z-index: 30;
+  right: 1.5rem;
+  bottom: max(1.5rem, env(safe-area-inset-bottom));
+  display: grid;
+  justify-items: end;
+  gap: 0.5rem;
+  text-align: right;
+}
+
+.preloader-bypass p {
+  margin: 0;
+  color: var(--color-muted-soft);
+  font-size: var(--text-micro);
+  letter-spacing: var(--tracking-meta);
+  text-transform: uppercase;
+}
+
+.preloader-bypass button {
+  min-height: 2.75rem;
+  border: 1px solid var(--color-line);
+  background: var(--color-surface-soft);
+  padding: 0.65rem 0.9rem;
+  color: var(--color-accent);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.preloader-bypass button:hover {
+  border-color: var(--color-line-hover);
+  background: var(--color-surface-hover);
+}
+
+.preloader-bypass button:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 0.25rem;
+}
+
+@keyframes preloader-contour-spiral {
+  to { stroke-dashoffset: 1; }
+}
+
+@keyframes preloader-content-exit {
+  to { opacity: 0; }
+}
+
+@media (max-width: 40rem) {
+  .preloader-mountain-icon {
+    width: clamp(9rem, 48vw, 11rem);
+  }
+
+  .preloader-bypass {
+    right: 1.5rem;
+    left: 1.5rem;
+    justify-items: stretch;
+  }
+
+  .preloader-bypass button {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .homepage-preloader[data-state="exiting"] {
+    background: var(--color-background);
+    animation: preloader-reduced-exit 150ms linear forwards;
+  }
+
+  .preloader-mountain-spiral {
+    animation: none;
+  }
+
+  .homepage-preloader[data-state="exiting"] .preloader-mountain-variant {
+    animation: none;
+  }
+
+  .preloader-pixel-dissolve {
+    display: none;
+  }
+
+  .preloader-mountain-spiral {
+    opacity: 0.82;
+    stroke-dashoffset: 0;
+    stroke-dasharray: none;
+  }
+}
+
+@keyframes preloader-reduced-exit {
+  to { opacity: 0; }
+}

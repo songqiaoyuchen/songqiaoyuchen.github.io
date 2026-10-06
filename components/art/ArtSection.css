@@ -1,0 +1,184 @@
+/* Art section frame (ArtSection.tsx): arrival gating, the page grid, the terrain scrim, shared text links,
+   focus rings, the gallery grid and the loading status. Layout numbers are tokens at the top of .art-section. */
+
+/* SceneShell wrapper on Art routes: content stays hidden until the camera has arrived. */
+.art-environment .terrain-static-fallback {
+  position: fixed;
+  inset: 0;
+  height: 100svh;
+  pointer-events: none;
+}
+.art-environment .art-content {
+  opacity: 1;
+  transition: opacity 600ms ease;
+}
+.art-environment[data-camera-editing='true'] .art-content,
+.art-environment[data-camera-editing='true'] .art-content * {
+  pointer-events: none !important;
+}
+.art-environment[data-art-arriving='true'] .art-content {
+  opacity: 0;
+  pointer-events: none;
+  transition: none;
+}
+
+.art-section {
+  /* Page frame; overridden per breakpoint below. */
+  --art-section-pad-top: 84px;
+  --art-section-pad-bottom: 28px;
+  --art-section-min-height: 32rem;
+  /* Scrim over the live terrain (--color-background tones). Digital lightens it below. */
+  --art-scrim-pool: rgb(10 10 10 / 84%);
+  --art-scrim-mobile-low: rgb(10 10 10 / 88%);
+  --art-scrim-mobile-mid: rgb(10 10 10 / 45%);
+  --art-scrim-mobile-high: rgb(10 10 10 / 35%);
+  /* All works dims the terrain to 30% instead. */
+  --art-collection-dim: rgb(0 0 0 / 70%);
+
+  position: relative;
+  z-index: var(--z-art-section);
+  display: grid;
+  grid-template-columns: 40% minmax(0, 60%);
+  grid-template-rows: minmax(0, 1fr);
+  height: 100svh;
+  min-height: var(--art-section-min-height);
+  padding: var(--art-section-pad-top) var(--spacing-page-gutter) var(--art-section-pad-bottom);
+  isolation: isolate;
+}
+.art-section[data-medium='digital'] {
+  --art-scrim-middle: 20%;
+  --art-scrim-right: 35%;
+  --art-scrim-radius: 48%;
+}
+.art-section::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  /* Shared scrim keeps the complete terrain visible behind every medium. */
+  background:
+    radial-gradient(ellipse at 72% 86%, var(--art-scrim-pool), transparent var(--art-scrim-radius, 66%)),
+    linear-gradient(90deg, transparent 20%, rgb(var(--rgb-ink) / var(--art-scrim-middle, 42%)) 44%,
+      rgb(var(--rgb-ink) / var(--art-scrim-right, 68%)) 85%);
+}
+
+/* Shared small text link: scope links, "Back to collection", "Screenshot mode". */
+.art-text-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-height: var(--size-hit-target);
+  background: none;
+  border: 0;
+  color: var(--color-muted);
+  font: inherit;
+  font-size: var(--font-size-ui);
+  text-decoration: none;
+  cursor: pointer;
+  transition: color var(--duration-ui);
+}
+.art-text-link:hover {
+  color: var(--color-accent);
+}
+.art-section :is(a, button, [tabindex]):focus-visible,
+.art-inspection :is(a, button):focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 4px;
+}
+
+/* The gallery column: stage above, a fixed-height wall label row below. */
+.art-gallery {
+  grid-column: 2;
+  min-width: 0;
+  min-height: 0;
+  /* A fixed label row: changing works never resizes the stage. */
+  --art-caption-height: 13rem;
+  display: grid;
+  grid-template-rows: minmax(180px, 1fr) var(--art-caption-height);
+  gap: 16px;
+}
+
+/* All works: a normal scrolling page. */
+.art-section.art-section-all {
+  height: auto;
+  min-height: 100svh;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  --art-section-pad-bottom: 120px;
+}
+.art-section-all::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  /* Dim the existing background to 30% without affecting gallery content. */
+  background: var(--art-collection-dim);
+}
+.art-section-all .art-gallery { grid-column: 1 / -1; }
+.art-section-all .art-gallery { display: block; padding-top: 32px; }
+
+/* "Preparing the landscape…" while the scene loads on direct Art entry. */
+.art-scene-status {
+  position: fixed;
+  left: 6vw;
+  bottom: 28px;
+  z-index: var(--z-art-status);
+  color: var(--color-muted);
+  font-size: var(--font-size-ui);
+}
+
+/* Desktop with room: the stage hugs the vertical centre with its label below. */
+@media (min-width: 768px) and (min-height: 541px) and (pointer: fine) {
+  .art-section:not(.art-section-all) .art-gallery {
+    --art-caption-height: 12rem;
+    height: 100%;
+    max-height: calc(50svh + var(--art-caption-height) + 16px);
+    align-self: center;
+  }
+}
+@media (max-width: 767px), (pointer: coarse) {
+  .art-section {
+    grid-template-columns: minmax(0, 1fr);
+    --art-section-pad-top: 68px;
+    --art-section-pad-bottom: 20px;
+  }
+  .art-section::before {
+    /* Top to bottom, darkest at the foot where the label sits. */
+    background: linear-gradient(var(--art-scrim-mobile-high), var(--art-scrim-mobile-mid) 45%,
+      var(--art-scrim-mobile-low));
+  }
+  .art-gallery { --art-caption-height: 14.25rem; grid-column: 1; gap: 12px; }
+  .art-scene-status { display: none; }
+}
+/* Portrait phones (short landscape screens keep their side-by-side layout below). */
+@media (max-width: 599px), (max-width: 767px) and (min-height: 541px) {
+  /* Phones: cap the carousel stage so neighbours take less room; the caption gets the rest. */
+  .art-section:not(.art-section-all) .art-gallery {
+    --art-stage-max: 50svh;
+    grid-template-rows: minmax(180px, var(--art-stage-max)) minmax(var(--art-caption-height), 1fr);
+  }
+}
+/* Short landscape screens keep the vertical gallery beside its caption. */
+@media (max-height: 540px) and (min-width: 600px) {
+  .art-section {
+    --art-section-min-height: 22rem;
+    --art-section-pad-top: 64px;
+    --art-section-pad-bottom: 16px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+  .art-gallery {
+    grid-column: 1;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    grid-template-rows: minmax(180px, 1fr);
+    gap: 24px;
+    align-items: center;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .art-environment .art-content {
+    transition: none;
+  }
+}

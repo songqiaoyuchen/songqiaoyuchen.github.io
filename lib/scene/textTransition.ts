@@ -1,3 +1,4 @@
+// Scene text dissolve: visibility stepping and layout swaps that happen only while hidden.
 export type TextTransition = {key: string; visibility: number};
 
 export function advanceTextVisibility(

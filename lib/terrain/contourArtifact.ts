@@ -1,3 +1,4 @@
+// Packs contour tube buffers into one binary artifact (bake script) and unpacks it (worker).
 import type {ContourTubeBuffers} from './lineTubeBuffers';
 
 export const CONTOUR_BUFFER_NAMES = [

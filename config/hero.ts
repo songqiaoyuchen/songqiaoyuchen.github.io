@@ -1,14 +1,6 @@
+// Homepage hero tuning: the WebGL name (SceneHeroName) and the HTML annotation layout (Hero).
+// The copy itself lives in data/hero.ts.
 import {VIEWPORT_BREAKPOINTS} from '@/config/breakpoints';
-
-export const HERO_CONTENT = {
-  eyebrow: "HELLO, I'M",
-  name: 'SQYC',
-  hoverName: 'NIRO',
-  supportingLines: [
-    'CS + MATH AT National University of SG',
-    'EXPLORING SOFTWARE AND VISUAL SOLUTIONS',
-  ],
-} as const;
 
 /**
  * Scene-specific tuning for the homepage identity.
@@ -38,4 +30,10 @@ export const HERO_ANNOTATION_LAYOUT = {
   desktopLeft: '54.5vw',
   eyebrowTop: '27.5svh',
   supportingTop: '55svh',
+} as const;
+
+/** Typewriter delays; keep in step with the --animate-hero-* tokens in styles/tokens.css. */
+export const HERO_REVEAL = {
+  eyebrowDelayMs: 120,
+  supportingDelaysMs: [1760, 2460],
 } as const;

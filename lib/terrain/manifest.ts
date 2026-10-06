@@ -1,3 +1,4 @@
+// Baked terrain manifest types and the cached fetch of public/textures/terrain/baked/manifest.json.
 import type {ContourBufferLayout} from './contourArtifact';
 
 export type TerrainArtifact = {

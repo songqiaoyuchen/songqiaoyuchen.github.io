@@ -1,0 +1,25 @@
+/* Wall label typography (WallLabel.tsx). Views position it and may set --art-label-title (title size). */
+.art-label-title {
+  margin: 0;
+  font-size: var(--art-label-title, 24px);
+  font-weight: 400;
+  line-height: 1.2;
+  color: var(--color-text);
+}
+.art-label-meta {
+  margin: 8px 0 0;
+  font-size: var(--font-size-ui);
+  line-height: 1.5;
+  letter-spacing: 0.02em;
+  color: var(--color-muted);
+}
+/* Material and size on their own lines, as on a gallery label. */
+.art-label-meta span { display: block; }
+.art-label-meta span + span { color: var(--color-dim); }
+.art-label-description {
+  max-width: 48ch;
+  margin: 14px 0 0;
+  font-size: var(--font-size-note);
+  line-height: 1.6;
+  color: var(--color-muted);
+}

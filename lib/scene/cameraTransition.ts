@@ -1,3 +1,4 @@
+// Camera journey between poses: eased position plus independently slerped orientation.
 import {Camera, Matrix4, Quaternion, Vector3} from 'three';
 
 /** Interpolate orientation independently of translation so the focus cannot cross the camera. */

@@ -1,3 +1,4 @@
+// Shared prefers-reduced-motion subscription (one media query listener for all components).
 'use client';
 
 import {useSyncExternalStore} from 'react';

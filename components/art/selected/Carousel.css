@@ -1,0 +1,87 @@
+/* Selected works carousel (Carousel.tsx): stage, edge-faded 3D ring and slides. useCarouselMotion writes
+   each slide's --offset/--abs-offset/--shift, size and opacity; the tokens below shape the ring. */
+.art-stage {
+  position: relative;
+  min-height: 0;
+}
+.art-stage:has(.art-carousel:focus-visible) {
+  outline: var(--focus-ring);
+  outline-offset: 4px;
+}
+.art-carousel {
+  /* Ring shape: perspective depth, how far and how much neighbours recede and turn. */
+  --art-ring-perspective: 1000px;
+  --art-ring-depth: -120px;
+  --art-ring-tilt: 22deg;
+  --art-fade-axis: 90deg;
+  position: relative;
+  height: 100%;
+  perspective: var(--art-ring-perspective);
+  overflow: hidden;
+  touch-action: pan-x pinch-zoom;
+  user-select: none;
+  -webkit-mask-image: linear-gradient(var(--art-fade-axis), transparent, #000 12%, #000 88%, transparent);
+  mask-image: linear-gradient(var(--art-fade-axis), transparent, #000 12%, #000 88%, transparent);
+}
+.art-carousel-slide {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 66%;
+  height: 82%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Neighbours sit deeper than they rotate, so the selected work reads as hung in front. */
+  transform: translate(-50%, -50%) translateX(var(--shift, 0px))
+    translateZ(calc(var(--abs-offset) * var(--art-ring-depth))) rotateY(calc(var(--offset) * -1 * var(--art-ring-tilt)));
+  /* useCarouselMotion animates the pose with a spring; transitions would lag it. */
+}
+.art-carousel-slide[data-current='true'] {
+  z-index: 1;
+}
+.art-carousel-slide[inert] {
+  pointer-events: none;
+}
+.art-frame {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+.art-carousel-slide[data-current='true'] .art-frame {
+  cursor: zoom-in;
+}
+.art-section .art-frame:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+.art-frame img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+@media (min-width: 768px) and (min-height: 541px) and (pointer: fine) {
+  .art-carousel-slide {
+    /* Leave paint clearance inside the clip; with the grid gap, the caption is 32px below the image. */
+    top: calc(100% - var(--art-frame-half-height, 50%) - 16px);
+  }
+}
+/* Narrow or touch: the ring turns vertical. */
+@media (max-width: 767px), (pointer: coarse) {
+  .art-carousel { --art-fade-axis: 180deg; }
+  .art-carousel-slide {
+    transform: translate(-50%, -50%) translateY(var(--shift, 0px))
+      translateZ(calc(var(--abs-offset) * var(--art-ring-depth))) rotateX(calc(var(--offset) * var(--art-ring-tilt)));
+  }
+}
+/* Short landscape: the stage fills its grid cell beside the label. */
+@media (max-height: 540px) and (min-width: 600px) {
+  .art-stage { height: 100%; }
+}

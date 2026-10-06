@@ -1,3 +1,4 @@
+// Reports the scene ready once all shaders compiled and two full frames rendered (ends the preloader).
 'use client';
 
 import {useLayoutEffect, useRef, useState} from 'react';

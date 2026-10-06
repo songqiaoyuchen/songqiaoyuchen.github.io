@@ -1,3 +1,4 @@
+// Terrain web worker: downloads and decompresses baked artifacts, rebuilds contours on request.
 import {loadTerrainManifest, type TerrainArtifact} from './manifest';
 import {extractIsolines} from './isolines';
 import {unpackContourTubeBuffers} from './contourArtifact';

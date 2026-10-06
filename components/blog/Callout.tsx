@@ -1,3 +1,4 @@
+// MDX <Callout>: highlighted aside with an optional title (styles in article.css).
 import type {ReactNode} from 'react';
 
 interface CalloutProps {

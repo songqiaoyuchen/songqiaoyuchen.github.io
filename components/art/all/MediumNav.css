@@ -1,0 +1,52 @@
+/* Medium nav (MediumNav.tsx): a floating pill bar at the bottom of All works; the accent pill
+   (Motion layoutId) slides to the current medium. */
+.art-medium-nav {
+  --art-medium-nav-shadow: rgb(0 0 0 / 40%);
+  position: fixed;
+  inset-inline: 16px;
+  bottom: max(20px, env(safe-area-inset-bottom));
+  z-index: var(--z-art-medium-nav);
+  display: flex;
+  gap: 4px;
+  width: max-content;
+  max-width: calc(100% - 32px);
+  margin-inline: auto;
+  padding: 6px;
+  border: 1px solid var(--color-line);
+  border-radius: 40px;
+  background: var(--color-surface-strong);
+  box-shadow: 0 12px 28px var(--art-medium-nav-shadow);
+  backdrop-filter: blur(20px);
+}
+.art-medium-link {
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--size-hit-target);
+  padding: 0 15px;
+  gap: 8px;
+  border-radius: 30px;
+  font-size: var(--font-size-ui);
+  color: var(--color-muted);
+  text-decoration: none;
+  transition: color var(--duration-ui);
+}
+.art-medium-count {
+  font-size: var(--font-size-ui);
+  font-variant-numeric: tabular-nums;
+  opacity: 0.6;
+}
+.art-medium-link:hover { color: var(--color-text); }
+.art-medium-link[aria-current] { color: var(--color-background); }
+.art-medium-pill {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--color-accent);
+  pointer-events: none;
+}
+@media (max-width: 767px), (pointer: coarse) {
+  .art-medium-link { padding: 0 12px; gap: 6px; }
+}

@@ -1,17 +1,15 @@
+// About drawer panel: introduction, experience timeline and contact footer.
 'use client';
 
 import {useRef} from 'react';
-import {ABOUT_CONTACT} from '@/data/aboutTimeline';
+import {ABOUT_CONTACT, ABOUT_INTRO} from '@/data/about';
+import {panelStyles} from '../Drawer.styles';
 import {ContactFooter} from './ContactFooter';
 import {ExperienceTimeline} from './ExperienceTimeline';
-import {PANEL_SCROLL_CLASS} from '../panelStyles';
 
 interface AboutPanelProps {
   isOpen: boolean;
 }
-
-const FOCUS_RING = `rounded-xs focus-visible:outline-1 focus-visible:outline-offset-4
-  focus-visible:outline-accent`;
 
 export function AboutPanel({isOpen}: AboutPanelProps) {
   const shellRef = useRef<HTMLDivElement>(null);
@@ -25,59 +23,58 @@ export function AboutPanel({isOpen}: AboutPanelProps) {
       ref={shellRef}
     >
       <div
-        className={PANEL_SCROLL_CLASS}
+        className={panelStyles.scroll}
         ref={scrollRef}
       >
-        <div className="animate-drawer-content motion-reduce:animate-none">
+        <div className={panelStyles.content}>
           <header>
-          <h2 className="mb-5 font-serif text-display font-normal italic uppercase leading-none
-            text-text md:text-5xl">
-            About
-          </h2>
-        </header>
+            <h2 className={panelStyles.title}>
+              About
+            </h2>
+          </header>
 
-        <div>
-          <section
-            aria-labelledby="about-intro-title"
-            className="flex flex-col justify-center gap-4 sm:gap-6"
-          >
-            <h3
-              className="m-0 -translate-x-[0.04em] font-serif text-3xl leading-[0.98]
-                font-normal tracking-[0.02em] text-accent italic"
-              id="about-intro-title"
+          <div>
+            <section
+              aria-labelledby="about-intro-title"
+              className="flex flex-col justify-center gap-4 sm:gap-6"
             >
-              Song Qiaoyuchen
-            </h3>
+              <h3
+                className="m-0 -translate-x-[0.04em] font-serif text-3xl leading-[0.98]
+                  font-normal tracking-[0.02em] text-accent italic"
+                id="about-intro-title"
+              >
+                {ABOUT_INTRO.name}
+              </h3>
 
-            <a
-              className={`items-center gap-[0.45rem] font-mono text-label
-                tracking-label text-accent-soft uppercase no-underline transition-colors
-                duration-interaction ease-out hover:text-text ${FOCUS_RING}`}
-              href={ABOUT_CONTACT.resume}
-              rel="noreferrer"
-              target="_blank"
-            >
-              Résumé
-              <span aria-hidden="true" className="-translate-y-px translate-x-px">↗</span>
-            </a>
+              <a
+                className={`items-center gap-[0.45rem] font-mono text-label
+                  tracking-label text-accent-soft uppercase no-underline transition-colors
+                  duration-interaction ease-out hover:text-text ${panelStyles.focusRing}`}
+                href={ABOUT_CONTACT.resume}
+                rel="noreferrer"
+                target="_blank"
+              >
+                Résumé
+                <span aria-hidden="true" className="-translate-y-px translate-x-px">↗</span>
+              </a>
 
-            <p
-              className="font-mono text-meta leading-meta tracking-meta
-                text-muted uppercase"
-            >
-              Computer Science + Mathematics · National University of Singapore
-            </p>
-            <p
-              className="font-mono text-intro-copy leading-intro-copy
-                tracking-[0.035em] text-muted-soft"
-            >
-              I build software across systems, interfaces, and interactive graphics.
-              Outside engineering, I work with visual art and explore places through cycling.
-            </p>
-          </section>
+              <p
+                className="font-mono text-meta leading-meta tracking-meta
+                  text-muted uppercase"
+              >
+                {ABOUT_INTRO.studies}
+              </p>
+              <p
+                className="font-mono text-intro-copy leading-intro-copy
+                  tracking-[0.035em] text-muted-soft"
+              >
+                {ABOUT_INTRO.bio}
+              </p>
+            </section>
 
-          <ExperienceTimeline isOpen={isOpen} scrollRef={scrollRef} shellRef={shellRef} />
-          <ContactFooter />
+            {/* The timeline also maintains this panel's data-at-start/end edge flags. */}
+            <ExperienceTimeline isOpen={isOpen} scrollRef={scrollRef} shellRef={shellRef} />
+            <ContactFooter />
           </div>
         </div>
       </div>

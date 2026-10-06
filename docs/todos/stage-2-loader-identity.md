@@ -21,12 +21,12 @@ Adapt to real readiness without prolonging a fast load for animation.
 - The user likes the contour icon but finds the animation unremarkable.
 - The current mark already relates to the terrain. Its repeating stroke animation
   and separate pixel dissolve offer an opportunity for more coherent choreography.
-- [HomepagePreloader](../../components/home/preloader/HomepagePreloader.tsx) uses
+- [Preloader](../../components/home/preloader/Preloader.tsx) uses
   a timed count toward 90 in normal motion, then completes on readiness; it is not
   a continuously measured loading percentage.
 - Timing lives in [preloader config](../../config/preloader.ts), stroke animation
-  in [global styles](../../app/globals.css), and exit rendering in
-  [PreloaderPixelDissolve](../../components/home/preloader/PreloaderPixelDissolve.tsx).
+  in [Preloader.css](../../components/home/preloader/Preloader.css), and exit rendering in
+  [PixelDissolve](../../components/home/preloader/PixelDissolve.tsx).
 
 ## Exploration and open decisions
 

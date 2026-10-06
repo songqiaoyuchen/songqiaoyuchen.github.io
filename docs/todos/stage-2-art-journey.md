@@ -42,17 +42,17 @@ Browser verification used Chromium with emulated touch, not physical mobile devi
 
 ## Ownership and verification
 
-- [Art experience](../../components/artworks/ArtExperience.tsx): selection,
+- [Art section](../../components/art/ArtSection.tsx): selection,
   collection/filter URLs, gestures, and return context.
-- [Inspection](../../components/artworks/ArtInspection.tsx): native modal,
+- [Inspection](../../components/art/inspection/Inspection.tsx): native modal,
   fitted image, caption, focus containment, and loading feedback.
-- [Terrain](../../components/scene/CachedTerrain.tsx): material treatments.
+- [Terrain](../../components/scene/terrain/CachedTerrain.tsx): backdrops.
 - [Routes](../architecture.md): persistent layout and route responsibilities.
-- [Browser checks](../../scripts/verify-art.mjs): full journey, desktop/mobile
+- [Browser checks](../../scripts/verify/verify-art.mjs): full journey, desktop/mobile
   screenshots, touch, reduced motion, no-JavaScript and unavailable-WebGL paths.
-- [Camera checks](../../scripts/verify-art-camera.mjs): frame-by-frame camera
+- [Camera checks](../../scripts/verify/verify-art-camera.mjs): frame-by-frame camera
   continuity, focus, canvas persistence, gallery timing, and return Home.
-- [Layout checks](../../scripts/verify-art-layout.mjs): all six works across
+- [Layout checks](../../scripts/verify/verify-art-layout.mjs): all six works across
   desktop/phone/landscape sizes, viewport fit, visible neighbors and navigation.
 
 ## Source and scope

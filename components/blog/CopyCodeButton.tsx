@@ -1,3 +1,4 @@
+// Copy-to-clipboard button for code blocks, with a selection fallback and a brief "Copied" state.
 'use client';
 
 import {useEffect, useRef, useState} from 'react';

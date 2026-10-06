@@ -1,0 +1,13 @@
+/* Base element styles and the page gutter breakpoint. */
+@layer base {
+  @media (min-width: 40rem) {
+    :root {
+      --spacing-page-gutter: 2.5rem;
+    }
+  }
+
+  html,
+  body {
+    @apply m-0 min-h-full bg-background p-0 text-foreground;
+  }
+}

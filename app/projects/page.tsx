@@ -1,5 +1,7 @@
+// Projects archive route (/projects): every project card in a responsive grid.
 import type {Metadata} from 'next';
-import {ProjectCard} from '@/components/home/drawer/projects/ProjectCard';
+import {ProjectCard} from '@/components/projects/ProjectCard';
+import {pageStyles} from '@/components/site/page.styles';
 import {PROJECTS} from '@/data/projects';
 
 export const metadata: Metadata = {
@@ -9,10 +11,10 @@ export const metadata: Metadata = {
 
 export default function ProjectsPage() {
   return (
-    <main className="relative min-h-svh overflow-x-clip bg-background pb-32 pt-18 text-text sm:pt-32">
-      <div className="relative mx-auto max-w-7xl px-6 sm:px-10">
+    <main className={pageStyles.main}>
+      <div className={`${pageStyles.container} max-w-7xl`}>
         <header className="max-w-2xl">
-          <h1 className="article-title m-0 text-4xl font-normal leading-[1.08] text-text sm:text-6xl lg:text-7xl">
+          <h1 className={pageStyles.title}>
             Projects
           </h1>
         </header>

@@ -1,3 +1,4 @@
+// Homepage preview drawer: slides in the About, Blog or Projects panel beside the scene; Escape closes it.
 'use client';
 
 import {
@@ -7,8 +8,9 @@ import {
   useState,
   type TransitionEvent,
 } from 'react';
-import type {SectionId} from '@/config/navigation/linkStreams';
+import {SECTION_LABELS, type SectionId} from '@/data/sections';
 import type {ArticleSummary} from '@/lib/content/types';
+import {drawerStyles} from './Drawer.styles';
 
 const AboutPanel = lazy(() => import('./about/AboutPanel').then(
   ({AboutPanel: Panel}) => ({default: Panel}),
@@ -21,11 +23,6 @@ const ProjectsPanel = lazy(() => import('./projects/ProjectsPanel').then(
 ));
 
 type PreviewSectionId = Exclude<SectionId, 'art'>;
-const SECTION_LABELS: Record<PreviewSectionId, string> = {
-  about: 'About',
-  blog: 'Blog',
-  projects: 'Projects',
-};
 
 interface DrawerProps {
   activeId: PreviewSectionId | null;
@@ -34,6 +31,7 @@ interface DrawerProps {
 }
 
 export function Drawer({activeId, articles, onClose}: DrawerProps) {
+  // The last panel stays rendered while the drawer fades out.
   const [displayedId, setDisplayedId] = useState<PreviewSectionId | null>(activeId);
 
   useEffect(() => {
@@ -70,26 +68,14 @@ export function Drawer({activeId, articles, onClose}: DrawerProps) {
     <aside
       aria-hidden={activeId === null}
       aria-label={`${sectionLabel} preview`}
-      className={`
-        fixed inset-y-0 left-0 z-40 w-full md:w-drawer
-        transition-[opacity,visibility] duration-100 motion-reduce:duration-0
-        ${
-          activeId !== null
-            ? 'visible pointer-events-auto opacity-100'
-            : 'invisible pointer-events-none opacity-0'
-        }
-      }`}
+      className={`${drawerStyles.aside} ${activeId !== null ? drawerStyles.open : drawerStyles.closed}`}
       id="section-preview"
       inert={activeId === null}
       onTransitionEnd={handleTransitionEnd}
     >
-      <div
-        aria-hidden="true"
-        className={`preview-backdrop pointer-events-none absolute inset-0
-          max-md:border-r-0 max-md:bg-panel/94 max-md:mask-none`}
-      />
+      <div aria-hidden="true" className={drawerStyles.backdrop} />
 
-      <div className="relative z-10 h-full">
+      <div className={drawerStyles.body}>
         <Suspense fallback={null}>
           {isAbout ? (
             <AboutPanel isOpen={activeId === 'about'} />
@@ -103,10 +89,7 @@ export function Drawer({activeId, articles, onClose}: DrawerProps) {
 
       <button
         aria-label={`Close ${sectionLabel.toLowerCase()} preview`}
-        className="absolute right-6 top-20 z-50 grid size-11 place-items-center border-0 bg-transparent
-          p-0 font-mono text-xl font-light leading-none text-dim transition-colors
-          duration-interaction ease-out hover:text-text focus-visible:outline-1
-          focus-visible:outline-offset-4 focus-visible:outline-accent md:right-0 md:top-24"
+        className={drawerStyles.close}
         onClick={onClose}
         tabIndex={activeId !== null ? 0 : -1}
         type="button"

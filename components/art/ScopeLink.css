@@ -1,0 +1,16 @@
+/* Title-row view links (ScopeLink.tsx): text-sized so they align by baseline; an invisible ::after
+   extends the hit area to the 44px minimum without moving the text. Builds on .art-text-link. */
+.art-scope-link {
+  position: relative;
+  min-height: 0;
+  gap: 8px;
+  white-space: nowrap;
+  /* Small caps label, matching the nav and the All works title. */
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+}
+.art-scope-link::after {
+  content: '';
+  position: absolute;
+  inset: calc((100% - var(--size-hit-target)) / 2) -8px;
+}

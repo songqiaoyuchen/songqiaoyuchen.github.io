@@ -1,0 +1,12 @@
+/* Gallery view transition (useGalleryTransition.ts): the fixed layer holding the flying artwork clones. */
+.art-transition-layer {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-art-transition);
+  overflow: hidden;
+  pointer-events: none;
+}
+/* The transition fades text in itself; suspend the label entrance animation meanwhile. */
+.art-section[data-gallery-transition] :is(.art-caption-item, .art-caption-item *) {
+  animation: none;
+}

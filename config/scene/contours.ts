@@ -1,6 +1,6 @@
-// Real polylines extracted from the smoothed shell height field (marching
-// squares) and expanded into thin tubes. Lines float above the terrain via
-// lift plus a screen-space depth bias.
+// Contour lines: polylines marched from the smoothed height field, drawn as thin glowing tubes.
+// Geometry keys are baked offline (npm run bake:terrain); dev-config writes the Leva keys here.
+// Lines float above the terrain via lift plus a screen-space depth bias.
 export const CONTOUR_CONFIG = {
   lift: 0, // world-units raised above the base surface
   smoothIterations: 8, // Laplacian passes on the shell field

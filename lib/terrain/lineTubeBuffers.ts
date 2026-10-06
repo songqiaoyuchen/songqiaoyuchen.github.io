@@ -1,3 +1,4 @@
+// Expands contour polylines into triangular tube vertex/index buffers (worker- and node-safe).
 import type {Isoline} from './isolines';
 
 /** Triangular cross-section: the smallest tube that has a silhouette at every angle. */

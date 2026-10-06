@@ -1,0 +1,85 @@
+/* Wall label row under the carousel (Caption.tsx). The outgoing label fades in the same grid cell, so the
+   position never moves between works; it spans the widest work's edges (--art-work-inset from Caption.tsx). */
+.art-caption {
+  /* Halo that keeps the label legible over live terrain. */
+  --art-caption-halo-near: rgb(0 0 0 / 60%);
+  --art-caption-halo-far: rgb(0 0 0 / 70%);
+  display: grid;
+  min-height: 0;
+  font-size: var(--font-size-note); /* ch below follows the label's note size */
+}
+.art-caption-live,
+.art-caption-item[data-leaving],
+.art-caption-scope {
+  grid-area: 1 / 1;
+  min-width: 0;
+}
+/* Between the widest work's edges: the label starts on the left edge, never past the column's right
+   edge, and the All works link ends on the right edge. */
+.art-caption {
+  --art-label-inset: min(var(--art-work-inset, 17%), max(0px, 100% - 40ch));
+}
+.art-caption-item {
+  padding-left: var(--art-label-inset);
+}
+/* The live label and the link share the title's baseline; the leaving label
+   stays at the top so the two labels overlap exactly. */
+.art-caption-live,
+.art-caption-scope { align-self: baseline; }
+.art-caption-scope {
+  justify-self: end;
+  padding-right: var(--art-label-inset);
+}
+/* Entrance: title, then material, then note, each rising slightly. */
+.art-caption-live .art-label > * {
+  animation: art-label-enter 560ms 120ms var(--ease-settle) both;
+}
+.art-caption-live .art-label > :nth-child(2) { animation-delay: 170ms; }
+.art-caption-live .art-label > :nth-child(3) { animation-delay: 220ms; }
+.art-caption-item[data-leaving] {
+  opacity: 0;
+  pointer-events: none;
+  animation: art-label-leave 180ms ease-in both;
+}
+@keyframes art-label-enter {
+  from { opacity: 0; transform: translateY(6px); }
+}
+@keyframes art-label-leave {
+  from { opacity: 1; }
+  to { opacity: 0; transform: translateY(-4px); }
+}
+/* The label as hung on the terrain: larger title, brighter tones and a soft halo. */
+.art-caption .art-label {
+  --art-label-title: clamp(22px, 2vw, 28px);
+  max-width: 40ch;
+  text-shadow: 0 1px 2px var(--art-caption-halo-near), 0 0 18px var(--art-caption-halo-far);
+}
+.art-caption .art-label-description {
+  color: color-mix(in srgb, var(--color-text) 82%, var(--color-muted));
+}
+/* Medium and the way onward carry the accent; size stays quiet beneath it. */
+.art-caption .art-label-meta { color: var(--color-accent-soft); }
+.art-caption .art-label-meta span + span { color: var(--color-muted); }
+.art-caption .art-scope-link { color: var(--color-accent-soft); }
+.art-caption .art-scope-link:hover { color: var(--color-accent); }
+/* Leave the link's end of the title row clear. */
+.art-caption .art-label-title { padding-right: 8rem; }
+.art-caption .art-label-description { max-width: none; }
+
+@media (max-width: 767px), (pointer: coarse) {
+  .art-caption .art-label { --art-label-title: 24px; }
+}
+/* Short landscape: beside the work, a fixed-height cell, top-aligned, so the title never moves. */
+@media (max-height: 540px) and (min-width: 600px) {
+  .art-caption { --art-caption-height: 13.5rem; height: min(100%, var(--art-caption-height)); }
+  /* Beside the stage the label has its own column; no hanging inset. */
+  .art-caption { --art-label-inset: 0px; }
+  .art-caption .art-label { --art-label-title: 22px; }
+  .art-caption .art-label-description { font-size: 13px; line-height: 1.55; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .art-caption-item,
+  .art-caption-item * {
+    animation: none;
+  }
+}

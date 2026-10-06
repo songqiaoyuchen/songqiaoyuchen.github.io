@@ -1,3 +1,4 @@
+// Development-only live relight: bakes two point lights and terrain shadows into a lighting texture.
 import {
   ClampToEdgeWrapping,
   DataTexture,

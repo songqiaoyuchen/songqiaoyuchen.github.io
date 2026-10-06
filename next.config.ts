@@ -1,4 +1,4 @@
-// next.config.ts
+// Next.js config: MDX pages, GLSL imports via raw-loader, static export for GitHub Pages, cache headers.
 import createMDX from '@next/mdx';
 import type {NextConfig} from 'next';
 const isGitHubPages = process.env.GITHUB_PAGES === 'true';

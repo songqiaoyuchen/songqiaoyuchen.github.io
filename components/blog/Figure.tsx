@@ -1,3 +1,4 @@
+// MDX <Figure>: framed responsive image with optional caption and credit.
 import Image from 'next/image';
 import {VIEWPORT_MEDIA} from '@/config/breakpoints';
 import type {ImageProps} from 'next/image';

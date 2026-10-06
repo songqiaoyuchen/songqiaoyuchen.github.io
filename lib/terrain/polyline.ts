@@ -1,3 +1,4 @@
+// Polyline helpers: Ramer-Douglas-Peucker simplification, Chaikin smoothing and even resampling.
 export function simplifyPolyline(
   points: number[] | Float32Array,
   epsilon: number,

@@ -1,3 +1,4 @@
+// Software projects shown in the Projects drawer (featured) and on /projects (all).
 import type {StaticImageData} from 'next/image';
 import thisSiteImage from '@/public/images/projects/this-site.webp';
 import uniplansImage from '@/public/images/projects/uniplans.webp';
@@ -99,3 +100,7 @@ export const PROJECTS = [
 ] as const satisfies readonly Project[];
 
 export const FEATURED_PROJECTS = PROJECTS.filter((project) => project.featured);
+
+/** Introduction above the featured projects in the drawer. */
+export const PROJECTS_INTRO = "Some of the stuff I've built; Always looking for the next interesting "
+  + 'project to work on.';

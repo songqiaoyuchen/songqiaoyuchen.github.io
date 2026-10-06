@@ -1,0 +1,43 @@
+/* Screenshot mode (CapturePanel.tsx, dev only): the opener link, the control panel, and the 2:1 scene
+   frame shown while body[data-art-capture] hides the gallery, nav and dev overlays. */
+.art-capture-open {
+  position: fixed;
+  bottom: 12px;
+  left: var(--spacing-page-gutter);
+  z-index: var(--z-art-capture-open);
+}
+body[data-art-capture] {
+  overflow: hidden;
+}
+body[data-art-capture] :is(.art-section, .art-inspection, .top-nav-glass, [class*="leva-c-"], nextjs-portal) {
+  display: none !important;
+}
+body[data-art-capture] [data-art-capture-frame] {
+  width: min(100vw, 200svh);
+  height: min(50vw, 100svh);
+  inset: 50% auto auto 50%;
+  transform: translate(-50%, -50%);
+}
+.art-capture-panel {
+  position: fixed;
+  z-index: var(--z-art-overlay);
+  top: 12px;
+  right: 12px;
+  width: min(340px, calc(100vw - 24px));
+  max-height: calc(100svh - 24px);
+  overflow: auto;
+  padding: 20px;
+  background: var(--color-background);
+  border: 1px solid var(--color-muted);
+  color: var(--color-foreground);
+  font-size: var(--font-size-ui);
+}
+.art-capture-panel[hidden] { display: none; }
+.art-capture-panel p { margin: 12px 0; color: var(--color-muted); }
+.art-capture-panel label { display: block; margin: 16px 0; }
+.art-capture-panel :is(input, select) { display: block; width: 100%; margin-top: 8px; }
+.art-capture-panel select { padding: 8px; background: var(--color-background); color: inherit; }
+.art-capture-panel output { float: right; }
+.art-capture-panel :is(button, a) { color: var(--color-accent); min-height: 32px; cursor: pointer; }
+.art-capture-panel :disabled { opacity: .5; cursor: wait; }
+.art-capture-panel :focus-visible { outline: var(--focus-ring); outline-offset: 3px; }

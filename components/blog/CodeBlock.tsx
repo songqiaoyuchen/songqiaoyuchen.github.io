@@ -1,3 +1,4 @@
+// MDX code block wrapper: language label and copy button over rehype-pretty-code output.
 import {Children, isValidElement} from 'react';
 import type {ComponentPropsWithoutRef, ReactElement, ReactNode} from 'react';
 import {CopyCodeButton} from './CopyCodeButton';

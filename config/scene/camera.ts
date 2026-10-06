@@ -1,5 +1,7 @@
+// Camera poses per section (written by Leva "Save Camera"/"Save Art View") and journey timing.
+// Type-only imports keep this file loadable by the node scripts in scripts/test and scripts/verify.
 import type {Vector3Tuple} from 'three';
-import type {SectionId} from '@/config/navigation/linkStreams';
+import type {SectionId} from '@/data/sections';
 
 export type CameraPose = Readonly<{
   lookAt: Vector3Tuple;

@@ -1,0 +1,24 @@
+/* About timeline marker keyframes: ripples when an entry activates, a slow pulse on the current entry. */
+@keyframes route-ripple-one {
+  0% { opacity: 0; transform: scale(1); }
+  12% { opacity: 0.84; }
+  100% { opacity: 0; transform: scale(3); }
+}
+
+@keyframes route-ripple-two {
+  0% { opacity: 0; transform: scale(1); }
+  12% { opacity: 0.62; }
+  100% { opacity: 0; transform: scale(4.5); }
+}
+
+@keyframes route-ripple-three {
+  0% { opacity: 0; transform: scale(1); }
+  12% { opacity: 0.4; }
+  100% { opacity: 0; transform: scale(6); }
+}
+
+@keyframes current-signal {
+  0%, 72% { opacity: 0; transform: scale(1); }
+  77% { opacity: 0.22; }
+  94%, 100% { opacity: 0; transform: scale(3.2); }
+}

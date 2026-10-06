@@ -1,0 +1,40 @@
+/* Hero keyframes (driven by the --animate-hero-* tokens) and the typewriter reveal used by TypeReveal. */
+@keyframes hero-type-reveal {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0); }
+}
+
+@keyframes hero-cursor {
+  0%, 70%, 81%, 90% { opacity: 1; }
+  71%, 80%, 91%, 100% { opacity: 0; }
+}
+
+@keyframes hero-name {
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
+  }
+}
+
+@keyframes hero-support {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* One step per character; TypeReveal sets --type-reveal-steps and --type-reveal-delay. */
+.hero-type-reveal {
+  display: inline-block;
+  clip-path: inset(0 100% 0 0);
+  animation: hero-type-reveal 760ms steps(var(--type-reveal-steps), end)
+    var(--type-reveal-delay) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-type-reveal {
+    animation: none;
+    clip-path: none;
+  }
+}

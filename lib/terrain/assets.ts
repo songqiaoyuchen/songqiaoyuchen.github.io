@@ -1,3 +1,4 @@
+// Terrain asset pipeline on the main thread: owns the worker, exposes baked textures as suspense hooks.
 'use client';
 
 import {use} from 'react';

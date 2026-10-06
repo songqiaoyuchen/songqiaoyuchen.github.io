@@ -1,3 +1,4 @@
+// Texture setup for glyph atlases: SDF (scene links, hero name) and bitmap (glyph rain).
 import {
   ClampToEdgeWrapping,
   LinearFilter,

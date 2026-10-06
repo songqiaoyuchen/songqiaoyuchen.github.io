@@ -1,3 +1,5 @@
+// Terrain mesh size and material/lighting; lighting changes need npm run bake:terrain.
+// Loaded by scripts/bake, so keep imports type-only.
 import type {Vector3Tuple} from 'three';
 
 export const TERRAIN_MESH_CONFIG = {

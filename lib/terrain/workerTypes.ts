@@ -1,3 +1,4 @@
+// Message and payload types exchanged between lib/terrain/assets.ts and the terrain worker.
 import type {HeightGrid} from './bake';
 import type {IsolineOptions} from './isolines';
 import type {ContourTubeBuffers} from './lineTubeBuffers';

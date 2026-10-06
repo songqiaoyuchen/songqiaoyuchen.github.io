@@ -1,3 +1,4 @@
+// Separable box blur passes approximating a gaussian over a float height grid.
 function boxBlur(
   source: Float32Array,
   width: number,

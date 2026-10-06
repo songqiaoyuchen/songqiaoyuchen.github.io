@@ -11,7 +11,7 @@ Noted 2026-09-29; revisit when relevant material or a design prompt is available
   `data/projects.ts` with role, decisions, and outcome evidence when requested.
   Current Projects scope is navigation only.
 - [ ] **Art archive:** review captions, dates/context, image crops, and ordering
-  in `data/artworks.ts` and `components/artworks/ArtExperience.tsx`, alongside the
+  in `data/artworks.ts` and `components/art/ArtSection.tsx`, alongside the
   [unified Art journey](stage-2-art-journey.md).
 
 ## Identity, naming and typography
@@ -24,5 +24,5 @@ Noted 2026-09-29; revisit when relevant material or a design prompt is available
   Blog remains unchanged in the current experience plans. Travel's placement as
   a separate section is settled in [Travel](stage-2-travel.md).
 - [ ] **Typography:** compare archive/drawer reading hierarchy with representative
-  copy. In `app/globals.css`, `font-serif` maps to Krypton while article classes
+  copy. In `styles/tokens.css`, `font-serif` maps to Krypton while article classes
   use a system serif; choose changes through design work.

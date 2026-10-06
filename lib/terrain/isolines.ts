@@ -1,3 +1,5 @@
+// Contour extraction: marches each level, then simplifies, smooths and resamples the polylines.
+// Shared with scripts/bake/bake-terrain.mjs, so local imports keep their .ts extension.
 import type {HeightGrid} from './bake';
 import {marchLevel} from './marchingSquares.ts';
 import {resamplePolyline, simplifyPolyline, smoothPolyline} from './polyline.ts';

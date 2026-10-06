@@ -1,3 +1,4 @@
+// Server-only MDX article loader: discovers content/<slug>/index.mdx and validates metadata.
 import 'server-only';
 
 import {readdir} from 'node:fs/promises';

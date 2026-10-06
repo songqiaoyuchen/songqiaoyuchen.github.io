@@ -1,4 +1,5 @@
-import type {ContourControlValues} from '@/components/debug/useSceneControls';
+// Contour build options from config or live Leva values, plus a cache key to detect geometry changes.
+import type {ContourControlValues} from '@/components/scene/controls/useSceneControls';
 import {
   CONTOUR_CONFIG,
   TERRAIN_MATERIAL_CONFIG,

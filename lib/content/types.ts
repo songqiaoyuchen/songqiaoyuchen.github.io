@@ -1,3 +1,4 @@
+// Article metadata, module and summary types shared by the loader and blog UI.
 import type {ComponentType} from 'react';
 
 export interface ArticleMetadata {

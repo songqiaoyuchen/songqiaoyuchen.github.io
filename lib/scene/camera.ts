@@ -1,3 +1,4 @@
+// Homepage field of view that keeps the authored framing across desktop aspect ratios.
 import {MathUtils} from 'three';
 
 type CameraFraming = {

@@ -1,4 +1,4 @@
-// Bloom gives selected lines their hot flat cores and organic glow falloff.
+// Post-processing: bloom gives contours and scene links their hot cores and glow falloff.
 export const POST_PROCESSING_CONFIG = {
   bloomIntensity: 3,
   bloomThreshold: 0.4,

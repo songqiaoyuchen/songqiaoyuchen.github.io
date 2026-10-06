@@ -1,3 +1,4 @@
+// Marching squares: traces one iso-level of a height grid into connected polylines.
 import type {HeightGrid} from './bake';
 
 export interface GridPolyline {

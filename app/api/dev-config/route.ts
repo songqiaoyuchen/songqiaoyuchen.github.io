@@ -1,6 +1,9 @@
+// Dev-only POST endpoint behind the Leva save buttons: rewrites allowlisted literals in config files.
+// Deleted before static export (.github/workflows/nextjs.yml), so it never ships.
 import {promises as fs} from 'fs';
 import path from 'path';
 import {NextResponse} from 'next/server';
+import {EDITABLE_CONFIG, isConfigScope, type ConfigScope} from './editableConfig';
 
 // Round float noise (0.060000000000000005 -> 0.06) without clipping
 // precision anyone actually tunes at.
@@ -29,84 +32,6 @@ function replaceKey(source: string, key: string, literal: string): string | null
   return source.replace(pattern, `$1${literal}`);
 }
 
-const EDITABLE_CONFIG = {
-  camera: {
-    directory: 'scene',
-    fileName: 'camera.ts',
-    keys: [
-      'overviewPosition', 'overviewLookAt',
-      'mobileOverviewPosition', 'mobileOverviewLookAt',
-      'projectsPosition', 'projectsLookAt',
-      'artPosition', 'artLookAt',
-      'blogPosition', 'blogLookAt',
-      'aboutPosition', 'aboutLookAt',
-      'fov', 'artTransitionSeconds',
-    ],
-  },
-  artCursor: {
-    directory: 'scene',
-    fileName: 'artCursor.ts',
-    keys: ['touchRadius', 'healSeconds', 'smudgeDrag', 'smudgeHealSeconds', 'pencilStrength', 'dotsStrength'],
-  },
-  artIllustration: {
-    directory: 'scene',
-    fileName: 'artIllustration.ts',
-    keys: ['revealSeconds', 'fogReleaseSeconds'],
-  },
-  contours: {
-    directory: 'scene',
-    fileName: 'contours.ts',
-    keys: [
-      'levels', 'smoothIterations', 'chaikinIterations', 'resampleSpacing',
-      'spacingJitter', 'shadowChance', 'shadowOffset', 'shadowIntensity',
-      'lift', 'depthBias', 'majorEvery', 'majorMinHeight', 'minorRadius',
-      'majorRadius', 'minorColor', 'minorIntensity', 'minorBase', 'majorColor',
-      'majorIntensity', 'pulseColor', 'pulseTint', 'pulseSpeed', 'pulseScale',
-      'pulseSharpness',
-    ],
-  },
-  fog: {
-    directory: 'scene',
-    fileName: 'fog.ts',
-    keys: ['near', 'far', 'flightNear', 'flightFar'],
-  },
-  postProcessing: {
-    directory: 'scene',
-    fileName: 'postProcessing.ts',
-    keys: ['bloomIntensity', 'bloomThreshold', 'bloomSmoothing'],
-  },
-  terrain: {
-    directory: 'scene',
-    fileName: 'terrain.ts',
-    keys: [
-      'elevation', 'seaLevel', 'baseColor', 'ridgeColor', 'shadowStrength',
-      'shadowBias', 'lightColor', 'lightX', 'lightY', 'lightZ', 'lightIntensity',
-      'lightFalloff', 'light2Color', 'light2X', 'light2Y', 'light2Z',
-      'light2Intensity', 'light2Falloff',
-    ],
-  },
-  linkStreams: {
-    directory: 'navigation',
-    fileName: 'linkStreams.ts',
-    keys: ['mobileStartX', 'mobileEndX', 'mobileCenterY', 'mobileDepthOffset'],
-  },
-  decorStreams: {
-    directory: 'scene',
-    fileName: 'decorStreams.ts',
-    keys: [
-      'fallRowsPerSecond',
-      'packetRowsPerSecond',
-      'letterSwapsPerSecond',
-    ],
-  },
-} as const;
-
-type ConfigScope = keyof typeof EDITABLE_CONFIG;
-
-function isConfigScope(value: string): value is ConfigScope {
-  return value in EDITABLE_CONFIG;
-}
-
 type ConfigSource = {
   filePath: string;
   source: string;
@@ -114,7 +39,7 @@ type ConfigSource = {
 };
 
 /**
- * Dev-only: writes values back into the focused files under config/scene.
+ * Dev-only: writes values back into the focused files under config/.
  * Values use explicit `scope.key` paths. Both scopes and keys are allowlisted,
  * so unrelated Leva controls can never be written into source files.
  */
@@ -131,8 +56,7 @@ export async function POST(request: Request) {
   const scopes = Object.keys(EDITABLE_CONFIG) as ConfigScope[];
   const sourceEntries = await Promise.all(
     scopes.map(async (scope) => {
-      const {directory, fileName} = EDITABLE_CONFIG[scope];
-      const filePath = path.join(process.cwd(), 'config', directory, fileName);
+      const filePath = path.join(process.cwd(), 'config', EDITABLE_CONFIG[scope].file);
       return [scope, {
         filePath,
         source: await fs.readFile(filePath, 'utf8'),

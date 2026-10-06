@@ -1,3 +1,4 @@
+// Builds the smoothed "shell" height field that contours and scene text sit on.
 import type {HeightGrid} from './bake';
 
 function smoothGrid(grid: HeightGrid, iterations: number, factor: number) {

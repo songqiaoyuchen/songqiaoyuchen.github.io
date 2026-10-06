@@ -3,16 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "bake:oil": "node scripts/bake-oil-terrain.mjs",
-    "bake:terrain": "node scripts/bake-terrain.mjs",
+    "bake:oil": "node scripts/bake/bake-oil-terrain.mjs",
+    "bake:terrain": "node scripts/bake/bake-terrain.mjs",
     "dev": "next dev",
     "build": "next build",
-    "check:terrain-bake": "node scripts/bake-terrain.mjs --check",
+    "check:terrain-bake": "node scripts/bake/bake-terrain.mjs --check",
     "prebuild": "npm run check:terrain-bake",
-    "postbuild": "node scripts/fix-windows-export.mjs",
+    "postbuild": "node scripts/build/fix-windows-export.mjs",
     "start": "next start",
     "lint": "eslint",
-    "sync:artwork-dimensions": "node scripts/sync-artwork-dimensions.mjs"
+    "sync:artwork-dimensions": "node scripts/assets/sync-artwork-dimensions.mjs"
   },
   "dependencies": {
     "@mdx-js/loader": "^3.1.1",

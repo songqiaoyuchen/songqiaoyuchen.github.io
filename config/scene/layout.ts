@@ -1,3 +1,4 @@
+// Viewport assumptions the homepage WebGL composition was authored against.
 import {VIEWPORT_BREAKPOINTS} from '@/config/breakpoints';
 
 /** Shared viewport assumptions used to author the homepage WebGL composition. */

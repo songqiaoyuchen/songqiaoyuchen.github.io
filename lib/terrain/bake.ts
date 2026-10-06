@@ -1,3 +1,4 @@
+// Height grid types and conversion of baked height data into displacement/gradient textures.
 import {
   ClampToEdgeWrapping,
   DataTexture,

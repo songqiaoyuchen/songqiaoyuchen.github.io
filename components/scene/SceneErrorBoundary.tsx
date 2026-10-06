@@ -1,3 +1,4 @@
+// Catches WebGL/scene failures so SceneShell can switch to the static terrain fallback.
 'use client';
 
 import {Component, type ReactNode} from 'react';

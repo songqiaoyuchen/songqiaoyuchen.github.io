@@ -1,3 +1,4 @@
+// CPU terrain height sampling, matching the vertex shader, for placing scene text on the surface.
 import {TERRAIN_MATERIAL_CONFIG, TERRAIN_MESH_CONFIG} from '@/config/scene';
 import type {HeightGrid} from './bake';
 

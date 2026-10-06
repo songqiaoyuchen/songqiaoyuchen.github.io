@@ -1,3 +1,4 @@
+// Animated integer counter (Motion) that writes straight to the DOM instead of re-rendering.
 'use client';
 
 import {useEffect, useRef} from 'react';

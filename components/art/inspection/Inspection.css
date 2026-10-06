@@ -1,0 +1,106 @@
+/* Inspection dialog (Inspection.tsx): full-screen dark ground, toolbar, the large image and a wall label
+   with the note set beside the title on wide screens. */
+.art-inspection {
+  --art-inspection-ground: rgb(8 9 9 / 97%);
+  position: fixed;
+  z-index: var(--z-art-overlay);
+  inset: 0;
+  width: 100%;
+  height: 100svh;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 24px 5vw 32px;
+  background: var(--art-inspection-ground);
+  border: 0;
+  color: var(--color-text);
+  overflow-y: auto;
+}
+/* ::backdrop does not inherit custom properties everywhere, so its colour stays literal. */
+.art-inspection::backdrop {
+  background: rgb(0 0 0 / 85%);
+  backdrop-filter: blur(12px);
+}
+.art-inspection[open] {
+  display: flex;
+  flex-direction: column;
+  animation: art-inspection-enter 240ms ease both;
+}
+@keyframes art-inspection-enter {
+  from {
+    opacity: 0;
+    transform: translateY(0.25rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.art-inspection-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  flex-shrink: 0;
+}
+.art-inspection-toolbar .art-text-link span {
+  font-size: 25px;
+}
+.art-inspection-image {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 25px 0;
+}
+.art-image-status {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: var(--font-size-ui);
+  color: var(--color-muted);
+}
+.art-image-status a {
+  color: var(--color-accent);
+}
+.art-inspection-image img {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 65svh;
+  object-fit: contain;
+}
+/* Title and material on the left; the note on the right, as on a gallery wall. */
+.art-inspection-caption {
+  --art-label-title: 24px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 60ch);
+  grid-template-rows: auto 1fr;
+  column-gap: 40px;
+  border-top: 1px solid var(--color-line);
+  padding-top: 20px;
+  flex-shrink: 0;
+}
+.art-inspection-caption .art-label-description {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  max-width: none;
+  margin: 0;
+}
+@media (max-width: 767px), (pointer: coarse) {
+  .art-inspection { padding: 16px 20px 30px; }
+  .art-inspection-image { flex: 0 0 auto; min-height: 40svh; padding: 30px 0; }
+  .art-inspection-image img { max-height: 57svh; }
+  .art-inspection-caption { display: block; }
+  .art-inspection-caption .art-label-description { margin-top: 18px; }
+  .art-inspection-toolbar .art-text-link { font-size: var(--font-size-ui); gap: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .art-inspection[open] {
+    animation: none;
+  }
+}

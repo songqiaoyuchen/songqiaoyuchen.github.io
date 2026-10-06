@@ -1,0 +1,61 @@
+/* Swipe rail (SwipeRail.tsx): only on touch or pointerless narrow screens; desktop browses by wheel,
+   drag and keys. A hairline track with a sliding marker between previous/next buttons. */
+.art-swipe { display: none; }
+@media (pointer: coarse), (max-width: 767px) and (pointer: none) {
+  .art-swipe {
+    --art-swipe-track-length: 72px;
+    position: absolute;
+    z-index: 2;
+    top: 50%;
+    right: -12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transform: translateY(-50%);
+  }
+  .art-swipe-step {
+    display: grid;
+    place-items: center;
+    width: var(--size-hit-target);
+    height: var(--size-hit-target);
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--color-muted);
+    font: inherit;
+    font-size: var(--font-size-note);
+    line-height: 1;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: color var(--duration-ui);
+  }
+  .art-swipe-step:active { color: var(--color-accent); }
+  .art-swipe-track {
+    position: relative;
+    width: 1px;
+    height: var(--art-swipe-track-length);
+    background: var(--color-line);
+  }
+  .art-swipe-marker {
+    position: absolute;
+    inset: 0 0 auto;
+    height: calc(100% / var(--count));
+    background: var(--color-accent);
+    transform: translateY(calc(var(--index) * 100%));
+    transition: transform 420ms var(--ease-settle);
+  }
+  .art-swipe-step span { display: block; }
+  /* One gentle nudge once the gallery is revealed. */
+  .art-environment:not([data-art-arriving='true']) .art-swipe-next span {
+    animation: art-swipe-hint 1200ms 900ms ease-in-out 2;
+  }
+}
+@keyframes art-swipe-hint {
+  50% { transform: translateY(5px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .art-environment .art-swipe-next span {
+    animation: none;
+  }
+  .art-swipe-marker { transition: none; }
+}

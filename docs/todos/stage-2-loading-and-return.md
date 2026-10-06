@@ -2,7 +2,7 @@
 
 Status: Home/Art continuity implemented; other section lifecycles remain deferred.
 
-Home and Art share a mounted canvas through the experience route-group layout.
+Home and Art share a mounted canvas through the `(scene)` route-group layout.
 Direct Art entry renders useful content while terrain prepares and skips the
 homepage entrance. Returning Home retains the scene. Collection/detail URLs
 preserve context; local return restores focus and scroll. Leaving this route
@@ -29,8 +29,8 @@ ordinary navigation, and actual waiting without hiding unfinished scene setup.
 
 - The original `/artworks` Back path replayed the homepage loader; the shared
   Home/Art layout now keeps the canvas and readiness state mounted.
-- [Home](../../components/home/Home.tsx) starts in `loading` on each mount.
-  [TerrainBackground](../../components/scene/TerrainBackground.tsx) schedules
+- [SceneShell](../../components/shell/SceneShell.tsx) starts in `loading` on each mount.
+  [SceneCanvas](../../components/scene/SceneCanvas.tsx) schedules
   cleanup; [terrain assets](../../lib/terrain/assets.ts) disposes prepared resources.
   HTTP-cached files do not imply a ready CPU/GPU scene.
 - Art selection and filter now live in the URL. Other section state remains

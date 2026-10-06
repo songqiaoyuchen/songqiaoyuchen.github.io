@@ -1,0 +1,65 @@
+/* Drawer utilities: the desktop gradient backdrop (preview-backdrop) and the bottom fade of scrolling panels. */
+@utility preview-backdrop {
+  /* Panel-coloured (--color-panel) fade to the right, with a faint edge and shadow. */
+  --drawer-edge: rgb(255 255 255 / 5%);
+  --drawer-tint-strong: rgb(8 10 13 / 94%);
+  --drawer-tint: rgb(8 10 13 / 88%);
+  --drawer-tint-faint: rgb(8 10 13 / 20%);
+  --drawer-shadow: rgb(0 0 0 / 12%);
+  --drawer-fade-start: rgb(0 0 0 / 90%);
+  --drawer-fade-end: rgb(0 0 0 / 45%);
+
+  border-right: 1px solid var(--drawer-edge);
+  background: linear-gradient(
+    90deg,
+    var(--drawer-tint-strong) 0%,
+    var(--drawer-tint) 72%,
+    var(--drawer-tint-faint) 94%,
+    transparent 100%
+  );
+  box-shadow: 20px 0 60px var(--drawer-shadow);
+  mask-image: linear-gradient(
+    90deg,
+    black 0%,
+    black 78%,
+    var(--drawer-fade-start) 86%,
+    var(--drawer-fade-end) 94%,
+    transparent 100%
+  );
+}
+
+/* Hides the end of a panel's column under a blurred fade until it is scrolled to the end (BlogPanel). */
+@utility about-bottom-reveal {
+  /* Panel tint (--color-panel) deepening downward, masked so the top of the fade is clear. */
+  --reveal-tint-faint: rgb(8 10 13 / 8%);
+  --reveal-tint: rgb(8 10 13 / 42%);
+  --reveal-tint-strong: rgb(8 10 13 / 94%);
+  --reveal-mask-faint: rgb(0 0 0 / 8%);
+  --reveal-mask: rgb(0 0 0 / 42%);
+
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    var(--reveal-tint-faint) 28%,
+    var(--reveal-tint) 66%,
+    var(--reveal-tint-strong) 100%
+  );
+  -webkit-backdrop-filter: blur(var(--blur-reveal));
+  backdrop-filter: blur(var(--blur-reveal));
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    var(--reveal-mask-faint) 18%,
+    var(--reveal-mask) 48%,
+    black 82%,
+    black 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    var(--reveal-mask-faint) 18%,
+    var(--reveal-mask) 48%,
+    black 82%,
+    black 100%
+  );
+}
