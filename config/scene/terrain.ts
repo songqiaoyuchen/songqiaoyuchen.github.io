@@ -6,8 +6,9 @@ export const TERRAIN_MESH_CONFIG = {
   position: [0, -0.5, 0] as Vector3Tuple,
   segments: 512,
   planeSize: 22,
-  // Normalized inward fade on every side, hiding the finite plane boundary.
-  edgeFeather: 0.12,
+  // World distance from the plane's centre where the ground (and its lines) start to fall to the background,
+  // and where they are gone: a round pool of ground, dark long before the plane's edge from any camera.
+  edgeFade: [6.5, 10] as readonly [number, number],
 } as const;
 
 export const TERRAIN_MATERIAL_CONFIG = {

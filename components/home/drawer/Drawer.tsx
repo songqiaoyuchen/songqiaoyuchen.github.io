@@ -1,4 +1,5 @@
 // Homepage preview drawer: slides in the About, Blog or Projects panel beside the scene; Escape closes it.
+// Blog and Projects open on the left; About opens on the right of its terrain path.
 'use client';
 
 import {
@@ -6,10 +7,12 @@ import {
   Suspense,
   useEffect,
   useState,
+  type MutableRefObject,
   type TransitionEvent,
 } from 'react';
 import {SECTION_LABELS, type SectionId} from '@/data/sections';
 import type {ArticleSummary} from '@/lib/content/types';
+import type {AboutScrollRequest} from './about/useTimelineProgress';
 import {drawerStyles} from './Drawer.styles';
 
 const AboutPanel = lazy(() => import('./about/AboutPanel').then(
@@ -26,11 +29,17 @@ type PreviewSectionId = Exclude<SectionId, 'art'>;
 
 interface DrawerProps {
   activeId: PreviewSectionId | null;
+  aboutScrollRequest: AboutScrollRequest | null;
+  /** About's reading-head position in stops, shared with the terrain path. */
+  aboutProgressRef: MutableRefObject<number>;
   articles: readonly ArticleSummary[];
+  onAboutStopChange: (stop: number) => void;
   onClose: () => void;
 }
 
-export function Drawer({activeId, articles, onClose}: DrawerProps) {
+export function Drawer({
+  activeId, aboutProgressRef, aboutScrollRequest, articles, onAboutStopChange, onClose,
+}: DrawerProps) {
   // The last panel stays rendered while the drawer fades out.
   const [displayedId, setDisplayedId] = useState<PreviewSectionId | null>(activeId);
 
@@ -68,17 +77,26 @@ export function Drawer({activeId, articles, onClose}: DrawerProps) {
     <aside
       aria-hidden={activeId === null}
       aria-label={`${sectionLabel} preview`}
-      className={`${drawerStyles.aside} ${activeId !== null ? drawerStyles.open : drawerStyles.closed}`}
+      className={`${drawerStyles.aside} ${isAbout ? drawerStyles.asideEnd : drawerStyles.asideStart}
+        ${activeId !== null ? drawerStyles.open : drawerStyles.closed}`}
       id="section-preview"
       inert={activeId === null}
       onTransitionEnd={handleTransitionEnd}
     >
-      <div aria-hidden="true" className={drawerStyles.backdrop} />
+      <div
+        aria-hidden="true"
+        className={`${drawerStyles.backdrop} ${isAbout ? drawerStyles.backdropEnd : drawerStyles.backdropStart}`}
+      />
 
       <div className={drawerStyles.body}>
         <Suspense fallback={null}>
           {isAbout ? (
-            <AboutPanel isOpen={activeId === 'about'} />
+            <AboutPanel
+              isOpen={activeId === 'about'}
+              onStopChange={onAboutStopChange}
+              progressRef={aboutProgressRef}
+              scrollRequest={aboutScrollRequest}
+            />
           ) : isBlog ? (
             <BlogPanel articles={articles} isOpen={activeId === 'blog'} />
           ) : (
@@ -89,7 +107,7 @@ export function Drawer({activeId, articles, onClose}: DrawerProps) {
 
       <button
         aria-label={`Close ${sectionLabel.toLowerCase()} preview`}
-        className={drawerStyles.close}
+        className={`${drawerStyles.close} ${isAbout ? drawerStyles.closeEnd : drawerStyles.closeStart}`}
         onClick={onClose}
         tabIndex={activeId !== null ? 0 : -1}
         type="button"

@@ -5,6 +5,8 @@
 import {
   lazy,
   Suspense,
+  useEffect,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
@@ -12,9 +14,11 @@ import {usePathname, useRouter} from 'next/navigation';
 import {useCreateStore} from 'leva';
 import {useArtScene} from '@/components/art/ArtSceneContext';
 import {CapturePanel} from '@/components/art/capture/CapturePanel';
+import type {AboutScrollRequest} from '@/components/home/drawer/about/useTimelineProgress';
 import {Drawer} from '@/components/home/drawer/Drawer';
 import {HeroLayer} from '@/components/home/hero/HeroLayer';
 import {Preloader} from '@/components/home/preloader/Preloader';
+import {HOME_OVERVIEW_EVENT} from '@/components/site/Nav';
 import type {SectionId} from '@/data/sections';
 import type {ArticleSummary} from '@/lib/content/types';
 import {DevPanels} from './DevPanels';
@@ -38,6 +42,11 @@ export function SceneShell({articles, children}: SceneShellProps) {
   const isArt = pathname.startsWith('/artworks');
   const {backdrop, capture} = useArtScene();
   const [activeId, setActiveId] = useState<SectionId | null>(null);
+  // About: the timeline stop the drawer has settled on, and checkpoint clicks asking it to scroll.
+  const [aboutStop, setAboutStop] = useState(-1);
+  const [aboutScrollRequest, setAboutScrollRequest] = useState<AboutScrollRequest | null>(null);
+  // The drawer's reading head in stops, read by the terrain path every frame.
+  const aboutProgressRef = useRef(0);
   const [artCameraEditing, setArtCameraEditing] = useState(false);
   const artCameraStore = useCreateStore();
   const [settledPose, setSettledPose] = useState<SectionId | null | undefined>(isArt ? 'art' : null);
@@ -56,6 +65,19 @@ export function SceneShell({articles, children}: SceneShellProps) {
   // An Art visit dismisses the old homepage preview, including entry via Nav.
   // Adjust before rendering so Home always returns to the landscape overview.
   if (isArt && activeId !== null) setActiveId(null);
+  // Leaving About returns its camera to the section pose; a reopened panel starts at the top.
+  if (activeId !== 'about' && aboutStop !== -1) setAboutStop(-1);
+
+  // SQYC on Home closes the open section (Nav cannot navigate to the page it is on).
+  useEffect(() => {
+    const returnToOverview = () => setActiveId(null);
+    window.addEventListener(HOME_OVERVIEW_EVENT, returnToOverview);
+    return () => window.removeEventListener(HOME_OVERVIEW_EVENT, returnToOverview);
+  }, []);
+
+  function requestAboutStop(stop: number) {
+    setAboutScrollRequest((current) => ({stop, key: (current?.key ?? 0) + 1}));
+  }
 
   function toggleSection(id: SectionId) {
     if (id === 'art') {
@@ -87,6 +109,9 @@ export function SceneShell({articles, children}: SceneShellProps) {
           <Suspense fallback={null}>
             <SceneCanvas
               activeId={isArt ? 'art' : activeId}
+              aboutStop={aboutStop}
+              aboutProgressRef={aboutProgressRef}
+              onAboutSelect={requestAboutStop}
               backdrop={isArt && !artArriving ? backdrop : null}
               artActive={isArt}
               artCameraEditing={artCameraEditing && !artArriving && !capture.enabled}
@@ -103,10 +128,17 @@ export function SceneShell({articles, children}: SceneShellProps) {
         ) : null}
 
         {!isBlocking && !isArt ? (
-          <HeroLayer isHidden={activeId !== null} useHtmlDesktopName={sceneState === 'fallback'} />
+          // Like the WebGL name and glyph rain, the HTML hero returns only once the camera is home.
+          <HeroLayer
+            isHidden={activeId !== null || settledPose !== null}
+            useHtmlDesktopName={sceneState === 'fallback'}
+          />
         ) : null}
         <Drawer
           activeId={isArt || activeId === 'art' ? null : activeId}
+          aboutProgressRef={aboutProgressRef}
+          aboutScrollRequest={aboutScrollRequest}
+          onAboutStopChange={setAboutStop}
           articles={articles}
           onClose={() => setActiveId(null)}
         />

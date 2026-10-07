@@ -1,16 +1,20 @@
 // Glowing contour lines over the homepage terrain: tube geometry from the worker, pulse and intro sweep in shaders.
+// A second instance draws About's map contours: its own settings, lit like the terrain beneath, dimmed away
+// from the route.
 'use client';
 
 import {forwardRef, useEffect, useMemo, useRef, useState} from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import {
   AdditiveBlending,
   Color,
+  Vector2,
+  Vector4,
   ShaderMaterial,
   UniformsLib,
   UniformsUtils,
 } from 'three';
-import type {DepthTexture, Group, Mesh} from 'three';
+import type {DataTexture, DepthTexture, Group, Mesh} from 'three';
 import {CONTOUR_CONFIG, TERRAIN_MATERIAL_CONFIG, TERRAIN_MESH_CONFIG} from '@/config/scene';
 import type {
   ContourControlValues,
@@ -18,6 +22,7 @@ import type {
 } from '@/components/scene/controls/useSceneControls';
 import {
   requestContourBuffers,
+  useTerrainAssets,
   useTerrainContourBuffers,
 } from '@/lib/terrain/assets';
 import {
@@ -32,15 +37,29 @@ import {useReducedMotion} from '@/hooks/useReducedMotion';
 const CONTOURS = CONTOUR_CONFIG;
 const TERRAIN_MESH = TERRAIN_MESH_CONFIG;
 
+/** Dim lines with plan distance from a centre: [x, z, dim start, dim end] in world units, and the
+ *  brightness kept beyond the end. */
+export type ContourFocus = readonly [number, number, number, number, number];
+
+/** Light lines like the terrain beneath: brightness kept on unlit ground, and the baked light at full. */
+export type ContourLighting = readonly [number, number];
+
 type ContoursProps = {
   hidden?: boolean;
+  focus?: ContourFocus | null;
+  lighting?: ContourLighting | null;
+  /** Minimum on-screen tube radius in device pixels, so distant lines dim rather than break up. */
+  minPixels?: number;
   contourSettings: ContourControlValues;
   terrainDepthTexture: DepthTexture | null;
   terrainSettings: TerrainControlValues;
 };
 
 export const Contours = forwardRef<Mesh, ContoursProps>(function Contours(
-  {hidden = false, contourSettings: lines, terrainDepthTexture, terrainSettings},
+  {
+    hidden = false, focus = null, lighting = null, minPixels = 0,
+    contourSettings: lines, terrainDepthTexture, terrainSettings,
+  },
   forwardedRef,
 ) {
   const matRef = useRef<ShaderMaterial>(null);
@@ -48,7 +67,8 @@ export const Contours = forwardRef<Mesh, ContoursProps>(function Contours(
   const introStart = useRef<number | null>(null);
   const reducedMotion = useReducedMotion();
 
-  const {elevation, seaLevel} = terrainSettings;
+  const {elevation, seaLevel, edgeFade} = terrainSettings;
+  const [fadeStart, fadeEnd] = edgeFade;
 
   const initialContours = useTerrainContourBuffers();
   const contourOptions = useMemo(
@@ -95,9 +115,17 @@ export const Contours = forwardRef<Mesh, ContoursProps>(function Contours(
     uMajorRadius: { value: CONTOURS.majorRadius },
     uDepthBias:   { value: CONTOURS.depthBias },
     uPlaneSize:   { value: TERRAIN_MESH.planeSize },
-    uEdgeFeather: { value: TERRAIN_MESH.edgeFeather },
+    uEdgeFade:    { value: new Vector2(...TERRAIN_MESH.edgeFade) },
     uTerrainDepth: {value: null},
     uUseTerrainDepth: {value: 0},
+    uFocus: {value: new Vector4()},
+    uFocusFloor: {value: 0},
+    uUseFocus: {value: 0},
+    uLightingMap: {value: null as DataTexture | null},
+    uLit: {value: new Vector2()},
+    uUseLit: {value: 0},
+    uMinPixels: {value: 0},
+    uViewportHeight: {value: 1},
 
     uMajorColor:     { value: new Color(CONTOURS.majorColor) },
     uMajorIntensity: { value: CONTOURS.majorIntensity },
@@ -118,6 +146,7 @@ export const Contours = forwardRef<Mesh, ContoursProps>(function Contours(
     if (!material) return;
     const uniforms = material.uniforms;
     uniforms.uElevation.value = elevation;
+    uniforms.uEdgeFade.value.set(fadeStart, fadeEnd);
     uniforms.uLift.value = lines.lift;
     uniforms.uMinorRadius.value = lines.minorRadius;
     uniforms.uMajorRadius.value = lines.majorRadius;
@@ -133,7 +162,7 @@ export const Contours = forwardRef<Mesh, ContoursProps>(function Contours(
     uniforms.uPulseSpeed.value = lines.pulseSpeed;
     uniforms.uPulseScale.value = lines.pulseScale;
     uniforms.uPulseSharpness.value = lines.pulseSharpness;
-  }, [elevation, lines]);
+  }, [elevation, fadeEnd, fadeStart, lines]);
 
   useEffect(() => {
     const material = matRef.current;
@@ -141,6 +170,33 @@ export const Contours = forwardRef<Mesh, ContoursProps>(function Contours(
     material.uniforms.uTerrainDepth.value = terrainDepthTexture;
     material.uniforms.uUseTerrainDepth.value = terrainDepthTexture ? 1 : 0;
   }, [terrainDepthTexture]);
+
+  const [focusX, focusZ, focusStart, focusEnd, focusFloor] = focus ?? [0, 0, 0, 0, 1];
+  useEffect(() => {
+    const material = matRef.current;
+    if (!material) return;
+    material.uniforms.uFocus.value.set(focusX, focusZ, focusStart, focusEnd);
+    material.uniforms.uFocusFloor.value = focusFloor;
+    material.uniforms.uUseFocus.value = focus ? 1 : 0;
+  }, [focus, focusEnd, focusFloor, focusStart, focusX, focusZ]);
+
+  const bufferHeight = useThree((state) => state.size.height * state.viewport.dpr);
+  useEffect(() => {
+    const material = matRef.current;
+    if (!material) return;
+    material.uniforms.uMinPixels.value = minPixels;
+    material.uniforms.uViewportHeight.value = bufferHeight;
+  }, [bufferHeight, minPixels]);
+
+  const {staticLightingMap} = useTerrainAssets();
+  const [litFloor, litFull] = lighting ?? [1, 1];
+  useEffect(() => {
+    const material = matRef.current;
+    if (!material) return;
+    material.uniforms.uLightingMap.value = staticLightingMap;
+    material.uniforms.uLit.value.set(litFloor, litFull);
+    material.uniforms.uUseLit.value = lighting ? 1 : 0;
+  }, [lighting, litFloor, litFull, staticLightingMap]);
 
   useEffect(() => {
     introStart.current = null;
@@ -152,7 +208,9 @@ export const Contours = forwardRef<Mesh, ContoursProps>(function Contours(
     if (!material) return;
     material.uniforms.uTime.value += delta;
     const visibility = material.uniforms.uVisibility;
-    const target = hidden ? 0 : 1;
+    // Settings that differ from the bake wait for their own geometry rather than showing the baked lines.
+    const pending = contourKey !== initialContours.key && geometryBuffers === initialContours.buffers;
+    const target = hidden || pending ? 0 : 1;
     visibility.value = reducedMotion || Math.abs(visibility.value - target) < 0.001
       ? target
       : visibility.value + (target - visibility.value) * (1 - Math.exp(-4 * Math.min(delta, 1 / 30)));

@@ -1,24 +1,37 @@
 // Tailwind classes shared by the drawer frame (Drawer.tsx) and its About/Blog/Projects panels.
 export const drawerStyles = {
-  aside: `fixed inset-y-0 left-0 z-40 w-full md:w-drawer
+  // Drawer.tsx adds the side and desktop width: asideStart, or asideEnd for About.
+  aside: `fixed inset-y-0 z-40 w-full
     transition-[opacity,visibility] duration-100 motion-reduce:duration-0`,
+  asideStart: 'left-0 md:w-drawer',
+  // About sits right of its terrain path, a little wider so its column can breathe.
+  asideEnd: 'right-0 md:w-[clamp(24rem,48vw,44rem)]',
   open: 'visible pointer-events-auto opacity-100',
   closed: 'invisible pointer-events-none opacity-0',
   // Gradient backdrop on desktop (Drawer.css), solid panel on mobile.
-  backdrop: `preview-backdrop pointer-events-none absolute inset-0
-    max-md:border-r-0 max-md:bg-panel/94 max-md:mask-none`,
+  backdrop: 'pointer-events-none absolute inset-0 max-md:bg-panel/94',
+  backdropStart: 'preview-backdrop max-md:border-r-0 max-md:mask-none',
+  // About: a solid panel whose fade reaches out past the drawer's left edge.
+  backdropEnd: 'md:about-backdrop',
   body: 'relative z-10 h-full',
   close: `absolute right-6 top-20 z-50 grid size-11 place-items-center border-0 bg-transparent
     p-0 font-mono text-xl font-light leading-none text-dim transition-colors
     duration-interaction ease-out hover:text-text focus-visible:outline-1
-    focus-visible:outline-offset-4 focus-visible:outline-accent md:right-0 md:top-24`,
+    focus-visible:outline-offset-4 focus-visible:outline-accent md:top-24`,
+  closeStart: 'md:right-0',
+  // In line with the About column's right edge rather than the viewport's.
+  closeEnd: 'md:right-[clamp(2rem,5vw,5rem)]',
 } as const;
+
+const PANEL_SCROLL = `no-scrollbar flex h-full w-full max-w-none touch-pan-y
+  flex-col overflow-x-hidden overflow-y-auto overscroll-contain px-6 pb-10 pt-24 md:pt-28`;
 
 export const panelStyles = {
   // The scrolling column inside every panel.
-  scroll: `no-scrollbar flex h-full w-full max-w-none touch-pan-y
-    flex-col overflow-x-hidden overflow-y-auto overscroll-contain px-6 pb-10 pt-24
-    md:max-w-drawer md:px-10 md:pt-28`,
+  scroll: `${PANEL_SCROLL} md:max-w-drawer md:px-10`,
+  // About's column on the right-hand drawer: clear of the fade toward the terrain on the left,
+  // held off the viewport edge on the right.
+  scrollEnd: `${PANEL_SCROLL} md:pr-[clamp(3rem,6vw,6rem)] md:pl-[clamp(3.5rem,10vw,9rem)]`,
   content: 'animate-drawer-content motion-reduce:animate-none',
   title: `mb-5 font-serif text-display font-normal italic uppercase leading-none
     text-text md:text-5xl`,

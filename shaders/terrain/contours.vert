@@ -1,4 +1,5 @@
 // Contour tubes: lifts each line onto the displaced terrain and carries arc length for the pulse and intro sweep.
+// With uMinPixels set (About's map), distant tubes keep a minimum on-screen radius and dim instead of breaking up.
 #include <fog_pars_vertex>
 
 attribute float t;
@@ -18,6 +19,8 @@ uniform float uPlaneSize;
 uniform float uTime;
 uniform float uPulseSpeed;
 uniform float uPulseScale;
+uniform float uMinPixels; // minimum on-screen tube radius in drawing-buffer pixels; 0 = off
+uniform float uViewportHeight; // drawing-buffer pixels
 
 varying float vT;
 varying float vTotalLength;
@@ -27,6 +30,7 @@ varying float vShadow;
 varying vec2 vTerrainUv;
 varying float vNoise;
 varying vec2 vScreenUv;
+varying float vThin;
 
 // Periodic classic Perlin noise (Stefan Gustavson / webgl-noise, MIT).
 vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
@@ -93,6 +97,15 @@ void main() {
     position.z
   );
   float radius = mix(uMinorRadius, uMajorRadius, vMajor);
+  vThin = 1.0;
+  if (uMinPixels > 0.0) {
+    float centerW = (projectionMatrix * modelViewMatrix * vec4(center, 1.0)).w;
+    float pixelsPerUnit = projectionMatrix[1][1] * uViewportHeight * 0.5 / max(centerW, 0.0001);
+    float minRadius = uMinPixels / pixelsPerUnit;
+    // Widened tubes give back the light their extra width adds.
+    vThin = radius / max(radius, minRadius);
+    radius = max(radius, minRadius);
+  }
   vec3 pos = center + normal * radius;
   vTerrainUv = pos.xz / uPlaneSize + 0.5;
 

@@ -1,12 +1,24 @@
 // Contour colour: minor/major/shadow lines, the travelling pulse, the intro sweep and terrain-depth occlusion.
+// About's map options: lines keep full brightness near the route; away from it they darken to a floor,
+// lower still on unlit ground (the terrain's baked lighting), instead of vanishing.
 #include <fog_pars_fragment>
 
 uniform float uIntroTime;
 uniform float uVisibility;
 uniform float uIntroTravelSpeed;
-uniform float uEdgeFeather;
+// Plan distance from the centre where lines start to fade with the ground, and where they are gone.
+uniform vec2 uEdgeFade;
 uniform sampler2D uTerrainDepth;
 uniform float uUseTerrainDepth;
+uniform float uPlaneSize;
+// xy: focus centre (world x, z); z, w: distance where the dimming starts and where it bottoms out.
+uniform vec4 uFocus;
+uniform float uFocusFloor;
+uniform float uUseFocus;
+uniform sampler2D uLightingMap;
+// x: brightness kept on unlit ground; y: baked light at which lines reach full brightness.
+uniform vec2 uLit;
+uniform float uUseLit;
 
 uniform vec3 uMajorColor;
 uniform float uMajorIntensity;
@@ -27,6 +39,7 @@ varying float vShadow;
 varying vec2 vTerrainUv;
 varying float vNoise;
 varying vec2 vScreenUv;
+varying float vThin;
 
 void main() {
   if (uUseTerrainDepth > 0.5) {
@@ -57,12 +70,25 @@ void main() {
   color = mix(color, uMinorColor * uShadowIntensity, vShadow);
   color *= reveal;
 
-  vec2 edgeDistance = min(vTerrainUv, 1.0 - vTerrainUv);
-  float edgeOpacity = smoothstep(
-    0.0,
-    uEdgeFeather,
-    min(edgeDistance.x, edgeDistance.y)
-  );
+  vec2 world = (vTerrainUv - 0.5) * uPlaneSize;
+  float edgeOpacity = 1.0 - smoothstep(uEdgeFade.x, uEdgeFade.y, length(world));
+
+  // Alpha follows colour, so dimming by the square root scales the light by the widening.
+  color *= sqrt(vThin);
+
+  // 0 near the focus (About's route), 1 in the background.
+  float away = 0.0;
+  if (uUseFocus > 0.5) {
+    away = smoothstep(uFocus.z, uFocus.w, distance(world, uFocus.xy));
+  }
+  if (uUseLit > 0.5) {
+    // The terrain mesh's uv runs opposite in z to the plan uv used here.
+    vec2 lighting = texture2D(uLightingMap, vec2(vTerrainUv.x, 1.0 - vTerrainUv.y)).rg;
+    float lit = mix(uLit.x, 1.0, smoothstep(0.0, uLit.y, lighting.r + lighting.g));
+    color *= mix(1.0, lit, uUseFocus > 0.5 ? away : 1.0);
+  }
+  // Darkening the colour also lowers the additive alpha below, so the floor acts roughly squared.
+  color *= mix(1.0, uFocusFloor, away);
 
   #ifdef USE_FOG
     color *= 1.0 - smoothstep(fogNear, fogFar, vFogDepth);

@@ -1,17 +1,28 @@
-// About timeline: entries hung on a route line that draws itself as the panel scrolls (useTimelineProgress).
+// About timeline: entries, oldest first, hung on a route line that draws itself as the panel scrolls
+// (useTimelineProgress), ending at "Next?". The stop it settles on drives the terrain path's camera.
 'use client';
 
-import type {RefObject} from 'react';
-import {ABOUT_TIMELINE, type TimelineEntry} from '@/data/about';
+import {useEffect, type MutableRefObject, type RefObject} from 'react';
+import {ABOUT_PATH_CONFIG} from '@/config/scene/aboutPath';
+import {ABOUT_TIMELINE, formatEntryStart, type TimelineEntry} from '@/data/about';
 import {panelStyles} from '../Drawer.styles';
 import {RippleMarker, type TimelineState} from './RippleMarker';
-import {useTimelineProgress} from './useTimelineProgress';
+import {
+  TIMELINE_STOP_COUNT,
+  useTimelineProgress,
+  type AboutScrollRequest,
+} from './useTimelineProgress';
 
 interface ExperienceTimelineProps {
   isOpen: boolean;
+  onStopChange: (stop: number) => void;
+  progressRef: MutableRefObject<number>;
   scrollRef: RefObject<HTMLDivElement | null>;
+  scrollRequest: AboutScrollRequest | null;
   shellRef: RefObject<HTMLDivElement | null>;
 }
+
+const NEXT_STOP = TIMELINE_STOP_COUNT - 1;
 
 const ENTRY_META = `m-0 font-mono text-label leading-[1.45] tracking-label text-muted-soft
   uppercase`;
@@ -30,7 +41,7 @@ function TimelineEntryText({entry}: {entry: TimelineEntry}) {
   return (
     <article className="max-w-116 pt-1">
       <p className={ENTRY_META}>
-        {entry.category} · {entry.dateRange}
+        {entry.category} · <time dateTime={entry.start}>{formatEntryStart(entry.start)}</time>
       </p>
       <h4
         className="mt-3 mb-0 font-serif text-2xl leading-tight font-normal
@@ -56,9 +67,25 @@ function TimelineEntryText({entry}: {entry: TimelineEntry}) {
   );
 }
 
-export function ExperienceTimeline({isOpen, scrollRef, shellRef}: ExperienceTimelineProps) {
-  const {timelineRef, markerRefs, activeIndex, rippleCounts, isNowVisible} =
-    useTimelineProgress(isOpen, shellRef, scrollRef);
+export function ExperienceTimeline({
+  isOpen, onStopChange, progressRef, scrollRef, scrollRequest, shellRef,
+}: ExperienceTimelineProps) {
+  const {timelineRef, markerRef, activeIndex, rippleCounts, isNowVisible, scrollToStopRef} =
+    useTimelineProgress(isOpen, shellRef, scrollRef, progressRef);
+  const nextState = getTimelineState(NEXT_STOP, activeIndex);
+
+  // The camera follows only once the reading head rests on a stop, not every entry scrolled past.
+  useEffect(() => {
+    const timeout = window.setTimeout(
+      () => onStopChange(activeIndex),
+      activeIndex < 0 ? 0 : ABOUT_PATH_CONFIG.settleMs,
+    );
+    return () => window.clearTimeout(timeout);
+  }, [activeIndex, onStopChange]);
+
+  useEffect(() => {
+    if (scrollRequest) scrollToStopRef.current(scrollRequest.stop);
+  }, [scrollRequest, scrollToStopRef]);
 
   return (
     <div
@@ -93,15 +120,12 @@ export function ExperienceTimeline({isOpen, scrollRef, shellRef}: ExperienceTime
             >
               <span
                 className="block size-8"
-                ref={(node) => {
-                  markerRefs.current[index] = node;
-                }}
+                ref={markerRef(index)}
               >
                 <RippleMarker
-                  hasContinuation={index === ABOUT_TIMELINE.length - 1}
                   isCurrent={entry.isCurrent}
                   isPulsing={Boolean(
-                    entry.isCurrent && isOpen && isNowVisible && activeIndex >= 0,
+                    entry.isCurrent && isOpen && isNowVisible && activeIndex >= index,
                   )}
                   rippleCount={rippleCounts[index] ?? 0}
                   state={state}
@@ -113,6 +137,23 @@ export function ExperienceTimeline({isOpen, scrollRef, shellRef}: ExperienceTime
           );
         })}
       </ol>
+
+      {/* The open end of the route, answered by the Connect footer below. */}
+      <div
+        className="relative z-1 mt-16 grid grid-cols-[2rem_minmax(0,1fr)] items-center gap-4
+          md:mt-20 md:gap-6"
+        data-state={nextState}
+      >
+        <span
+          className="block size-8"
+          ref={markerRef(NEXT_STOP)}
+        >
+          <RippleMarker isOpenEnd rippleCount={rippleCounts[NEXT_STOP] ?? 0} state={nextState} />
+        </span>
+        <p className="m-0 font-serif text-2xl leading-tight font-normal text-text italic">
+          Next?
+        </p>
+      </div>
     </div>
   );
 }

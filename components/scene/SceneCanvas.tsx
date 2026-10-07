@@ -2,7 +2,7 @@
 // Layers mount in stages (useSceneAssembly); keep child order, since useFrame order follows it.
 'use client';
 
-import {Suspense, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {Suspense, useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject} from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, StatsGl } from '@react-three/drei';
 import { EffectComposer } from '@react-three/postprocessing';
@@ -10,7 +10,7 @@ import {SMAAPreset, type EffectComposer as EffectComposerImpl} from 'postprocess
 import type {DepthTexture, Mesh} from 'three';
 import type { OrbitControls as OrbitControlsInstance } from 'three-stdlib';
 import type {useCreateStore} from 'leva';
-import {CAMERA_CONFIG, FOG_CONFIG} from '@/config/scene';
+import {CAMERA_CONFIG, FOG_CONFIG, type CameraPose} from '@/config/scene';
 import {useArtScene} from '@/components/art/ArtSceneContext';
 import type {ArtMedium} from '@/data/artworks';
 import type {SectionId} from '@/data/sections';
@@ -18,6 +18,7 @@ import {
   retainTerrainPipeline,
   scheduleTerrainPipelineDisposal,
 } from '@/lib/terrain/assets';
+import {AboutPath} from './about/AboutPath';
 import {CaptureExport} from './backdrop/CaptureExport';
 import {CameraFrameProvider} from './camera/CameraFrameState';
 import { CameraRig } from './camera/CameraRig';
@@ -34,6 +35,7 @@ import {SceneReadySignal} from './SceneReadySignal';
 import {StillFrameGate} from './StillFrameGate';
 import {CachedTerrain} from './terrain/CachedTerrain';
 import { Contours } from './terrain/Contours';
+import {ABOUT_MAP_CONFIG} from '@/config/scene/aboutPath';
 import { SceneFog } from './terrain/SceneFog';
 import { GlyphRain } from './text/GlyphRain';
 import {SceneHeroName} from './text/SceneHeroName';
@@ -48,6 +50,10 @@ type SceneCanvasProps = {
   /** Backdrop to show on Art; null keeps the plain terrain. */
   backdrop?: ArtMedium | null;
   activeId: SectionId | null;
+  /** About checkpoint being read (-1 for none); see AboutPath. */
+  aboutStop: number;
+  aboutProgressRef: MutableRefObject<number>;
+  onAboutSelect: (stop: number) => void;
   onPoseSettled?: (pose: SectionId | null | undefined) => void;
   introStarted: boolean;
   onSceneError: (error: Error) => void;
@@ -63,6 +69,9 @@ export function SceneCanvas({
   onArtCameraEditingChange,
   backdrop = null,
   activeId,
+  aboutStop,
+  aboutProgressRef,
+  onAboutSelect,
   onPoseSettled,
   introStarted,
   onSceneError,
@@ -72,6 +81,7 @@ export function SceneCanvas({
 }: SceneCanvasProps) {
   const orbitcontrolsRef = useRef<OrbitControlsInstance>(null);
   const composerRef = useRef<EffectComposerImpl>(null);
+  const aboutFocusPosesRef = useRef<readonly CameraPose[]>([]);
   const {capture} = useArtScene();
   const capturing = artActive && capture.enabled;
   const [canvasReady, setCanvasReady] = useState(false);
@@ -79,15 +89,28 @@ export function SceneCanvas({
   const [glyphRainMesh, setGlyphRainMesh] = useState<Mesh | null>(null);
   const [heroMesh, setHeroMesh] = useState<Mesh | null>(null);
   const [sceneLinksMesh, setSceneLinksMesh] = useState<Mesh | null>(null);
+  const [aboutPathMesh, setAboutPathMesh] = useState<Mesh | null>(null);
   const [bloomReady, setBloomReady] = useState(false);
   const [terrainDepthTexture, setTerrainDepthTexture] = useState<DepthTexture | null>(null);
   const isDevelopment = process.env.NODE_ENV === 'development';
   const settings = useSceneControls();
   const hideHomeScene = artActive || activeId === 'art';
+  // Sections with their own journey (Art, About) clear the homepage text: glyph rain and scene links.
+  const hideSceneText = hideHomeScene || activeId === 'about';
+  const isAbout = activeId === 'about';
+  // About's map contours are built the first time About opens, then kept.
+  const [aboutMapWanted, setAboutMapWanted] = useState(isAbout);
+  if (isAbout && !aboutMapWanted) setAboutMapWanted(true);
+  const aboutMapSettings = useMemo(
+    () => ({...settings.contours, ...ABOUT_MAP_CONFIG.contours}),
+    [settings.contours],
+  );
+  // Contours and scene links must be ready before the composer; the About path joins when mounted.
+  const bloomBaseReady = contourMesh !== null && sceneLinksMesh !== null;
   const bloomSelection = useMemo(
-    () => [contourMesh, sceneLinksMesh]
+    () => [contourMesh, sceneLinksMesh, aboutPathMesh]
       .filter((mesh): mesh is Mesh => mesh !== null),
-    [contourMesh, sceneLinksMesh],
+    [aboutPathMesh, contourMesh, sceneLinksMesh],
   );
   const handleBloomReady = useCallback(() => setBloomReady(true), []);
 
@@ -140,6 +163,8 @@ export function SceneCanvas({
           <CameraFrameProvider>
             <CameraRig
               activeId={activeId}
+              aboutStop={aboutStop}
+              aboutFocusPosesRef={aboutFocusPosesRef}
               onPoseSettled={onPoseSettled}
               controlsRef={isDevelopment ? orbitcontrolsRef : undefined}
             />
@@ -168,7 +193,7 @@ export function SceneCanvas({
               ) : null}
               {assemblyPhase >= 2 ? (
                 <Contours
-                  hidden={hideHomeScene}
+                  hidden={hideHomeScene || isAbout}
                   ref={setContourMesh}
                   contourSettings={settings.contours}
                   terrainDepthTexture={terrainDepthTexture}
@@ -178,14 +203,14 @@ export function SceneCanvas({
               {assemblyPhase >= 3 ? (
                 <>
                   <GlyphRain
-                    hidden={hideHomeScene}
+                    hidden={hideSceneText}
                     ref={setGlyphRainMesh}
                     contourSettings={settings.contours}
                     glyphRainSettings={settings.glyphRain}
                     terrainSettings={settings.terrain}
                   />
                   <SceneLinks
-                    hidden={hideHomeScene}
+                    hidden={hideSceneText}
                     ref={setSceneLinksMesh}
                     activeId={activeId}
                     contourSettings={settings.contours}
@@ -200,6 +225,28 @@ export function SceneCanvas({
                     introStarted={introStarted}
                     terrainSettings={settings.terrain}
                   />
+                  {aboutMapWanted ? (
+                    <Contours
+                      hidden={!isAbout}
+                      focus={ABOUT_MAP_CONFIG.focus}
+                      lighting={ABOUT_MAP_CONFIG.lighting}
+                      minPixels={ABOUT_MAP_CONFIG.minPixels}
+                      contourSettings={aboutMapSettings}
+                      terrainDepthTexture={terrainDepthTexture}
+                      terrainSettings={settings.terrain}
+                    />
+                  ) : null}
+                  <AboutPath
+                    meshRef={setAboutPathMesh}
+                    visible={!hideHomeScene && activeId === 'about'}
+                    activeStop={aboutStop}
+                    progressRef={aboutProgressRef}
+                    settings={settings.aboutPath}
+                    terrainSettings={settings.terrain}
+                    terrainDepthTexture={terrainDepthTexture}
+                    focusPosesRef={aboutFocusPosesRef}
+                    onSelect={onAboutSelect}
+                  />
                 </>
               ) : null}
               <SceneReadySignal
@@ -212,7 +259,7 @@ export function SceneCanvas({
           {/* Keep the composer single-sampled: MSAA resolve blits intermittently
               present empty frames on some GPUs. Color-only SMAA smooths edges
               without requesting the composer's sampled depth texture. */}
-          {assemblyPhase >= 4 && bloomSelection.length === 2 ? (
+          {assemblyPhase >= 4 && bloomBaseReady ? (
             <EffectComposer ref={composerRef} multisampling={0}>
               <ColorOnlySMAA preset={SMAAPreset.MEDIUM} />
               {assemblyPhase >= 5 ? (
@@ -229,7 +276,7 @@ export function SceneCanvas({
               ) : <></>}
             </EffectComposer>
           ) : null}
-          {capturing && assemblyPhase >= 4 && bloomSelection.length === 2 ? <CaptureExport /> : null}
+          {capturing && assemblyPhase >= 4 && bloomBaseReady ? <CaptureExport /> : null}
           <StillFrameGate enabled={hideHomeScene && assemblyPhase >= 6 && !capturing} composerRef={composerRef} />
         </Canvas>
       </SceneErrorBoundary>

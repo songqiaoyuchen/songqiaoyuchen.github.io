@@ -2,11 +2,11 @@
 import {TERRAIN_MATERIAL_CONFIG, TERRAIN_MESH_CONFIG} from '@/config/scene';
 import type {HeightGrid} from './bake';
 
-export function sampleHeight(
+/** Terrain height at world x/z normalized to 0..1, as contour levels measure it. */
+export function sampleNormalizedHeight(
   grid: HeightGrid,
   x: number,
   z: number,
-  elevation: number,
   seaLevel: number,
 ) {
   const u = Math.min(1, Math.max(0, x / TERRAIN_MESH_CONFIG.planeSize + 0.5));
@@ -26,10 +26,21 @@ export function sampleHeight(
   const top = topLeft + (topRight - topLeft) * xMix;
   const bottom = bottomLeft + (bottomRight - bottomLeft) * xMix;
   const raw = top + (bottom - top) * yMix;
+  return normalizeRawHeight(raw, seaLevel);
+}
+
+/** Raw shell value to normalized height: the terrain's contrast curve above sea level. */
+export function normalizeRawHeight(raw: number, seaLevel: number) {
   const curved = Math.pow(Math.max(raw, 0), TERRAIN_MATERIAL_CONFIG.contrast);
-  const height = Math.min(
-    1,
-    Math.max(0, (curved - seaLevel) / Math.max(1 - seaLevel, 0.0001)),
-  );
-  return TERRAIN_MESH_CONFIG.position[1] + height * elevation + 0.08;
+  return Math.min(1, Math.max(0, (curved - seaLevel) / Math.max(1 - seaLevel, 0.0001)));
+}
+
+export function sampleHeight(
+  grid: HeightGrid,
+  x: number,
+  z: number,
+  elevation: number,
+  seaLevel: number,
+) {
+  return TERRAIN_MESH_CONFIG.position[1] + sampleNormalizedHeight(grid, x, z, seaLevel) * elevation + 0.08;
 }

@@ -1,17 +1,21 @@
-// About drawer panel: introduction, experience timeline and contact footer.
+// About drawer panel (right-hand drawer): introduction, experience timeline and contact footer.
 'use client';
 
-import {useRef} from 'react';
+import {useRef, type MutableRefObject} from 'react';
 import {ABOUT_CONTACT, ABOUT_INTRO} from '@/data/about';
 import {panelStyles} from '../Drawer.styles';
 import {ContactFooter} from './ContactFooter';
 import {ExperienceTimeline} from './ExperienceTimeline';
+import type {AboutScrollRequest} from './useTimelineProgress';
 
 interface AboutPanelProps {
   isOpen: boolean;
+  onStopChange: (stop: number) => void;
+  progressRef: MutableRefObject<number>;
+  scrollRequest: AboutScrollRequest | null;
 }
 
-export function AboutPanel({isOpen}: AboutPanelProps) {
+export function AboutPanel({isOpen, onStopChange, progressRef, scrollRequest}: AboutPanelProps) {
   const shellRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -23,7 +27,7 @@ export function AboutPanel({isOpen}: AboutPanelProps) {
       ref={shellRef}
     >
       <div
-        className={panelStyles.scroll}
+        className={panelStyles.scrollEnd}
         ref={scrollRef}
       >
         <div className={panelStyles.content}>
@@ -73,7 +77,14 @@ export function AboutPanel({isOpen}: AboutPanelProps) {
             </section>
 
             {/* The timeline also maintains this panel's data-at-start/end edge flags. */}
-            <ExperienceTimeline isOpen={isOpen} scrollRef={scrollRef} shellRef={shellRef} />
+            <ExperienceTimeline
+              isOpen={isOpen}
+              onStopChange={onStopChange}
+              progressRef={progressRef}
+              scrollRef={scrollRef}
+              scrollRequest={scrollRequest}
+              shellRef={shellRef}
+            />
             <ContactFooter />
           </div>
         </div>

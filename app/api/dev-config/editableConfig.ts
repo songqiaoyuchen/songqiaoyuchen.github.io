@@ -13,6 +13,11 @@ export const EDITABLE_CONFIG = {
       'fov', 'artTransitionSeconds',
     ],
   },
+  aboutPath: {
+    file: 'scene/aboutPath.ts',
+    keys: ['medic', 'nus', 'greyhats', 'sonicboom', 'uniplans', 'next', 'focusScreen', 'focusFollow',
+      'focusZoom', 'trailColor'],
+  },
   artCursor: {
     file: 'art/cursor.ts',
     keys: ['touchRadius', 'healSeconds', 'smudgeDrag', 'smudgeHealSeconds', 'pencilStrength', 'dotsStrength'],
@@ -46,7 +51,7 @@ export const EDITABLE_CONFIG = {
       'elevation', 'seaLevel', 'baseColor', 'ridgeColor', 'shadowStrength',
       'shadowBias', 'lightColor', 'lightX', 'lightY', 'lightZ', 'lightIntensity',
       'lightFalloff', 'light2Color', 'light2X', 'light2Y', 'light2Z',
-      'light2Intensity', 'light2Falloff',
+      'light2Intensity', 'light2Falloff', 'edgeFade',
     ],
   },
   sceneLinks: {

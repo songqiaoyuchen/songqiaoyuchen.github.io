@@ -13,6 +13,7 @@ Everything inside the React Three Fiber canvas behind Home and Art.
 | `terrain/` | Cached terrain, its compositor, contour lines, fog |
 | `backdrop/` | Art backdrops: images, projection, wipe decisions, cursor, Screenshot export |
 | `text/` | WebGL text: scene links, hero name, glyph rain |
+| `about/` | About experience path: ridge route tube, checkpoint markers, titles and altitude figures |
 | `effects/` | Post-processing passes (SMAA, isolated bloom) |
 | `controls/` | Leva tuning panels (development only) |
 

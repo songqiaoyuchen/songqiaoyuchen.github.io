@@ -1,0 +1,324 @@
+/* About path callouts (AboutCallouts.tsx): a diamond marker per checkpoint that locks on when framed, and a
+   leader line to the entry's title set like the drawer timeline. Titles sit unframed on the terrain, lifted
+   by a soft dark halo. Label heights mirror LABEL_HEIGHT; offsets keep to a 4px grid.
+   Markers take the trail's signal colour (--callout-signal, set from Leva's Trail colour); titles stay gold. */
+.about-callouts {
+  --callout-ink: #e8c77a; /* --color-accent */
+  --callout-signal: #8fe3d6; /* overridden inline by AboutCallouts.tsx */
+  --callout-signal-soft: color-mix(in srgb, var(--callout-signal) 70%, transparent);
+  --callout-signal-glow: color-mix(in srgb, var(--callout-signal) 35%, transparent);
+  --callout-text: #f2eee6; /* --color-text */
+  --callout-muted: #b8afa2; /* --color-muted */
+  --callout-halo: rgb(8 10 13 / 92%);
+  --callout-halo-wide: rgb(8 10 13 / 70%);
+  --callout-panel: rgb(8 10 13 / 82%);
+  --callout-line: rgb(232 199 122 / 30%);
+  --callout-line-strong: rgb(232 199 122 / 80%);
+  --callout-enter-delay: 900ms;
+  --callout-stagger: 90ms;
+
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.about-callouts-leaders {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.about-callout-leader {
+  fill: none;
+  stroke: var(--callout-line);
+  stroke-width: 1;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+  transition: stroke 180ms ease-out;
+  animation: callout-draw 420ms cubic-bezier(0.6, 0, 0.2, 1)
+    calc(var(--callout-enter-delay) + var(--callout-index) * var(--callout-stagger)) both;
+}
+
+.about-callout-leader[data-hovered] {
+  stroke: var(--callout-line-strong);
+}
+
+.about-callout-leader[data-state='active'] {
+  stroke: var(--callout-signal-soft);
+}
+
+/* Altitude figures: printed along the map's contour lines, quieter than any title. */
+.about-altitude {
+  position: absolute;
+  top: 0;
+  left: 0;
+  color: var(--callout-ink);
+  font-family: var(--font-krypton), ui-monospace, monospace;
+  font-size: 0.5625rem;
+  letter-spacing: 0.08em;
+  opacity: 0.42;
+  text-shadow: 0 0 3px var(--callout-halo);
+  white-space: nowrap;
+  will-change: transform;
+  animation: callout-appear-soft 900ms ease-out calc(var(--callout-enter-delay) + 600ms) both;
+}
+
+/* Positioners: AboutCallouts.tsx moves these with transforms on every camera change. */
+.about-callout-anchor,
+.about-callout {
+  position: absolute;
+  top: 0;
+  left: 0;
+  will-change: transform;
+}
+
+/* Marker: a diamond inside a lock-on reticle. */
+.about-callout-anchor {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  margin: -16px 0 0 -16px;
+  place-items: center;
+  cursor: pointer;
+  pointer-events: auto;
+  animation: callout-appear 240ms steps(3)
+    calc(var(--callout-enter-delay) - 200ms + var(--callout-index) * var(--callout-stagger)) both;
+}
+
+.about-callout-anchor::before {
+  width: 7px;
+  height: 7px;
+  border: 1px solid var(--callout-signal);
+  background: var(--callout-panel);
+  content: '';
+  rotate: 45deg;
+  transition: background-color 180ms ease-out, scale 260ms var(--ease-settle), box-shadow 260ms ease-out;
+}
+
+.about-callout-anchor[data-state='passed']::before {
+  background: var(--callout-signal-soft);
+}
+
+.about-callout-anchor[data-state='active']::before {
+  background: var(--callout-signal);
+  box-shadow: 0 0 10px var(--callout-signal-glow);
+  scale: 1.25;
+}
+
+.about-callout-anchor[data-next]::before {
+  border-style: dashed;
+}
+
+/* Reticle: four corner brackets that close in on the framed checkpoint. */
+.about-callout-reticle {
+  position: absolute;
+  inset: 5px;
+  background:
+    linear-gradient(var(--callout-signal), var(--callout-signal)) top left / 6px 1px,
+    linear-gradient(var(--callout-signal), var(--callout-signal)) top left / 1px 6px,
+    linear-gradient(var(--callout-signal), var(--callout-signal)) top right / 6px 1px,
+    linear-gradient(var(--callout-signal), var(--callout-signal)) top right / 1px 6px,
+    linear-gradient(var(--callout-signal), var(--callout-signal)) bottom left / 6px 1px,
+    linear-gradient(var(--callout-signal), var(--callout-signal)) bottom left / 1px 6px,
+    linear-gradient(var(--callout-signal), var(--callout-signal)) bottom right / 6px 1px,
+    linear-gradient(var(--callout-signal), var(--callout-signal)) bottom right / 1px 6px;
+  background-repeat: no-repeat;
+  opacity: 0;
+  rotate: 45deg;
+  scale: 1.9;
+  transition: opacity 220ms ease-out, scale 420ms var(--ease-settle), rotate 420ms var(--ease-settle);
+}
+
+.about-callout-anchor[data-hovered] .about-callout-reticle {
+  opacity: 0.6;
+  rotate: 0deg;
+  scale: 1.35;
+}
+
+.about-callout-anchor[data-state='active'] .about-callout-reticle {
+  opacity: 1;
+  rotate: 0deg;
+  scale: 1;
+}
+
+/* A slow ping from the framed checkpoint. */
+.about-callout-anchor[data-state='active']::after {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border: 1px solid var(--callout-signal);
+  content: '';
+  rotate: 45deg;
+  animation: callout-ping 2.4s ease-out 400ms infinite;
+}
+
+/* Label: sequence number and serif italic title on one baseline; category and month when framed.
+   The padding widens the hit area without moving the text. */
+.about-callout-label {
+  display: grid;
+  height: 20px;
+  align-content: start;
+  gap: 4px;
+  margin: -12px -16px -12px -8px;
+  padding: 12px 16px 12px 8px;
+  border: 0;
+  background: none;
+  color: var(--callout-text);
+  cursor: pointer;
+  font-family: var(--font-krypton), ui-serif, serif;
+  pointer-events: auto;
+  text-align: left;
+  text-shadow: 0 0 2px var(--callout-halo), 0 0 14px var(--callout-halo-wide);
+  box-sizing: content-box;
+  transition: height 320ms var(--ease-settle);
+  animation: callout-arrive 520ms cubic-bezier(0.2, 0.8, 0.2, 1)
+    calc(var(--callout-enter-delay) + 220ms + var(--callout-index) * var(--callout-stagger)) both;
+}
+
+.about-callout-label[data-state='active'] {
+  height: 40px;
+}
+
+.about-callout-label:focus-visible {
+  outline: 1px solid var(--callout-ink);
+  outline-offset: -4px;
+}
+
+.about-callout-title-row {
+  display: flex;
+  height: 20px;
+  align-items: baseline;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.about-callout-index {
+  color: var(--callout-muted);
+  font-size: 0.625rem;
+  letter-spacing: 0.14em;
+  opacity: 0.7;
+  transition: color 180ms ease-out, opacity 180ms ease-out;
+}
+
+.about-callout-title {
+  position: relative;
+  font-size: 0.95rem;
+  font-style: italic;
+  line-height: 20px;
+  opacity: 0.62;
+  transition: opacity 180ms ease-out;
+}
+
+/* Hover answers with a fine gold underline drawn from the left. */
+.about-callout-title::after {
+  position: absolute;
+  right: 0;
+  bottom: 1px;
+  left: 0;
+  height: 1px;
+  background: var(--callout-ink);
+  content: '';
+  scale: 0 1;
+  transform-origin: left;
+  transition: scale 260ms var(--ease-settle);
+}
+
+.about-callout-label[data-state='passed'] .about-callout-title {
+  opacity: 0.8;
+}
+
+.about-callout-label[data-state='active'] .about-callout-title,
+.about-callout-label[data-hovered] .about-callout-title {
+  opacity: 1;
+}
+
+.about-callout-label[data-state='active'] .about-callout-index,
+.about-callout-label[data-hovered] .about-callout-index {
+  color: var(--callout-ink);
+  opacity: 1;
+}
+
+.about-callout-label[data-hovered] .about-callout-title::after {
+  scale: 1 1;
+}
+
+/* "Next?" keeps the hero's typewriter cursor. */
+.about-callout-label[data-next] .about-callout-title {
+  padding-right: 6px;
+}
+
+.about-callout-label[data-next] .about-callout-title::before {
+  position: absolute;
+  top: 0.2em;
+  right: 0;
+  width: 1px;
+  height: 1em;
+  background: var(--callout-ink);
+  content: '';
+  animation: callout-blink 1.05s steps(1) infinite;
+}
+
+.about-callout-meta {
+  padding-left: 22px;
+  color: var(--callout-muted);
+  font-size: 0.625rem;
+  letter-spacing: 0.14em;
+  opacity: 0;
+  text-transform: uppercase;
+  transition: opacity 260ms ease-out 120ms;
+  white-space: nowrap;
+}
+
+.about-callout-label[data-state='active'] .about-callout-meta {
+  opacity: 1;
+}
+
+@keyframes callout-draw {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes callout-appear {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes callout-appear-soft {
+  from { opacity: 0; }
+  to { opacity: 0.42; }
+}
+
+@keyframes callout-arrive {
+  from { opacity: 0; translate: -6px 0; }
+  to { opacity: 1; translate: 0 0; }
+}
+
+@keyframes callout-ping {
+  0% { opacity: 0.9; scale: 1; }
+  70%, 100% { opacity: 0; scale: 3.4; }
+}
+
+@keyframes callout-blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .about-altitude,
+  .about-callout-leader,
+  .about-callout-label,
+  .about-callout-anchor,
+  .about-callout-anchor::after,
+  .about-callout-label[data-next] .about-callout-title::before {
+    animation: none !important;
+  }
+
+  .about-callout-label,
+  .about-callout-title::after,
+  .about-callout-reticle,
+  .about-callout-anchor::before {
+    transition: none;
+  }
+}

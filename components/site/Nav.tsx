@@ -7,6 +7,9 @@ import {SECTION_LABELS} from '@/data/sections';
 import {preloadTerrainManifest} from '@/lib/terrain/manifest';
 import {navStyles} from './Nav.styles';
 
+/** Dispatched on window when SQYC is clicked on Home: SceneShell closes any open section. */
+export const HOME_OVERVIEW_EVENT = 'sqyc:home-overview';
+
 const NAV_ITEMS = [
   {href: '/projects', label: SECTION_LABELS.projects},
   {href: '/artworks', label: SECTION_LABELS.art},
@@ -22,6 +25,8 @@ export function Nav() {
         aria-current={pathname === '/' ? 'page' : undefined}
         className={`${navStyles.brand} ${pathname === '/' ? navStyles.current : navStyles.idle}`}
         href="/"
+        // Already Home: the link cannot navigate, so ask the scene to return to the landscape overview.
+        onClick={pathname === '/' ? () => window.dispatchEvent(new Event(HOME_OVERVIEW_EVENT)) : undefined}
         // Start fetching the terrain manifest as soon as Home looks likely.
         onFocus={pathname === '/' ? undefined : preloadTerrainManifest}
         onPointerEnter={pathname === '/' ? undefined : preloadTerrainManifest}

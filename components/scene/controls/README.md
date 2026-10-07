@@ -13,6 +13,7 @@ writes the values back into `config/`.
 | `usePostControls.ts` | Post | `config/scene/postProcessing.ts` |
 | `useSceneLinkControls.ts` | Mobile Scene Links | `config/scene/sceneLinks.ts` |
 | `useGlyphRainControls.ts` | Glyph Rain | `config/scene/glyphRain.ts` |
+| `useAboutPathControls.ts` | About Path | `config/scene/aboutPath.ts` |
 | `SaveConfigButton.tsx` | Config › Save Config | all of the above |
 | `SaveCameraButton.tsx` | Config › Save Camera | `config/scene/camera.ts` |
 | `ArtCameraControls.tsx` | Art Camera (Art only) | `config/scene/camera.ts` |

@@ -37,6 +37,30 @@ Scene text dissolves into pixels on section changes. Scene link layouts change o
 while fully hidden; scene links and the hero name reveal after camera arrival.
 Art hides all scene text from navigation start, independently of backdrop loading.
 
+## About
+
+The About drawer opens on the right, wider than Blog/Projects; its camera frames the ridges on
+the left. Like Art, About clears the glyph rain and scene links; the HTML hero returns only once
+the camera has settled back home. About swaps the glowing homepage contours for a quieter map
+set (evenly spaced, thin, no pulse) built by the terrain worker on first visit. Its lines keep a
+minimum on-screen width; away from the route they darken, more so on unlit ground. The ground and
+its lines fall to the background with plan distance from the plane's centre (`edgeFade`), so no camera
+or flight sees the plane's edge. The route, its markers and the travelled path take one signal colour
+(Leva: Trail colour, default cyan).
+
+The drawer's experience timeline (`components/home/drawer/about/`) lists entries oldest first
+by start month and ends at an open "Next?" stop before Connect. Its scroll reading head drives the
+scene two ways: continuously, through a shared ref, `AboutPath` draws its zig-zag ridge route up
+to the head (solid and blooming; the trail ahead is dashed); and once the head rests on a stop,
+`SceneShell` passes that stop on and `CameraRig` frames its checkpoint (a partial shift toward a
+set screen point plus a slight zoom, no turn; `lib/scene/aboutPath.ts`). `AboutCallouts` lays
+out, in one HTML layer in screen space, each checkpoint's diamond marker, leader line and title,
+plus altitude figures on the map lines beside the route. Clicking a title or marker scrolls the
+drawer to that entry; the top of the drawer is the overview. SQYC closes the section back to the
+landscape. The route, checkpoints and map live in `config/scene/aboutPath.ts` (checkpoints and
+framing in Leva's About Path folder). Phones keep the full-width drawer without the path. About
+has no URL of its own yet.
+
 ## Art
 
 Art routes are `/artworks` (selected), `/artworks/all` (collection), and
@@ -173,7 +197,7 @@ are named at the top of the stylesheet that uses them.
 | `npm run bake:terrain` / `npm run check:terrain-bake` | Generate / validate terrain artifacts |
 | `npm run bake:oil` | Legacy: rebuild oil pigment and relief maps (unused by the live site) |
 | `npm run sync:artwork-dimensions` | Update artwork dimensions |
-| `node scripts/test/<file>.mjs` | Unit checks: backdrop wipe, camera transition, carousel layout, text transition |
+| `node scripts/test/<file>.mjs` | Unit checks: About path, backdrop wipe, camera transition, carousel layout, text transition |
 | `node scripts/verify/verify-art.mjs` | Opt-in browser journey checks and screenshots; requires externally available Playwright |
 | `node scripts/verify/verify-pencil-overlay.mjs` | Opt-in backdrop wipe, image resize, and reduced-motion checks |
 | `node scripts/verify/verify-text-transitions.mjs` | Opt-in desktop/mobile text transition and navigation regression checks |

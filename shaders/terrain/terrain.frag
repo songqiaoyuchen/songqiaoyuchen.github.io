@@ -1,4 +1,5 @@
-// Terrain surface colour: base-to-ridge blend lit by the baked two-light lighting map, with edge feather and fog.
+// Terrain surface colour: base-to-ridge blend lit by the baked two-light lighting map, falling to the background
+// with plan distance from the centre (edgeFade) so no camera sees the plane's edge, plus fog.
 #include <fog_pars_fragment>
 
 uniform sampler2D staticLightingMap;
@@ -6,18 +7,14 @@ uniform vec3  baseColor;
 uniform vec3  ridgeColor;
 uniform vec3  lightColor;
 uniform vec3  light2Color;
-uniform float edgeFeather;
+uniform vec2 edgeFade;
 
 varying float vHeight;
 varying vec2  vUv;
+varying vec3 vWorldPosition;
 
 void main() {
-  vec2 edgeDistance = min(vUv, 1.0 - vUv);
-  float edgeOpacity = smoothstep(
-    0.0,
-    edgeFeather,
-    min(edgeDistance.x, edgeDistance.y)
-  );
+  float edgeOpacity = 1.0 - smoothstep(edgeFade.x, edgeFade.y, length(vWorldPosition.xz));
 
   float heightBlend = pow(vHeight, 1.4);
   vec3 color = mix(baseColor, ridgeColor, heightBlend);

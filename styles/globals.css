@@ -11,4 +11,5 @@
 @import "./utilities.css";
 @import "../components/site/Nav.css";
 @import "../components/home/drawer/Drawer.css";
+@import "../components/scene/about/AboutCallouts.css";
 @import "../components/blog/article.css";

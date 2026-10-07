@@ -1,7 +1,8 @@
 // Moves the camera between section poses (overview, projects, art, blog, about) and drives Art flight fog.
+// On About, an entry being read gets its own framing of that checkpoint (AboutPath publishes the poses).
 'use client';
 
-import { useMemo, useRef } from 'react';
+import { useMemo, useRef, type MutableRefObject } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import {MathUtils, PerspectiveCamera, Vector3} from 'three';
 import type { OrbitControls as OrbitControlsInstance } from 'three-stdlib';
@@ -9,7 +10,9 @@ import {
   CAMERA_CONFIG,
   getCameraPose,
   SCENE_LAYOUT_CONFIG,
+  type CameraPose,
 } from '@/config/scene';
+import {ABOUT_PATH_CONFIG} from '@/config/scene/aboutPath';
 import type {SectionId} from '@/data/sections';
 import {useReducedMotion} from '@/hooks/useReducedMotion';
 import {artTransitionSettings} from '@/lib/art/transitionSettings';
@@ -19,11 +22,16 @@ import {useCameraFrameState} from './CameraFrameState';
 
 type CameraRigProps = {
   activeId: SectionId | null;
+  /** About checkpoint to frame, or -1 for the About pose itself. */
+  aboutStop?: number;
+  aboutFocusPosesRef?: MutableRefObject<readonly CameraPose[]>;
   onPoseSettled?: (pose: SectionId | null | undefined) => void;
   controlsRef?: React.RefObject<OrbitControlsInstance | null>;
 };
 
-export function CameraRig({activeId, controlsRef, onPoseSettled}: CameraRigProps) {
+export function CameraRig({
+  activeId, aboutStop = -1, aboutFocusPosesRef, controlsRef, onPoseSettled,
+}: CameraRigProps) {
   const cameraFrameState = useCameraFrameState();
   const isReducedMotion = useReducedMotion();
   const viewportWidth = useThree((state) => state.size.width);
@@ -41,7 +49,10 @@ export function CameraRig({activeId, controlsRef, onPoseSettled}: CameraRigProps
   const poseId = activeId && (!isMobile || activeId === 'art')
     ? activeId
     : null;
-  const poseKey = poseId ?? (isMobile ? 'mobile-overview' : 'overview');
+  const focusStop = poseId === 'about' ? aboutStop : -1;
+  const poseKey = focusStop >= 0
+    ? `about:${focusStop}`
+    : poseId ?? (isMobile ? 'mobile-overview' : 'overview');
   const configuredPose = getCameraPose(poseId, isMobile);
   const configuredPosition = useMemo(
     () => new Vector3(...configuredPose.position),
@@ -55,6 +66,9 @@ export function CameraRig({activeId, controlsRef, onPoseSettled}: CameraRigProps
   const previousPoseKey = useRef(poseKey);
   const isAnimating = useRef(false);
   const artJourney = useRef(false);
+  const aboutJourney = useRef(false);
+  const focusPosition = useMemo(() => new Vector3(), []);
+  const focusLookAt = useMemo(() => new Vector3(), []);
   const artFogStart = useRef(0);
   const transition = useMemo(() => new CameraTransition(), []);
   const initialized = useRef(false);
@@ -96,13 +110,22 @@ export function CameraRig({activeId, controlsRef, onPoseSettled}: CameraRigProps
         overviewReturnLookAt.current.copy(configuredLookAt);
       }
       artJourney.current = poseKey === 'art' || previousPoseKey.current === 'art';
+      // Moving along the About path, between entries or back to its overview.
+      aboutJourney.current = poseKey.startsWith('about') && previousPoseKey.current.startsWith('about');
       artFogStart.current = cameraFrameState.current.artFog;
       previousPoseKey.current = poseKey;
+      const focusPose = focusStop >= 0 ? aboutFocusPosesRef?.current[focusStop] : undefined;
+      if (focusPose) {
+        focusPosition.fromArray(focusPose.position);
+        focusLookAt.fromArray(focusPose.lookAt);
+      }
       transition.begin(
         camera,
         currentLookAt.current,
-        poseId === null ? overviewReturnPosition.current : configuredPosition,
-        poseId === null ? overviewReturnLookAt.current : configuredLookAt,
+        focusPose ? focusPosition
+          : poseId === null ? overviewReturnPosition.current : configuredPosition,
+        focusPose ? focusLookAt
+          : poseId === null ? overviewReturnLookAt.current : configuredLookAt,
       );
       isAnimating.current = true;
       onPoseSettled?.(undefined);
@@ -111,7 +134,9 @@ export function CameraRig({activeId, controlsRef, onPoseSettled}: CameraRigProps
     if (isAnimating.current) {
       const settled = transition.advance(
         camera, currentLookAt.current, delta,
-        artJourney.current ? artTransitionSettings.cameraSeconds : CAMERA_CONFIG.transitionSeconds,
+        artJourney.current ? artTransitionSettings.cameraSeconds
+          : aboutJourney.current ? ABOUT_PATH_CONFIG.focusSeconds
+            : CAMERA_CONFIG.transitionSeconds,
         isReducedMotion,
       );
       controls?.target.copy(currentLookAt.current);

@@ -3,7 +3,7 @@
 'use client';
 
 import {useEffect, useMemo, useRef, useState} from 'react';
-import { Color, PlaneGeometry, ShaderMaterial, UniformsLib, UniformsUtils } from 'three';
+import { Color, PlaneGeometry, ShaderMaterial, UniformsLib, UniformsUtils, Vector2 } from 'three';
 import type {TerrainControlValues} from '@/components/scene/controls/useSceneControls';
 import {TERRAIN_MATERIAL_CONFIG, TERRAIN_MESH_CONFIG} from '@/config/scene';
 import {
@@ -29,8 +29,9 @@ export function TerrainMesh({settings}: {settings: TerrainControlValues}) {
     baseColor, ridgeColor,
     lightColor, lightX, lightY, lightZ, lightIntensity, lightFalloff,
     light2Color, light2X, light2Y, light2Z, light2Intensity, light2Falloff,
-    shadowStrength, shadowBias,
+    shadowStrength, shadowBias, edgeFade,
   } = settings;
+  const [fadeStart, fadeEnd] = edgeFade;
 
   const usesBakedLighting = process.env.NODE_ENV !== 'development' || (
     elevation === TERRAIN_MATERIAL_CONFIG.elevation
@@ -111,6 +112,7 @@ export function TerrainMesh({settings}: {settings: TerrainControlValues}) {
     material.uniforms.ridgeColor.value.set(ridgeColor);
     material.uniforms.lightColor.value.set(lightColor);
     material.uniforms.light2Color.value.set(light2Color);
+    material.uniforms.edgeFade.value.set(fadeStart, fadeEnd);
   }, [
     elevation,
     seaLevel,
@@ -118,6 +120,8 @@ export function TerrainMesh({settings}: {settings: TerrainControlValues}) {
     ridgeColor,
     lightColor,
     light2Color,
+    fadeEnd,
+    fadeStart,
     staticLightingMap,
   ]);
 
@@ -133,7 +137,7 @@ export function TerrainMesh({settings}: {settings: TerrainControlValues}) {
     ridgeColor:     { value: new Color(TERRAIN_MATERIAL_CONFIG.ridgeColor) },
     lightColor:     { value: new Color(TERRAIN_MATERIAL_CONFIG.lightColor) },
     light2Color:    { value: new Color(TERRAIN_MATERIAL_CONFIG.light2Color) },
-    edgeFeather:    { value: TERRAIN_MESH_CONFIG.edgeFeather },
+    edgeFade:       { value: new Vector2(...TERRAIN_MESH_CONFIG.edgeFade) },
   }), [displacementMap, staticLightingMap]);
 
   const geometry = useMemo(

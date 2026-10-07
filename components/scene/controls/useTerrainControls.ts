@@ -1,7 +1,7 @@
 // Leva "Terrain", "Point Light 1" and "Point Light 2" folders (dev only).
 // Save Config writes every key below to config/scene/terrain.ts.
 import { useControls } from 'leva';
-import {TERRAIN_MATERIAL_CONFIG} from '@/config/scene';
+import {TERRAIN_MATERIAL_CONFIG, TERRAIN_MESH_CONFIG} from '@/config/scene';
 
 export function useTerrainControls() {
   const terrain = useControls('Terrain', {
@@ -16,6 +16,13 @@ export function useTerrainControls() {
       value: TERRAIN_MATERIAL_CONFIG.seaLevel,
       min: 0, max: 1, step: 0.01,
       label: 'Sea Level',
+    },
+    // TerrainMesh.tsx + Contours.tsx: plan distance from the centre where the ground starts to fall to the
+    // background, and where it is gone (the plane's edge is at 11).
+    edgeFade: {
+      value: [...TERRAIN_MESH_CONFIG.edgeFade] as [number, number],
+      step: 0.1, joystick: false,
+      label: 'Edge fade',
     },
     // TerrainMesh.tsx: colour of the low ground.
     baseColor:  { value: TERRAIN_MATERIAL_CONFIG.baseColor,  label: 'Base Color'  },

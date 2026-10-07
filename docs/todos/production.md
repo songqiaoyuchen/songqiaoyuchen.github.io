@@ -8,9 +8,8 @@ Evidence below is from 2026-09-29, not a guarantee of current failures.
   Revisit after upgrading Next and remove once the exporter normalizes path
   separators. Linux deployment builds skip the workaround. Generated output
   is excluded from TypeScript checks; worker loading is verified in Art checks.
-- [ ] **Lint baseline:** two existing `max-len` errors remain in
-  `data/about.ts:37` and `data/projects.ts:92`. The artwork data was
-  formatted during the Art rebuild. Clean up the others when those files change.
+- [ ] **Lint baseline:** one existing `max-len` error remains in
+  `data/projects.ts:92`. Clean it up when that file changes.
 - [ ] **Metadata/discovery:** set `NEXT_PUBLIC_SITE_URL` in the Pages workflow;
   `app/layout.tsx` falls back to localhost. Review social titles/descriptions,
   canonical URLs, sitemap, and robots behavior before release.
