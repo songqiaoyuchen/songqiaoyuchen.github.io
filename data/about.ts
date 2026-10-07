@@ -68,6 +68,10 @@ export const ABOUT_TIMELINE: readonly TimelineEntry[] = [
   },
 ];
 
+/** The timeline stops in order: the entries, then "Next?". Also the ?entry= values of /about. */
+export const ABOUT_STOP_IDS = [...ABOUT_TIMELINE.map((entry) => entry.id), 'next'] as const;
+export type AboutStopId = (typeof ABOUT_STOP_IDS)[number];
+
 const START_FORMAT = new Intl.DateTimeFormat('en', {month: 'short', year: 'numeric', timeZone: 'UTC'});
 
 /** "2024-04" -> "Apr 2024", identical on server and client. */

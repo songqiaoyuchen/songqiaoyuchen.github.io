@@ -1,7 +1,8 @@
-// Leva "Terrain", "Point Light 1" and "Point Light 2" folders (dev only).
+// Leva "Terrain", "Point Light 1" and "Point Light 2" folders (dev only, hidden on About).
 // Save Config writes every key below to config/scene/terrain.ts.
 import { useControls } from 'leva';
 import {TERRAIN_MATERIAL_CONFIG, TERRAIN_MESH_CONFIG} from '@/config/scene';
+import {HOME_SCENE_FOLDER} from './sectionScope';
 
 export function useTerrainControls() {
   const terrain = useControls('Terrain', {
@@ -40,7 +41,7 @@ export function useTerrainControls() {
       min: 0.01, max: 0.4, step: 0.01,
       label: 'Shadow Bias',
     },
-  });
+  }, HOME_SCENE_FOLDER);
 
   const light1 = useControls('Point Light 1', {
     // TerrainMesh.tsx: tint of the primary light.
@@ -75,7 +76,7 @@ export function useTerrainControls() {
       min: 0.001, max: 0.2, step: 0.001,
       label: 'Falloff',
     },
-  });
+  }, HOME_SCENE_FOLDER);
 
   const light2 = useControls('Point Light 2', {
     // TerrainMesh.tsx: tint of the counter light.
@@ -110,7 +111,7 @@ export function useTerrainControls() {
       min: 0.001, max: 0.2, step: 0.001,
       label: 'Falloff',
     },
-  });
+  }, HOME_SCENE_FOLDER);
 
   return { ...terrain, ...light1, ...light2 };
 }

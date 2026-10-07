@@ -25,12 +25,14 @@ type CameraRigProps = {
   /** About checkpoint to frame, or -1 for the About pose itself. */
   aboutStop?: number;
   aboutFocusPosesRef?: MutableRefObject<readonly CameraPose[]>;
+  /** Journey times into/out of About and between its entries (Leva About Path; config defaults). */
+  aboutSeconds?: {journeySeconds: number; focusSeconds: number};
   onPoseSettled?: (pose: SectionId | null | undefined) => void;
   controlsRef?: React.RefObject<OrbitControlsInstance | null>;
 };
 
 export function CameraRig({
-  activeId, aboutStop = -1, aboutFocusPosesRef, controlsRef, onPoseSettled,
+  activeId, aboutStop = -1, aboutFocusPosesRef, aboutSeconds = ABOUT_PATH_CONFIG, controlsRef, onPoseSettled,
 }: CameraRigProps) {
   const cameraFrameState = useCameraFrameState();
   const isReducedMotion = useReducedMotion();
@@ -66,7 +68,9 @@ export function CameraRig({
   const previousPoseKey = useRef(poseKey);
   const isAnimating = useRef(false);
   const artJourney = useRef(false);
+  // Journeys within About (between entries) and into or out of About have their own timing.
   const aboutJourney = useRef(false);
+  const aboutEntry = useRef(false);
   const focusPosition = useMemo(() => new Vector3(), []);
   const focusLookAt = useMemo(() => new Vector3(), []);
   const artFogStart = useRef(0);
@@ -112,6 +116,7 @@ export function CameraRig({
       artJourney.current = poseKey === 'art' || previousPoseKey.current === 'art';
       // Moving along the About path, between entries or back to its overview.
       aboutJourney.current = poseKey.startsWith('about') && previousPoseKey.current.startsWith('about');
+      aboutEntry.current = poseKey.startsWith('about') !== previousPoseKey.current.startsWith('about');
       artFogStart.current = cameraFrameState.current.artFog;
       previousPoseKey.current = poseKey;
       const focusPose = focusStop >= 0 ? aboutFocusPosesRef?.current[focusStop] : undefined;
@@ -135,8 +140,9 @@ export function CameraRig({
       const settled = transition.advance(
         camera, currentLookAt.current, delta,
         artJourney.current ? artTransitionSettings.cameraSeconds
-          : aboutJourney.current ? ABOUT_PATH_CONFIG.focusSeconds
-            : CAMERA_CONFIG.transitionSeconds,
+          : aboutJourney.current ? aboutSeconds.focusSeconds
+            : aboutEntry.current ? aboutSeconds.journeySeconds
+              : CAMERA_CONFIG.transitionSeconds,
         isReducedMotion,
       );
       controls?.target.copy(currentLookAt.current);

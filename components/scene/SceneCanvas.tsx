@@ -93,7 +93,7 @@ export function SceneCanvas({
   const [bloomReady, setBloomReady] = useState(false);
   const [terrainDepthTexture, setTerrainDepthTexture] = useState<DepthTexture | null>(null);
   const isDevelopment = process.env.NODE_ENV === 'development';
-  const settings = useSceneControls();
+  const settings = useSceneControls(activeId);
   const hideHomeScene = artActive || activeId === 'art';
   // Sections with their own journey (Art, About) clear the homepage text: glyph rain and scene links.
   const hideSceneText = hideHomeScene || activeId === 'about';
@@ -165,6 +165,7 @@ export function SceneCanvas({
               activeId={activeId}
               aboutStop={aboutStop}
               aboutFocusPosesRef={aboutFocusPosesRef}
+              aboutSeconds={settings.aboutPath}
               onPoseSettled={onPoseSettled}
               controlsRef={isDevelopment ? orbitcontrolsRef : undefined}
             />

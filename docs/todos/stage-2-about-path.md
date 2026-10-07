@@ -1,6 +1,6 @@
 # Stage 2: About experience path
 
-Status: first prototype implemented (2026-10-06); awaiting visual review.
+Status: first prototype implemented (2026-10-06), route `/about?entry=` added 2026-10-07; awaiting visual review.
 
 ## Accepted direction
 
@@ -55,8 +55,6 @@ Status: first prototype implemented (2026-10-06); awaiting visual review.
 
 - Review the zig-zag route, framing (focus point/follow/zoom), map contour density and
   fade, path glow and label legibility in the live scene.
-- `?entry=` URL: About is still drawer state without a URL; add it with About's route
-  in [Navigation](stage-2-navigation.md).
 - Smaller-screen composition: phones keep the full-width drawer without the path.
 
 ## Work and validation

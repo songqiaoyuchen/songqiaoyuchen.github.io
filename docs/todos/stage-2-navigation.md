@@ -1,6 +1,6 @@
 # Stage 2: Navigation, URLs and view hierarchy
 
-Status: Art navigation implemented; other section navigation remains deferred.
+Status: Art and About navigation implemented; other section navigation remains deferred.
 Design alongside the [Art journey](stage-2-art-journey.md).
 
 ## Implemented Art slice

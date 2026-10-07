@@ -1,7 +1,8 @@
-// Leva "Contour Lines" folder (dev only); Save Config writes every key below to config/scene/contours.ts.
+// Leva "Contour Lines" folder (dev only, hidden on About); Save Config writes every key to config/scene/contours.ts.
 // Geometry keys rebuild the lines in the terrain worker; the rest are live shader uniforms.
 import { folder, useControls } from 'leva';
 import {CONTOUR_CONFIG} from '@/config/scene';
+import {HOME_SCENE_FOLDER} from './sectionScope';
 
 const CONTOURS = CONTOUR_CONFIG;
 
@@ -160,5 +161,5 @@ export function useContourControls() {
       },
     }, { collapsed: true }),
 
-  });
+  }, HOME_SCENE_FOLDER);
 }

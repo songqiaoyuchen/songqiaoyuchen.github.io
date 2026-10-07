@@ -1,6 +1,7 @@
-// Leva "Post" folder (dev only); Save Config writes every key below to config/scene/postProcessing.ts.
+// Leva "Post" folder (dev only, hidden on About); Save Config writes every key below to config/scene/postProcessing.ts.
 import { useControls } from 'leva';
 import {POST_PROCESSING_CONFIG} from '@/config/scene';
+import {HOME_SCENE_FOLDER} from './sectionScope';
 
 const POST = POST_PROCESSING_CONFIG;
 
@@ -24,5 +25,5 @@ export function usePostControls() {
       min: 0, max: 1, step: 0.01,
       label: 'Bloom Smoothing',
     },
-  });
+  }, HOME_SCENE_FOLDER);
 }

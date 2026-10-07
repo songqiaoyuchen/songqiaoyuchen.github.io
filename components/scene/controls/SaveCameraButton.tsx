@@ -1,6 +1,7 @@
 // Leva "Config > Save Camera" button (dev only): stores the orbit camera as the current section's pose.
 import {useThree} from '@react-three/fiber';
 import {button, useControls} from 'leva';
+import {useEffect, useRef} from 'react';
 import {PerspectiveCamera} from 'three';
 import type {OrbitControls as OrbitControlsInstance} from 'three-stdlib';
 import {SCENE_LAYOUT_CONFIG} from '@/config/scene';
@@ -25,15 +26,21 @@ export function SaveCameraButton({
   controlsRef: React.RefObject<OrbitControlsInstance | null>;
 }) {
   const {camera, size} = useThree();
+  // Leva registers the button once, so its click handler reads the section and viewport through a ref.
+  const latest = useRef({activeId, width: size.width});
+  useEffect(() => {
+    latest.current = {activeId, width: size.width};
+  });
 
   useControls('Config', {
     // config/scene/camera.ts: saves position, look-at and fov for the pose on screen (CameraRig.tsx).
-    // The ref is read only when the user clicks the button.
+    // The refs are read only when the user clicks the button.
     // eslint-disable-next-line react-hooks/refs
     'Save Camera': button(() => {
-      const pose = activeId && size.width >= SCENE_LAYOUT_CONFIG.mobileMaxWidth
-        ? activeId
-        : size.width < SCENE_LAYOUT_CONFIG.mobileMaxWidth
+      const {activeId: section, width} = latest.current;
+      const pose = section && width >= SCENE_LAYOUT_CONFIG.mobileMaxWidth
+        ? section
+        : width < SCENE_LAYOUT_CONFIG.mobileMaxWidth
           ? 'mobileOverview'
           : 'overview';
       const values: Record<string, unknown> = {

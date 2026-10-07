@@ -1,5 +1,8 @@
 // All homepage scene Leva folders in panel order; each group key is also its dev-config save scope.
+// Folders appear per section (sectionScope.ts); every hook stays mounted so tuned values survive section changes.
 // In production Leva is hidden and every value equals its config default.
+import type {SectionId} from '@/data/sections';
+import {useSectionScope} from './sectionScope';
 import {useAboutPathControls} from './useAboutPathControls';
 import {useContourControls} from './useContourControls';
 import {useFogControls} from './useFogControls';
@@ -8,7 +11,8 @@ import {usePostControls} from './usePostControls';
 import {useSceneLinkControls} from './useSceneLinkControls';
 import {useTerrainControls} from './useTerrainControls';
 
-export function useSceneControls() {
+export function useSceneControls(activeId: SectionId | null) {
+  useSectionScope(activeId);
   const terrain = useTerrainControls();
   const contours = useContourControls();
   const fog = useFogControls();

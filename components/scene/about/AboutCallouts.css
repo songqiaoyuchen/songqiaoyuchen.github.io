@@ -322,3 +322,13 @@
     transition: none;
   }
 }
+
+/* Edit route (AboutPathEditor.tsx): the editor draws its own handles at the checkpoints; titles stay for
+   orientation but take no clicks. */
+.about-callouts[data-editing] .about-callout-anchor {
+  display: none;
+}
+
+.about-callouts[data-editing] .about-callout-label {
+  pointer-events: none;
+}

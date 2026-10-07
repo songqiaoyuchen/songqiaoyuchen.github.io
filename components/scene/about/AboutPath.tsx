@@ -1,14 +1,16 @@
 // About experience path: a route draped over the ridge through one checkpoint per timeline entry, ending at "Next?".
 // The whole route shows faintly; the part up to the drawer's reading head is drawn bright and blooms like the
-// major contours. Also publishes each checkpoint's camera framing for CameraRig.
+// major contours. Also publishes each checkpoint's camera framing for CameraRig. In development, Edit route
+// (AboutPathEditor) reshapes the route and slides the checkpoints along it.
 'use client';
 
 import {useFrame, useThree} from '@react-three/fiber';
-import {useEffect, useMemo, useRef, type MutableRefObject} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject} from 'react';
 import {
   AdditiveBlending, CatmullRomCurve3, Color, PerspectiveCamera, TubeGeometry, UniformsLib, UniformsUtils,
   type DepthTexture, type Group, type Mesh, type ShaderMaterial,
 } from 'three';
+import {setAboutCheckpoint} from '@/components/scene/controls/useAboutPathControls';
 import type {
   AboutPathControlValues,
   TerrainControlValues,
@@ -16,21 +18,25 @@ import type {
 import {
   CAMERA_CONFIG, CONTOUR_CONFIG, getCameraPose, SCENE_LAYOUT_CONFIG, type CameraPose,
 } from '@/config/scene';
-import {ABOUT_MAP_CONFIG, ABOUT_PATH_CONFIG, ABOUT_ROUTE} from '@/config/scene/aboutPath';
-import {ABOUT_TIMELINE, formatEntryStart} from '@/data/about';
+import {ABOUT_MAP_CONFIG, ABOUT_PATH_CONFIG, ABOUT_ROUTE, type PlanPoint} from '@/config/scene/aboutPath';
+import {ABOUT_STOP_IDS, ABOUT_TIMELINE, formatEntryStart} from '@/data/about';
 import {useReducedMotion} from '@/hooks/useReducedMotion';
 import {getHomeFov} from '@/lib/scene/camera';
 import {buildAboutRoute, getAboutFocusPose, placeAltitudeMarks} from '@/lib/scene/aboutPath';
 import {useTerrainAssets} from '@/lib/terrain/assets';
-import {normalizeRawHeight, sampleHeight, sampleNormalizedHeight} from '@/lib/terrain/height';
+import {
+  normalizeRawHeight, sampleHeight, sampleNormalizedHeight, sampleSurfaceHeight,
+} from '@/lib/terrain/height';
 import fragmentShader from '@/shaders/terrain/aboutPath.frag';
 import vertexShader from '@/shaders/terrain/aboutPath.vert';
 import {AboutCallouts, type CalloutItem} from './AboutCallouts';
+import {AboutPathEditor} from './AboutPathEditor';
 
-const STOP_IDS = [...ABOUT_TIMELINE.map((entry) => entry.id), 'next'] as const;
+const STOP_IDS = ABOUT_STOP_IDS;
 const NEXT_INDEX = STOP_IDS.length - 1;
 const FADE_RATE = 4;
 const DRAW_RATE = 3;
+const IS_DEVELOPMENT = process.env.NODE_ENV === 'development';
 
 const CALLOUT_ITEMS: readonly CalloutItem[] = [
   ...ABOUT_TIMELINE.map((entry) => ({
@@ -76,15 +82,27 @@ export function AboutPath({
   const reducedMotion = useReducedMotion();
   const {shellBase} = useTerrainAssets();
   const {elevation, seaLevel} = terrainSettings;
-  const {focusScreen, focusFollow, focusZoom} = settings;
+  const {focusScreen, focusFollow, focusZoom, lift} = settings;
   const [focusX, focusY] = focusScreen;
+  // The route's waypoints only change in development, through the editor.
+  const [waypoints, setWaypoints] = useState<readonly PlanPoint[]>(ABOUT_ROUTE.waypoints);
+  const [editing, setEditing] = useState(false);
   const checkpointKey = JSON.stringify(STOP_IDS.map((id) => settings[id]));
+  const checkpoints = useMemo(() => JSON.parse(checkpointKey) as PlanPoint[], [checkpointKey]);
+  const editableCheckpoints = useMemo(
+    () => STOP_IDS.map((id, index) => ({id, point: checkpoints[index]})),
+    [checkpoints],
+  );
 
-  const route = useMemo(() => buildAboutRoute(
-    ABOUT_ROUTE,
-    JSON.parse(checkpointKey) as [number, number][],
-    (x, z) => sampleHeight(shellBase, x, z, elevation, seaLevel) + ABOUT_PATH_CONFIG.lift,
-  ), [checkpointKey, elevation, seaLevel, shellBase]);
+  // On the rendered surface (not the text sampler, which clears it by a fixed margin) plus the tuned lift.
+  const heightAt = useCallback(
+    (x: number, z: number) => sampleSurfaceHeight(shellBase, x, z, elevation, seaLevel) + lift,
+    [elevation, lift, seaLevel, shellBase],
+  );
+  const route = useMemo(
+    () => buildAboutRoute(waypoints, checkpoints, heightAt),
+    [checkpoints, heightAt, waypoints],
+  );
 
   // Altitude figures on the map contours beside the route.
   const marks = useMemo(() => {
@@ -193,11 +211,23 @@ export function AboutPath({
       {visible ? (
         <AboutCallouts
           activeStop={activeStop}
+          editing={editing}
           items={CALLOUT_ITEMS}
           marks={marks}
           signalColor={trailColor}
           onSelect={onSelect}
           stops={route.stops}
+        />
+      ) : null}
+      {IS_DEVELOPMENT && visible ? (
+        <AboutPathEditor
+          checkpoints={editableCheckpoints}
+          heightAt={heightAt}
+          signalColor={trailColor}
+          waypoints={waypoints}
+          onCheckpointChange={setAboutCheckpoint}
+          onEditingChange={setEditing}
+          onWaypointsChange={setWaypoints}
         />
       ) : null}
     </>

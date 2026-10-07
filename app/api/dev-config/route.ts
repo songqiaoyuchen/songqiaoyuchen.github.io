@@ -4,33 +4,7 @@ import {promises as fs} from 'fs';
 import path from 'path';
 import {NextResponse} from 'next/server';
 import {EDITABLE_CONFIG, isConfigScope, type ConfigScope} from './editableConfig';
-
-// Round float noise (0.060000000000000005 -> 0.06) without clipping
-// precision anyone actually tunes at.
-function formatNumber(value: number): string {
-  return String(Math.round(value * 1e6) / 1e6);
-}
-
-function toLiteral(value: unknown): string | null {
-  if (typeof value === 'string') return `'${value.replace(/'/g, '')}'`;
-  if (typeof value === 'number' && Number.isFinite(value)) return formatNumber(value);
-  if (typeof value === 'boolean') return String(value);
-  if (
-    Array.isArray(value)
-    && value.every((item) => typeof item === 'number' && Number.isFinite(item))
-  ) {
-    return `[${value.map(formatNumber).join(', ')}]`;
-  }
-  return null;
-}
-
-const LITERAL = "\\[[^\\]]*\\]|'[^']*'|-?\\d[\\d.]*(?:e-?\\d+)?|true|false";
-
-function replaceKey(source: string, key: string, literal: string): string | null {
-  const pattern = new RegExp(`(\\b${key}:\\s*)(${LITERAL})`);
-  if (!pattern.test(source)) return null;
-  return source.replace(pattern, `$1${literal}`);
-}
+import {replaceKey, toLiteral} from './literals';
 
 type ConfigSource = {
   filePath: string;

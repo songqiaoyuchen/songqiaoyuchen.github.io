@@ -15,8 +15,8 @@ export const EDITABLE_CONFIG = {
   },
   aboutPath: {
     file: 'scene/aboutPath.ts',
-    keys: ['medic', 'nus', 'greyhats', 'sonicboom', 'uniplans', 'next', 'focusScreen', 'focusFollow',
-      'focusZoom', 'trailColor'],
+    keys: ['waypoints', 'medic', 'nus', 'greyhats', 'sonicboom', 'uniplans', 'next', 'focusScreen', 'focusFollow',
+      'focusZoom', 'trailColor', 'lift', 'journeySeconds', 'focusSeconds'],
   },
   artCursor: {
     file: 'art/cursor.ts',

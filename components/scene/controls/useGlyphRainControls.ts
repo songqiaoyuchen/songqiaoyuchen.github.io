@@ -1,7 +1,8 @@
-// Leva "Glyph Rain" folder (dev only); Save Config writes every key below to config/scene/glyphRain.ts.
+// Leva "Glyph Rain" folder (dev only, hidden on About); Save Config writes every key to config/scene/glyphRain.ts.
 // Each value is a [min, max] range; every column picks its own speed within it.
 import {useControls} from 'leva';
 import {GLYPH_RAIN_CONFIG} from '@/config/scene';
+import {HOME_SCENE_FOLDER} from './sectionScope';
 
 const ANIMATION = GLYPH_RAIN_CONFIG.animation;
 
@@ -31,5 +32,5 @@ export function useGlyphRainControls() {
       step: 0.1,
       label: 'Letter Swap Speed',
     },
-  });
+  }, HOME_SCENE_FOLDER);
 }

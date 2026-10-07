@@ -54,7 +54,9 @@ export function Drawer({
     if (activeId === null) return;
 
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') onClose();
+      // Escape in a text field (the Leva panel while tuning About) only leaves the field.
+      const field = event.target instanceof Element && event.target.closest('input, textarea, [contenteditable]');
+      if (event.key === 'Escape' && !field) onClose();
     }
 
     window.addEventListener('keydown', handleKeyDown);

@@ -38,6 +38,8 @@ function getState(index: number, activeStop: number): CalloutState {
 type AboutCalloutsProps = {
   items: readonly CalloutItem[];
   marks: readonly AltitudeMark[];
+  /** Edit route (AboutPathEditor.tsx): markers give way to its handles and titles stop taking clicks. */
+  editing?: boolean;
   /** The trail's signal colour, for the markers. */
   signalColor: string;
   stops: readonly Vector3[];
@@ -45,7 +47,9 @@ type AboutCalloutsProps = {
   onSelect: (stop: number) => void;
 };
 
-export function AboutCallouts({items, marks, signalColor, stops, activeStop, onSelect}: AboutCalloutsProps) {
+export function AboutCallouts({
+  items, marks, editing = false, signalColor, stops, activeStop, onSelect,
+}: AboutCalloutsProps) {
   const anchorsRef = useRef<Array<HTMLDivElement | null>>([]);
   const labelsRef = useRef<Array<HTMLDivElement | null>>([]);
   const leadersRef = useRef<Array<SVGPolylineElement | null>>([]);
@@ -122,6 +126,7 @@ export function AboutCallouts({items, marks, signalColor, stops, activeStop, onS
       zIndexRange={[30, 10]}
     >
       <CalloutLayer
+        editing={editing}
         activeStop={activeStop}
         anchorsRef={anchorsRef}
         items={items}
@@ -141,6 +146,7 @@ type CalloutLayerProps = {
   marks: readonly AltitudeMark[];
   signalColor: string;
   marksRef: MutableRefObject<Array<HTMLSpanElement | null>>;
+  editing: boolean;
   activeStop: number;
   onSelect: (stop: number) => void;
   anchorsRef: MutableRefObject<Array<HTMLDivElement | null>>;
@@ -149,12 +155,16 @@ type CalloutLayerProps = {
 };
 
 function CalloutLayer({
-  items, marks, signalColor, activeStop, onSelect, anchorsRef, labelsRef, leadersRef, marksRef,
+  items, marks, editing, signalColor, activeStop, onSelect, anchorsRef, labelsRef, leadersRef, marksRef,
 }: CalloutLayerProps) {
   const [hovered, setHovered] = useState<number | null>(null);
 
   return (
-    <div className="about-callouts" style={{'--callout-signal': signalColor} as CSSProperties}>
+    <div
+      className="about-callouts"
+      data-editing={editing || undefined}
+      style={{'--callout-signal': signalColor} as CSSProperties}
+    >
       {marks.map((mark, index) => (
         <span
           aria-hidden="true"

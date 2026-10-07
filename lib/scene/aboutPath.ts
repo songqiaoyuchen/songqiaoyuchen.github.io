@@ -2,9 +2,18 @@
 import {CatmullRomCurve3, Vector3, type PerspectiveCamera, type Vector3Tuple} from 'three';
 import type {CameraPose} from '@/config/scene/camera';
 
-const SAMPLES_PER_WAYPOINT = 16;
+/** Plan distance between route samples, so the draped tube follows the terrain whatever the waypoint spacing. */
+const SAMPLE_SPACING = 0.02;
+const MIN_SAMPLES_PER_SPAN = 4;
 
 type PlanPoint = readonly [number, number];
+
+export type RoutePlan = {
+  /** Plan samples along the smooth route through the waypoints; y is 0. */
+  samples: Vector3[];
+  /** Index of the first sample of each span between consecutive waypoints. */
+  spanStarts: number[];
+};
 
 export type AboutRoute = {
   /** Surface points along the route, first checkpoint to last. */
@@ -16,34 +25,71 @@ export type AboutRoute = {
   length: number;
 };
 
+/** The smooth route through the plan-view waypoints, sampled about SAMPLE_SPACING apart. */
+export function sampleRoutePlan(waypoints: readonly PlanPoint[]): RoutePlan {
+  const plan = new CatmullRomCurve3(
+    waypoints.map(([x, z]) => new Vector3(x, 0, z)),
+    false,
+    'centripetal',
+  );
+  const spans = Math.max(waypoints.length - 1, 1);
+  const samples: Vector3[] = [];
+  const spanStarts: number[] = [];
+  for (let span = 0; span < spans; span++) {
+    const [fromX, fromZ] = waypoints[span];
+    const [toX, toZ] = waypoints[Math.min(span + 1, waypoints.length - 1)];
+    const count = Math.max(MIN_SAMPLES_PER_SPAN, Math.ceil(Math.hypot(toX - fromX, toZ - fromZ) / SAMPLE_SPACING));
+    spanStarts.push(samples.length);
+    for (let step = 0; step < count; step++) {
+      samples.push(plan.getPoint((span + step / count) / spans));
+    }
+  }
+  samples.push(plan.getPoint(1));
+  return {samples, spanStarts};
+}
+
+/** The span (index of its first waypoint) a sample lies in. */
+export function spanOfSample({spanStarts}: RoutePlan, sampleIndex: number): number {
+  let span = 0;
+  while (span + 1 < spanStarts.length && spanStarts[span + 1] <= sampleIndex) span++;
+  return span;
+}
+
+/** Index of the sample nearest `point` in plan, among samples `from` to `to` inclusive. */
+export function nearestSample(
+  samples: readonly Vector3[],
+  [x, z]: PlanPoint,
+  from = 0,
+  to = samples.length - 1,
+): number {
+  let nearest = from;
+  for (let index = from; index <= to; index++) {
+    if (Math.hypot(samples[index].x - x, samples[index].z - z)
+      < Math.hypot(samples[nearest].x - x, samples[nearest].z - z)) nearest = index;
+  }
+  return nearest;
+}
+
+/** Each checkpoint's sample index: the nearest sample at or after the previous checkpoint's, keeping their order. */
+export function snapCheckpoints(samples: readonly Vector3[], checkpoints: readonly PlanPoint[]): number[] {
+  let from = 0;
+  return checkpoints.map((checkpoint) => {
+    from = nearestSample(samples, checkpoint, from);
+    return from;
+  });
+}
+
 /**
  * Smooth route through the plan-view waypoints, draped over the terrain and trimmed to run
- * from the first checkpoint to the last. Each checkpoint snaps to the nearest route sample
- * after the previous one, so they keep their order. `heightAt` returns the surface height.
+ * from the first checkpoint to the last. `heightAt` returns the surface height.
  */
 export function buildAboutRoute(
   waypoints: readonly PlanPoint[],
   checkpoints: readonly PlanPoint[],
   heightAt: (x: number, z: number) => number,
 ): AboutRoute {
-  const plan = new CatmullRomCurve3(
-    waypoints.map(([x, z]) => new Vector3(x, 0, z)),
-    false,
-    'centripetal',
-  );
-  const sampleCount = Math.max(waypoints.length - 1, 1) * SAMPLES_PER_WAYPOINT;
-  const samples = Array.from({length: sampleCount + 1}, (_, index) => plan.getPoint(index / sampleCount));
-
-  let from = 0;
-  const stopIndices = checkpoints.map(([x, z]) => {
-    let nearest = from;
-    for (let index = from; index < samples.length; index++) {
-      if (Math.hypot(samples[index].x - x, samples[index].z - z)
-        < Math.hypot(samples[nearest].x - x, samples[nearest].z - z)) nearest = index;
-    }
-    from = nearest;
-    return nearest;
-  });
+  const {samples} = sampleRoutePlan(waypoints);
+  const stopIndices = snapCheckpoints(samples, checkpoints);
 
   const first = stopIndices[0];
   const points = samples.slice(first, stopIndices.at(-1)! + 1).map((point) => {

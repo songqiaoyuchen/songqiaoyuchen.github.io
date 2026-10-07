@@ -58,8 +58,15 @@ out, in one HTML layer in screen space, each checkpoint's diamond marker, leader
 plus altitude figures on the map lines beside the route. Clicking a title or marker scrolls the
 drawer to that entry; the top of the drawer is the overview. SQYC closes the section back to the
 landscape. The route, checkpoints and map live in `config/scene/aboutPath.ts` (checkpoints and
-framing in Leva's About Path folder). Phones keep the full-width drawer without the path. About
-has no URL of its own yet.
+framing in Leva's About Path folder, shown only on About; its Edit route mode drags the route's
+anchors over the terrain, adds or removes them, slides checkpoints along the route and saves both). The
+path rests on the rendered surface (`sampleSurfaceHeight`) plus a tuned lift, not the text sampler's clearance.
+Phones keep the full-width drawer without the path.
+
+About is a route, `/about`, in the same `(scene)` layout as Home and Art: the ABOUT scene link pushes it,
+closing (×, Escape, SQYC) returns to `/`, and Back/Forward follow. The settled entry is kept in the URL as
+`?entry=<id>`, replaced in place so scrolling adds no history; only the URL the page loaded with is applied
+(`AboutEntrySync`), so returning to About in the app always starts at the top of the drawer.
 
 ## Art
 
@@ -149,7 +156,8 @@ The Art pose sits near the terrain boundary, so journeys to and from Art blend
 `SceneFog` toward denser flight fog (`FOG_CONFIG.flightNear/flightFar`); arrival
 holds it until the first backdrop wipe completes, then eases it out. Leva's Art
 Transition folder tunes journey/wipe durations and flight fog live
-(`lib/art/transitionSettings.ts`) and saves them to config.
+(`lib/art/transitionSettings.ts`) and saves them to config. Journeys into and out of About, and between its
+entries, take their own times (Leva About Path: Journey, Focus; `config/scene/aboutPath.ts`).
 Artworks are ordinary HTML images.
 
 To save GPU time, layers that are fully faded out skip their offscreen work: glyph rain while hidden, bloom while no
@@ -197,7 +205,7 @@ are named at the top of the stylesheet that uses them.
 | `npm run bake:terrain` / `npm run check:terrain-bake` | Generate / validate terrain artifacts |
 | `npm run bake:oil` | Legacy: rebuild oil pigment and relief maps (unused by the live site) |
 | `npm run sync:artwork-dimensions` | Update artwork dimensions |
-| `node scripts/test/<file>.mjs` | Unit checks: About path, backdrop wipe, camera transition, carousel layout, text transition |
+| `node scripts/test/<file>.mjs` | Unit checks: About path, dev config writer, backdrop wipe, camera transition, carousel layout, text transition |
 | `node scripts/verify/verify-art.mjs` | Opt-in browser journey checks and screenshots; requires externally available Playwright |
 | `node scripts/verify/verify-pencil-overlay.mjs` | Opt-in backdrop wipe, image resize, and reduced-motion checks |
 | `node scripts/verify/verify-text-transitions.mjs` | Opt-in desktop/mobile text transition and navigation regression checks |

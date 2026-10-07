@@ -1,7 +1,8 @@
-// Leva "Mobile Scene Links" folder (dev only); Save Config writes every key below to config/scene/sceneLinks.ts.
+// Leva "Mobile Scene Links" folder (dev only, hidden on About); Save Config writes it to config/scene/sceneLinks.ts.
 // Values are normalized device coordinates (-1/1 = viewport edges) unless noted.
 import {useControls} from 'leva';
 import {MOBILE_SCENE_LINK_CONFIG} from '@/config/scene';
+import {HOME_SCENE_FOLDER} from './sectionScope';
 
 export function useSceneLinkControls() {
   return useControls('Mobile Scene Links', {
@@ -37,5 +38,5 @@ export function useSceneLinkControls() {
       step: 0.1,
       label: 'Depth Offset',
     },
-  });
+  }, HOME_SCENE_FOLDER);
 }

@@ -1,5 +1,5 @@
-// Persistent shell for the Home and Art routes: one WebGL scene, the homepage hero/drawer/preloader,
-// and the Art route content layered on top. Kept mounted across Home <-> Art so the canvas survives.
+// Persistent shell for the Home, About and Art routes: one WebGL scene, the homepage hero/drawer/preloader,
+// and the Art route content layered on top. Kept mounted across Home <-> About <-> Art so the canvas survives.
 'use client';
 
 import {
@@ -19,8 +19,10 @@ import {Drawer} from '@/components/home/drawer/Drawer';
 import {HeroLayer} from '@/components/home/hero/HeroLayer';
 import {Preloader} from '@/components/home/preloader/Preloader';
 import {HOME_OVERVIEW_EVENT} from '@/components/site/Nav';
+import {ABOUT_STOP_IDS} from '@/data/about';
 import type {SectionId} from '@/data/sections';
 import type {ArticleSummary} from '@/lib/content/types';
+import {AboutEntrySync} from './AboutEntrySync';
 import {DevPanels} from './DevPanels';
 import {TerrainFallback} from './TerrainFallback';
 import {useSceneLoading} from './useSceneLoading';
@@ -40,8 +42,12 @@ export function SceneShell({articles, children}: SceneShellProps) {
   const pathname = usePathname();
   const router = useRouter();
   const isArt = pathname.startsWith('/artworks');
+  const isAbout = pathname === '/about';
   const {backdrop, capture} = useArtScene();
-  const [activeId, setActiveId] = useState<SectionId | null>(null);
+  // Blog and Projects are drawer state; Art and About are routes. A routed section is also held here for
+  // the moment between its link click and its route arriving, so the camera and drawer start at once.
+  const [previewId, setPreviewId] = useState<SectionId | null>(null);
+  const activeId: SectionId | null = isArt ? 'art' : isAbout ? 'about' : previewId;
   // About: the timeline stop the drawer has settled on, and checkpoint clicks asking it to scroll.
   const [aboutStop, setAboutStop] = useState(-1);
   const [aboutScrollRequest, setAboutScrollRequest] = useState<AboutScrollRequest | null>(null);
@@ -62,15 +68,34 @@ export function SceneShell({articles, children}: SceneShellProps) {
     enterTerrainFallback,
   } = useSceneLoading(isArt);
 
-  // An Art visit dismisses the old homepage preview, including entry via Nav.
+  // A routed section dismisses the old homepage preview, including entry via Nav.
   // Adjust before rendering so Home always returns to the landscape overview.
-  if (isArt && activeId !== null) setActiveId(null);
-  // Leaving About returns its camera to the section pose; a reopened panel starts at the top.
+  if ((isArt || isAbout) && previewId !== null) setPreviewId(null);
+  // Leaving About returns its camera to the section pose and forgets where the drawer was: a reopened
+  // panel starts at the top rather than scrolling back to the last checkpoint clicked.
   if (activeId !== 'about' && aboutStop !== -1) setAboutStop(-1);
+  if (activeId !== 'about' && aboutScrollRequest !== null) setAboutScrollRequest(null);
+  useEffect(() => {
+    if (activeId !== 'about') aboutProgressRef.current = 0;
+  }, [activeId]);
+
+  // The settled entry lives in the URL (?entry=), replaced in place like Art's selection so scrolling adds no
+  // history. The URL the page loaded with is left for AboutEntrySync to read first.
+  const entrySynced = useRef(false);
+  useEffect(() => {
+    if (!isAbout) return;
+    if (!entrySynced.current) {
+      entrySynced.current = true;
+      return;
+    }
+    const search = aboutStop >= 0 ? `?entry=${ABOUT_STOP_IDS[aboutStop]}` : '';
+    if (window.location.search === search) return;
+    window.history.replaceState(null, '', `${window.location.pathname}${search}`);
+  }, [aboutStop, isAbout]);
 
   // SQYC on Home closes the open section (Nav cannot navigate to the page it is on).
   useEffect(() => {
-    const returnToOverview = () => setActiveId(null);
+    const returnToOverview = () => setPreviewId(null);
     window.addEventListener(HOME_OVERVIEW_EVENT, returnToOverview);
     return () => window.removeEventListener(HOME_OVERVIEW_EVENT, returnToOverview);
   }, []);
@@ -82,11 +107,25 @@ export function SceneShell({articles, children}: SceneShellProps) {
   function toggleSection(id: SectionId) {
     if (id === 'art') {
       // Start from the live camera pose, even while the route is being fetched.
-      setActiveId('art');
+      setPreviewId('art');
       router.push('/artworks');
       return;
     }
-    setActiveId((currentId) => (currentId === id ? null : id));
+    if (id === 'about') {
+      if (isAbout) {
+        router.push('/');
+      } else {
+        setPreviewId('about');
+        router.push('/about');
+      }
+      return;
+    }
+    setPreviewId((currentId) => (currentId === id ? null : id));
+  }
+
+  function closeSection() {
+    if (isAbout) router.push('/');
+    else setPreviewId(null);
   }
 
   const isBlocking = !isArt && (sceneState === 'loading' || sceneState === 'exiting');
@@ -101,6 +140,9 @@ export function SceneShell({articles, children}: SceneShellProps) {
       data-art-arriving={artArriving}
       data-camera-editing={isArt && artCameraEditing}
     >
+      <Suspense fallback={null}>
+        <AboutEntrySync onEntry={requestAboutStop} />
+      </Suspense>
       <div aria-hidden={isBlocking} className="contents" inert={isBlocking}>
         <DevPanels isArt={isArt} capturing={capture.enabled} artCameraStore={artCameraStore} />
         {sceneState === 'fallback' ? (
@@ -108,7 +150,7 @@ export function SceneShell({articles, children}: SceneShellProps) {
         ) : sceneStarted ? (
           <Suspense fallback={null}>
             <SceneCanvas
-              activeId={isArt ? 'art' : activeId}
+              activeId={activeId}
               aboutStop={aboutStop}
               aboutProgressRef={aboutProgressRef}
               onAboutSelect={requestAboutStop}
@@ -135,12 +177,12 @@ export function SceneShell({articles, children}: SceneShellProps) {
           />
         ) : null}
         <Drawer
-          activeId={isArt || activeId === 'art' ? null : activeId}
+          activeId={activeId === 'art' ? null : activeId}
           aboutProgressRef={aboutProgressRef}
           aboutScrollRequest={aboutScrollRequest}
           onAboutStopChange={setAboutStop}
           articles={articles}
-          onClose={() => setActiveId(null)}
+          onClose={closeSection}
         />
       </div>
       <div className="art-content" inert={artArriving || (isArt && artCameraEditing && !capture.enabled)}

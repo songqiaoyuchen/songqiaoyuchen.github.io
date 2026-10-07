@@ -2,6 +2,7 @@
 'use client';
 
 import {button, useControls} from 'leva';
+import {useEffect, useRef} from 'react';
 import {postConfigValues} from './saveConfig';
 import type {SceneControlValues} from './useSceneControls';
 
@@ -30,10 +31,18 @@ function collectConfigValues(groups: SceneControlValues): Record<string, unknown
 }
 
 export function SaveConfigButton({values}: {values: SceneControlValues}) {
+  // Leva registers the button once, so its click handler reads the latest values through a ref.
+  const latest = useRef(values);
+  useEffect(() => {
+    latest.current = values;
+  });
+
   useControls('Config', {
     // app/api/dev-config: writes each `scope.key` above into its config/scene file.
+    // The ref is read only when the user clicks the button.
+    // eslint-disable-next-line react-hooks/refs
     'Save Config': button(() => (
-      void postConfigValues('Save Config', collectConfigValues(values))
+      void postConfigValues('Save Config', collectConfigValues(latest.current))
     )),
   });
   return null;

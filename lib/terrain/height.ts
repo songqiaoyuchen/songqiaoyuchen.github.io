@@ -44,3 +44,31 @@ export function sampleHeight(
 ) {
   return TERRAIN_MESH_CONFIG.position[1] + sampleNormalizedHeight(grid, x, z, seaLevel) * elevation + 0.08;
 }
+
+/**
+ * Height of the rendered terrain surface at world x/z, with no clearance: the plane (TERRAIN_MESH_CONFIG.segments
+ * per side) takes the heightmap at its vertices, so between them the surface runs straight and can sit below the
+ * grid's own height. Interpolates the four surrounding vertices; the cell's diagonal split is ignored.
+ */
+export function sampleSurfaceHeight(
+  grid: HeightGrid,
+  x: number,
+  z: number,
+  elevation: number,
+  seaLevel: number,
+) {
+  const {planeSize, segments} = TERRAIN_MESH_CONFIG;
+  const cell = planeSize / segments;
+  const column = Math.min(Math.max((x + planeSize / 2) / cell, 0), segments);
+  const row = Math.min(Math.max((z + planeSize / 2) / cell, 0), segments);
+  const column0 = Math.min(Math.floor(column), segments - 1);
+  const row0 = Math.min(Math.floor(row), segments - 1);
+  const xMix = column - column0;
+  const zMix = row - row0;
+  const vertex = (c: number, r: number) => (
+    sampleNormalizedHeight(grid, c * cell - planeSize / 2, r * cell - planeSize / 2, seaLevel)
+  );
+  const near = vertex(column0, row0) + (vertex(column0 + 1, row0) - vertex(column0, row0)) * xMix;
+  const far = vertex(column0, row0 + 1) + (vertex(column0 + 1, row0 + 1) - vertex(column0, row0 + 1)) * xMix;
+  return TERRAIN_MESH_CONFIG.position[1] + (near + (far - near) * zMix) * elevation;
+}
