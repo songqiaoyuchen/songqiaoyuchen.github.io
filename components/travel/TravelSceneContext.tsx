@@ -1,26 +1,29 @@
-// Travel state shared between the route content (TravelSection) and the scene (TravelGlobe through SceneShell):
-// the selected trip from the URL, the trip under the pointer, the trip the globe has captured, and the globe's
-// outline on screen (CSS pixels, written every frame by TravelGlobe, read by the trip panel's placement).
+// Travel state shared between the route content (TravelSection) and the scene. State: the selected trip from the
+// URL, the trip under the pointer and the trip the globe has captured; read by TravelSection and, through the
+// canvas's context bridge, by TravelGlobe and CameraRig, so a change re-renders only them. Actions: the setters and
+// the globe's outline on screen (CSS pixels, written every frame by TravelGlobe, read by the trip panel's
+// placement); stable, so SceneShell passes them to the canvas without re-rendering on every change.
 'use client';
 
 import {createContext, useContext, useMemo, useRef, useState, type MutableRefObject, type ReactNode} from 'react';
 import type {GlobeOutline} from './useTripSheetPlacement';
 
-type TravelScene = {
+type TravelSceneState = {
   selectedId: string | null;
-  setSelectedId: (id: string | null) => void;
   hoveredId: string | null;
-  setHoveredId: (id: string | null) => void;
   capturedId: string | null;
+};
+
+type TravelSceneActions = {
+  setSelectedId: (id: string | null) => void;
+  setHoveredId: (id: string | null) => void;
   setCapturedId: (id: string | null) => void;
   globeOutline: MutableRefObject<GlobeOutline | null>;
 };
 
-const TravelSceneContext = createContext<TravelScene>({
-  selectedId: null, setSelectedId: () => {},
-  hoveredId: null, setHoveredId: () => {},
-  capturedId: null, setCapturedId: () => {},
-  globeOutline: {current: null},
+const TravelSceneStateContext = createContext<TravelSceneState>({selectedId: null, hoveredId: null, capturedId: null});
+const TravelSceneActionsContext = createContext<TravelSceneActions>({
+  setSelectedId: () => {}, setHoveredId: () => {}, setCapturedId: () => {}, globeOutline: {current: null},
 });
 
 export function TravelSceneProvider({children}: {children: ReactNode}) {
@@ -28,11 +31,16 @@ export function TravelSceneProvider({children}: {children: ReactNode}) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [capturedId, setCapturedId] = useState<string | null>(null);
   const globeOutline = useRef<GlobeOutline | null>(null);
-  const value = useMemo(
-    () => ({selectedId, setSelectedId, hoveredId, setHoveredId, capturedId, setCapturedId, globeOutline}),
-    [capturedId, hoveredId, selectedId],
+  const state = useMemo(() => ({selectedId, hoveredId, capturedId}), [capturedId, hoveredId, selectedId]);
+  const actions = useMemo(() => ({setSelectedId, setHoveredId, setCapturedId, globeOutline}), []);
+  return (
+    <TravelSceneActionsContext.Provider value={actions}>
+      <TravelSceneStateContext.Provider value={state}>{children}</TravelSceneStateContext.Provider>
+    </TravelSceneActionsContext.Provider>
   );
-  return <TravelSceneContext.Provider value={value}>{children}</TravelSceneContext.Provider>;
 }
 
-export const useTravelScene = () => useContext(TravelSceneContext);
+/** The selected, hovered and captured trips; re-renders the reader on every change. */
+export const useTravelScene = () => useContext(TravelSceneStateContext);
+/** The setters and the outline ref; stable. */
+export const useTravelSceneActions = () => useContext(TravelSceneActionsContext);

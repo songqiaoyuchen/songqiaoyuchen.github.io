@@ -175,8 +175,11 @@ export function CachedTerrain({
     const {travelMorph} = frameState;
     if (travelMorph !== renderedMorph.current || (travelMorph > 0 && travelMorph < 1)) dirty.current = true;
     renderedMorph.current = travelMorph;
+    // On the globe (morph 1) the terrain has shrunk away: the cache holds only its clear, the same from any
+    // camera, so Travel's camera journeys need not redraw it.
     const cameraRevision = frameState.revision;
-    if (!dirty.current && renderedCameraRevision.current === cameraRevision) return;
+    const cameraMoved = renderedCameraRevision.current !== cameraRevision && travelMorph < 1;
+    if (!dirty.current && !cameraMoved) return;
 
     renderTerrain(gl, scene, camera, target);
     markFrameChanged();

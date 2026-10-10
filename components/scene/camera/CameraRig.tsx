@@ -1,12 +1,14 @@
 // Moves the camera between section poses (overview, projects, art, blog, about, travel) and drives Art flight fog.
 // On About, an entry being read gets its own framing of that checkpoint (AboutPath publishes the poses); on
-// Travel, a selected trip gets the quarter-sphere framing TravelGlobe publishes.
+// Travel, a selected trip (TravelSceneContext, read through the canvas's context bridge) gets the quarter-sphere
+// framing TravelGlobe publishes.
 'use client';
 
 import { useMemo, useRef, type MutableRefObject } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import {MathUtils, PerspectiveCamera, Vector3} from 'three';
 import type { OrbitControls as OrbitControlsInstance } from 'three-stdlib';
+import {useTravelScene} from '@/components/travel/TravelSceneContext';
 import {
   CAMERA_CONFIG,
   getCameraPose,
@@ -30,7 +32,6 @@ type CameraRigProps = {
   /** Journey times into/out of About and between its entries (Leva About Path; config defaults). */
   aboutSeconds?: {journeySeconds: number; focusSeconds: number};
   /** Travel: a selected trip is framed by the pose in travelFocusPoseRef. */
-  travelSelected?: boolean;
   travelFocusPoseRef?: MutableRefObject<CameraPose | null>;
   /** Journey times into/out of Travel and between its overview and a trip (Leva Travel; config defaults). */
   travelSeconds?: {journeySeconds: number; focusSeconds: number};
@@ -40,9 +41,10 @@ type CameraRigProps = {
 
 export function CameraRig({
   activeId, aboutStop = -1, aboutFocusPosesRef, aboutSeconds = ABOUT_PATH_CONFIG,
-  travelSelected = false, travelFocusPoseRef, travelSeconds = TRAVEL_CONFIG, controlsRef, onPoseSettled,
+  travelFocusPoseRef, travelSeconds = TRAVEL_CONFIG, controlsRef, onPoseSettled,
 }: CameraRigProps) {
   const cameraFrameState = useCameraFrameState();
+  const travelSelected = useTravelScene().selectedId !== null;
   const isReducedMotion = useReducedMotion();
   const viewportWidth = useThree((state) => state.size.width);
   const viewportHeight = useThree((state) => state.size.height);
@@ -196,6 +198,8 @@ export function CameraRig({
       }
     }
     if (!isAnimating.current) cameraFrameState.current.setTravelMorph(poseId === 'travel' ? 1 : 0);
+    // Between Travel's overview and a trip the globe turns as the camera's journey closes (TravelGlobe).
+    cameraFrameState.current.setTravelFocus(isAnimating.current && travelFocus.current ? transition.progress : -1);
     cameraFrameState.current.setTransitioning(isAnimating.current);
   // Own the final pose after development OrbitControls (-1), before cache capture (-0.5).
   }, -0.75);

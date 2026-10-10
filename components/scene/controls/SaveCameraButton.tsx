@@ -3,6 +3,7 @@ import {useThree} from '@react-three/fiber';
 import {button, levaStore, useControls} from 'leva';
 import {useEffect, useRef, type MutableRefObject} from 'react';
 import type {OrbitControls as OrbitControlsInstance} from 'three-stdlib';
+import {useTravelScene} from '@/components/travel/TravelSceneContext';
 import {SCENE_LAYOUT_CONFIG} from '@/config/scene';
 import type {SectionId} from '@/data/sections';
 import {postConfigValues} from './saveConfig';
@@ -19,18 +20,17 @@ function toTuple(vector: {x: number; y: number; z: number}): [number, number, nu
  */
 export function SaveCameraButton({
   activeId,
-  travelSelected = false,
   measureTravelOffset,
   controlsRef,
 }: {
   activeId: SectionId | null;
-  /** A trip is open on Travel: the pose saved is the trip framing. */
-  travelSelected?: boolean;
   /** Reads the open trip's marker offset as drawn (TravelGlobe); saved with the trip pose for every trip. */
   measureTravelOffset?: MutableRefObject<(() => [number, number] | null) | null>;
   controlsRef: React.RefObject<OrbitControlsInstance | null>;
 }) {
   const {camera, size} = useThree();
+  // A trip open on Travel: the pose saved is the trip framing.
+  const travelSelected = useTravelScene().selectedId !== null;
   // Leva registers the button once, so its click handler reads the section and viewport through a ref.
   const latest = useRef({activeId, travelSelected, width: size.width});
   useEffect(() => {

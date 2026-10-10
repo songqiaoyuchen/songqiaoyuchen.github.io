@@ -65,6 +65,11 @@ export const TRAVEL_CONFIG = {
   // Camera journey times: into or out of Travel, and between the overview and a trip.
   journeySeconds: 2,
   focusSeconds: 1.2,
+  // Opening or closing a trip, the globe turns the trip to its place alongside the camera's zoom: holding for the
+  // first turnFrom of that journey, then turning so that most of the way is covered by the time the camera lands and
+  // the last of it is a slight, slowing settle over turnSettle seconds more.
+  turnFrom: 0.3,
+  turnSettle: 0.6,
 
   // Relief from the baked elevation image: how far the surface stands off the sphere at the highest ground
   // (share of the radius), the hillshade strength (off: the night globe has no shaded relief) and the land tint

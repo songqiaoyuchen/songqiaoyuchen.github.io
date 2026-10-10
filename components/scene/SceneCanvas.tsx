@@ -3,8 +3,8 @@
 // order follows it.
 'use client';
 
-import {Suspense, useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject} from 'react';
-import { Canvas } from '@react-three/fiber';
+import {memo, Suspense, useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject} from 'react';
+import {Canvas, type RootState} from '@react-three/fiber';
 import { OrbitControls, StatsGl } from '@react-three/drei';
 import { EffectComposer } from '@react-three/postprocessing';
 import {SMAAPreset, type EffectComposer as EffectComposerImpl} from 'postprocessing';
@@ -49,6 +49,22 @@ import {useSceneAssembly} from './useSceneAssembly';
 // Quiet delay after the intro starts before the Travel globe (and its map) is built in the background.
 const TRAVEL_PREFETCH_MS = 2500;
 
+// The Canvas re-measures itself on each of its own renders, which every context above it triggers (it bridges
+// them all: the router's on every navigation, Travel's on every hover, capture and selection). Its measured rect
+// carries more keys than the stored size, so @react-three/fiber 9.5 takes it for a new one and replaces the store's
+// size and viewport unchanged, and every layer reading them re-renders in the middle of a camera journey. Skip the
+// replacement while the numbers are the same.
+function keepCanvasSize(state: RootState) {
+  const {setSize} = state;
+  state.set({
+    setSize: (width, height, top = 0, left = 0) => {
+      const {size} = state.get();
+      if (size.width === width && size.height === height && size.top === top && size.left === left) return;
+      setSize(width, height, top, left);
+    },
+  });
+}
+
 type SceneCanvasProps = {
   artActive?: boolean;
   artCameraEditing?: boolean;
@@ -61,9 +77,8 @@ type SceneCanvasProps = {
   aboutStop: number;
   aboutProgressRef: MutableRefObject<number>;
   onAboutSelect: (stop: number) => void;
-  /** Travel: the trip selected by the route, the one under the pointer, and what the globe reports back. */
-  travelSelectedId: string | null;
-  travelHoveredId: string | null;
+  /** Travel: opening a trip, the trip under the pointer and the trip the globe rests on (the selected and hovered
+   * trips themselves reach the globe and the camera through TravelSceneContext). */
   onTravelSelect: (id: string) => void;
   onTravelHover: (id: string | null) => void;
   onTravelCapture: (id: string | null) => void;
@@ -77,7 +92,9 @@ type SceneCanvasProps = {
   onLinkClick: (id: SectionId) => void;
 };
 
-export function SceneCanvas({
+// Memoized: SceneShell re-renders on every pose settling; with stable props the canvas tree (and its per-layer
+// hooks) is left alone, so camera journeys keep their frames.
+export const SceneCanvas = memo(function SceneCanvas({
   artActive = false,
   artCameraEditing = false,
   artCameraStore,
@@ -87,8 +104,6 @@ export function SceneCanvas({
   aboutStop,
   aboutProgressRef,
   onAboutSelect,
-  travelSelectedId,
-  travelHoveredId,
   onTravelSelect,
   onTravelHover,
   onTravelCapture,
@@ -139,6 +154,11 @@ export function SceneCanvas({
     () => ({...settings.contours, ...ABOUT_MAP_CONFIG.contours}),
     [settings.contours],
   );
+  const {baseColor: travelBase, lineColor: travelLine, landTint: travelTint} = settings.travel;
+  const travelLook = useMemo(
+    () => ({baseColor: travelBase, lineColor: travelLine, landTint: travelTint, shade: TRAVEL_CONFIG.shade}),
+    [travelBase, travelLine, travelTint],
+  );
   // Contours and scene links must be ready before the composer; the About path and Travel lines join when mounted.
   const bloomBaseReady = contourMesh !== null && sceneLinksMesh !== null;
   const bloomSelection = useMemo(
@@ -177,7 +197,8 @@ export function SceneCanvas({
           camera={{position: CAMERA_CONFIG.overviewPosition, fov: CAMERA_CONFIG.fov}}
           fallback={null}
           gl={{ antialias: false, powerPreference: 'high-performance' }}
-          onCreated={() => {
+          onCreated={(state) => {
+            keepCanvasSize(state);
             setCanvasReady(true);
             onSceneProgress(0.18);
           }}
@@ -206,7 +227,6 @@ export function SceneCanvas({
               aboutStop={aboutStop}
               aboutFocusPosesRef={aboutFocusPosesRef}
               aboutSeconds={settings.aboutPath}
-              travelSelected={travelSelectedId !== null}
               travelFocusPoseRef={travelFocusPoseRef}
               travelSeconds={settings.travel}
               onPoseSettled={onPoseSettled}
@@ -217,7 +237,6 @@ export function SceneCanvas({
                 activeId={activeId}
                 controlsRef={orbitcontrolsRef}
                 measureTravelOffset={travelMeasureOffsetRef}
-                travelSelected={travelSelectedId !== null}
               />
             ) : null}
             {isDevelopment && artActive && !capturing ? (
@@ -238,7 +257,7 @@ export function SceneCanvas({
                   fogSettings={settings.fog}
                   onDepthTextureChange={setTerrainDepthTexture}
                   terrainSettings={settings.terrain}
-                  travelLook={{...settings.travel, shade: TRAVEL_CONFIG.shade}}
+                  travelLook={travelLook}
                 />
               ) : null}
               {assemblyPhase >= 2 ? (
@@ -303,9 +322,7 @@ export function SceneCanvas({
                       visible={!hideHomeScene && isTravel}
                       editingCamera={settings.travel.editCamera}
                       measureOffsetRef={travelMeasureOffsetRef}
-                      interactive={!settings.travel.editCamera && travelSelectedId === null}
-                      selectedId={travelSelectedId}
-                      hoveredId={travelHoveredId}
+                      interactive={!settings.travel.editCamera}
                       settings={settings.travel}
                       terrainDepthTexture={terrainDepthTexture}
                       focusPoseRef={travelFocusPoseRef}
@@ -351,4 +368,4 @@ export function SceneCanvas({
       </SceneErrorBoundary>
     </div>
   );
-}
+});

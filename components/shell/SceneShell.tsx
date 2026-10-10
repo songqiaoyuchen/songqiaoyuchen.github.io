@@ -5,6 +5,7 @@
 import {
   lazy,
   Suspense,
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -19,7 +20,7 @@ import {Drawer} from '@/components/home/drawer/Drawer';
 import {HeroLayer} from '@/components/home/hero/HeroLayer';
 import {Preloader} from '@/components/home/preloader/Preloader';
 import {HOME_OVERVIEW_EVENT} from '@/components/site/Nav';
-import {useTravelScene} from '@/components/travel/TravelSceneContext';
+import {useTravelSceneActions} from '@/components/travel/TravelSceneContext';
 import {ABOUT_STOP_IDS} from '@/data/about';
 import type {SectionId} from '@/data/sections';
 import type {ArticleSummary} from '@/lib/content/types';
@@ -46,7 +47,9 @@ export function SceneShell({articles, children}: SceneShellProps) {
   const isAbout = pathname === '/about';
   const isTravel = pathname.startsWith('/travel');
   const {backdrop, capture} = useArtScene();
-  const travelScene = useTravelScene();
+  // Only the stable setters: the selected, hovered and captured trips reach the globe and the camera through the
+  // canvas's context bridge, so their changes leave the shell (and the canvas tree) alone.
+  const travelActions = useTravelSceneActions();
   // Blog and Projects are drawer state; Art, About and Travel are routes. A routed section is also held here for
   // the moment between its link click and its route arriving, so the camera and drawer start at once.
   const [previewId, setPreviewId] = useState<SectionId | null>(null);
@@ -105,11 +108,13 @@ export function SceneShell({articles, children}: SceneShellProps) {
     return () => window.removeEventListener(HOME_OVERVIEW_EVENT, returnToOverview);
   }, []);
 
-  function requestAboutStop(stop: number) {
+  // Stable callbacks: the canvas is memoized, so shell state changes (a pose settling, a captured trip) do not
+  // re-render the whole WebGL tree mid-journey.
+  const requestAboutStop = useCallback((stop: number) => {
     setAboutScrollRequest((current) => ({stop, key: (current?.key ?? 0) + 1}));
-  }
+  }, []);
 
-  function toggleSection(id: SectionId) {
+  const toggleSection = useCallback((id: SectionId) => {
     if (id === 'art') {
       // Start from the live camera pose, even while the route is being fetched.
       setPreviewId('art');
@@ -131,12 +136,14 @@ export function SceneShell({articles, children}: SceneShellProps) {
       return;
     }
     setPreviewId((currentId) => (currentId === id ? null : id));
-  }
+  }, [isAbout, router]);
 
-  function closeSection() {
+  const closeSection = useCallback(() => {
     if (isAbout) router.push('/');
     else setPreviewId(null);
-  }
+  }, [isAbout, router]);
+
+  const openTrip = useCallback((id: string) => router.push(`/travel/${id}`), [router]);
 
   const isRouted = isArt || isTravel;
   const isBlocking = !isRouted && (sceneState === 'loading' || sceneState === 'exiting');
@@ -167,12 +174,10 @@ export function SceneShell({articles, children}: SceneShellProps) {
               aboutStop={aboutStop}
               aboutProgressRef={aboutProgressRef}
               onAboutSelect={requestAboutStop}
-              travelSelectedId={isTravel ? travelScene.selectedId : null}
-              travelHoveredId={travelScene.hoveredId}
-              onTravelSelect={(id) => router.push(`/travel/${id}`)}
-              onTravelHover={travelScene.setHoveredId}
-              onTravelCapture={travelScene.setCapturedId}
-              travelGlobeOutlineRef={travelScene.globeOutline}
+              onTravelSelect={openTrip}
+              onTravelHover={travelActions.setHoveredId}
+              onTravelCapture={travelActions.setCapturedId}
+              travelGlobeOutlineRef={travelActions.globeOutline}
               backdrop={isArt && !artArriving ? backdrop : null}
               artActive={isArt}
               artCameraEditing={artCameraEditing && !artArriving && !capture.enabled}

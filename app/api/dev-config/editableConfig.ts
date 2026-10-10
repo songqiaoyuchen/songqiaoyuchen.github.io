@@ -21,7 +21,7 @@ export const EDITABLE_CONFIG = {
       'relief', 'landTint', 'lightDensity', 'lightSize', 'starSize', 'trailColor', 'trailRadius',
       'landscapeKm', 'linesIn', 'journeySeconds',
       'friction', 'snapBelow', 'capture', 'snapRate', 'idleDrift', 'idleAfter',
-      'markerOffset', 'focusSeconds'],
+      'markerOffset', 'focusSeconds', 'turnFrom', 'turnSettle'],
   },
   aboutPath: {
     file: 'scene/aboutPath.ts',

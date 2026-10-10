@@ -8,7 +8,7 @@ import {Suspense, useEffect, useRef, useState} from 'react';
 import {QuerySync} from '@/components/art/QuerySync';
 import {TRIPS} from '@/data/travel';
 import {PhotoViewer} from './PhotoViewer';
-import {useTravelScene} from './TravelSceneContext';
+import {useTravelScene, useTravelSceneActions} from './TravelSceneContext';
 import {useTripSheetPlacement} from './useTripSheetPlacement';
 import {TripIndex} from './TripIndex';
 import {TripPanel} from './TripPanel';
@@ -18,7 +18,8 @@ export function TravelSection() {
   const [queryString, setQueryString] = useState('');
   const {trip, photo, tripHref} = useTravelRoute(queryString);
   const router = useRouter();
-  const {setSelectedId, hoveredId, setHoveredId, capturedId, globeOutline} = useTravelScene();
+  const {hoveredId, capturedId} = useTravelScene();
+  const {setSelectedId, setHoveredId, globeOutline} = useTravelSceneActions();
   // The trip panel keeps clear of the globe as drawn: its text flows around a float shaped like the globe.
   const sheetRef = useRef<HTMLDivElement>(null);
   const shapeRef = useRef<HTMLDivElement>(null);

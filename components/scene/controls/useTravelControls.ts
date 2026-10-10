@@ -49,6 +49,9 @@ export function useTravelControls() {
       // (Edit camera holds the globe still so the view can be composed freely).
       markerOffset: {value: pair(TRAVEL_CONFIG.markerOffset), step: 0.01, joystick: false, label: 'Trip offset'},
       focusSeconds: {value: TRAVEL_CONFIG.focusSeconds, min: 0.2, max: 6, step: 0.1, label: 'Focus (s)'},
+      // TravelGlobe.tsx: the globe's turn begins at this share of the zoom and settles this long past its end.
+      turnFrom: {value: TRAVEL_CONFIG.turnFrom, min: 0, max: 1, step: 0.01, label: 'Turn from'},
+      turnSettle: {value: TRAVEL_CONFIG.turnSettle, min: 0, max: 3, step: 0.1, label: 'Turn settle (s)'},
     }, {collapsed: false}),
   }, {collapsed: false, ...TRAVEL_FOLDER});
 }

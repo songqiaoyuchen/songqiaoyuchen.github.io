@@ -2,8 +2,10 @@
 // coastlines, orbit rings about it and stars behind), with the trips' trails and markers, hung above the terrain's
 // centre. The
 // camera parks at the Travel pose; the globe itself turns: dragged, it follows the pointer; let go, it coasts and
-// settles on the nearest trip within reach (lib/scene/travel.ts); a selected trip stays turned to its marker
-// point while the camera moves to the quarter-sphere framing this layer publishes. The way in is one zoom-out: the
+// settles on the nearest trip within reach (lib/scene/travel.ts); opening or closing a trip, the globe turns the trip
+// to its marker point alongside the camera's zoom (to the quarter-sphere framing this layer publishes, or back to
+// the Travel pose): holding at first, then covering most of the way by the time the camera lands, the last of it a
+// slight settle. The way in is one zoom-out: the
 // globe begins as the planet under the landscape (Earth-sized for the width the landscape stands for, tangent at the
 // camera's point of regard, heights above sea level) and shrinks geometrically into place while the terrain and
 // the home contour lines ride on it (terrain.vert, contours.vert), the landscape's edge handing its heights to the
@@ -20,6 +22,7 @@ import {
   type DepthTexture, type Object3D, type Texture,
 } from 'three';
 import type {TravelControlValues} from '@/components/scene/controls/useSceneControls';
+import {useTravelScene} from '@/components/travel/TravelSceneContext';
 import type {GlobeOutline} from '@/components/travel/useTripSheetPlacement';
 import {BLOOM_LAYER} from '@/components/scene/effects/IsolatedBloom';
 import {
@@ -30,7 +33,7 @@ import {TRAVEL_CONFIG} from '@/config/scene/travel';
 import {TRIPS, type LonLat} from '@/data/travel';
 import {useReducedMotion} from '@/hooks/useReducedMotion';
 import {
-  advanceGlobe, aimForOffset, createGlobeState, createGlobeView, EARTH_RADIUS_KM, facingAngles,
+  advanceGlobe, aimForOffset, anglesToward, createGlobeState, createGlobeView, EARTH_RADIUS_KM, facingAngles,
   globeQuaternion, graticulePositions, lonLatToUnit, offsetForMarker, planetScale, projectGlobe, regionSpread,
   releaseGlobe, toGlobeSettings, viewFromCamera, wrapAngle,
 } from '@/lib/scene/travel';
@@ -93,6 +96,7 @@ const UP = new Vector3(0, 1, 0);
 // The zoom-out's anchor is pinned to the landscape over its first share of the journey and to the resting globe
 // over its last, whatever camera the journey starts or ends with.
 const ANCHOR_PIN = 0.1;
+const DEG = Math.PI / 180;
 
 type DragSample = {vYaw: number; vPitch: number; time: number};
 
@@ -115,7 +119,7 @@ function poseCamera(target: PerspectiveCamera, pose: CameraPose, like: Perspecti
 
 type TravelGlobeProps = {
   visible: boolean;
-  /** False while the development orbit camera owns the pointer or a trip is open. */
+  /** False while the development orbit camera owns the pointer; an open trip parks the pointer too. */
   interactive?: boolean;
   /** The development orbit camera is editing the pose: it turns about the globe and the globe holds still. */
   editingCamera?: boolean;
@@ -123,10 +127,6 @@ type TravelGlobeProps = {
   measureOffsetRef?: MutableRefObject<(() => [number, number] | null) | null>;
   /** Receives the globe's outline on screen (CSS pixels) every frame, for the trip panel to keep clear of. */
   globeOutlineRef?: MutableRefObject<GlobeOutline | null>;
-  /** Trip pinned by the route, or null for the overview. */
-  selectedId: string | null;
-  /** Trip under the pointer in the trip index or on its marker. */
-  hoveredId: string | null;
   settings: TravelControlValues;
   /** The terrain cache's depth: the morphing terrain hides what lies behind it. */
   terrainDepthTexture: DepthTexture | null;
@@ -141,10 +141,14 @@ type TravelGlobeProps = {
 };
 
 export function TravelGlobe({
-  visible, interactive = true, editingCamera = false, measureOffsetRef, globeOutlineRef, selectedId, hoveredId,
+  visible, interactive: pointerFree = true, editingCamera = false, measureOffsetRef, globeOutlineRef,
   settings, terrainDepthTexture, focusPoseRef, onBloomObjects,
   onCapture, onSelect, onHover,
 }: TravelGlobeProps) {
+  // The trip pinned by the route (null for the overview) and the trip under the pointer in the trip index or on
+  // its marker, read here through the canvas's context bridge so a change re-renders this layer alone.
+  const {selectedId, hoveredId} = useTravelScene();
+  const interactive = pointerFree && selectedId === null;
   const {width, height} = useThree((state) => state.size);
   const getState = useThree((state) => state.get);
   const isMobile = width < SCENE_LAYOUT_CONFIG.mobileMaxWidth;
@@ -170,7 +174,7 @@ export function TravelGlobe({
   const {
     baseColor, rimColor, rimIntensity, lineColor, graticuleIntensity, coastIntensity, trailColor, trailRadius,
     lightDensity, lightSize, starSize, relief, landTint,
-    friction, snapBelow, capture, snapRate, idleDrift, idleAfter, markerOffset,
+    friction, snapBelow, capture, snapRate, idleDrift, idleAfter, markerOffset, focusSeconds, turnFrom, turnSettle,
     landscapeKm, linesIn,
   } = settings;
   const {shade, patchRelief, vanish} = TRAVEL_CONFIG;
@@ -205,6 +209,13 @@ export function TravelGlobe({
   const state = useRef(createGlobeState());
   const view = useRef(createGlobeView());
   const aim = useRef(new Vector3());
+  // Opening or closing a trip: the globe's turn to the trip, from its orientation when the journey began; started
+  // once the zoom cues it, elapsed on its own clock.
+  const focusTurn = useRef({
+    active: false, started: false, elapsed: 0, place: -1, progress: -1,
+    from: new Quaternion(), to: new Quaternion(), inverse: new Quaternion(), front: new Vector3(),
+    camera: new PerspectiveCamera(), view: createGlobeView(), aim: new Vector3(),
+  });
   // Callout opacity (shown once the globe has arrived) and the altitude levels of lines, trails, lights and stars.
   const visibility = useRef(0);
   const lod = useRef(0);
@@ -490,18 +501,70 @@ export function TravelGlobe({
         outlineScratch);
     }
     // A trip open turns to its marker offset; over all trips a captured trip turns to the globe's centre.
-    if (selectedIndex >= 0) aimForOffset(camera, center, radius, [offsetX, offsetY], aim.current);
-    else aimForOffset(camera, center, radius, [0, 0], aim.current);
+    const offset: [number, number] = selectedIndex >= 0 ? [offsetX, offsetY] : [0, 0];
+    aimForOffset(camera, center, radius, offset, aim.current);
     if (hoveredIndex >= 0 || editingCamera) state.current.idle = 0;
-    if (!editingCamera) {
-      advanceGlobe(state.current, Math.min(delta, 1 / 30), globeSettings, PLACES, view.current, {
-        dragging: drag.current !== null,
-        locked: selectedIndex,
-        aim: aim.current,
-        reducedMotion,
-      });
+    // Between the overview and a trip the camera moves, and the aim and the turn's frame with it: chasing them, the
+    // globe would swing toward where the departing camera sees the trip, then drift back. Instead it turns once,
+    // straight to where the arriving camera sees the trip: holding for the first turnFrom of the camera's way, then
+    // turning so that most of the way is covered when the camera lands and the rest settles slowly over turnSettle
+    // seconds more. A drag (or anything else that ends the turn) lets go where the globe stands.
+    const focus = cameraFrameState.current.travelFocus;
+    const turn = focusTurn.current;
+    const focusPlace = selectedIndex >= 0 ? selectedIndex
+      : state.current.target >= 0 ? state.current.target : state.current.active;
+    if (focus >= 0 && focusPlace >= 0 && morph >= 1 && !editingCamera
+      && (!turn.active || focus < turn.progress || focusPlace !== turn.place)) {
+      // A journey begins, or a new one cuts in: the turn will start from where the globe stands.
+      turn.from.copy(group.quaternion);
+      turn.place = focusPlace;
+      turn.active = true;
+      turn.started = false;
+      turn.elapsed = 0;
     }
-    globeQuaternion(state.current.yaw, state.current.pitch, view.current, group.quaternion);
+    turn.progress = focus;
+    if (turn.active && (drag.current || editingCamera || morph < 1 || focusPlace < 0)) {
+      // The place facing the camera now, turned to face it.
+      const front = turn.front.copy(camera.position).sub(center).normalize()
+        .applyQuaternion(turn.inverse.copy(group.quaternion).invert());
+      const facing = facingAngles([Math.atan2(front.x, front.z) / DEG, Math.asin(front.y) / DEG], view.current);
+      Object.assign(state.current, {yaw: facing.yaw, pitch: facing.pitch, vYaw: 0, vPitch: 0});
+      turn.active = false;
+    }
+    if (turn.active) {
+      // The goal is the trip as the arriving camera will see it.
+      poseCamera(turn.camera, selectedIndex >= 0 && focusPoseRef.current
+        ? focusPoseRef.current : getCameraPose('travel', isMobile), camera);
+      const goalView = viewFromCamera(center, turn.camera.position, turn.view);
+      const goalAim = aimForOffset(turn.camera, center, radius, offset, turn.aim);
+      const goal = anglesToward(PLACES[focusPlace], goalAim, goalView, TRAVEL_CONFIG.maxPitch);
+      globeQuaternion(goal.yaw, goal.pitch, goalView, turn.to);
+      // Cued at turnFrom of the zoom (or at once if the camera has already landed), the turn runs on its own clock
+      // for the rest of the zoom and the settle; eased out, so most of it comes early and its end is slight and slow.
+      if (!turn.started && (focus < 0 || focus >= turnFrom)) turn.started = true;
+      if (turn.started) turn.elapsed += Math.min(delta, 1 / 30);
+      const turnSeconds = Math.max((1 - turnFrom) * focusSeconds + turnSettle, 1e-3);
+      const eased = MathUtils.smoothstep(turn.elapsed / turnSeconds, 0, 1);
+      const turned = !turn.started ? 0 : reducedMotion ? 1 : 1 - (1 - eased) * (1 - eased);
+      group.quaternion.slerpQuaternions(turn.from, turn.to, turned);
+      previousYaw.current = null;
+      if (turned >= 1 && focus < 0) {
+        // Turned, with the camera arrived: the servo takes over with the trip where it rests.
+        Object.assign(state.current, {yaw: goal.yaw, pitch: goal.pitch, vYaw: 0, vPitch: 0, target: focusPlace});
+        turn.active = false;
+      }
+    }
+    if (!turn.active) {
+      if (!editingCamera) {
+        advanceGlobe(state.current, Math.min(delta, 1 / 30), globeSettings, PLACES, view.current, {
+          dragging: drag.current !== null,
+          locked: selectedIndex,
+          aim: aim.current,
+          reducedMotion,
+        });
+      }
+      globeQuaternion(state.current.yaw, state.current.pitch, view.current, group.quaternion);
+    }
     // The rings leave while a trip is open and spin faster the faster the globe is turned.
     overviewAmount.current = ease(overviewAmount.current, selectedIndex >= 0 ? 0 : 1, FADE_RATE, delta, reducedMotion);
     ringLod.current = lod.current * overviewAmount.current;

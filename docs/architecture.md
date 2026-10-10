@@ -87,8 +87,10 @@ outside its turn, two tilted orbit rings with tick marks turn slowly (`TravelRin
 stands far behind (`TravelStars`, the same point shader); lights, rings and stars join the isolated bloom. The camera parks at the Travel
 pose and the globe turns (`lib/scene/travel.ts`): a drag follows the pointer; a release coasts under friction
 and, below the snap speed, the nearest trip within the capture angle pulls the globe in; untouched, it drifts
-slowly. A selected trip is pinned: the globe turns it to an offset from its centre while `CameraRig` journeys
-to the quarter-sphere framing `TravelGlobe` publishes. Lines and trails join the isolated bloom.
+slowly. A selected trip is pinned: while `CameraRig` journeys to the quarter-sphere framing `TravelGlobe` publishes,
+the globe holds for the first `turnFrom` of the way, then turns the trip to an offset from its centre, most of the turn
+done by the time the camera lands and the last of it a slight settle over `turnSettle` seconds more; the return to the
+overview plays the same way toward the globe's centre. Lines and trails join the isolated bloom.
 
 Entry is one zoom-out in which the globe is the planet the landscape lies on. `CameraRig` raises a Travel morph
 (0 to 1) over the 2 s journey. The landscape stands for `landscapeKm` of real ground, which sizes an Earth-scale
@@ -112,7 +114,8 @@ The terrain cache redraws while the morph runs; the globe and trails discard fra
 depth, and the tile writes none, so nothing reads as two objects. Leaving Travel plays it backwards; the globe
 is never faded as a whole. The globe mounts quietly after the intro so its maps are loaded before the first
 journey. Travel clears the scene text like About. The trip index
-(overview) and trip panel share state with the scene through `TravelSceneContext`; arrows step through
+(overview) and trip panel share state with the scene through `TravelSceneContext`, which `TravelGlobe` and `CameraRig`
+read inside the canvas (R3F bridges the contexts above it), so a selection or hover re-renders only them; arrows step through
 trips, Escape returns to the overview. Phones use their own Travel pose with the content in a sheet. Leva's
 Travel folder tunes look, relief, feel, framing and the zoom-out and saves to `config/scene/travel.ts`; its
 Edit camera toggle hands the pointer to the dev orbit camera so Save Camera can store the Travel (and phone

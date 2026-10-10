@@ -21,6 +21,8 @@ type CameraFrameState = {
   artFog: number;
   // Travel morph: 0 shows the terrain in place, 1 has it shrunk onto the globe; driven by Travel journeys.
   travelMorph: number;
+  // A journey between Travel's overview and a trip: the camera's progress by time, 0 to 1, or -1 with none under way.
+  travelFocus: number;
   // Where the terrain rides on the planet (set by TravelGlobe every frame while the morph runs): the planet's
   // current centre and radius, the unit direction from its centre to the patch with the patch's east and north axes
   // there, the terrain point (plane level, world space) that lands on that anchor, world units of arc per landscape
@@ -34,6 +36,7 @@ type CameraFrameState = {
   };
   setArtFog: (weight: number) => void;
   setTravelMorph: (morph: number) => void;
+  setTravelFocus: (progress: number) => void;
   setTravelPatchMetrics: (metrics: {
     radius: number; scale: number; relief: number; lift: number; seaUnits: number; datumY: number;
     metresPerUnit: number;
@@ -74,6 +77,7 @@ export function CameraFrameProvider({children}: {children: ReactNode}) {
     transitioning: false,
     artFog: 0,
     travelMorph: 0,
+    travelFocus: -1,
     travelPatch: {
       anchor: new Vector3(0, 1, 0), east: new Vector3(-1, 0, 0), north: new Vector3(0, 0, 1),
       center: new Vector3(), pivot: new Vector3(), radius: 1, scale: 1, relief: 1, lift: 0,
@@ -81,6 +85,7 @@ export function CameraFrameProvider({children}: {children: ReactNode}) {
     },
     setArtFog: (weight) => { frameState.current.artFog = weight; },
     setTravelMorph: (morph) => { frameState.current.travelMorph = morph; },
+    setTravelFocus: (progress) => { frameState.current.travelFocus = progress; },
     setTravelPatchMetrics: (metrics) => {
       Object.assign(frameState.current.travelPatch, metrics);
     },
