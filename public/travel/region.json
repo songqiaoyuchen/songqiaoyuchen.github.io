@@ -1,0 +1,10 @@
+{
+  "lon": 102,
+  "lat": 30.05,
+  "km": 600,
+  "size": 1024,
+  "zoom": 8,
+  "maxMetres": 8000,
+  "anchorMetres": 3256,
+  "source": "Terrain Tiles on AWS (Mapzen/Tilezen Terrarium: SRTM, GMTED2010, ETOPO1)"
+}

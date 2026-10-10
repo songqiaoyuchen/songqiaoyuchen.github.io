@@ -10,8 +10,18 @@ export const EDITABLE_CONFIG = {
       'artPosition', 'artLookAt',
       'blogPosition', 'blogLookAt',
       'aboutPosition', 'aboutLookAt',
+      'travelPosition', 'travelLookAt', 'travelTripPosition', 'travelTripLookAt',
+      'mobileTravelPosition', 'mobileTravelLookAt',
       'fov', 'artTransitionSeconds',
     ],
+  },
+  travel: {
+    file: 'scene/travel.ts',
+    keys: ['baseColor', 'rimColor', 'rimIntensity', 'lineColor', 'graticuleIntensity', 'coastIntensity',
+      'relief', 'landTint', 'lightDensity', 'lightSize', 'starSize', 'trailColor', 'trailRadius',
+      'landscapeKm', 'linesIn', 'journeySeconds',
+      'friction', 'snapBelow', 'capture', 'snapRate', 'idleDrift', 'idleAfter',
+      'markerOffset', 'focusSeconds'],
   },
   aboutPath: {
     file: 'scene/aboutPath.ts',

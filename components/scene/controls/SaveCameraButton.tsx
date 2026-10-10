@@ -1,8 +1,7 @@
 // Leva "Config > Save Camera" button (dev only): stores the orbit camera as the current section's pose.
 import {useThree} from '@react-three/fiber';
-import {button, useControls} from 'leva';
-import {useEffect, useRef} from 'react';
-import {PerspectiveCamera} from 'three';
+import {button, levaStore, useControls} from 'leva';
+import {useEffect, useRef, type MutableRefObject} from 'react';
 import type {OrbitControls as OrbitControlsInstance} from 'three-stdlib';
 import {SCENE_LAYOUT_CONFIG} from '@/config/scene';
 import type {SectionId} from '@/data/sections';
@@ -15,21 +14,27 @@ function toTuple(vector: {x: number; y: number; z: number}): [number, number, nu
 }
 
 /**
- * Leva button: writes the current camera position, look-at point, and field of view
- * into the active pose in config/scene/camera.ts via `camera.`-scoped keys.
+ * Leva button: writes the current camera position and look-at point into the active pose in
+ * config/scene/camera.ts via `camera.`-scoped keys. The field of view is derived from the viewport and stays.
  */
 export function SaveCameraButton({
   activeId,
+  travelSelected = false,
+  measureTravelOffset,
   controlsRef,
 }: {
   activeId: SectionId | null;
+  /** A trip is open on Travel: the pose saved is the trip framing. */
+  travelSelected?: boolean;
+  /** Reads the open trip's marker offset as drawn (TravelGlobe); saved with the trip pose for every trip. */
+  measureTravelOffset?: MutableRefObject<(() => [number, number] | null) | null>;
   controlsRef: React.RefObject<OrbitControlsInstance | null>;
 }) {
   const {camera, size} = useThree();
   // Leva registers the button once, so its click handler reads the section and viewport through a ref.
-  const latest = useRef({activeId, width: size.width});
+  const latest = useRef({activeId, travelSelected, width: size.width});
   useEffect(() => {
-    latest.current = {activeId, width: size.width};
+    latest.current = {activeId, travelSelected, width: size.width};
   });
 
   useControls('Config', {
@@ -37,18 +42,24 @@ export function SaveCameraButton({
     // The refs are read only when the user clicks the button.
     // eslint-disable-next-line react-hooks/refs
     'Save Camera': button(() => {
-      const {activeId: section, width} = latest.current;
-      const pose = section && width >= SCENE_LAYOUT_CONFIG.mobileMaxWidth
-        ? section
-        : width < SCENE_LAYOUT_CONFIG.mobileMaxWidth
-          ? 'mobileOverview'
-          : 'overview';
+      const {activeId: section, travelSelected: trip, width} = latest.current;
+      // Phones have their own overview and Travel poses; other sections keep the overview camera there. On
+      // desktop an open trip has its own pose.
+      const pose = width < SCENE_LAYOUT_CONFIG.mobileMaxWidth
+        ? section === 'travel' ? 'mobileTravel' : 'mobileOverview'
+        : section === 'travel' && trip ? 'travelTrip' : section ?? 'overview';
       const values: Record<string, unknown> = {
         [`camera.${pose}Position`]: toTuple(camera.position),
       };
       const target = controlsRef.current?.target;
       if (target) values[`camera.${pose}LookAt`] = toTuple(target);
-      if (camera instanceof PerspectiveCamera) values['camera.fov'] = round3(camera.fov);
+      // The trip pose carries the marker offset the camera now shows, so the globe keeps turning trips to it.
+      const offset = pose === 'travelTrip' ? measureTravelOffset?.current?.() : null;
+      if (offset) {
+        const rounded: [number, number] = [round3(offset[0]), round3(offset[1])];
+        values['travel.markerOffset'] = rounded;
+        levaStore.set({'Travel.Trip.markerOffset': rounded}, false);
+      }
       void postConfigValues('Save Camera', values);
     }),
   });

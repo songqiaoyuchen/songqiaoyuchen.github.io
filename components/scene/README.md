@@ -10,15 +10,16 @@ Everything inside the React Three Fiber canvas behind Home and Art.
 | `SceneReadySignal.tsx` | Reports ready after shaders compile and two frames render |
 | `StillFrameGate.tsx` | On Art, skips drawing frames identical to the last one so a still gallery idles |
 | `camera/` | Section poses, camera journeys, per-frame camera state |
-| `terrain/` | Cached terrain, its compositor, contour lines, fog |
+| `terrain/` | Cached terrain, its compositor, contour lines and fog |
 | `backdrop/` | Art backdrops: images, projection, wipe decisions, cursor, Screenshot export |
 | `text/` | WebGL text: scene links, hero name, glyph rain |
 | `about/` | About experience path: ridge route tube, checkpoint markers, titles and altitude figures; dev route editor |
+| `travel/` | Travel globe: shell, graticule and coastlines, trail tubes, markers and titles, drag/coast/snap |
 | `effects/` | Post-processing passes (SMAA, isolated bloom) |
 | `controls/` | Leva tuning panels (development only) |
 
 `useFrame` callbacks run by priority, then mount order: dev OrbitControls (-1), CameraRig (-0.75),
-SceneFog (-0.7), CameraFrameState (-0.5), default (0), SceneLinks (0.25), CachedTerrain (0.5),
-StillFrameGate (0.9), EffectComposer render (1), CaptureExport (2). Keep the JSX order in `SceneCanvas`
+SceneFog (-0.7), CameraFrameState (-0.5), default (0), TravelGlobe (0.1), SceneLinks (0.25),
+TravelCallouts (0.3), CachedTerrain (0.5), StillFrameGate (0.9), EffectComposer render (1), CaptureExport (2). Keep the JSX order in `SceneCanvas`
 when adding layers. Anything that renders into a texture the visible scene samples must call
 `markFrameChanged()` (`lib/scene/stillFrames.ts`), or Art may keep showing the previous frame.

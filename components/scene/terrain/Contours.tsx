@@ -1,6 +1,7 @@
 // Glowing contour lines over the homepage terrain: tube geometry from the worker, pulse and intro sweep in shaders.
 // A second instance draws About's map contours: its own settings, lit like the terrain beneath, dimmed away
-// from the route.
+// from the route. With travelRide, the lines ride onto the globe with the terrain on the way to Travel
+// (contours.vert, from the patch frame TravelGlobe publishes), so the home map flows into the globe's.
 'use client';
 
 import {forwardRef, useEffect, useMemo, useRef, useState} from 'react';
@@ -8,7 +9,9 @@ import { useFrame, useThree } from '@react-three/fiber';
 import {
   AdditiveBlending,
   Color,
+  MathUtils,
   Vector2,
+  Vector3,
   Vector4,
   ShaderMaterial,
   UniformsLib,
@@ -33,6 +36,10 @@ import {createContourTubeGeometry} from '@/lib/terrain/lineTube';
 import vertexShader from '@/shaders/terrain/contours.vert';
 import fragmentShader from '@/shaders/terrain/contours.frag';
 import {useReducedMotion} from '@/hooks/useReducedMotion';
+import {useCameraFrameState} from '../camera/CameraFrameState';
+
+// While riding to Travel, shrinking tubes keep this on-screen radius (device pixels) and dim instead.
+const RIDE_MIN_PIXELS = 0.75;
 
 const CONTOURS = CONTOUR_CONFIG;
 const TERRAIN_MESH = TERRAIN_MESH_CONFIG;
@@ -46,6 +53,8 @@ export type ContourLighting = readonly [number, number];
 
 type ContoursProps = {
   hidden?: boolean;
+  /** Ride onto the globe with the terrain while the Travel morph runs (the homepage lines). */
+  travelRide?: boolean;
   focus?: ContourFocus | null;
   lighting?: ContourLighting | null;
   /** Minimum on-screen tube radius in device pixels, so distant lines dim rather than break up. */
@@ -57,12 +66,13 @@ type ContoursProps = {
 
 export const Contours = forwardRef<Mesh, ContoursProps>(function Contours(
   {
-    hidden = false, focus = null, lighting = null, minPixels = 0,
+    hidden = false, travelRide = false, focus = null, lighting = null, minPixels = 0,
     contourSettings: lines, terrainDepthTexture, terrainSettings,
   },
   forwardedRef,
 ) {
   const matRef = useRef<ShaderMaterial>(null);
+  const cameraFrameState = useCameraFrameState();
   const layerRef = useRef<Group>(null);
   const introStart = useRef<number | null>(null);
   const reducedMotion = useReducedMotion();
@@ -126,6 +136,17 @@ export const Contours = forwardRef<Mesh, ContoursProps>(function Contours(
     uUseLit: {value: 0},
     uMinPixels: {value: 0},
     uViewportHeight: {value: 1},
+    uMorph: {value: 0},
+    uGlobeCenter: {value: new Vector3()},
+    uGlobeRadius: {value: 1},
+    uPatchAnchor: {value: new Vector3(0, 1, 0)},
+    uPatchEast: {value: new Vector3(-1, 0, 0)},
+    uPatchNorth: {value: new Vector3(0, 0, 1)},
+    uPatchPivot: {value: new Vector2()},
+    uPatchScale: {value: 1},
+    uPatchRelief: {value: 1},
+    uSeaUnits: {value: 0},
+    uDatumY: {value: 0},
 
     uMajorColor:     { value: new Color(CONTOURS.majorColor) },
     uMajorIntensity: { value: CONTOURS.majorIntensity },
@@ -184,9 +205,8 @@ export const Contours = forwardRef<Mesh, ContoursProps>(function Contours(
   useEffect(() => {
     const material = matRef.current;
     if (!material) return;
-    material.uniforms.uMinPixels.value = minPixels;
     material.uniforms.uViewportHeight.value = bufferHeight;
-  }, [bufferHeight, minPixels]);
+  }, [bufferHeight]);
 
   const {staticLightingMap} = useTerrainAssets();
   const [litFloor, litFull] = lighting ?? [1, 1];
@@ -203,21 +223,43 @@ export const Contours = forwardRef<Mesh, ContoursProps>(function Contours(
     if (matRef.current) matRef.current.uniforms.uIntroTime.value = 0;
   }, [geometry]);
 
+  // After TravelGlobe (0.1) has placed the patch for the frame.
   useFrame((state, delta) => {
     const material = matRef.current;
     if (!material) return;
     material.uniforms.uTime.value += delta;
+    const {travelMorph, travelPatch: patch} = cameraFrameState.current;
+    const riding = travelRide && travelMorph > 0 && travelMorph < 1;
+    material.uniforms.uMorph.value = riding ? travelMorph : 0;
+    if (riding) {
+      const {uGlobeCenter, uGlobeRadius, uPatchAnchor, uPatchEast, uPatchNorth, uPatchPivot, uPatchScale,
+        uPatchRelief, uSeaUnits, uDatumY} = material.uniforms;
+      uGlobeCenter.value.copy(patch.center);
+      uGlobeRadius.value = patch.radius;
+      uPatchAnchor.value.copy(patch.anchor);
+      uPatchEast.value.copy(patch.east);
+      uPatchNorth.value.copy(patch.north);
+      uPatchPivot.value.set(patch.pivot.x - TERRAIN_MESH.position[0], TERRAIN_MESH.position[2] - patch.pivot.z);
+      uPatchScale.value = patch.scale;
+      uPatchRelief.value = patch.relief;
+      uSeaUnits.value = patch.seaUnits;
+      uDatumY.value = patch.datumY;
+    }
+    material.uniforms.uMinPixels.value = riding ? Math.max(minPixels, RIDE_MIN_PIXELS) : minPixels;
     const visibility = material.uniforms.uVisibility;
     // Settings that differ from the bake wait for their own geometry rather than showing the baked lines.
     const pending = contourKey !== initialContours.key && geometryBuffers === initialContours.buffers;
-    const target = hidden || pending ? 0 : 1;
+    // Lines hidden for Travel ride a little way with the terrain, dissolving as the landscape recedes into the
+    // regional ground, which has no glowing lines of its own.
+    const target = pending ? 0
+      : hidden ? (riding ? 1 - MathUtils.smoothstep(travelMorph, 0.04, 0.25) : 0) : 1;
     visibility.value = reducedMotion || Math.abs(visibility.value - target) < 0.001
       ? target
       : visibility.value + (target - visibility.value) * (1 - Math.exp(-4 * Math.min(delta, 1 / 30)));
     if (layerRef.current) layerRef.current.visible = visibility.value > 0;
     if (introStart.current === null) introStart.current = state.clock.elapsedTime;
     material.uniforms.uIntroTime.value = state.clock.elapsedTime - introStart.current;
-  });
+  }, 0.2);
 
   return (
     <group ref={layerRef}><mesh ref={forwardedRef} geometry={geometry} frustumCulled={false} renderOrder={1}>

@@ -21,6 +21,16 @@ export const CAMERA_CONFIG = {
   blogLookAt: [1.071, 10.028, 3.214] as Vector3Tuple,
   aboutPosition: [5.822, 9.894, -6.385] as Vector3Tuple,
   aboutLookAt: [-3.397, 7.305, -2.975] as Vector3Tuple,
+  // Travel looks level at the globe (TRAVEL_CONFIG.center) from the overview's side of the terrain; the
+  // globe sits left of centre on desktop, above centre on phones.
+  travelPosition: [-5.334, 16.786, -14.985] as Vector3Tuple,
+  travelLookAt: [-3.107, 17.258, 0.441] as Vector3Tuple,
+  // A selected trip (desktop): the globe lower left, the trip's text to its right; the globe itself turns the
+  // trip to its marker point (TRAVEL_CONFIG.markerOffset). Phones keep the Travel pose.
+  travelTripPosition: [-0.821, 16.188, -4.573] as Vector3Tuple,
+  travelTripLookAt: [-3.736, 24.568, 5.012] as Vector3Tuple,
+  mobileTravelPosition: [0, 17, -10] as Vector3Tuple,
+  mobileTravelLookAt: [0, 15.6, 0] as Vector3Tuple,
   fov: 38,
   transitionSeconds: 1.8,
   // Journeys into and out of Art.
@@ -48,6 +58,10 @@ const CAMERA_POSES: Record<'overview' | SectionId, CameraPose> = {
     position: CAMERA_CONFIG.aboutPosition,
     lookAt: CAMERA_CONFIG.aboutLookAt,
   },
+  travel: {
+    position: CAMERA_CONFIG.travelPosition,
+    lookAt: CAMERA_CONFIG.travelLookAt,
+  },
 };
 
 const MOBILE_OVERVIEW_POSE: CameraPose = {
@@ -55,10 +69,21 @@ const MOBILE_OVERVIEW_POSE: CameraPose = {
   lookAt: CAMERA_CONFIG.mobileOverviewLookAt,
 };
 
+const MOBILE_TRAVEL_POSE: CameraPose = {
+  position: CAMERA_CONFIG.mobileTravelPosition,
+  lookAt: CAMERA_CONFIG.mobileTravelLookAt,
+};
+
+/** The camera framing a selected trip on desktop (phones keep the Travel pose). */
+export function getTravelTripPose(): CameraPose {
+  return {position: CAMERA_CONFIG.travelTripPosition, lookAt: CAMERA_CONFIG.travelTripLookAt};
+}
+
 export function getCameraPose(
   sectionId: SectionId | null,
   isMobile = false,
 ): CameraPose {
   if (sectionId === null && isMobile) return MOBILE_OVERVIEW_POSE;
+  if (sectionId === 'travel' && isMobile) return MOBILE_TRAVEL_POSE;
   return CAMERA_POSES[sectionId ?? 'overview'];
 }

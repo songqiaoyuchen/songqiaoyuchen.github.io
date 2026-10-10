@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from 'react';
 import {useFrame} from '@react-three/fiber';
-import type {Camera} from 'three';
+import {Vector3, type Camera} from 'three';
 
 const CAMERA_MATRIX_VALUE_COUNT = 32;
 const CAMERA_FRAME_PRIORITY = -0.5;
@@ -19,7 +19,25 @@ type CameraFrameState = {
   transitioning: boolean;
   // Flight fog weight: raised by Art camera journeys, released by the arrival wipe.
   artFog: number;
+  // Travel morph: 0 shows the terrain in place, 1 has it shrunk onto the globe; driven by Travel journeys.
+  travelMorph: number;
+  // Where the terrain rides on the planet (set by TravelGlobe every frame while the morph runs): the planet's
+  // current centre and radius, the unit direction from its centre to the patch with the patch's east and north axes
+  // there, the terrain point (plane level, world space) that lands on that anchor, world units of arc per landscape
+  // unit (scale), the terrain's height factor there (relief), the planet's own relief as a share of its radius
+  // (lift), and the datum: the landing place's height above sea in landscape units (seaUnits), the terrain
+  // surface's world y at the pivot (datumY) and metres per landscape unit (metresPerUnit).
+  travelPatch: {
+    anchor: Vector3; east: Vector3; north: Vector3; center: Vector3; pivot: Vector3;
+    radius: number; scale: number; relief: number; lift: number;
+    seaUnits: number; datumY: number; metresPerUnit: number;
+  };
   setArtFog: (weight: number) => void;
+  setTravelMorph: (morph: number) => void;
+  setTravelPatchMetrics: (metrics: {
+    radius: number; scale: number; relief: number; lift: number; seaUnits: number; datumY: number;
+    metresPerUnit: number;
+  }) => void;
   setTransitioning: (transitioning: boolean) => void;
 };
 
@@ -55,7 +73,17 @@ export function CameraFrameProvider({children}: {children: ReactNode}) {
     revision: 0,
     transitioning: false,
     artFog: 0,
+    travelMorph: 0,
+    travelPatch: {
+      anchor: new Vector3(0, 1, 0), east: new Vector3(-1, 0, 0), north: new Vector3(0, 0, 1),
+      center: new Vector3(), pivot: new Vector3(), radius: 1, scale: 1, relief: 1, lift: 0,
+      seaUnits: 0, datumY: 0, metresPerUnit: 1000,
+    },
     setArtFog: (weight) => { frameState.current.artFog = weight; },
+    setTravelMorph: (morph) => { frameState.current.travelMorph = morph; },
+    setTravelPatchMetrics: (metrics) => {
+      Object.assign(frameState.current.travelPatch, metrics);
+    },
     setTransitioning: (transitioning) => { frameState.current.transitioning = transitioning; },
   });
   const previousCamera = useRef(

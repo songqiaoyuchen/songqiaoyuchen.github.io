@@ -1,5 +1,6 @@
-// The persistent R3F canvas behind Home and Art: camera, terrain, contours, scene text and bloom.
-// Layers mount in stages (useSceneAssembly); keep child order, since useFrame order follows it.
+// The persistent R3F canvas behind Home, About, Art and Travel: camera, terrain, contours, scene text, the About
+// path, the Travel globe and bloom. Layers mount in stages (useSceneAssembly); keep child order, since useFrame
+// order follows it.
 'use client';
 
 import {Suspense, useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject} from 'react';
@@ -7,7 +8,7 @@ import { Canvas } from '@react-three/fiber';
 import { OrbitControls, StatsGl } from '@react-three/drei';
 import { EffectComposer } from '@react-three/postprocessing';
 import {SMAAPreset, type EffectComposer as EffectComposerImpl} from 'postprocessing';
-import type {DepthTexture, Mesh} from 'three';
+import type {DepthTexture, Mesh, Object3D} from 'three';
 import type { OrbitControls as OrbitControlsInstance } from 'three-stdlib';
 import type {useCreateStore} from 'leva';
 import {CAMERA_CONFIG, FOG_CONFIG, type CameraPose} from '@/config/scene';
@@ -36,11 +37,17 @@ import {StillFrameGate} from './StillFrameGate';
 import {CachedTerrain} from './terrain/CachedTerrain';
 import { Contours } from './terrain/Contours';
 import {ABOUT_MAP_CONFIG} from '@/config/scene/aboutPath';
+import {TRAVEL_CONFIG} from '@/config/scene/travel';
 import { SceneFog } from './terrain/SceneFog';
 import { GlyphRain } from './text/GlyphRain';
 import {SceneHeroName} from './text/SceneHeroName';
 import {SceneLinks} from './text/SceneLinks';
+import {TravelGlobe} from './travel/TravelGlobe';
+import type {GlobeOutline} from '@/components/travel/useTripSheetPlacement';
 import {useSceneAssembly} from './useSceneAssembly';
+
+// Quiet delay after the intro starts before the Travel globe (and its map) is built in the background.
+const TRAVEL_PREFETCH_MS = 2500;
 
 type SceneCanvasProps = {
   artActive?: boolean;
@@ -54,6 +61,14 @@ type SceneCanvasProps = {
   aboutStop: number;
   aboutProgressRef: MutableRefObject<number>;
   onAboutSelect: (stop: number) => void;
+  /** Travel: the trip selected by the route, the one under the pointer, and what the globe reports back. */
+  travelSelectedId: string | null;
+  travelHoveredId: string | null;
+  onTravelSelect: (id: string) => void;
+  onTravelHover: (id: string | null) => void;
+  onTravelCapture: (id: string | null) => void;
+  /** Receives the globe's circle on screen every frame (the trip panel keeps clear of it). */
+  travelGlobeOutlineRef: MutableRefObject<GlobeOutline | null>;
   onPoseSettled?: (pose: SectionId | null | undefined) => void;
   introStarted: boolean;
   onSceneError: (error: Error) => void;
@@ -72,6 +87,12 @@ export function SceneCanvas({
   aboutStop,
   aboutProgressRef,
   onAboutSelect,
+  travelSelectedId,
+  travelHoveredId,
+  onTravelSelect,
+  onTravelHover,
+  onTravelCapture,
+  travelGlobeOutlineRef,
   onPoseSettled,
   introStarted,
   onSceneError,
@@ -80,8 +101,11 @@ export function SceneCanvas({
   onLinkClick,
 }: SceneCanvasProps) {
   const orbitcontrolsRef = useRef<OrbitControlsInstance>(null);
+  // Development: Save Camera reads the open trip's marker offset through this (TravelGlobe fills it).
+  const travelMeasureOffsetRef = useRef<(() => [number, number] | null) | null>(null);
   const composerRef = useRef<EffectComposerImpl>(null);
   const aboutFocusPosesRef = useRef<readonly CameraPose[]>([]);
+  const travelFocusPoseRef = useRef<CameraPose | null>(null);
   const {capture} = useArtScene();
   const capturing = artActive && capture.enabled;
   const [canvasReady, setCanvasReady] = useState(false);
@@ -90,27 +114,39 @@ export function SceneCanvas({
   const [heroMesh, setHeroMesh] = useState<Mesh | null>(null);
   const [sceneLinksMesh, setSceneLinksMesh] = useState<Mesh | null>(null);
   const [aboutPathMesh, setAboutPathMesh] = useState<Mesh | null>(null);
+  const [travelBloom, setTravelBloom] = useState<Object3D[]>([]);
   const [bloomReady, setBloomReady] = useState(false);
   const [terrainDepthTexture, setTerrainDepthTexture] = useState<DepthTexture | null>(null);
   const isDevelopment = process.env.NODE_ENV === 'development';
   const settings = useSceneControls(activeId);
   const hideHomeScene = artActive || activeId === 'art';
-  // Sections with their own journey (Art, About) clear the homepage text: glyph rain and scene links.
-  const hideSceneText = hideHomeScene || activeId === 'about';
   const isAbout = activeId === 'about';
-  // About's map contours are built the first time About opens, then kept.
+  const isTravel = activeId === 'travel';
+  // Sections with their own journey (Art, About, Travel) clear the homepage text: glyph rain and scene links.
+  const hideSceneText = hideHomeScene || isAbout || isTravel;
+  // About's map contours are built the first time About opens, then kept. The Travel globe too, or quietly a
+  // moment after the intro starts, so its map is in hand before the first journey (the globe is its ground).
   const [aboutMapWanted, setAboutMapWanted] = useState(isAbout);
   if (isAbout && !aboutMapWanted) setAboutMapWanted(true);
+  const [travelWanted, setTravelWanted] = useState(isTravel);
+  if (isTravel && !travelWanted) setTravelWanted(true);
+  useEffect(() => {
+    if (travelWanted || !introStarted) return;
+    const timer = window.setTimeout(() => setTravelWanted(true), TRAVEL_PREFETCH_MS);
+    return () => window.clearTimeout(timer);
+  }, [introStarted, travelWanted]);
   const aboutMapSettings = useMemo(
     () => ({...settings.contours, ...ABOUT_MAP_CONFIG.contours}),
     [settings.contours],
   );
-  // Contours and scene links must be ready before the composer; the About path joins when mounted.
+  // Contours and scene links must be ready before the composer; the About path and Travel lines join when mounted.
   const bloomBaseReady = contourMesh !== null && sceneLinksMesh !== null;
   const bloomSelection = useMemo(
-    () => [contourMesh, sceneLinksMesh, aboutPathMesh]
-      .filter((mesh): mesh is Mesh => mesh !== null),
-    [aboutPathMesh, contourMesh, sceneLinksMesh],
+    () => [
+      ...[contourMesh, sceneLinksMesh, aboutPathMesh].filter((mesh): mesh is Mesh => mesh !== null),
+      ...travelBloom,
+    ],
+    [aboutPathMesh, contourMesh, sceneLinksMesh, travelBloom],
   );
   const handleBloomReady = useCallback(() => setBloomReady(true), []);
 
@@ -154,8 +190,12 @@ export function SceneCanvas({
           {isDevelopment ? (
             <OrbitControls
               ref={orbitcontrolsRef}
-              enabled={artActive ? artCameraEditing : activeId !== 'art'}
-              enableDamping={!artActive && activeId !== 'art'}
+              // Off on About: its camera is authored (pose, checkpoint framing); the route editor owns the pointer.
+              // Off on Travel too, where the pointer turns the globe, unless Leva's Edit camera takes it.
+              enabled={artActive ? artCameraEditing : activeId !== 'art' && activeId !== 'about'
+                && (activeId !== 'travel' || settings.travel.editCamera)}
+              enableDamping={!artActive && activeId !== 'art' && activeId !== 'about'
+                && (activeId !== 'travel' || settings.travel.editCamera)}
               target={CAMERA_CONFIG.overviewLookAt}
               makeDefault
             />
@@ -166,11 +206,19 @@ export function SceneCanvas({
               aboutStop={aboutStop}
               aboutFocusPosesRef={aboutFocusPosesRef}
               aboutSeconds={settings.aboutPath}
+              travelSelected={travelSelectedId !== null}
+              travelFocusPoseRef={travelFocusPoseRef}
+              travelSeconds={settings.travel}
               onPoseSettled={onPoseSettled}
               controlsRef={isDevelopment ? orbitcontrolsRef : undefined}
             />
             {isDevelopment && !artActive && activeId !== 'art' ? (
-              <SaveCameraButton activeId={activeId} controlsRef={orbitcontrolsRef} />
+              <SaveCameraButton
+                activeId={activeId}
+                controlsRef={orbitcontrolsRef}
+                measureTravelOffset={travelMeasureOffsetRef}
+                travelSelected={travelSelectedId !== null}
+              />
             ) : null}
             {isDevelopment && artActive && !capturing ? (
               <>
@@ -190,11 +238,13 @@ export function SceneCanvas({
                   fogSettings={settings.fog}
                   onDepthTextureChange={setTerrainDepthTexture}
                   terrainSettings={settings.terrain}
+                  travelLook={{...settings.travel, shade: TRAVEL_CONFIG.shade}}
                 />
               ) : null}
               {assemblyPhase >= 2 ? (
                 <Contours
-                  hidden={hideHomeScene || isAbout}
+                  hidden={hideHomeScene || isAbout || isTravel}
+                  travelRide
                   ref={setContourMesh}
                   contourSettings={settings.contours}
                   terrainDepthTexture={terrainDepthTexture}
@@ -248,6 +298,24 @@ export function SceneCanvas({
                     focusPosesRef={aboutFocusPosesRef}
                     onSelect={onAboutSelect}
                   />
+                  {travelWanted ? (
+                    <TravelGlobe
+                      visible={!hideHomeScene && isTravel}
+                      editingCamera={settings.travel.editCamera}
+                      measureOffsetRef={travelMeasureOffsetRef}
+                      interactive={!settings.travel.editCamera && travelSelectedId === null}
+                      selectedId={travelSelectedId}
+                      hoveredId={travelHoveredId}
+                      settings={settings.travel}
+                      terrainDepthTexture={terrainDepthTexture}
+                      focusPoseRef={travelFocusPoseRef}
+                      onBloomObjects={setTravelBloom}
+                      onCapture={onTravelCapture}
+                      globeOutlineRef={travelGlobeOutlineRef}
+                      onSelect={onTravelSelect}
+                      onHover={onTravelHover}
+                    />
+                  ) : null}
                 </>
               ) : null}
               <SceneReadySignal

@@ -1,5 +1,6 @@
-// Moves the camera between section poses (overview, projects, art, blog, about) and drives Art flight fog.
-// On About, an entry being read gets its own framing of that checkpoint (AboutPath publishes the poses).
+// Moves the camera between section poses (overview, projects, art, blog, about, travel) and drives Art flight fog.
+// On About, an entry being read gets its own framing of that checkpoint (AboutPath publishes the poses); on
+// Travel, a selected trip gets the quarter-sphere framing TravelGlobe publishes.
 'use client';
 
 import { useMemo, useRef, type MutableRefObject } from 'react';
@@ -13,6 +14,7 @@ import {
   type CameraPose,
 } from '@/config/scene';
 import {ABOUT_PATH_CONFIG} from '@/config/scene/aboutPath';
+import {TRAVEL_CONFIG} from '@/config/scene/travel';
 import type {SectionId} from '@/data/sections';
 import {useReducedMotion} from '@/hooks/useReducedMotion';
 import {artTransitionSettings} from '@/lib/art/transitionSettings';
@@ -27,12 +29,18 @@ type CameraRigProps = {
   aboutFocusPosesRef?: MutableRefObject<readonly CameraPose[]>;
   /** Journey times into/out of About and between its entries (Leva About Path; config defaults). */
   aboutSeconds?: {journeySeconds: number; focusSeconds: number};
+  /** Travel: a selected trip is framed by the pose in travelFocusPoseRef. */
+  travelSelected?: boolean;
+  travelFocusPoseRef?: MutableRefObject<CameraPose | null>;
+  /** Journey times into/out of Travel and between its overview and a trip (Leva Travel; config defaults). */
+  travelSeconds?: {journeySeconds: number; focusSeconds: number};
   onPoseSettled?: (pose: SectionId | null | undefined) => void;
   controlsRef?: React.RefObject<OrbitControlsInstance | null>;
 };
 
 export function CameraRig({
-  activeId, aboutStop = -1, aboutFocusPosesRef, aboutSeconds = ABOUT_PATH_CONFIG, controlsRef, onPoseSettled,
+  activeId, aboutStop = -1, aboutFocusPosesRef, aboutSeconds = ABOUT_PATH_CONFIG,
+  travelSelected = false, travelFocusPoseRef, travelSeconds = TRAVEL_CONFIG, controlsRef, onPoseSettled,
 }: CameraRigProps) {
   const cameraFrameState = useCameraFrameState();
   const isReducedMotion = useReducedMotion();
@@ -48,13 +56,16 @@ export function CameraRig({
     ),
     [viewportHeight, viewportWidth],
   );
-  const poseId = activeId && (!isMobile || activeId === 'art')
+  // Phones keep the overview camera for the drawer sections; Art and Travel have their own phone poses.
+  const poseId = activeId && (!isMobile || activeId === 'art' || activeId === 'travel')
     ? activeId
     : null;
   const focusStop = poseId === 'about' ? aboutStop : -1;
   const poseKey = focusStop >= 0
     ? `about:${focusStop}`
-    : poseId ?? (isMobile ? 'mobile-overview' : 'overview');
+    : poseId === 'travel' && travelSelected
+      ? 'travel:trip'
+      : poseId ?? (isMobile ? 'mobile-overview' : 'overview');
   const configuredPose = getCameraPose(poseId, isMobile);
   const configuredPosition = useMemo(
     () => new Vector3(...configuredPose.position),
@@ -71,6 +82,9 @@ export function CameraRig({
   // Journeys within About (between entries) and into or out of About have their own timing.
   const aboutJourney = useRef(false);
   const aboutEntry = useRef(false);
+  // Likewise Travel: between its overview and a trip, and into or out of it.
+  const travelFocus = useRef(false);
+  const travelEntry = useRef(false);
   const focusPosition = useMemo(() => new Vector3(), []);
   const focusLookAt = useMemo(() => new Vector3(), []);
   const artFogStart = useRef(0);
@@ -117,9 +131,13 @@ export function CameraRig({
       // Moving along the About path, between entries or back to its overview.
       aboutJourney.current = poseKey.startsWith('about') && previousPoseKey.current.startsWith('about');
       aboutEntry.current = poseKey.startsWith('about') !== previousPoseKey.current.startsWith('about');
+      travelFocus.current = poseKey.startsWith('travel') && previousPoseKey.current.startsWith('travel');
+      travelEntry.current = poseKey.startsWith('travel') !== previousPoseKey.current.startsWith('travel');
       artFogStart.current = cameraFrameState.current.artFog;
       previousPoseKey.current = poseKey;
-      const focusPose = focusStop >= 0 ? aboutFocusPosesRef?.current[focusStop] : undefined;
+      const focusPose = focusStop >= 0
+        ? aboutFocusPosesRef?.current[focusStop]
+        : poseKey === 'travel:trip' ? travelFocusPoseRef?.current ?? undefined : undefined;
       if (focusPose) {
         focusPosition.fromArray(focusPose.position);
         focusLookAt.fromArray(focusPose.lookAt);
@@ -142,7 +160,9 @@ export function CameraRig({
         artJourney.current ? artTransitionSettings.cameraSeconds
           : aboutJourney.current ? aboutSeconds.focusSeconds
             : aboutEntry.current ? aboutSeconds.journeySeconds
-              : CAMERA_CONFIG.transitionSeconds,
+              : travelFocus.current ? travelSeconds.focusSeconds
+                : travelEntry.current ? travelSeconds.journeySeconds
+                  : CAMERA_CONFIG.transitionSeconds,
         isReducedMotion,
       );
       controls?.target.copy(currentLookAt.current);
@@ -159,11 +179,17 @@ export function CameraRig({
           cameraFrameState.current.setArtFog(rise * (1 - MathUtils.smootherstep(progress, .45, 1)));
         }
       }
+      if (travelEntry.current) {
+        // Into Travel the terrain shrinks onto the globe over the journey; out of it, it grows back.
+        const eased = MathUtils.smootherstep(transition.progress, 0, 1);
+        cameraFrameState.current.setTravelMorph(poseId === 'travel' ? eased : 1 - eased);
+      }
       if (settled) {
         isAnimating.current = false;
         onPoseSettled?.(poseId);
       }
     }
+    if (!isAnimating.current) cameraFrameState.current.setTravelMorph(poseId === 'travel' ? 1 : 0);
     cameraFrameState.current.setTransitioning(isAnimating.current);
   // Own the final pose after development OrbitControls (-1), before cache capture (-0.5).
   }, -0.75);

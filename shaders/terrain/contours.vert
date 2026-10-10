@@ -1,5 +1,7 @@
 // Contour tubes: lifts each line onto the displaced terrain and carries arc length for the pulse and intro sweep.
 // With uMinPixels set (About's map), distant tubes keep a minimum on-screen radius and dim instead of breaking up.
+// On the way to Travel (uMorph) the homepage lines ride onto the globe with the terrain (the same wrap as
+// terrain.vert, about the same pivot), their tubes shrinking with it down to a minimum on-screen radius.
 #include <fog_pars_vertex>
 
 attribute float t;
@@ -21,6 +23,17 @@ uniform float uPulseSpeed;
 uniform float uPulseScale;
 uniform float uMinPixels; // minimum on-screen tube radius in drawing-buffer pixels; 0 = off
 uniform float uViewportHeight; // drawing-buffer pixels
+uniform float uMorph;
+uniform vec3 uGlobeCenter;
+uniform float uGlobeRadius;
+uniform vec3 uPatchAnchor;
+uniform vec3 uPatchEast;
+uniform vec3 uPatchNorth;
+uniform vec2 uPatchPivot; // plane-local (x, -z) point that lands on the anchor
+uniform float uPatchScale; // world units of arc on the planet per landscape unit, this frame
+uniform float uPatchRelief; // height factor on the planet, this frame
+uniform float uSeaUnits; // the landing place's elevation, landscape units
+uniform float uDatumY; // the terrain surface's world y at the pivot
 
 varying float vT;
 varying float vTotalLength;
@@ -97,6 +110,23 @@ void main() {
     position.z
   );
   float radius = mix(uMinorRadius, uMajorRadius, vMajor);
+  vec3 tubeNormal = normal;
+  vTerrainUv = (center + normal * radius).xz / uPlaneSize + 0.5;
+  if (uMorph > 0.0) {
+    // The ride: plane x is world x, plane y is world -z, both flipped onto east/north (as terrain.vert).
+    vec2 local = vec2(center.x, -center.z) - uPatchPivot;
+    vec3 tangent = uPatchAnchor * uGlobeRadius - (uPatchEast * local.x + uPatchNorth * local.y) * uPatchScale;
+    vec3 direction = normalize(tangent);
+    // Above sea level by the line's own height plus the landing place's elevation (as terrain.vert).
+    float standOff = uGlobeRadius + (center.y - uDatumY) * uPatchRelief + uSeaUnits * uPatchScale;
+    vec3 onGlobe = uGlobeCenter + direction * standOff;
+    float ride = smoothstep(0.0, 0.05, uMorph);
+    center = mix(center, onGlobe, ride);
+    // The tube's cross-section turns with the surface and shrinks with the map.
+    vec3 turned = -uPatchEast * normal.x + uPatchNorth * normal.z + direction * normal.y;
+    tubeNormal = normalize(mix(normal, turned, ride));
+    radius *= mix(1.0, uPatchScale, ride);
+  }
   vThin = 1.0;
   if (uMinPixels > 0.0) {
     float centerW = (projectionMatrix * modelViewMatrix * vec4(center, 1.0)).w;
@@ -106,8 +136,7 @@ void main() {
     vThin = radius / max(radius, minRadius);
     radius = max(radius, minRadius);
   }
-  vec3 pos = center + normal * radius;
-  vTerrainUv = pos.xz / uPlaneSize + 0.5;
+  vec3 pos = center + tubeNormal * radius;
 
   vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
   gl_Position = projectionMatrix * mvPosition;

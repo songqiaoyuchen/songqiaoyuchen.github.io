@@ -9,7 +9,6 @@ import {useThree, type ThreeEvent} from '@react-three/fiber';
 import {button, useControls} from 'leva';
 import {useEffect, useMemo, useRef, useState} from 'react';
 import {CatmullRomCurve3, Plane, TubeGeometry, Vector3} from 'three';
-import type {OrbitControls as OrbitControlsInstance} from 'three-stdlib';
 import {postConfigValues} from '@/components/scene/controls/saveConfig';
 import {ABOUT_PATH_FOLDER} from '@/components/scene/controls/useAboutPathControls';
 import {
@@ -51,7 +50,7 @@ type AboutPathEditorProps = {
 export function AboutPathEditor({
   waypoints, onWaypointsChange, checkpoints, onCheckpointChange, heightAt, signalColor, onEditingChange,
 }: AboutPathEditorProps) {
-  // Read at event time: the development OrbitControls (SceneCanvas, makeDefault) and the canvas for its cursor.
+  // Read at event time: the canvas, for its cursor. (Development orbit controls are off on About: SceneCanvas.)
   const getState = useThree((state) => state.get);
   const [status, setStatus] = useState('Not saved');
   const [hovered, setHovered] = useState<string | null>(null);
@@ -150,18 +149,11 @@ export function AboutPathEditor({
   }, [edit, heightAt, samples]);
   useEffect(() => () => hitGeometry?.dispose(), [hitGeometry]);
 
-  // A handle drag must not orbit the camera.
-  function setOrbitEnabled(enabled: boolean) {
-    const controls = getState().controls as OrbitControlsInstance | null;
-    if (controls) controls.enabled = enabled;
-  }
-
   function beginDrag(event: ThreeEvent<PointerEvent>, kind: Drag['kind'], index: number) {
     if (event.button !== 0) return;
     event.stopPropagation();
     (event.target as Element).setPointerCapture(event.pointerId);
     drag.current = {kind, index, plane: new Plane(new Vector3(0, 1, 0), -event.point.y)};
-    setOrbitEnabled(false);
     setDragging(true);
     setSelected(kind === 'anchor' ? index : null);
   }
@@ -187,7 +179,6 @@ export function AboutPathEditor({
     if (!drag.current) return;
     drag.current = null;
     (event.target as Element).releasePointerCapture(event.pointerId);
-    setOrbitEnabled(true);
     setDragging(false);
   }
 

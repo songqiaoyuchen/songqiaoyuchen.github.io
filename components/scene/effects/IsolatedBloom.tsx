@@ -16,7 +16,8 @@ import {
 } from 'three';
 import {isDissolved} from '@/lib/scene/textTransition';
 
-const BLOOM_LAYER = 10;
+/** The layer the bloom pass renders: selected objects, plus anything that must occlude them there. */
+export const BLOOM_LAYER = 10;
 const CLEAR_COLOR = new Color(0x000000);
 
 /** Whether an object reaches the screen: it and its parents are visible and it is not fully dissolved. */

@@ -1,0 +1,359 @@
+/* Travel section (TravelSection.tsx): arrival gating, the trip index on the overview, the selected trip's panel,
+   the phone sheet and the photo viewer. The globe behind is the scene; this layer takes pointer events only on
+   its own text, so the globe stays draggable everywhere else. */
+
+/* SceneShell wrapper on Travel routes: content stays hidden until the camera has arrived. */
+.travel-environment .travel-content {
+  opacity: 1;
+  transition: opacity 600ms ease;
+}
+.travel-environment[data-travel-arriving='true'] .travel-content {
+  opacity: 0;
+  pointer-events: none;
+  transition: none;
+}
+
+.travel-section {
+  --travel-signal: #8fe3d6; /* the trail colour (TRAVEL_CONFIG.trailColor) */
+  --travel-pad-top: 96px;
+  --travel-index-column: clamp(16rem, 28vw, 24rem);
+  --travel-trip-column: clamp(20rem, 40vw, 34rem);
+  --travel-rise: 520ms;
+  --z-travel-section: 2;
+  --z-travel-overlay: 60;
+
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-travel-section);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--travel-index-column);
+  padding: var(--travel-pad-top) var(--spacing-page-gutter) 28px;
+  font-family: var(--font-krypton), ui-monospace, monospace;
+  pointer-events: none;
+}
+/* A selected trip: the panel spans from the globe's centre column to the right gutter, and its text flows
+   around a float shaped like the globe as drawn (useTripSheetPlacement.ts sets both, inline), so no line sits
+   over the globe; until then it takes the right-hand column. */
+.travel-section[data-view='trip'] {
+  display: block;
+}
+/* Moved into place with margins (useTripSheetPlacement.ts): a float's exclusion follows its margins, not relative
+   offsets; the shape is the circle in its border box, whatever the margins. */
+/* The panel's column is the measure; a block of its own width would start under the float and drop below it. */
+.travel-section[data-view='trip'] :is(.travel-trip-summary, .travel-trip-description) {
+  max-width: none;
+}
+.travel-globe-shape {
+  float: left;
+  border-radius: 50%;
+  shape-outside: none; /* the outline polygon, set inline */
+  shape-margin: 4rem;
+  pointer-events: none;
+}
+.travel-sheet {
+  grid-column: 2;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+.travel-section[data-view='trip'] .travel-sheet {
+  position: absolute;
+  top: var(--travel-pad-top);
+  right: var(--spacing-page-gutter);
+  display: block;
+  width: var(--travel-trip-column);
+  overflow: hidden;
+}
+.travel-sheet :is(a, button) {
+  pointer-events: auto;
+}
+.travel-section :is(a, button):focus-visible,
+.travel-viewer :is(a, button):focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 4px;
+}
+
+/* Small caps line above the index and the trip: dates, days, distance, mode. */
+.travel-eyebrow {
+  margin: 0 0 12px;
+  color: var(--color-dim);
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+/* Trip index: year and title per row; the captured trip takes the signal diamond. */
+.travel-index-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.travel-index-link {
+  display: grid;
+  min-height: var(--size-hit-target);
+  grid-template-columns: 3.4em minmax(0, 1fr);
+  align-items: baseline;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--color-line);
+  color: var(--color-muted);
+  font-size: 0.78rem;
+  text-decoration: none;
+  transition: color var(--duration-ui);
+}
+.travel-index-link:hover,
+.travel-index-link[data-hovered] {
+  color: var(--color-text);
+}
+.travel-index-link[data-captured] {
+  color: var(--color-accent);
+}
+.travel-index-year {
+  color: var(--color-dim);
+  font-size: var(--text-meta);
+  letter-spacing: var(--tracking-meta);
+}
+.travel-index-title {
+  position: relative;
+}
+.travel-index-title::before {
+  position: absolute;
+  top: 0.45em;
+  left: -14px;
+  width: 5px;
+  height: 5px;
+  background: var(--travel-signal);
+  content: '';
+  opacity: 0;
+  rotate: 45deg;
+  transition: opacity var(--duration-ui);
+}
+.travel-index-link[data-captured] .travel-index-title::before {
+  opacity: 1;
+}
+
+/* Selected trip: eyebrow, italic title, place, introduction, description, then photos and links. Each block
+   rises in turn once the camera has settled (--rise is its order). */
+/* A block, not a grid: its lines must flow around the globe's float (travel-globe-shape). */
+.travel-trip {
+  display: block;
+}
+.travel-trip > * {
+  animation: travel-rise var(--travel-rise) var(--ease-settle) calc(var(--rise, 0) * 60ms) both;
+}
+.travel-trip-title {
+  margin: 0 0 8px;
+  color: var(--color-text);
+  font-size: clamp(1.6rem, 2.6vw, 2.2rem);
+  font-style: italic;
+  font-weight: 400;
+  line-height: 1.1;
+  text-wrap: balance;
+}
+.travel-trip-place {
+  margin: 0 0 20px;
+  color: var(--color-accent-soft);
+  font-size: var(--text-meta);
+  letter-spacing: var(--tracking-meta);
+  text-transform: uppercase;
+}
+.travel-trip-summary {
+  max-width: 44ch;
+  margin: 0 0 12px;
+  color: var(--color-text);
+  font-size: 0.82rem;
+  line-height: 1.7;
+}
+.travel-trip-description {
+  max-width: 52ch;
+  margin: 0 0 20px;
+  color: var(--color-muted);
+  font-size: 0.74rem;
+  line-height: 1.8;
+}
+.travel-photos {
+  display: grid;
+  margin: 0 0 20px;
+  padding: 0;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  list-style: none;
+}
+.travel-photos a {
+  display: block;
+  overflow: hidden;
+  aspect-ratio: 4 / 3;
+  border: 1px solid var(--color-line);
+  transition: border-color var(--duration-ui);
+}
+.travel-photos a:hover {
+  border-color: var(--color-line-hover);
+}
+.travel-photos img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.travel-link,
+.travel-back {
+  display: inline-flex;
+  min-height: var(--size-hit-target);
+  align-items: center;
+  gap: 8px;
+  color: var(--color-accent);
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  text-decoration: none;
+  text-transform: uppercase;
+  transition: color var(--duration-ui);
+}
+.travel-link:hover,
+.travel-back:hover {
+  color: var(--color-text);
+}
+.travel-back {
+  margin-top: 28px;
+  color: var(--color-muted);
+}
+
+/* While the terrain prepares on direct entry (SceneShell). */
+.travel-scene-status {
+  position: fixed;
+  bottom: 16px;
+  left: var(--spacing-page-gutter);
+  z-index: var(--z-travel-section);
+  margin: 0;
+  color: var(--color-muted);
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+/* Photo viewer: full-screen dark ground, a toolbar, the photo, previous/next and its caption. */
+.travel-viewer {
+  --travel-viewer-ground: rgb(8 9 9 / 97%);
+  position: fixed;
+  z-index: var(--z-travel-overlay);
+  inset: 0;
+  width: 100%;
+  max-width: none;
+  height: 100svh;
+  max-height: none;
+  margin: 0;
+  padding: 24px 5vw 32px;
+  border: 0;
+  background: var(--travel-viewer-ground);
+  color: var(--color-text);
+  font-family: var(--font-krypton), ui-monospace, monospace;
+  overflow-y: auto;
+}
+.travel-viewer::backdrop {
+  background: rgb(0 0 0 / 85%);
+}
+.travel-viewer[open] {
+  display: flex;
+  flex-direction: column;
+  animation: travel-rise 240ms ease both;
+}
+.travel-viewer-toolbar,
+.travel-viewer-nav {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+.travel-viewer-count,
+.travel-viewer-caption {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: var(--text-meta);
+  letter-spacing: var(--tracking-meta);
+}
+.travel-viewer-caption {
+  text-align: center;
+}
+.travel-viewer-image {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 0;
+}
+.travel-viewer-image img {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: 72svh;
+  object-fit: contain;
+}
+
+@keyframes travel-rise {
+  from {
+    opacity: 0;
+    translate: 0 6px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+/* Phones: the globe above, the content in a sheet rising from the bottom; a drag on the globe turns it, a drag
+   on the sheet scrolls. */
+@media (width < 48rem) {
+  .travel-section {
+    display: block;
+    padding: 0;
+  }
+  .travel-sheet,
+  .travel-section[data-view='trip'] .travel-sheet {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    display: block;
+    height: 46svh;
+    padding: 24px 20px calc(24px + env(safe-area-inset-bottom, 0px));
+    border-top: 1px solid var(--color-line-hover);
+    border-radius: 16px 16px 0 0;
+    background: var(--color-panel);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    pointer-events: auto;
+  }
+  .travel-sheet::before {
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    width: 36px;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--color-line-hover);
+    content: '';
+    translate: -50% 0;
+  }
+  .travel-trip-title {
+    font-size: 1.5rem;
+  }
+  .travel-back {
+    margin-top: 16px;
+  }
+  .travel-globe-shape {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .travel-trip > *,
+  .travel-viewer[open] {
+    animation: none;
+  }
+  .travel-environment .travel-content {
+    transition: none;
+  }
+}

@@ -39,7 +39,7 @@ export function useContourControls() {
         min: 0, max: 0.9, step: 0.05,
         label: 'Spacing Jitter',
       },
-    }, { collapsed: true }),
+    }, { collapsed: false }),
 
     'Shadow Lines': folder({
       // Contours.tsx (rebuild): probability a major line gets a faint shadow line below it.
@@ -76,7 +76,7 @@ export function useContourControls() {
         pad: 4,
         label: 'Depth Bias',
       },
-    }, { collapsed: true }),
+    }, { collapsed: false }),
 
     Thickness: folder({
       // Contours.tsx (rebuild): every Nth level is a bright major line.
@@ -159,7 +159,7 @@ export function useContourControls() {
         min: 0, max: 1, step: 0.01,
         label: 'Sharpness',
       },
-    }, { collapsed: true }),
+    }, { collapsed: false }),
 
   }, HOME_SCENE_FOLDER);
 }

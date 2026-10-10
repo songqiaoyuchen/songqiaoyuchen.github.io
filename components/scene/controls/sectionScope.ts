@@ -16,8 +16,13 @@ export function useSectionScope(activeId: SectionId | null) {
   useEffect(() => set({[SECTION]: section}), [section, set]);
 }
 
-/** Folders for the landscape and homepage layers; About shows only its own folders and Config. */
-export const HOME_SCENE_FOLDER: FolderScope = {render: (get) => get(SECTION) !== 'about'};
+/** Folders for the landscape and homepage layers; About and Travel show only their own folders and Config. */
+export const HOME_SCENE_FOLDER: FolderScope = {
+  render: (get) => get(SECTION) !== 'about' && get(SECTION) !== 'travel',
+};
 
 /** Folders for About's own layers. */
 export const ABOUT_FOLDER: FolderScope = {render: (get) => get(SECTION) === 'about'};
+
+/** Folders for Travel's globe. */
+export const TRAVEL_FOLDER: FolderScope = {render: (get) => get(SECTION) === 'travel'};

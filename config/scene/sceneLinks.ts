@@ -46,7 +46,7 @@ export const SCENE_LINK_LAYOUT = {
     endX: 0.78,
     centerY: 0.145,
     closestSearchY: -0.05,
-    order: ['art', 'blog', 'projects', 'about'],
+    order: ['art', 'blog', 'projects', 'about', 'travel'],
   },
 } as const;
 
@@ -127,6 +127,19 @@ const SCENE_LINK_DEFINITIONS: Array<Omit<SceneLink, 'index'>> = [
     overviewYOffset: 0,
     intensity: 1.1,
     seed: 18.3,
+  },
+  {
+    id: 'travel',
+    text: 'TRAVEL',
+    navRange: [0, 6],
+    anchor: [-2.4, 1.7],
+    size: 0.43,
+    spacing: 0.04,
+    focusedBottomOffset: 1.38,
+    overviewBottomOffset: 1.38,
+    overviewYOffset: 0,
+    intensity: 1.1,
+    seed: 23.9,
   },
 ];
 

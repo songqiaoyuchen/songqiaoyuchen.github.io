@@ -12,7 +12,7 @@ Checklists remain unchecked until the work is implemented and verified.
 | [Unified Art journey](stage-2-art-journey.md) | Selected works, full collection, inspection and local return | Implemented and verified; future curation stays in Content |
 | [Section interactions](stage-2-section-interactions.md) | Shared interaction rules, attention and scope | Apply lessons from Art one section at a time |
 | [Lake exploration](stage-2-lake-exploration.md) | Dive, sonar, forgiving navigation and personal letter | Prototype movement and course boundaries |
-| [Travel](stage-2-travel.md) | Terrain-to-globe transition, real trips and media | Prototype the continuous change of scale |
+| [Travel](stage-2-travel.md) | Terrain-to-globe transition, real trips and media | Review the globe and trip views; build the terrain dissolve |
 | [About experience path](stage-2-about-path.md) | Metaphorical terrain timeline and experience details | Prototype linked list/checkpoint selection |
 
 Art is the first implemented section journey, not a requirement to convert every

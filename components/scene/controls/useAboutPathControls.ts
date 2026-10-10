@@ -30,7 +30,7 @@ export function useAboutPathControls() {
     focusSeconds: {value: ABOUT_PATH_CONFIG.focusSeconds, min: 0.2, max: 6, step: 0.1, label: 'Focus (s)'},
     // AboutPath.tsx + AboutCallouts.css: the route's signal colour (path, trail ahead, markers).
     trailColor: {value: ABOUT_PATH_CONFIG.trailColor, label: 'Trail colour'},
-  }, {collapsed: true, ...ABOUT_FOLDER});
+  }, {collapsed: false, ...ABOUT_FOLDER});
 }
 
 /** Moves one checkpoint's input, as Edit route slides it along the path; Save Config then keeps it. */

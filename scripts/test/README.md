@@ -5,6 +5,7 @@ Run with `node scripts/test/<file>`; each exits non-zero on failure.
 | File | Checks |
 | --- | --- |
 | `test-about-path.mjs` | `lib/scene/aboutPath.ts`: route sampling and checkpoints, framing without turning, altitude figures |
+| `test-travel.mjs` | `lib/scene/travel.ts` and the geo bake: sphere places, snap servo against a real camera, coast and capture, tracks, the zoom-out's planet scale, coastline encoding, Terrarium tile maths, GPX/GeoJSON parsing |
 | `test-dev-config.mjs` | `app/api/dev-config/literals.ts`: literal formatting (nested waypoint lists) and key replacement |
 | `test-backdrop-wipe.mjs` | `lib/art/backdropWipe.ts`: constant wipe speed, rapid selection, reduced motion |
 | `test-camera-transition.mjs` | `lib/scene/cameraTransition.ts`: rotation, arrival, retargeting, reduced motion |

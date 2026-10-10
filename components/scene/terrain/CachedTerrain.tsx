@@ -54,6 +54,8 @@ type CachedTerrainProps = {
   fogSettings: FogControlValues;
   onDepthTextureChange: (texture: ReturnType<typeof useFBO>['depthTexture']) => void;
   terrainSettings: TerrainControlValues;
+  /** The globe's colours, for the terrain riding to Travel. */
+  travelLook: {baseColor: string; lineColor: string; landTint: number; shade: number};
 };
 
 /**
@@ -69,6 +71,7 @@ export function CachedTerrain({
   fogSettings,
   onDepthTextureChange,
   terrainSettings,
+  travelLook,
 }: CachedTerrainProps) {
   const scene = useMemo(() => new Scene(), []);
   const {capture} = useArtScene();
@@ -85,6 +88,7 @@ export function CachedTerrain({
   const dirty = useRef(true);
   const cameraFrameState = useCameraFrameState();
   const renderedCameraRevision = useRef(-1);
+  const renderedMorph = useRef(-1);
   const reducedMotion = useReducedMotion();
   const cursor = useArtCursor(!!backdrop && !reducedMotion && !capture.enabled);
   const oil = useBackdropImage(preloadBackdrops, BACKDROP_CONFIG.images.oil, 'oil');
@@ -167,6 +171,10 @@ export function CachedTerrain({
       if (!values.uRevealFog.value.equals(fogDistance.set(near, far))) dirty.current = true;
       values.uRevealFog.value.copy(fogDistance);
     }
+    // The Travel morph reshapes the terrain every frame it runs, and the patch turns with the globe.
+    const {travelMorph} = frameState;
+    if (travelMorph !== renderedMorph.current || (travelMorph > 0 && travelMorph < 1)) dirty.current = true;
+    renderedMorph.current = travelMorph;
     const cameraRevision = frameState.revision;
     if (!dirty.current && renderedCameraRevision.current === cameraRevision) return;
 
@@ -189,7 +197,7 @@ export function CachedTerrain({
         <>
           <color attach="background" args={[FOG_CONFIG.color]} />
           <SceneFog settings={fogSettings} />
-          <TerrainMesh settings={terrainSettings} />
+          <TerrainMesh look={travelLook} settings={terrainSettings} />
         </>,
         scene,
       )}

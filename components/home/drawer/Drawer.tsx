@@ -25,7 +25,7 @@ const ProjectsPanel = lazy(() => import('./projects/ProjectsPanel').then(
   ({ProjectsPanel: Panel}) => ({default: Panel}),
 ));
 
-type PreviewSectionId = Exclude<SectionId, 'art'>;
+type PreviewSectionId = Exclude<SectionId, 'art' | 'travel'>;
 
 interface DrawerProps {
   activeId: PreviewSectionId | null;

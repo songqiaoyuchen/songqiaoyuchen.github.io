@@ -1,5 +1,5 @@
-// Persistent shell for the Home, About and Art routes: one WebGL scene, the homepage hero/drawer/preloader,
-// and the Art route content layered on top. Kept mounted across Home <-> About <-> Art so the canvas survives.
+// Persistent shell for the Home, About, Art and Travel routes: one WebGL scene, the homepage hero/drawer/preloader,
+// and the Art or Travel route content layered on top. Kept mounted across those routes so the canvas survives.
 'use client';
 
 import {
@@ -19,6 +19,7 @@ import {Drawer} from '@/components/home/drawer/Drawer';
 import {HeroLayer} from '@/components/home/hero/HeroLayer';
 import {Preloader} from '@/components/home/preloader/Preloader';
 import {HOME_OVERVIEW_EVENT} from '@/components/site/Nav';
+import {useTravelScene} from '@/components/travel/TravelSceneContext';
 import {ABOUT_STOP_IDS} from '@/data/about';
 import type {SectionId} from '@/data/sections';
 import type {ArticleSummary} from '@/lib/content/types';
@@ -43,11 +44,13 @@ export function SceneShell({articles, children}: SceneShellProps) {
   const router = useRouter();
   const isArt = pathname.startsWith('/artworks');
   const isAbout = pathname === '/about';
+  const isTravel = pathname.startsWith('/travel');
   const {backdrop, capture} = useArtScene();
-  // Blog and Projects are drawer state; Art and About are routes. A routed section is also held here for
+  const travelScene = useTravelScene();
+  // Blog and Projects are drawer state; Art, About and Travel are routes. A routed section is also held here for
   // the moment between its link click and its route arriving, so the camera and drawer start at once.
   const [previewId, setPreviewId] = useState<SectionId | null>(null);
-  const activeId: SectionId | null = isArt ? 'art' : isAbout ? 'about' : previewId;
+  const activeId: SectionId | null = isArt ? 'art' : isAbout ? 'about' : isTravel ? 'travel' : previewId;
   // About: the timeline stop the drawer has settled on, and checkpoint clicks asking it to scroll.
   const [aboutStop, setAboutStop] = useState(-1);
   const [aboutScrollRequest, setAboutScrollRequest] = useState<AboutScrollRequest | null>(null);
@@ -55,7 +58,9 @@ export function SceneShell({articles, children}: SceneShellProps) {
   const aboutProgressRef = useRef(0);
   const [artCameraEditing, setArtCameraEditing] = useState(false);
   const artCameraStore = useCreateStore();
-  const [settledPose, setSettledPose] = useState<SectionId | null | undefined>(isArt ? 'art' : null);
+  const [settledPose, setSettledPose] = useState<SectionId | null | undefined>(
+    isArt ? 'art' : isTravel ? 'travel' : null,
+  );
   const {
     sceneState,
     sceneStarted,
@@ -66,11 +71,11 @@ export function SceneShell({articles, children}: SceneShellProps) {
     handleSceneProgress,
     handleSceneError,
     enterTerrainFallback,
-  } = useSceneLoading(isArt);
+  } = useSceneLoading(isArt || isTravel);
 
   // A routed section dismisses the old homepage preview, including entry via Nav.
   // Adjust before rendering so Home always returns to the landscape overview.
-  if ((isArt || isAbout) && previewId !== null) setPreviewId(null);
+  if ((isArt || isAbout || isTravel) && previewId !== null) setPreviewId(null);
   // Leaving About returns its camera to the section pose and forgets where the drawer was: a reopened
   // panel starts at the top rather than scrolling back to the last checkpoint clicked.
   if (activeId !== 'about' && aboutStop !== -1) setAboutStop(-1);
@@ -120,6 +125,11 @@ export function SceneShell({articles, children}: SceneShellProps) {
       }
       return;
     }
+    if (id === 'travel') {
+      setPreviewId('travel');
+      router.push('/travel');
+      return;
+    }
     setPreviewId((currentId) => (currentId === id ? null : id));
   }
 
@@ -128,16 +138,19 @@ export function SceneShell({articles, children}: SceneShellProps) {
     else setPreviewId(null);
   }
 
-  const isBlocking = !isArt && (sceneState === 'loading' || sceneState === 'exiting');
-  // Art content stays hidden until the camera has arrived at the Art pose.
+  const isRouted = isArt || isTravel;
+  const isBlocking = !isRouted && (sceneState === 'loading' || sceneState === 'exiting');
+  // Art and Travel content stays hidden until the camera has arrived at the section's pose.
   const artArriving = isArt && settledPose !== 'art' && sceneState !== 'fallback';
+  const travelArriving = isTravel && settledPose !== 'travel' && sceneState !== 'fallback';
 
   return (
     <div
       className={`relative min-h-svh w-full bg-background text-foreground
-        ${isArt ? 'art-environment' : 'h-svh overflow-hidden'}`}
+        ${isArt ? 'art-environment' : isTravel ? 'travel-environment h-svh overflow-hidden' : 'h-svh overflow-hidden'}`}
       aria-busy={isBlocking}
       data-art-arriving={artArriving}
+      data-travel-arriving={travelArriving}
       data-camera-editing={isArt && artCameraEditing}
     >
       <Suspense fallback={null}>
@@ -154,6 +167,12 @@ export function SceneShell({articles, children}: SceneShellProps) {
               aboutStop={aboutStop}
               aboutProgressRef={aboutProgressRef}
               onAboutSelect={requestAboutStop}
+              travelSelectedId={isTravel ? travelScene.selectedId : null}
+              travelHoveredId={travelScene.hoveredId}
+              onTravelSelect={(id) => router.push(`/travel/${id}`)}
+              onTravelHover={travelScene.setHoveredId}
+              onTravelCapture={travelScene.setCapturedId}
+              travelGlobeOutlineRef={travelScene.globeOutline}
               backdrop={isArt && !artArriving ? backdrop : null}
               artActive={isArt}
               artCameraEditing={artCameraEditing && !artArriving && !capture.enabled}
@@ -177,7 +196,7 @@ export function SceneShell({articles, children}: SceneShellProps) {
           />
         ) : null}
         <Drawer
-          activeId={activeId === 'art' ? null : activeId}
+          activeId={activeId === 'art' || activeId === 'travel' ? null : activeId}
           aboutProgressRef={aboutProgressRef}
           aboutScrollRequest={aboutScrollRequest}
           onAboutStopChange={setAboutStop}
@@ -185,15 +204,18 @@ export function SceneShell({articles, children}: SceneShellProps) {
           onClose={closeSection}
         />
       </div>
-      <div className="art-content" inert={artArriving || (isArt && artCameraEditing && !capture.enabled)}
-        aria-hidden={artArriving || undefined}>
+      <div
+        aria-hidden={artArriving || travelArriving || undefined}
+        className={isTravel ? 'travel-content' : 'art-content'}
+        inert={artArriving || travelArriving || (isArt && artCameraEditing && !capture.enabled)}
+      >
         {children}
       </div>
       {process.env.NODE_ENV === 'development' && isArt && !artArriving && sceneState !== 'fallback'
         ? <CapturePanel />
         : null}
-      {isArt && sceneState === 'loading' ? (
-        <p className="art-scene-status" role="status">
+      {isRouted && sceneState === 'loading' ? (
+        <p className={isTravel ? 'travel-scene-status' : 'art-scene-status'} role="status">
           Preparing the landscape…
         </p>
       ) : null}

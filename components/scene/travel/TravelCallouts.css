@@ -1,0 +1,232 @@
+/* Travel markers (TravelCallouts.tsx): a diamond per trip in the trail's signal colour, a leader line and the
+   trip's title in gold-lit text, as About's checkpoints. The framed trip (captured by the globe or selected)
+   gains the lock-on reticle and its meta line. Label heights mirror TITLE_ROW; offsets keep to a 4px grid. */
+.travel-callouts {
+  --callout-ink: #e8c77a; /* --color-accent */
+  --callout-signal: #8fe3d6; /* overridden inline by TravelCallouts.tsx */
+  --callout-signal-soft: color-mix(in srgb, var(--callout-signal) 70%, transparent);
+  --callout-signal-glow: color-mix(in srgb, var(--callout-signal) 35%, transparent);
+  --callout-text: #f2eee6; /* --color-text */
+  --callout-muted: #b8afa2; /* --color-muted */
+  --callout-halo: rgb(8 10 13 / 92%);
+  --callout-halo-wide: rgb(8 10 13 / 70%);
+  --callout-panel: rgb(8 10 13 / 82%);
+  --callout-line: rgb(232 199 122 / 30%);
+  --callout-line-strong: rgb(232 199 122 / 80%);
+
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.travel-callouts-leaders {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.travel-callout-leader {
+  fill: none;
+  stroke: var(--callout-line);
+  stroke-width: 1;
+  transition: stroke 180ms ease-out;
+}
+
+.travel-callout-leader[data-hovered],
+.travel-callout-leader[data-state='candidate'] {
+  stroke: var(--callout-line-strong);
+}
+
+.travel-callout-leader[data-state='active'],
+.travel-callout-leader[data-state='selected'] {
+  stroke: var(--callout-signal-soft);
+}
+
+/* Positioners: TravelCallouts.tsx moves these with transforms every frame. */
+.travel-callout-anchor,
+.travel-callout {
+  position: absolute;
+  top: 0;
+  left: 0;
+  will-change: transform, opacity;
+}
+
+/* Marker: a diamond inside a lock-on reticle. */
+.travel-callout-anchor {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  margin: -16px 0 0 -16px;
+  place-items: center;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.travel-callout-anchor::before {
+  width: 7px;
+  height: 7px;
+  border: 1px solid var(--callout-signal);
+  background: var(--callout-panel);
+  content: '';
+  rotate: 45deg;
+  transition: background-color 180ms ease-out, scale 260ms var(--ease-settle), box-shadow 260ms ease-out;
+}
+
+.travel-callout-anchor[data-state='candidate']::before,
+.travel-callout-anchor[data-hovered]::before {
+  background: var(--callout-signal-soft);
+}
+
+.travel-callout-anchor[data-state='active']::before,
+.travel-callout-anchor[data-state='selected']::before {
+  background: var(--callout-signal);
+  box-shadow: 0 0 10px var(--callout-signal-glow);
+  scale: 1.25;
+}
+
+/* Reticle: four corner brackets that close in on the framed trip. */
+.travel-callout-reticle {
+  position: absolute;
+  inset: 5px;
+  background:
+    linear-gradient(var(--callout-signal), var(--callout-signal)) top left / 6px 1px,
+    linear-gradient(var(--callout-signal), var(--callout-signal)) top left / 1px 6px,
+    linear-gradient(var(--callout-signal), var(--callout-signal)) top right / 6px 1px,
+    linear-gradient(var(--callout-signal), var(--callout-signal)) top right / 1px 6px,
+    linear-gradient(var(--callout-signal), var(--callout-signal)) bottom left / 6px 1px,
+    linear-gradient(var(--callout-signal), var(--callout-signal)) bottom left / 1px 6px,
+    linear-gradient(var(--callout-signal), var(--callout-signal)) bottom right / 6px 1px,
+    linear-gradient(var(--callout-signal), var(--callout-signal)) bottom right / 1px 6px;
+  background-repeat: no-repeat;
+  opacity: 0;
+  rotate: 45deg;
+  scale: 1.9;
+  transition: opacity 220ms ease-out, scale 420ms var(--ease-settle), rotate 420ms var(--ease-settle);
+}
+
+.travel-callout-anchor[data-hovered] .travel-callout-reticle,
+.travel-callout-anchor[data-state='candidate'] .travel-callout-reticle {
+  opacity: 0.6;
+  rotate: 0deg;
+  scale: 1.35;
+}
+
+.travel-callout-anchor[data-state='active'] .travel-callout-reticle,
+.travel-callout-anchor[data-state='selected'] .travel-callout-reticle {
+  opacity: 1;
+  rotate: 0deg;
+  scale: 1;
+}
+
+/* A slow ping from the selected trip. */
+.travel-callout-anchor[data-state='selected']::after {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border: 1px solid var(--callout-signal);
+  content: '';
+  rotate: 45deg;
+  animation: travel-callout-ping 2.4s ease-out 400ms infinite;
+}
+
+/* Label: the title on one row; the meta line opens under it when the trip is framed. */
+.travel-callout-label {
+  display: grid;
+  height: 20px;
+  align-content: start;
+  gap: 4px;
+  margin: -12px -16px -12px -8px;
+  padding: 12px 16px 12px 8px;
+  border: 0;
+  background: none;
+  color: var(--callout-text);
+  cursor: pointer;
+  font-family: var(--font-krypton), ui-serif, serif;
+  pointer-events: auto;
+  text-align: left;
+  text-shadow: 0 0 2px var(--callout-halo), 0 0 14px var(--callout-halo-wide);
+  box-sizing: content-box;
+  transition: height 320ms var(--ease-settle);
+}
+
+.travel-callout-label[data-state='active'],
+.travel-callout-label[data-state='selected'] {
+  height: 40px;
+}
+
+.travel-callout-label:focus-visible {
+  outline: 1px solid var(--callout-ink);
+  outline-offset: -4px;
+}
+
+.travel-callout-title {
+  position: relative;
+  display: block;
+  height: 20px;
+  font-size: 0.95rem;
+  font-style: italic;
+  line-height: 20px;
+  opacity: 0.62;
+  white-space: nowrap;
+  transition: opacity 180ms ease-out;
+}
+
+/* Hover answers with a fine gold underline drawn from the left. */
+.travel-callout-title::after {
+  position: absolute;
+  right: 0;
+  bottom: 1px;
+  left: 0;
+  height: 1px;
+  background: var(--callout-ink);
+  content: '';
+  scale: 0 1;
+  transform-origin: left;
+  transition: scale 260ms var(--ease-settle);
+}
+
+.travel-callout-label[data-state='candidate'] .travel-callout-title,
+.travel-callout-label[data-state='active'] .travel-callout-title,
+.travel-callout-label[data-state='selected'] .travel-callout-title,
+.travel-callout-label[data-hovered] .travel-callout-title {
+  opacity: 1;
+}
+
+.travel-callout-label[data-hovered] .travel-callout-title::after {
+  scale: 1 1;
+}
+
+.travel-callout-meta {
+  color: var(--callout-muted);
+  font-size: 0.625rem;
+  letter-spacing: 0.14em;
+  opacity: 0;
+  text-transform: uppercase;
+  transition: opacity 260ms ease-out 120ms;
+  white-space: nowrap;
+}
+
+.travel-callout-label[data-state='active'] .travel-callout-meta,
+.travel-callout-label[data-state='selected'] .travel-callout-meta {
+  opacity: 1;
+}
+
+@keyframes travel-callout-ping {
+  0% { opacity: 0.9; scale: 1; }
+  70%, 100% { opacity: 0; scale: 3.4; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .travel-callout-anchor::after {
+    animation: none;
+  }
+
+  .travel-callout-label,
+  .travel-callout-title::after,
+  .travel-callout-reticle,
+  .travel-callout-anchor::before {
+    transition: none;
+  }
+}

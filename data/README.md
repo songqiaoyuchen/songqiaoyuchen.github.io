@@ -10,3 +10,4 @@ Site content and copy. Edit these to change what the site says; components only 
 | `projects.ts` | Projects (featured ones appear in the drawer) and the drawer intro |
 | `blog.ts` | Blog drawer intro and empty state (articles are MDX in `content/`) |
 | `artworks.ts` | Artwork catalogue, medium sections and the featured carousel order |
+| `travel.ts` | Trips: places, dates, recorded tracks, photos and article slugs (placeholders until real data) |

@@ -11,9 +11,10 @@ Drei, post-processing, and GLSL for terrain. Motion supports interactions.
 | Location | Responsibility |
 | --- | --- |
 | `app/` | Routes, layout, metadata, development API |
-| `components/shell/` | Persistent Home/Art shell: one scene, loading state, fallback, article summaries |
+| `components/shell/` | Persistent Home/About/Art/Travel shell: one scene, loading state, fallback, article summaries |
 | `components/home/` | Homepage hero, preloader and preview drawer (About, Blog, Projects panels) |
 | `components/art/` | Art section: carousel, collection, inspection, gallery transition, Screenshot mode |
+| `components/travel/` | Travel section: trip index, trip panel, photo viewer, shared scene state |
 | `components/scene/`, `shaders/` | WebGL: camera, terrain, backdrops, scene text, effects, Leva controls |
 | `components/site/`, `components/projects/`, `components/blog/` | Nav, project cards, editorial UI |
 | `config/` | Tunable numbers (scene, art, hero, preloader, breakpoints) |
@@ -23,7 +24,7 @@ Drei, post-processing, and GLSL for terrain. Motion supports interactions.
 | `content/`, `mdx-components.tsx` | MDX articles and their registered components |
 | `public/`, `scripts/` | Fonts, media, baked assets; bake, asset, test and verify tools |
 
-Names used throughout: **scene links** are the WebGL ART / PROJECTS / BLOG / ABOUT words that open
+Names used throughout: **scene links** are the WebGL ART / PROJECTS / BLOG / ABOUT / TRAVEL words that open
 sections; **glyph rain** is the faint falling letter columns behind them; a **backdrop** is the terrain
 re-rendered as oil, pencil or digital behind the Art gallery, swapped by a **backdrop wipe**.
 
@@ -67,6 +68,55 @@ About is a route, `/about`, in the same `(scene)` layout as Home and Art: the AB
 closing (×, Escape, SQYC) returns to `/`, and Back/Forward follow. The settled entry is kept in the URL as
 `?entry=<id>`, replaced in place so scrolling adds no history; only the URL the page loaded with is applied
 (`AboutEntrySync`), so returning to About in the app always starts at the top of the drawer.
+
+## Travel
+
+Travel routes are `/travel` (globe overview) and `/travel/[trip]` (selected trip), with `?photo=` opening
+the photo viewer; both live in the `(scene)` layout like Art, and `TravelSection` (mounted by the travel
+layout) derives its view from the URL. Trips are `data/travel.ts`: real places, oldest first, each with an
+introduction and optionally recorded tracks (`segments`), photos and a Blog article slug. The globe
+(`components/scene/travel/`) hangs above the terrain's centre (`TRAVEL_CONFIG`), drawn as a night globe in the
+terrain's language: `globe.frag` reads the baked elevation map (`public/travel/elevation.png`, NASA topography
+resized by `scripts/assets/build-travel-geo.mjs`) for a small relief and a faint land tint
+(`shaders/terrain/landShading.glsl`, registered by `lib/scene/landShading.ts`; its hillshade is off) under a gold
+rim; land carries a field of gold light points sampled from the same map, denser in lowlands (`TravelLights`,
+`shaders/terrain/travelPoints.*`); a faint gold graticule and baked coastlines and lakes (`public/travel/coast.bin`,
+Natural Earth 110m) as line segments; trail tubes along each trip's tracks riding the relief (gaps between
+recordings dotted) and HTML markers with titles (`TravelCallouts`, laid out like About's). About the resting globe,
+outside its turn, two tilted orbit rings with tick marks turn slowly (`TravelRings`) and a sparse sky of stars
+stands far behind (`TravelStars`, the same point shader); lights, rings and stars join the isolated bloom. The camera parks at the Travel
+pose and the globe turns (`lib/scene/travel.ts`): a drag follows the pointer; a release coasts under friction
+and, below the snap speed, the nearest trip within the capture angle pulls the globe in; untouched, it drifts
+slowly. A selected trip is pinned: the globe turns it to an offset from its centre while `CameraRig` journeys
+to the quarter-sphere framing `TravelGlobe` publishes. Lines and trails join the isolated bloom.
+
+Entry is one zoom-out in which the globe is the planet the landscape lies on. `CameraRig` raises a Travel morph
+(0 to 1) over the 2 s journey. The landscape stands for `landscapeKm` of real ground, which sizes an Earth-scale
+planet (`lib/scene/travel.ts` `planetScale`); `TravelGlobe` places it for the frame, tangent under the overview
+camera's point of regard at the start and shrinking geometrically to the globe at the Travel pose, its turn
+easing from lying flat to its own, the anchor gliding along a screen-space path so the zoom never leaves the
+frame; heights are above sea level, the landing place's elevation coming from the baked regional tile. It
+publishes the patch frame (centre, radius, anchor and tangent axes, pivot, arc scale, height factor and datum)
+through `CameraFrameState`. In the terrain cache, `terrain.vert` wraps every terrain vertex onto that sphere
+about the pivot and, across the edge fade, takes the heights of a baked tile of 600 km of real ground around the
+landing place (Terrarium tiles baked by `scripts/assets/build-travel-geo.mjs region`), which the globe reads for
+its own surface there (`globe.vert`/`.frag`, ever more coarsely toward the tile's edge, `regionSpread`, so it
+softens into the global map); the home contour lines ride a little way and dissolve (`contours.vert`,
+`travelRide`), and the terrain's pool of light gives way to the globe's dark ground (`terrain.frag`), its edge
+fade turning opaque so the landscape meets the planet without a seam; its
+relief is real on the way and takes the map's exaggeration as it arrives (`reliefIn`). `SceneFog` thins the haze
+with altitude (`hazeOut`, `hazeFactor`); the lights come on at half strength over the dark ground as the landscape recedes
+(`lightsIn`) and reach full with the lines, the stars arrive with altitude (`starsIn`), and the rim, graticule,
+coastlines, rings and trails come in late (`linesIn`, `trailsIn`).
+The terrain cache redraws while the morph runs; the globe and trails discard fragments behind the terrain's
+depth, and the tile writes none, so nothing reads as two objects. Leaving Travel plays it backwards; the globe
+is never faded as a whole. The globe mounts quietly after the intro so its maps are loaded before the first
+journey. Travel clears the scene text like About. The trip index
+(overview) and trip panel share state with the scene through `TravelSceneContext`; arrows step through
+trips, Escape returns to the overview. Phones use their own Travel pose with the content in a sheet. Leva's
+Travel folder tunes look, relief, feel, framing and the zoom-out and saves to `config/scene/travel.ts`; its
+Edit camera toggle hands the pointer to the dev orbit camera so Save Camera can store the Travel (and phone
+Travel) poses.
 
 ## Art
 
@@ -151,7 +201,8 @@ position/target editing. Save Art View persists that shared pose to
 settles section transitions immediately.
 Camera journeys interpolate position and orientation independently with eased
 departure/arrival; the focus follows the rotation so large turns cannot cross
-the camera. The rig applies its pose after development orbit controls.
+the camera. The rig applies its pose after development orbit controls, which are off on About, where
+the pose and each checkpoint's framing are authored and the route editor takes the pointer.
 The Art pose sits near the terrain boundary, so journeys to and from Art blend
 `SceneFog` toward denser flight fog (`FOG_CONFIG.flightNear/flightFar`); arrival
 holds it until the first backdrop wipe completes, then eases it out. Leva's Art
@@ -205,7 +256,8 @@ are named at the top of the stylesheet that uses them.
 | `npm run bake:terrain` / `npm run check:terrain-bake` | Generate / validate terrain artifacts |
 | `npm run bake:oil` | Legacy: rebuild oil pigment and relief maps (unused by the live site) |
 | `npm run sync:artwork-dimensions` | Update artwork dimensions |
-| `node scripts/test/<file>.mjs` | Unit checks: About path, dev config writer, backdrop wipe, camera transition, carousel layout, text transition |
+| `node scripts/test/<file>.mjs` | Unit checks: About path, Travel globe, dev config writer, backdrop wipe, camera transition, carousel layout, text transition |
+| `node scripts/assets/build-travel-geo.mjs coast <geojson>` / `track <id> <gpx…>` | Bake coastlines to `public/travel/coast.bin`; simplify GPX recordings to track JSON |
 | `node scripts/verify/verify-art.mjs` | Opt-in browser journey checks and screenshots; requires externally available Playwright |
 | `node scripts/verify/verify-pencil-overlay.mjs` | Opt-in backdrop wipe, image resize, and reduced-motion checks |
 | `node scripts/verify/verify-text-transitions.mjs` | Opt-in desktop/mobile text transition and navigation regression checks |
