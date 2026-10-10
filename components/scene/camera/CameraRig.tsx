@@ -90,6 +90,7 @@ export function CameraRig({
   const artFogStart = useRef(0);
   const transition = useMemo(() => new CameraTransition(), []);
   const initialized = useRef(false);
+  const awaitingFocus = useRef(false);
   const currentLookAt = useRef(new Vector3(...initialOverviewPose.lookAt));
   const overviewReturnPosition = useRef(new Vector3(...initialOverviewPose.position));
   const overviewReturnLookAt = useRef(new Vector3(...initialOverviewPose.lookAt));
@@ -102,13 +103,24 @@ export function CameraRig({
       camera.updateProjectionMatrix();
     }
 
-    if (!initialized.current) {
-      camera.position.copy(configuredPosition);
-      currentLookAt.current.copy(configuredLookAt);
+    const focusPose = focusStop >= 0
+      ? aboutFocusPosesRef?.current[focusStop]
+      : poseKey === 'travel:trip' ? travelFocusPoseRef?.current ?? undefined : undefined;
+    if (focusPose) {
+      focusPosition.fromArray(focusPose.position);
+      focusLookAt.fromArray(focusPose.lookAt);
+    }
+
+    // Opened on an About entry or a trip, the framing is published by its layer once the scene assembles it:
+    // start at the section's pose and take the framing as it arrives.
+    if (!initialized.current || (awaitingFocus.current && focusPose && poseKey === previousPoseKey.current)) {
+      camera.position.copy(focusPose ? focusPosition : configuredPosition);
+      currentLookAt.current.copy(focusPose ? focusLookAt : configuredLookAt);
       camera.lookAt(currentLookAt.current);
       controls?.target.copy(currentLookAt.current);
+      awaitingFocus.current = (focusStop >= 0 || poseKey === 'travel:trip') && !focusPose;
+      if (!initialized.current) onPoseSettled?.(poseId);
       initialized.current = true;
-      onPoseSettled?.(poseId);
     } else if (!isAnimating.current && controls) {
       currentLookAt.current.copy(controls.target);
     }
@@ -135,13 +147,7 @@ export function CameraRig({
       travelEntry.current = poseKey.startsWith('travel') !== previousPoseKey.current.startsWith('travel');
       artFogStart.current = cameraFrameState.current.artFog;
       previousPoseKey.current = poseKey;
-      const focusPose = focusStop >= 0
-        ? aboutFocusPosesRef?.current[focusStop]
-        : poseKey === 'travel:trip' ? travelFocusPoseRef?.current ?? undefined : undefined;
-      if (focusPose) {
-        focusPosition.fromArray(focusPose.position);
-        focusLookAt.fromArray(focusPose.lookAt);
-      }
+      awaitingFocus.current = false;
       transition.begin(
         camera,
         currentLookAt.current,

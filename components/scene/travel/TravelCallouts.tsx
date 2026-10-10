@@ -101,11 +101,12 @@ export function TravelCallouts({
       // One full-viewport layer; the callouts position themselves.
       calculatePosition={(_, __, viewport) => [viewport.width / 2, viewport.height / 2]}
       fullscreen
-      // Html hides the whole layer when its anchor (the globe's centre) is behind the camera, but checks only when
-      // its position moves, and ours never does: mounted mid-flight, it would stay hidden. Each marker hides itself.
+      // Html sets the layer's stacking (from its anchor's distance) and hides it when the anchor is behind the
+      // camera, but only when its position moves, which ours never does: mounted while the globe still stands as
+      // the planet, far below, the layer would stay behind the canvas. Keep it on top; each marker hides itself.
       onOcclude={() => {}}
       style={{pointerEvents: 'none'}}
-      zIndexRange={[30, 10]}
+      zIndexRange={[30, 30]}
     >
       <div className="travel-callouts" ref={layerRef} style={{'--callout-signal': signalColor} as CSSProperties}>
         <svg aria-hidden="true" className="travel-callouts-leaders">
