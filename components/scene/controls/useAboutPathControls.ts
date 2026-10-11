@@ -12,6 +12,9 @@ const CHECKPOINT = {step: 0.01, joystick: false, render: () => false} as const;
 
 export function useAboutPathControls() {
   return useControls(ABOUT_PATH_FOLDER, {
+    // SceneCanvas.tsx: hands the pointer to the dev orbit camera so Save Camera can store the About pose (the
+    // phone one at phone widths). Compose it at the top of the drawer, where no entry is framed. Not saved.
+    editCamera: {value: false, label: 'Edit camera'},
     // AboutPath.tsx: world [x, z] of each checkpoint, oldest first; each snaps onto the ridge route.
     medic: {...CHECKPOINT, value: pair(ABOUT_CHECKPOINTS.medic)},
     nus: {...CHECKPOINT, value: pair(ABOUT_CHECKPOINTS.nus)},
@@ -25,6 +28,14 @@ export function useAboutPathControls() {
     focusScreen: {value: pair(ABOUT_PATH_CONFIG.focusScreen), step: 0.01, joystick: false, label: 'Focus screen'},
     focusFollow: {value: ABOUT_PATH_CONFIG.focusFollow, min: 0, max: 1, step: 0.01, label: 'Focus follow'},
     focusZoom: {value: ABOUT_PATH_CONFIG.focusZoom, min: 0, max: 0.7, step: 0.01, label: 'Focus zoom'},
+    // The same on phones, from the phone About pose.
+    phoneFocusScreen: {
+      value: pair(ABOUT_PATH_CONFIG.phoneFocusScreen), step: 0.01, joystick: false, label: 'Phone focus screen',
+    },
+    phoneFocusFollow: {
+      value: ABOUT_PATH_CONFIG.phoneFocusFollow, min: 0, max: 1, step: 0.01, label: 'Phone focus follow',
+    },
+    phoneFocusZoom: {value: ABOUT_PATH_CONFIG.phoneFocusZoom, min: 0, max: 0.7, step: 0.01, label: 'Phone focus zoom'},
     // CameraRig.tsx: journey time between the landscape and About, and between entries on the path.
     journeySeconds: {value: ABOUT_PATH_CONFIG.journeySeconds, min: 0.2, max: 8, step: 0.1, label: 'Journey (s)'},
     focusSeconds: {value: ABOUT_PATH_CONFIG.focusSeconds, min: 0.2, max: 6, step: 0.1, label: 'Focus (s)'},

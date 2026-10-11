@@ -4,23 +4,25 @@ export const drawerStyles = {
   aside: `fixed inset-y-0 z-40 w-full
     transition-[opacity,visibility] duration-100 motion-reduce:duration-0`,
   asideStart: 'left-0 md:w-drawer',
-  // About sits right of its terrain path, a little wider so its column can breathe.
-  asideEnd: 'right-0 md:w-[clamp(24rem,48vw,44rem)]',
+  // About sits right of its terrain path, a little wider so its column can breathe; on phones it starts below the
+  // path's window (the phone About pose, config/scene/camera.ts).
+  asideEnd: 'right-0 max-md:top-[40svh] md:w-[clamp(24rem,48vw,44rem)]',
   open: 'visible pointer-events-auto opacity-100',
   closed: 'invisible pointer-events-none opacity-0',
   // Gradient backdrop on desktop (Drawer.css), solid panel on mobile.
-  backdrop: 'pointer-events-none absolute inset-0 max-md:bg-panel/94',
-  backdropStart: 'preview-backdrop max-md:border-r-0 max-md:mask-none',
-  // About: a solid panel whose fade reaches out past the drawer's left edge.
-  backdropEnd: 'md:about-backdrop',
+  backdrop: 'pointer-events-none absolute inset-0',
+  backdropStart: 'preview-backdrop max-md:border-r-0 max-md:mask-none max-md:bg-panel/94',
+  // About: a solid panel whose fade reaches out past the drawer's left edge; on phones the path's window fades
+  // into it from above.
+  backdropEnd: 'md:about-backdrop max-md:about-phone-backdrop',
   body: 'relative z-10 h-full',
   close: `absolute right-6 top-20 z-50 grid size-11 place-items-center border-0 bg-transparent
     p-0 font-mono text-xl font-light leading-none text-dim transition-colors
     duration-interaction ease-out hover:text-text focus-visible:outline-1
     focus-visible:outline-offset-4 focus-visible:outline-accent md:top-24`,
   closeStart: 'md:right-0',
-  // In line with the About column's right edge rather than the viewport's.
-  closeEnd: 'md:right-[clamp(2rem,5vw,5rem)]',
+  // In line with the About column's right edge rather than the viewport's; on phones at the drawer's top.
+  closeEnd: 'max-md:top-6 md:right-[clamp(2rem,5vw,5rem)]',
 } as const;
 
 const PANEL_SCROLL = `no-scrollbar flex h-full w-full max-w-none touch-pan-y

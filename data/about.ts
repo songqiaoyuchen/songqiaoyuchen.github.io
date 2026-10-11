@@ -2,8 +2,6 @@
 export const ABOUT_INTRO = {
   name: 'Song Qiaoyuchen',
   studies: 'Computer Science + Mathematics · National University of Singapore',
-  bio: 'I build software across systems, interfaces, and interactive graphics. '
-    + 'Outside engineering, I work with visual art and explore places through cycling.',
   connect: 'Open for opportunities, collaborations, art jam or a chill ride on the bike.',
 } as const;
 

@@ -64,6 +64,13 @@ export const ABOUT_MAP_CONFIG = {
   },
   // Distant lines keep this on-screen radius (device pixels) and dim, rather than breaking up.
   minPixels: 0.6,
+  // Phones see the whole ridge from far off, where every line is widened and dimmed: a little wider, and
+  // brighter by this gain (both intensities), so the map reads as on desktop (AboutMap.tsx).
+  phoneMinPixels: 1,
+  phoneIntensityGain: 3.2,
+  // and push the distance fog out this many times while About is open, as their camera stands further back
+  // (SceneFog.tsx).
+  phoneFogScale: 1.7,
   // [x, z, dim start, dim end, brightness kept beyond], world units around the route's centre:
   // the ridges it crosses keep full brightness; the background stays mapped, darkened.
   focus: [0.25, -1.95, 2.1, 3.8, 0.6] as readonly [number, number, number, number, number],
@@ -84,11 +91,14 @@ export const ABOUT_MAP_CONFIG = {
 export const ABOUT_PATH_CONFIG = {
   lift: 0.02, // world units above the rendered surface (about two tube radii, so the tube rests on it)
   radius: 0.011, // tube radius, world units
+  phoneRadiusScale: 1.8, // phones see the whole route from further away
   dashLength: 0.07, // world units per dash and gap of the trail ahead
   // The trail's signal colour: the one hue besides gold, kept to the route and its markers (the
   // travelled path, the dashed trail ahead, checkpoint markers). Titles, links and focus stay gold.
   trailColor: '#8fe3d6',
   trackIntensity: 0.5, // the dashed trail ahead
+  phoneTrackIntensity: 1.2, // phones: the whole route seen from far off, the trail ahead must still read
+  phoneDashScale: 2.2, // phones: longer dashes, so they stay dashes at that distance
   drawnIntensity: 1, // the travelled path; it blooms
   // Framing an entry: shift the About pose so the checkpoint moves focusFollow of the way toward
   // this screen point (normalized device coordinates; the drawer covers the right), then dolly
@@ -96,6 +106,11 @@ export const ABOUT_PATH_CONFIG = {
   focusScreen: [-0.45, -0.1] as readonly [number, number],
   focusFollow: 0.6,
   focusZoom: 0.18,
+  // Phones: an entry is framed the same way from the phone About pose (camera.ts mobileAbout*), toward a point
+  // in the window above the drawer.
+  phoneFocusScreen: [-0.42, 0.5] as readonly [number, number], // left of centre: its title reads to the right
+  phoneFocusFollow: 0.85,
+  phoneFocusZoom: 0.3,
   // Camera journey times: between the landscape and the About pose, and between entries on the path.
   journeySeconds: 1,
   focusSeconds: 0.7,

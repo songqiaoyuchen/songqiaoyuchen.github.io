@@ -94,7 +94,9 @@ export function ExperienceTimeline({
       ref={timelineRef}
     >
       <div className="mb-8 grid grid-cols-[2rem_minmax(0,1fr)] gap-4 md:gap-6">
-        <h3 className={`${panelStyles.sectionTitle} md:text-[1.65rem]`}>
+        {/* Phones: a small label, the entries carry the page. */}
+        <h3 className={`${panelStyles.sectionTitle} md:text-[1.65rem] max-md:col-span-2 max-md:font-mono
+          max-md:text-label max-md:not-italic max-md:tracking-label max-md:text-dim`}>
           Experience
         </h3>
       </div>

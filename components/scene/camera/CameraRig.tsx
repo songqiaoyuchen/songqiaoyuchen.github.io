@@ -6,9 +6,9 @@
 // first frame lands on the view the route opens (a refresh on a trip stays on the trip).
 'use client';
 
-import { useMemo, useRef, type MutableRefObject } from 'react';
+import { useEffect, useMemo, useRef, type MutableRefObject } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import {MathUtils, PerspectiveCamera, Vector3} from 'three';
+import {MathUtils, PerspectiveCamera, Vector3, type Vector3Tuple} from 'three';
 import type { OrbitControls as OrbitControlsInstance } from 'three-stdlib';
 import {
   CAMERA_CONFIG,
@@ -18,13 +18,14 @@ import {
   SCENE_LAYOUT_CONFIG,
   type CameraPose,
 } from '@/config/scene';
-import {ABOUT_PATH_CONFIG} from '@/config/scene/aboutPath';
+import {ABOUT_MAP_CONFIG, ABOUT_PATH_CONFIG} from '@/config/scene/aboutPath';
 import {TRAVEL_CONFIG, TRAVEL_OVERVIEW_CONFIG, TRAVEL_TRIP_CONFIG} from '@/config/scene/travel';
 import type {SectionId} from '@/data/sections';
 import {useTravelScene} from '@/components/travel/TravelSceneContext';
 import {useReducedMotion} from '@/hooks/useReducedMotion';
 import {artTransitionSettings} from '@/lib/art/transitionSettings';
 import {getHomeFov} from '@/lib/scene/camera';
+import type {AboutFraming} from '@/lib/scene/aboutPath';
 import {HOME, isTravelKey, planJourney, type JourneyLeg, type LegKind} from '@/lib/scene/cameraJourney';
 import {CameraTransition} from '@/lib/scene/cameraTransition';
 import {useCameraFrameState} from './CameraFrameState';
@@ -38,7 +39,8 @@ type CameraRigProps = {
   activeId: SectionId | null;
   /** About checkpoint to frame, or -1 for the About pose itself. */
   aboutStop?: number;
-  aboutFocusPosesRef?: MutableRefObject<readonly CameraPose[]>;
+  /** Frames an About checkpoint from an About pose (AboutPath publishes it). */
+  aboutFramingRef?: MutableRefObject<AboutFraming | null>;
   /** Journey times into/out of About and between its entries (Leva About Path; config defaults). */
   aboutSeconds?: {journeySeconds: number; focusSeconds: number};
   /** Journey times into/out of Travel and between its overview and a trip (Leva Travel: Journey; Travel Trip:
@@ -49,7 +51,7 @@ type CameraRigProps = {
 };
 
 export function CameraRig({
-  activeId, aboutStop = -1, aboutFocusPosesRef, aboutSeconds = ABOUT_PATH_CONFIG,
+  activeId, aboutStop = -1, aboutFramingRef, aboutSeconds = ABOUT_PATH_CONFIG,
   travelSeconds = TRAVEL_SECONDS, controlsRef, onPoseSettled,
 }: CameraRigProps) {
   const cameraFrameState = useCameraFrameState();
@@ -68,8 +70,8 @@ export function CameraRig({
     ),
     [viewportHeight, viewportWidth],
   );
-  // Phones keep the overview camera for the drawer sections; Art and Travel have their own phone poses.
-  const poseId = activeId && (!isMobile || activeId === 'art' || activeId === 'travel')
+  // Phones keep the overview camera for Blog and Projects; Art, About and Travel have their own phone poses.
+  const poseId = activeId && (!isMobile || activeId === 'art' || activeId === 'about' || activeId === 'travel')
     ? activeId
     : null;
   const focusStop = poseId === 'about' ? aboutStop : -1;
@@ -92,6 +94,16 @@ export function CameraRig({
     [configuredPose.lookAt],
   );
   const initialOverviewPose = getCameraPose(null, isMobile);
+  // The About pose journeys start from and frame its checkpoints from: the configured one (phones have their own)
+  // or, in development, the view composed with Leva's Edit camera, so the framings follow it before it is saved.
+  const configuredAbout = getCameraPose('about', isMobile);
+  const aboutBase = useRef<CameraPose>(configuredAbout);
+  // Edit camera: the orbit pivot has been moved onto the route since the camera last parked on About.
+  const aboutPivoted = useRef(false);
+  const configuredAboutKey = `${configuredAbout.position.join()}|${configuredAbout.lookAt.join()}`;
+  useEffect(() => {
+    aboutBase.current = getCameraPose('about', isMobile);
+  }, [configuredAboutKey, isMobile]);
   const previousPoseKey = useRef(poseKey);
   const isAnimating = useRef(false);
   // The journey under way (one motion from pose to pose) and its time.
@@ -123,6 +135,26 @@ export function CameraRig({
       onPoseSettled?.(poseId);
     } else if (!isAnimating.current && controls) {
       currentLookAt.current.copy(controls.target);
+      // Edit camera on About's own pose: the composed view becomes the About pose. On arriving, the orbit's pivot
+      // moves from the pose's look-at point (in the air, well in front) to the route along the line of sight, so a
+      // drag turns the view about the route and the view itself does not move.
+      if (controls.enabled && poseKey === 'about' && !aboutPivoted.current) {
+        aboutPivoted.current = true;
+        const eye = camera.position;
+        const sight = controls.target.clone().sub(eye).normalize();
+        const [routeX, routeZ] = ABOUT_MAP_CONFIG.focus;
+        const along = ((routeX - eye.x) * sight.x + (routeZ - eye.z) * sight.z)
+          / Math.max(sight.x * sight.x + sight.z * sight.z, 1e-6);
+        if (along > 0) {
+          controls.target.copy(eye).addScaledVector(sight, along);
+          currentLookAt.current.copy(controls.target);
+        }
+      }
+      if (controls.enabled && poseKey === 'about') {
+        aboutBase.current = {
+          position: camera.position.toArray() as Vector3Tuple, lookAt: controls.target.toArray() as Vector3Tuple,
+        };
+      }
     }
 
     const secondsFor = (kind: LegKind) => {
@@ -144,7 +176,9 @@ export function CameraRig({
         // The overview is wherever the visitor left it (bookkept below).
         return {position: overviewReturnPosition.current, lookAt: overviewReturnLookAt.current};
       } else if (key.startsWith('about:')) {
-        pose = aboutFocusPosesRef?.current[Number(key.slice('about:'.length))] ?? getCameraPose('about', isMobile);
+        pose = aboutFramingRef?.current?.(aboutBase.current, Number(key.slice('about:'.length))) ?? aboutBase.current;
+      } else if (key === 'about') {
+        pose = aboutBase.current;
       } else if (key === 'travel:trip') {
         pose = getTravelTripPose(isMobile);
       } else if (key === 'travel:index') {
@@ -183,6 +217,7 @@ export function CameraRig({
       onPoseSettled?.(undefined);
     }
 
+    if (isAnimating.current || !controls?.enabled) aboutPivoted.current = false;
     if (isAnimating.current && leg.current) {
       const settled = transition.advance(
         camera, currentLookAt.current, delta, journeySeconds.current, isReducedMotion,

@@ -11,7 +11,7 @@ import {SMAAPreset, type EffectComposer as EffectComposerImpl} from 'postprocess
 import type {DepthTexture, Mesh, Object3D, Texture} from 'three';
 import type { OrbitControls as OrbitControlsInstance } from 'three-stdlib';
 import type {useCreateStore} from 'leva';
-import {CAMERA_CONFIG, FOG_CONFIG, type CameraPose} from '@/config/scene';
+import {CAMERA_CONFIG, FOG_CONFIG} from '@/config/scene';
 import {useArtScene} from '@/components/art/ArtSceneContext';
 import type {ArtMedium} from '@/data/artworks';
 import type {SectionId} from '@/data/sections';
@@ -19,6 +19,8 @@ import {
   retainTerrainPipeline,
   scheduleTerrainPipelineDisposal,
 } from '@/lib/terrain/assets';
+import type {AboutFraming} from '@/lib/scene/aboutPath';
+import {AboutMap} from './about/AboutMap';
 import {AboutPath} from './about/AboutPath';
 import {CaptureExport} from './backdrop/CaptureExport';
 import {CameraFrameProvider} from './camera/CameraFrameState';
@@ -38,6 +40,8 @@ import {StillFrameGate} from './StillFrameGate';
 import {CachedTerrain} from './terrain/CachedTerrain';
 import { Contours } from './terrain/Contours';
 import {ABOUT_MAP_CONFIG} from '@/config/scene/aboutPath';
+
+const ABOUT_EDIT_ROTATE_SPEED = 0.3;
 import {TRAVEL_OVERVIEW_CONFIG} from '@/config/scene/travel';
 import { SceneFog } from './terrain/SceneFog';
 import { GlyphRain } from './text/GlyphRain';
@@ -124,7 +128,7 @@ export const SceneCanvas = memo(function SceneCanvas({
   // Development: Save Camera reads the open trip's marker offset through this (TravelGlobe fills it).
   const travelMeasureOffsetRef = useRef<(() => [number, number] | null) | null>(null);
   const composerRef = useRef<EffectComposerImpl>(null);
-  const aboutFocusPosesRef = useRef<readonly CameraPose[]>([]);
+  const aboutFramingRef = useRef<AboutFraming | null>(null);
   const {capture} = useArtScene();
   const capturing = artActive && capture.enabled;
   const [canvasReady, setCanvasReady] = useState(false);
@@ -155,6 +159,11 @@ export const SceneCanvas = memo(function SceneCanvas({
     const timer = window.setTimeout(() => setTravelWanted(true), TRAVEL_PREFETCH_MS);
     return () => window.clearTimeout(timer);
   }, [introStarted, travelWanted]);
+  // The dev orbit camera: free on the overview and the drawer sections, on About and Travel only while Leva's Edit
+  // camera is on.
+  const cameraEditable = activeId !== 'art'
+    && (activeId !== 'about' || settings.aboutPath.editCamera)
+    && (activeId !== 'travel' || settings.travel.editCamera);
   const aboutMapSettings = useMemo(
     () => ({...settings.contours, ...ABOUT_MAP_CONFIG.contours}),
     [settings.contours],
@@ -225,11 +234,11 @@ export const SceneCanvas = memo(function SceneCanvas({
             <OrbitControls
               ref={orbitcontrolsRef}
               // Off on About: its camera is authored (pose, checkpoint framing); the route editor owns the pointer.
-              // Off on Travel too, where the pointer turns the globe, unless Leva's Edit camera takes it.
-              enabled={artActive ? artCameraEditing : activeId !== 'art' && activeId !== 'about'
-                && (activeId !== 'travel' || settings.travel.editCamera)}
-              enableDamping={!artActive && activeId !== 'art' && activeId !== 'about'
-                && (activeId !== 'travel' || settings.travel.editCamera)}
+              // Off on Travel too, where the pointer turns the globe. On either, Leva's Edit camera takes it.
+              enabled={artActive ? artCameraEditing : cameraEditable}
+              // Composing About's pose: slower turns, so a drag nudges the view rather than swinging it.
+              rotateSpeed={activeId === 'about' ? ABOUT_EDIT_ROTATE_SPEED : 1}
+              enableDamping={!artActive && cameraEditable}
               target={CAMERA_CONFIG.overviewLookAt}
               makeDefault
             />
@@ -238,7 +247,7 @@ export const SceneCanvas = memo(function SceneCanvas({
             <CameraRig
               activeId={activeId}
               aboutStop={aboutStop}
-              aboutFocusPosesRef={aboutFocusPosesRef}
+              aboutFramingRef={aboutFramingRef}
               aboutSeconds={settings.aboutPath}
               travelSeconds={travelSeconds}
               onPoseSettled={onPoseSettled}
@@ -260,7 +269,7 @@ export const SceneCanvas = memo(function SceneCanvas({
                 <ArtCursorControls store={artCameraStore} />
               </>
             ) : null}
-            <SceneFog settings={settings.fog} />
+            <SceneFog about={activeId === 'about'} settings={settings.fog} />
             <Suspense fallback={null}>
               {assemblyPhase >= 1 ? (
                 <CachedTerrain
@@ -310,11 +319,8 @@ export const SceneCanvas = memo(function SceneCanvas({
                     terrainSettings={settings.terrain}
                   />
                   {aboutMapWanted ? (
-                    <Contours
+                    <AboutMap
                       hidden={!isAbout}
-                      focus={ABOUT_MAP_CONFIG.focus}
-                      lighting={ABOUT_MAP_CONFIG.lighting}
-                      minPixels={ABOUT_MAP_CONFIG.minPixels}
                       contourSettings={aboutMapSettings}
                       terrainDepthTexture={terrainDepthTexture}
                       terrainSettings={settings.terrain}
@@ -328,7 +334,7 @@ export const SceneCanvas = memo(function SceneCanvas({
                     settings={settings.aboutPath}
                     terrainSettings={settings.terrain}
                     terrainDepthTexture={terrainDepthTexture}
-                    focusPosesRef={aboutFocusPosesRef}
+                    framingRef={aboutFramingRef}
                     onSelect={onAboutSelect}
                   />
                   {travelWanted ? (

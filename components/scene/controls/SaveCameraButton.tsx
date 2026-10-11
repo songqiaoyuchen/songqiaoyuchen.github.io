@@ -45,11 +45,12 @@ export function SaveCameraButton({
     // eslint-disable-next-line react-hooks/refs
     'Save Camera': button(() => {
       const {activeId: section, travelSelected: trip, indexOpen: index, width} = latest.current;
-      // Phones have their own overview and Travel poses (all trips, the list pulled up, a trip); other sections
-      // keep the overview camera there. On desktop an open trip has its own pose.
+      // Phones have their own overview, About and Travel poses (all trips, the list pulled up, a trip); other
+      // sections keep the overview camera there. On desktop an open trip has its own pose.
       const travelPose = trip ? 'TravelTrip' : 'Travel';
+      const phonePose = section === 'about' ? 'mobileAbout' : 'mobileOverview';
       const pose = width < SCENE_LAYOUT_CONFIG.mobileMaxWidth
-        ? section === 'travel' ? `mobile${!trip && index ? 'TravelIndex' : travelPose}` : 'mobileOverview'
+        ? section === 'travel' ? `mobile${!trip && index ? 'TravelIndex' : travelPose}` : phonePose
         : section === 'travel' && trip ? 'travelTrip' : section ?? 'overview';
       const values: Record<string, unknown> = {
         [`camera.${pose}Position`]: toTuple(camera.position),

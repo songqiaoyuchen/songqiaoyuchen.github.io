@@ -1,4 +1,5 @@
-// About drawer panel (right-hand drawer): introduction, experience timeline and contact footer.
+// About drawer panel (right-hand drawer; on phones under the path's window): introduction, experience timeline and
+// contact footer.
 'use client';
 
 import {useRef, type MutableRefObject} from 'react';
@@ -26,13 +27,15 @@ export function AboutPanel({isOpen, onStopChange, progressRef, scrollRequest}: A
       data-at-start="true"
       ref={shellRef}
     >
+      {/* Phones: the column starts high and fades out as it scrolls up under the path's window. */}
       <div
-        className={panelStyles.scrollEnd}
+        className={`${panelStyles.scrollEnd} max-md:pt-14
+          max-md:mask-[linear-gradient(to_bottom,transparent,black_3.5rem)]`}
         ref={scrollRef}
       >
         <div className={panelStyles.content}>
           <header>
-            <h2 className={panelStyles.title}>
+            <h2 className={`${panelStyles.title} max-md:sr-only`}>
               About
             </h2>
           </header>
@@ -67,12 +70,6 @@ export function AboutPanel({isOpen, onStopChange, progressRef, scrollRequest}: A
                   text-muted uppercase"
               >
                 {ABOUT_INTRO.studies}
-              </p>
-              <p
-                className="font-mono text-intro-copy leading-intro-copy
-                  tracking-[0.035em] text-muted-soft"
-              >
-                {ABOUT_INTRO.bio}
               </p>
             </section>
 

@@ -12,8 +12,12 @@ export type AboutScrollRequest = {stop: number; key: number};
 
 // Entries, then "Next?".
 export const TIMELINE_STOP_COUNT = ABOUT_TIMELINE.length + 1;
-// The reading head sits this far down the scroll column.
+// The reading head sits this far down the scroll column; on phones, where the column sits under the path's window,
+// near its top, so the entry being read is the one just under the window.
 const READING_HEAD = 0.58;
+const PHONE_READING_HEAD = 0.3;
+const PHONE = '(width < 48rem)';
+const readingHeadShare = () => (window.matchMedia(PHONE).matches ? PHONE_READING_HEAD : READING_HEAD);
 // Hysteresis (px) so a marker does not flicker at the reading head.
 const ENTER_OFFSET = 10;
 const LEAVE_OFFSET = 18;
@@ -84,7 +88,7 @@ export function useTimelineProgress(
       animationFrame = 0;
 
       const readingHead = scrollerElement.scrollTop
-        + scrollerElement.clientHeight * READING_HEAD
+        + scrollerElement.clientHeight * readingHeadShare()
         - timelineOffset;
       const routeStart = markerOffsets[0] ?? 0;
       const routeEnd = markerOffsets.at(-1) ?? routeStart;
@@ -151,7 +155,7 @@ export function useTimelineProgress(
         : stop >= markerOffsets.length - 1
           ? maxScroll
           : timelineOffset + markerOffsets[stop] + LAND_OFFSET
-            - scrollerElement.clientHeight * READING_HEAD;
+            - scrollerElement.clientHeight * readingHeadShare();
       scrollerElement.scrollTo({
         top: Math.min(Math.max(top, 0), maxScroll),
         behavior: isReducedMotion ? 'auto' : 'smooth',

@@ -62,7 +62,16 @@ landscape. The route, checkpoints and map live in `config/scene/aboutPath.ts` (c
 framing in Leva's About Path folder, shown only on About; its Edit route mode drags the route's
 anchors over the terrain, adds or removes them, slides checkpoints along the route and saves both). The
 path rests on the rendered surface (`sampleSurfaceHeight`) plus a tuned lift, not the text sampler's clearance.
-Phones keep the full-width drawer without the path.
+Phones fold this vertically: the drawer starts at 40% of the height, the path's window above fading into it. Phones
+have their own About pose (`mobileAbout*` in `config/scene/camera.ts`, the whole route in that window) and frame
+each checkpoint from it toward a point in the window (`phoneFocus*`, Leva About Path); the reading head sits near
+the column's top, only the active checkpoint keeps its title, and the altitude figures and the large About heading
+go. Seen from that further-back camera, the map would dim and fog out, so phones draw the contours wider and
+brighter (`AboutMap`), push the fog out while About is open (`SceneFog`, `phoneFogScale`), and give the tube more
+width, the trail ahead more light and longer dashes. Leva's About Path › Edit camera hands the pointer to the orbit
+camera (pivoting on the route, turning slowly) so Save Camera can store the About pose, the phone one at phone
+widths; `CameraRig` frames checkpoints from the About pose as it stands (`AboutFraming`, published by `AboutPath`),
+so they follow a composed view before it is saved. The route editor stays desktop-only.
 
 About is a route, `/about`, in the same `(scene)` layout as Home and Art: the ABOUT scene link pushes it,
 closing (×, Escape, SQYC) returns to `/`, and Back/Forward follow. The settled entry is kept in the URL as

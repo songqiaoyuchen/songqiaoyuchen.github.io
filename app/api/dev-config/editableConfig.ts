@@ -10,7 +10,7 @@ export const EDITABLE_CONFIG = {
       'projectsPosition', 'projectsLookAt',
       'artPosition', 'artLookAt',
       'blogPosition', 'blogLookAt',
-      'aboutPosition', 'aboutLookAt',
+      'aboutPosition', 'aboutLookAt', 'mobileAboutPosition', 'mobileAboutLookAt',
       'travelPosition', 'travelLookAt', 'travelTripPosition', 'travelTripLookAt',
       'mobileTravelPosition', 'mobileTravelLookAt', 'mobileTravelIndexPosition', 'mobileTravelIndexLookAt',
       'mobileTravelTripPosition', 'mobileTravelTripLookAt',
@@ -41,7 +41,8 @@ export const EDITABLE_CONFIG = {
   aboutPath: {
     file: 'scene/aboutPath.ts',
     keys: ['waypoints', 'medic', 'nus', 'greyhats', 'sonicboom', 'uniplans', 'next', 'focusScreen', 'focusFollow',
-      'focusZoom', 'trailColor', 'lift', 'journeySeconds', 'focusSeconds'],
+      'focusZoom', 'phoneFocusScreen', 'phoneFocusFollow', 'phoneFocusZoom', 'trailColor', 'lift', 'journeySeconds',
+      'focusSeconds'],
   },
   artCursor: {
     file: 'art/cursor.ts',

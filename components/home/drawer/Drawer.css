@@ -1,5 +1,5 @@
-/* Drawer utilities: the desktop gradient backdrops (preview-backdrop, about-backdrop) and the bottom fade of
-   scrolling panels. */
+/* Drawer utilities: the gradient backdrops (preview-backdrop, about-backdrop, about-phone-backdrop) and the bottom
+   fade of scrolling panels. */
 @utility preview-backdrop {
   /* Panel-coloured (--color-panel) fade to the right, with a faint edge and shadow. */
   --drawer-edge: rgb(255 255 255 / 5%);
@@ -52,6 +52,18 @@
     rgb(8 10 13 / 93%) calc(var(--about-fade) * 0.9),
     rgb(8 10 13 / 96%) var(--about-fade),
     rgb(8 10 13 / 96%) 100%
+  );
+}
+
+/* About on phones: the drawer starts below the path's window, which fades into the panel tint (--color-panel). */
+@utility about-phone-backdrop {
+  --about-phone-fade: 3rem;
+
+  background: linear-gradient(
+    to bottom,
+    transparent 0,
+    rgb(8 10 13 / 80%) var(--about-phone-fade),
+    rgb(8 10 13 / 94%) calc(var(--about-phone-fade) * 2)
   );
 }
 

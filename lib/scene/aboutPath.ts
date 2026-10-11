@@ -200,6 +200,9 @@ export function placeAltitudeMarks(
   return marks;
 }
 
+/** Frames checkpoint `stop` from an About pose (AboutPath publishes it for CameraRig); null past the last stop. */
+export type AboutFraming = (base: CameraPose, stop: number) => CameraPose | null;
+
 /**
  * Frames one checkpoint from the About pose without turning the camera: a parallel shift
  * moves the checkpoint `follow` of the way toward `screen` (normalized device coordinates, as

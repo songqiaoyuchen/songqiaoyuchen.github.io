@@ -1,6 +1,7 @@
 // About experience path: a route draped over the ridge through one checkpoint per timeline entry, ending at "Next?".
 // The whole route shows faintly; the part up to the drawer's reading head is drawn bright and blooms like the
-// major contours. Also publishes each checkpoint's camera framing for CameraRig. In development, Edit route
+// major contours. Also publishes how to frame each checkpoint from an About pose, for CameraRig (the configured
+// pose, phones having their own, or the one composed with Edit camera). In development, Edit route
 // (AboutPathEditor) reshapes the route and slides the checkpoints along it.
 'use client';
 
@@ -16,13 +17,13 @@ import type {
   TerrainControlValues,
 } from '@/components/scene/controls/useSceneControls';
 import {
-  CAMERA_CONFIG, CONTOUR_CONFIG, getCameraPose, SCENE_LAYOUT_CONFIG, type CameraPose,
+  CAMERA_CONFIG, CONTOUR_CONFIG, SCENE_LAYOUT_CONFIG,
 } from '@/config/scene';
 import {ABOUT_MAP_CONFIG, ABOUT_PATH_CONFIG, ABOUT_ROUTE, type PlanPoint} from '@/config/scene/aboutPath';
 import {ABOUT_STOP_IDS, ABOUT_TIMELINE, formatEntryStart} from '@/data/about';
 import {useReducedMotion} from '@/hooks/useReducedMotion';
 import {getHomeFov} from '@/lib/scene/camera';
-import {buildAboutRoute, getAboutFocusPose, placeAltitudeMarks} from '@/lib/scene/aboutPath';
+import {buildAboutRoute, getAboutFocusPose, placeAltitudeMarks, type AboutFraming} from '@/lib/scene/aboutPath';
 import {useTerrainAssets} from '@/lib/terrain/assets';
 import {
   normalizeRawHeight, sampleHeight, sampleNormalizedHeight, sampleSurfaceHeight,
@@ -64,26 +65,29 @@ type AboutPathProps = {
   settings: AboutPathControlValues;
   terrainSettings: TerrainControlValues;
   terrainDepthTexture: DepthTexture | null;
-  /** Receives the camera pose framing each checkpoint, in stop order. */
-  focusPosesRef: MutableRefObject<readonly CameraPose[]>;
+  /** Receives the framing of each checkpoint from an About pose. */
+  framingRef: MutableRefObject<AboutFraming | null>;
   onSelect: (stop: number) => void;
 };
 
 export function AboutPath({
   visible: requestedVisible, activeStop, progressRef, meshRef, settings, terrainSettings, terrainDepthTexture,
-  focusPosesRef, onSelect,
+  framingRef, onSelect,
 }: AboutPathProps) {
-  // Phones cover the scene with a full-width drawer and keep the overview camera.
+  // Phones frame the route in a window above the drawer, which starts below it.
   const {width, height} = useThree((state) => state.size);
   const isMobile = width < SCENE_LAYOUT_CONFIG.mobileMaxWidth;
-  const visible = requestedVisible && !isMobile;
+  const visible = requestedVisible;
   const groupRef = useRef<Group>(null);
   const materialRef = useRef<ShaderMaterial>(null);
   const reducedMotion = useReducedMotion();
   const {shellBase} = useTerrainAssets();
   const {elevation, seaLevel} = terrainSettings;
-  const {focusScreen, focusFollow, focusZoom, lift} = settings;
-  const [focusX, focusY] = focusScreen;
+  // Phones frame an entry from their own About pose, toward a point in the window above the drawer.
+  const {lift} = settings;
+  const [focusX, focusY] = isMobile ? settings.phoneFocusScreen : settings.focusScreen;
+  const focusFollow = isMobile ? settings.phoneFocusFollow : settings.focusFollow;
+  const focusZoom = isMobile ? settings.phoneFocusZoom : settings.focusZoom;
   // The route's waypoints only change in development, through the editor.
   const [waypoints, setWaypoints] = useState<readonly PlanPoint[]>(ABOUT_ROUTE.waypoints);
   const [editing, setEditing] = useState(false);
@@ -125,9 +129,9 @@ export function AboutPath({
   const geometry = useMemo(() => new TubeGeometry(
     new CatmullRomCurve3(route.points),
     route.points.length * 2,
-    ABOUT_PATH_CONFIG.radius,
+    ABOUT_PATH_CONFIG.radius * (isMobile ? ABOUT_PATH_CONFIG.phoneRadiusScale : 1),
     6,
-  ), [route]);
+  ), [isMobile, route]);
   useEffect(() => () => geometry.dispose(), [geometry]);
 
   useEffect(() => {
@@ -136,11 +140,10 @@ export function AboutPath({
       getHomeFov(width, height, CAMERA_CONFIG.fov, SCENE_LAYOUT_CONFIG),
       width / Math.max(height, 1),
     );
-    const base = getCameraPose('about');
-    focusPosesRef.current = route.stops.map((stop) => (
-      getAboutFocusPose(base, camera, stop, [focusX, focusY], focusFollow, focusZoom)
-    ));
-  }, [focusFollow, focusPosesRef, focusX, focusY, focusZoom, height, route, width]);
+    framingRef.current = (base, stop) => (route.stops[stop]
+      ? getAboutFocusPose(base, camera, route.stops[stop], [focusX, focusY], focusFollow, focusZoom)
+      : null);
+  }, [focusFollow, framingRef, focusX, focusY, focusZoom, height, route, width]);
 
   const uniforms = useMemo(() => ({
     ...UniformsUtils.clone(UniformsLib.fog),
@@ -156,13 +159,16 @@ export function AboutPath({
     uDrawnColor: {value: new Color()},
   }), []);
 
+  // Phones see the whole route from far off: the trail ahead brighter, its dashes longer.
   const {trailColor} = settings;
   useEffect(() => {
     const material = materialRef.current;
     if (!material) return;
-    material.uniforms.uTrackColor.value.set(trailColor).multiplyScalar(ABOUT_PATH_CONFIG.trackIntensity);
-    material.uniforms.uDrawnColor.value.set(trailColor).multiplyScalar(ABOUT_PATH_CONFIG.drawnIntensity);
-  }, [trailColor]);
+    const {trackIntensity, phoneTrackIntensity, drawnIntensity, dashLength, phoneDashScale} = ABOUT_PATH_CONFIG;
+    material.uniforms.uTrackColor.value.set(trailColor).multiplyScalar(isMobile ? phoneTrackIntensity : trackIntensity);
+    material.uniforms.uDrawnColor.value.set(trailColor).multiplyScalar(drawnIntensity);
+    material.uniforms.uDashLength.value = dashLength * (isMobile ? phoneDashScale : 1);
+  }, [isMobile, trailColor]);
 
   useEffect(() => {
     const material = materialRef.current;
@@ -219,7 +225,7 @@ export function AboutPath({
           stops={route.stops}
         />
       ) : null}
-      {IS_DEVELOPMENT && visible ? (
+      {IS_DEVELOPMENT && visible && !isMobile ? (
         <AboutPathEditor
           checkpoints={editableCheckpoints}
           heightAt={heightAt}

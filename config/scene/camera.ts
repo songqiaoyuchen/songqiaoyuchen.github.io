@@ -21,6 +21,10 @@ export const CAMERA_CONFIG = {
   blogLookAt: [1.071, 10.028, 3.214] as Vector3Tuple,
   aboutPosition: [5.822, 9.894, -6.385] as Vector3Tuple,
   aboutLookAt: [-3.397, 7.305, -2.975] as Vector3Tuple,
+  // Phones: the whole route in the top of the screen, above the drawer, which starts at 40% of the height; each
+  // entry is framed from here (ABOUT_PATH_CONFIG phoneFocus*).
+  mobileAboutPosition: [8.781, 14.14, -13.918] as Vector3Tuple,
+  mobileAboutLookAt: [0.142, 4.762, -1.8] as Vector3Tuple,
   // Travel looks level at the globe (TRAVEL_CONFIG.center) from the overview's side of the terrain; the
   // globe sits left of centre on desktop, above centre on phones.
   travelPosition: [-5.334, 16.786, -14.985] as Vector3Tuple,
@@ -76,6 +80,11 @@ const MOBILE_OVERVIEW_POSE: CameraPose = {
   lookAt: CAMERA_CONFIG.mobileOverviewLookAt,
 };
 
+const MOBILE_ABOUT_POSE: CameraPose = {
+  position: CAMERA_CONFIG.mobileAboutPosition,
+  lookAt: CAMERA_CONFIG.mobileAboutLookAt,
+};
+
 const MOBILE_TRAVEL_POSE: CameraPose = {
   position: CAMERA_CONFIG.mobileTravelPosition,
   lookAt: CAMERA_CONFIG.mobileTravelLookAt,
@@ -97,6 +106,7 @@ export function getCameraPose(
   isMobile = false,
 ): CameraPose {
   if (sectionId === null && isMobile) return MOBILE_OVERVIEW_POSE;
+  if (sectionId === 'about' && isMobile) return MOBILE_ABOUT_POSE;
   if (sectionId === 'travel' && isMobile) return MOBILE_TRAVEL_POSE;
   return CAMERA_POSES[sectionId ?? 'overview'];
 }

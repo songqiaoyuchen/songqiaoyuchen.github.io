@@ -305,6 +305,15 @@
   50%, 100% { opacity: 0; }
 }
 
+/* Phones: the path's window is small, so only the entry being read keeps its title and meta; the others keep
+   their number, and the altitude figures go. */
+@media (width < 48rem) {
+  .about-altitude,
+  .about-callout-label:not([data-state='active']) :is(.about-callout-title, .about-callout-meta) {
+    display: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .about-altitude,
   .about-callout-leader,
