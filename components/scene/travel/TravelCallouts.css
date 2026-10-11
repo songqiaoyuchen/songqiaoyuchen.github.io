@@ -339,6 +339,14 @@
   70%, 100% { opacity: 0; scale: 3.4; }
 }
 
+/* Phones: the whole globe is small, so it keeps its markers only; the trip's title lives in the sheet (Travel.css). */
+@media (width < 48rem) {
+  .travel-callout,
+  .travel-callouts-leaders {
+    display: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .travel-callout-anchor::after,
   .travel-callout-anchor[data-state='focused'] .travel-callout-reticle,

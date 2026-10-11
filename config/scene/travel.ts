@@ -21,6 +21,7 @@ export const TRAVEL_CONFIG = {
   // Land lights (TravelLights.tsx), denser in lowlands; half strength over lightsIn, full with the lines.
   lightDensity: 0.5, // share of candidate land points kept
   lightSize: 4, // CSS pixels at full brightness
+  phoneLightScale: 0.5, // phones draw the globe smaller: the same points would merge into one glow
   lightsIn: [0.15, 0.55] as readonly [number, number], // share of the zoom-out
 
   // Stars behind the globe (TravelStars.tsx).
@@ -96,11 +97,16 @@ export const TRAVEL_OVERVIEW_CONFIG = {
   // Focus (TravelGlobe.tsx -> lib/scene/travel.ts focusedTrip): a trip near the globe's centre shows its open cue,
   // by where the globe stands alone, apart from the capture servo.
   focusWithin: 22, // degrees from the globe's front; a focused trip keeps focus until 5 degrees past it
+
+  // Phones: the camera's step back as the trip list is pulled up, and forward as it is let down (CameraRig
+  // 'travelIndex'); the sheet rises over the same time (Travel.css --travel-sheet-move).
+  indexSeconds: 0.55,
 } as const;
 
 export const TRAVEL_TRIP_CONFIG = {
   // Framing: the trip turns to its marker point while the camera moves to the trip pose (camera.ts travelTrip*).
   markerOffset: [0.693, 0.774] as readonly [number, number], // right and up of centre, shares of the radius
+  phoneMarkerOffset: [0, -0.5] as readonly [number, number], // phones: below centre, just above the trip's sheet
   holdRate: 2, // share of the remaining error the servo closes per second holding the trip
 
   // Journey between the overview and a trip, either way (CameraRig 'travelFocus'); the look eases over it too.

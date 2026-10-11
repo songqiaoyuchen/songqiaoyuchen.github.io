@@ -30,12 +30,13 @@ export function SaveCameraButton({
   controlsRef: React.RefObject<OrbitControlsInstance | null>;
 }) {
   const {camera, size} = useThree();
-  // A trip open on Travel: the pose saved is the trip framing.
-  const travelSelected = useTravelScene().selectedId !== null;
+  // A trip open on Travel: the pose saved is the trip framing; on phones the list pulled up has its own too.
+  const {selectedId, indexOpen} = useTravelScene();
+  const travelSelected = selectedId !== null;
   // Leva registers the button once, so its click handler reads the section and viewport through a ref.
-  const latest = useRef({activeId, travelSelected, width: size.width});
+  const latest = useRef({activeId, travelSelected, indexOpen, width: size.width});
   useEffect(() => {
-    latest.current = {activeId, travelSelected, width: size.width};
+    latest.current = {activeId, travelSelected, indexOpen, width: size.width};
   });
 
   useControls('Config', {
@@ -43,11 +44,12 @@ export function SaveCameraButton({
     // The refs are read only when the user clicks the button.
     // eslint-disable-next-line react-hooks/refs
     'Save Camera': button(() => {
-      const {activeId: section, travelSelected: trip, width} = latest.current;
-      // Phones have their own overview and Travel poses; other sections keep the overview camera there. On
-      // desktop an open trip has its own pose.
+      const {activeId: section, travelSelected: trip, indexOpen: index, width} = latest.current;
+      // Phones have their own overview and Travel poses (all trips, the list pulled up, a trip); other sections
+      // keep the overview camera there. On desktop an open trip has its own pose.
+      const travelPose = trip ? 'TravelTrip' : 'Travel';
       const pose = width < SCENE_LAYOUT_CONFIG.mobileMaxWidth
-        ? section === 'travel' ? 'mobileTravel' : 'mobileOverview'
+        ? section === 'travel' ? `mobile${!trip && index ? 'TravelIndex' : travelPose}` : 'mobileOverview'
         : section === 'travel' && trip ? 'travelTrip' : section ?? 'overview';
       const values: Record<string, unknown> = {
         [`camera.${pose}Position`]: toTuple(camera.position),
@@ -55,11 +57,12 @@ export function SaveCameraButton({
       const target = controlsRef.current?.target;
       if (target) values[`camera.${pose}LookAt`] = toTuple(target);
       // The trip pose carries the marker offset the camera now shows, so the globe keeps turning trips to it.
-      const offset = pose === 'travelTrip' ? measureTravelOffset?.current?.() : null;
-      if (offset) {
+      const offsetKey = {travelTrip: 'markerOffset', mobileTravelTrip: 'phoneMarkerOffset'}[pose] ?? null;
+      const offset = offsetKey ? measureTravelOffset?.current?.() : null;
+      if (offsetKey && offset) {
         const rounded: [number, number] = [round3(offset[0]), round3(offset[1])];
-        values['travelTrip.markerOffset'] = rounded;
-        levaStore.set({[`${TRAVEL_TRIP_FOLDER_NAME}.Framing.markerOffset`]: rounded}, false);
+        values[`travelTrip.${offsetKey}`] = rounded;
+        levaStore.set({[`${TRAVEL_TRIP_FOLDER_NAME}.Framing.${offsetKey}`]: rounded}, false);
       }
       void postConfigValues('Save Camera', values);
     }),

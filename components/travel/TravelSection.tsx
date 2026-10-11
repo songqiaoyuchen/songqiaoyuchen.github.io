@@ -1,8 +1,9 @@
 // Travel section (/travel, /travel/[trip]): the trip index beside the globe, the selected trip's panel and the
 // photo viewer. The globe itself is the scene (components/scene/travel); this layer shares its state through
-// TravelSceneContext and only takes pointer events on its own text. The globe answers a change of view at once;
-// the text follows it: the old content fades out first (VIEW_EXIT_MS), then the new one rises as the camera lands
-// on a trip, or as the globe settles back to all trips (Travel.css).
+// TravelSceneContext and only takes pointer events on its own text; on phones the text is a sheet under the whole
+// globe, peeking with the trip in focus, its list pulled up over it (the camera steps back) or a trip. The globe
+// answers a change of view at once; the text follows it: the old content fades out first (VIEW_EXIT_MS), then the
+// new one rises as the camera lands on a trip, or as the globe settles back to all trips (Travel.css).
 'use client';
 
 import {useRouter} from 'next/navigation';
@@ -24,8 +25,8 @@ export function TravelSection() {
   const [queryString, setQueryString] = useState('');
   const {trip, photo, tripHref} = useTravelRoute(queryString);
   const router = useRouter();
-  const {hoveredId, capturedId} = useTravelScene();
-  const {setHoveredId, globeOutline, globeFront} = useTravelSceneActions();
+  const {hoveredId, capturedId, indexOpen} = useTravelScene();
+  const {setHoveredId, setIndexOpen, globeOutline, globeFront} = useTravelSceneActions();
   const reducedMotion = useReducedMotion();
   // The view the text shows: the route's, once the old content has faded out.
   const [shownTrip, setShownTrip] = useState(trip);
@@ -39,6 +40,12 @@ export function TravelSection() {
   const sheetRef = useRef<HTMLDivElement>(null);
   const shapeRef = useRef<HTMLDivElement>(null);
   useTripSheetPlacement(sheetRef, shapeRef, globeOutline, Boolean(shownTrip));
+  // Phones: a trip opened from the list replaces it; back to all trips the sheet peeks again. Leaving Travel lets
+  // it down too, so the camera's next Travel pose is all trips.
+  useEffect(() => {
+    if (trip) setIndexOpen(false);
+  }, [setIndexOpen, trip]);
+  useEffect(() => () => setIndexOpen(false), [setIndexOpen]);
 
   // Arrows step through the trips oldest to newest; Escape returns to the overview.
   useEffect(() => {
@@ -48,6 +55,11 @@ export function TravelSection() {
       if (field || photo >= 0) return;
       if (event.key === 'Escape' && trip) {
         router.push('/travel');
+        event.preventDefault();
+        return;
+      }
+      if (event.key === 'Escape' && indexOpen) {
+        setIndexOpen(false);
         event.preventDefault();
         return;
       }
@@ -62,7 +74,7 @@ export function TravelSection() {
     }
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [capturedId, photo, router, trip]);
+  }, [capturedId, indexOpen, photo, router, setIndexOpen, trip]);
 
   return (
     <>
@@ -72,6 +84,7 @@ export function TravelSection() {
       <main
         className="travel-section"
         data-exiting={exiting || undefined}
+        data-index-open={(indexOpen && !shownTrip) || undefined}
         data-view={shownTrip ? 'trip' : 'overview'}
       >
         <h1 className="sr-only">Travel</h1>
@@ -87,6 +100,8 @@ export function TravelSection() {
               globeFront={globeFront}
               hoveredId={hoveredId}
               onHover={setHoveredId}
+              onOpenChange={setIndexOpen}
+              open={indexOpen}
               trips={TRIPS}
             />
           )}

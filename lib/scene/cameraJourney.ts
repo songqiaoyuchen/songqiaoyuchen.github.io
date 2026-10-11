@@ -4,9 +4,11 @@
 // a trip leaves straight to Art as one shrink, Art to Travel is one zoom-out, the overview is just another angle.
 //
 // Pose keys as CameraRig names them: 'overview' or 'mobile-overview' (both the root, 'home' here), 'projects',
-// 'blog', 'about', 'about:<stop>', 'art', 'travel' and 'travel:trip'.
+// 'blog', 'about', 'about:<stop>', 'art', 'travel', 'travel:index' (phones, the trip list pulled up) and
+// 'travel:trip'.
 
-export type LegKind = 'default' | 'art' | 'aboutFocus' | 'aboutEntry' | 'travelFocus' | 'travelEntry';
+export type LegKind =
+  | 'default' | 'art' | 'aboutFocus' | 'aboutEntry' | 'travelFocus' | 'travelIndex' | 'travelEntry';
 
 export type JourneyLeg = Readonly<{from: string; to: string; kind: LegKind}>;
 
@@ -17,14 +19,17 @@ export function isHomeKey(key: string) {
 }
 
 export const isAboutKey = (key: string) => key === 'about' || key.startsWith('about:');
-export const isTravelKey = (key: string) => key === 'travel' || key === 'travel:trip';
+export const isTravelKey = (key: string) => key === 'travel' || key === 'travel:index' || key === 'travel:trip';
 
 /**
  * What a journey between two poses is, for its timing: Travel's moves first (into or out of Travel the terrain
- * morphs, which sets the pace whatever the other end; between its overview and a trip the globe turns), then
+ * morphs, which sets the pace whatever the other end; between its overview and a trip the globe turns; the phone
+ * list pulled up or let down is a quick step back with no turn), then
  * Art's flight, then About's.
  */
 export function legKind(from: string, to: string): LegKind {
+  const ends = `${from}>${to}`;
+  if (ends === 'travel>travel:index' || ends === 'travel:index>travel') return 'travelIndex';
   if (isTravelKey(from) && isTravelKey(to)) return 'travelFocus';
   if (isTravelKey(from) !== isTravelKey(to)) return 'travelEntry';
   if (from === 'art' || to === 'art') return 'art';

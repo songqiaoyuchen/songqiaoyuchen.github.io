@@ -12,7 +12,8 @@ export const EDITABLE_CONFIG = {
       'blogPosition', 'blogLookAt',
       'aboutPosition', 'aboutLookAt',
       'travelPosition', 'travelLookAt', 'travelTripPosition', 'travelTripLookAt',
-      'mobileTravelPosition', 'mobileTravelLookAt',
+      'mobileTravelPosition', 'mobileTravelLookAt', 'mobileTravelIndexPosition', 'mobileTravelIndexLookAt',
+      'mobileTravelTripPosition', 'mobileTravelTripLookAt',
       'fov', 'artTransitionSeconds',
     ],
   },
@@ -33,7 +34,7 @@ export const EDITABLE_CONFIG = {
   travelTrip: {
     file: 'scene/travel.ts',
     object: 'TRAVEL_TRIP_CONFIG',
-    keys: ['markerOffset', 'holdRate', 'focusSeconds', 'turnFrom', 'turnSettle', 'revealAt',
+    keys: ['markerOffset', 'phoneMarkerOffset', 'holdRate', 'focusSeconds', 'turnFrom', 'turnSettle', 'revealAt',
       'summaryBlur', 'relief', 'shade', 'landTint', 'trailRadius',
       'markerSize'],
   },

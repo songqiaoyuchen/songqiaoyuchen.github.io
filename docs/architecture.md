@@ -127,16 +127,21 @@ read inside the canvas (R3F bridges the contexts above it), so a selection or ho
 trips, Escape returns to the overview. The index lists trips west to east under a meridian strip, a small world map
 (trips as diamonds) whose shaded facing half and crosshair follow the place the globe faces (written each frame by `TravelGlobe` to a ref in the
 context); trips on the far side dim. The two views are two camera poses (`getCameraPose('travel')` and
-`getTravelTripPose`, phones sharing one); the selection is read from the URL by the context itself, so the scene's first
-frame already holds the route's view: a refresh on a trip opens at its framing with the globe turned to it. Phones use their own Travel pose with the content in a sheet.
+`getTravelTripPose`); the selection is read from the URL by the context itself, so the scene's first
+frame already holds the route's view: a refresh on a trip opens at its framing with the globe turned to it.
+Phones have their own poses: the whole globe and its rings above a cardless peek sheet (the trip in focus, or the
+last one, and a bar that pulls the list up); the list pulled up (`indexOpen` in the context) steps the camera back
+to a third pose, `getTravelIndexPose` (a quick `travelIndex` journey, no turn); a trip frames the globe close at the
+top with the trip turned just above its sheet (`phoneMarkerOffset`). Phones hide the meridian strip, the index
+heading and the globe's title tags, and draw the land lights smaller (`phoneLightScale`).
 `config/scene/travel.ts` holds three groups that never stand in for each other: `TRAVEL_CONFIG` (the globe as
 both views draw it, and the zoom-out), `TRAVEL_OVERVIEW_CONFIG` (all trips: ground, rings, feel by hand) and
 `TRAVEL_TRIP_CONFIG` (a trip: framing, its own servo hold rate, the focus journey and the raised-relief ground,
 whose summary blur rebuilds live); the globe eases between the overview's and the trip's values over the focus
 journey. Leva shows the matching Travel, Travel Overview (overview only) and Travel Trip (trip open only) folders,
 each saving to its group (the dev-config writer scopes keys to an exported object). The Travel folder's
-Edit camera toggle hands the pointer to the dev orbit camera so Save Camera can store the Travel (and phone
-Travel) poses.
+Edit camera toggle hands the pointer to the dev orbit camera so Save Camera can store the Travel poses (on phones
+all trips, the list pulled up or a trip, with its marker offset).
 
 ## Art
 

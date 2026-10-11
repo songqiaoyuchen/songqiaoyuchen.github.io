@@ -80,8 +80,11 @@ function useTravelTripControls() {
     Framing: folder({
       // TravelGlobe.tsx: where the trip sits on screen. Save Camera with a trip open keeps the camera's trip pose
       // and sets this to where the marker then sits (Edit camera holds the globe still so the view can be composed
-      // freely).
+      // freely). Phones have their own.
       markerOffset: {value: pair(TRAVEL_TRIP_CONFIG.markerOffset), step: 0.01, joystick: false, label: 'Trip offset'},
+      phoneMarkerOffset: {
+        value: pair(TRAVEL_TRIP_CONFIG.phoneMarkerOffset), step: 0.01, joystick: false, label: 'Phone trip offset',
+      },
       holdRate: {value: TRAVEL_TRIP_CONFIG.holdRate, min: 1, max: 12, step: 0.5, label: 'Hold rate'},
       // CameraRig.tsx / TravelGlobe.tsx: the journey to and from the trip, and the globe's turn along it.
       focusSeconds: {value: TRAVEL_TRIP_CONFIG.focusSeconds, min: 0.2, max: 6, step: 0.1, label: 'Focus (s)'},

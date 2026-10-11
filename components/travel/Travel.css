@@ -1,5 +1,5 @@
 /* Travel section (TravelSection.tsx): arrival gating, the trip index drawer on the overview, the selected trip's panel,
-   the phone sheet and the photo viewer. The globe behind is the scene; this layer takes pointer events only on
+   the phone peek sheet and the photo viewer. The globe behind is the scene; this layer takes pointer events only on
    its own text, so the globe stays draggable everywhere else. */
 
 /* SceneShell wrapper on Travel routes: content stays hidden until the camera has arrived. */
@@ -356,42 +356,188 @@
   }
 }
 
-/* Phones: the globe above, the content in a sheet rising from the bottom; a drag on the globe turns it, a drag
-   on the sheet scrolls. */
+/* Phones: the whole globe above, the content in a sheet below with no card: the night fades into it. Over all trips
+   it peeks with the trip in the globe's focus and a bar that pulls the list up (the camera steps back, CameraRig
+   'travel:index', over --travel-sheet-move); a trip fills it with the panel under the globe framed close. A drag
+   on the globe turns it; the list and the trip scroll inside the sheet. */
+.travel-peek-bar,
+.travel-peek-trip {
+  display: none;
+}
 @media (width < 48rem) {
   .travel-section {
+    --travel-peek: 12.5rem;
+    --travel-sheet-open: 60svh;
+    --travel-sheet-fade: 2.5rem;
+    --travel-sheet-move: 550ms; /* TRAVEL_OVERVIEW_CONFIG.indexSeconds */
     display: block;
     padding: 0;
   }
   .travel-sheet,
   .travel-section[data-view='trip'] .travel-sheet {
     position: fixed;
+    top: auto;
     right: 0;
     bottom: 0;
     left: 0;
-    display: block;
-    height: 46svh;
-    padding: 24px 20px calc(24px + env(safe-area-inset-bottom, 0px));
-    border-top: 1px solid var(--color-line-hover);
-    border-radius: 16px 16px 0 0;
-    background: var(--color-panel);
-    overflow-y: auto;
-    overscroll-behavior: contain;
+    display: flex;
+    width: auto;
+    height: calc(var(--travel-peek) + env(safe-area-inset-bottom, 0px));
+    flex-direction: column;
+    padding-top: var(--travel-sheet-fade);
+    background: linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--color-panel) 0%, transparent),
+      color-mix(in srgb, var(--color-panel) 88%, transparent) var(--travel-sheet-fade),
+      color-mix(in srgb, var(--color-panel) 96%, transparent)
+    );
+    overflow: hidden;
     pointer-events: auto;
+    transition: height var(--travel-sheet-move) var(--ease-settle);
   }
-  .travel-sheet::before {
+  .travel-section[data-index-open] .travel-sheet,
+  .travel-section[data-view='trip'] .travel-sheet {
+    height: var(--travel-sheet-open);
+  }
+
+  /* All trips: the bar, then the trip in focus, or the list when pulled up; only the list scrolls. */
+  .travel-index,
+  .travel-index-body {
+    display: flex;
+    min-height: 0;
+    flex: 1;
+    flex-direction: column;
+  }
+  .travel-index-head,
+  .travel-index-strip {
+    display: none;
+  }
+  .travel-peek-bar {
+    position: relative;
+    display: flex;
+    min-height: var(--size-hit-target);
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 0 var(--spacing-page-gutter);
+    touch-action: none;
+  }
+  .travel-peek-handle {
     position: absolute;
-    top: 8px;
+    bottom: 100%;
     left: 50%;
-    width: 36px;
-    height: 3px;
-    border-radius: 2px;
+    display: grid;
+    width: 64px;
+    height: 28px;
+    padding: 0;
+    border: 0;
+    background: none;
+    place-items: center;
+    translate: -50% 0;
+  }
+  .travel-peek-handle::before {
+    width: 28px;
+    height: 2px;
+    border-radius: 1px;
     background: var(--color-line-hover);
     content: '';
-    translate: -50% 0;
+  }
+  .travel-peek-summary,
+  .travel-peek-toggle {
+    margin: 0;
+    color: var(--color-dim);
+    font-size: var(--text-label);
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+  }
+  .travel-peek-toggle {
+    display: inline-flex;
+    min-height: var(--size-hit-target);
+    align-items: center;
+    gap: 8px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--color-muted);
+    font-family: inherit;
+    transition: color var(--duration-ui);
+  }
+  .travel-peek-toggle:hover {
+    color: var(--color-text);
+  }
+  .travel-peek-trip {
+    display: grid;
+    margin: 4px var(--spacing-page-gutter) 0;
+    padding: 12px 0 calc(16px + env(safe-area-inset-bottom, 0px));
+    grid-template-columns: 5.5rem minmax(0, 1fr) auto;
+    align-items: baseline;
+    gap: 0 20px;
+    border-top: 1px solid var(--color-line);
+    color: inherit;
+    text-decoration: none;
+    opacity: 0.5;
+    transition: opacity var(--duration-ui);
+  }
+  .travel-peek-trip[data-captured] {
+    opacity: 1;
+  }
+  .travel-peek-trip[data-captured] .travel-index-coord {
+    color: var(--travel-signal);
+  }
+  .travel-peek-title {
+    display: -webkit-box;
+    overflow: hidden;
+    color: var(--color-text);
+    font-size: var(--text-card);
+    font-style: italic;
+    line-height: 1.25;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+  .travel-peek-cue {
+    align-self: center;
+    color: var(--color-accent);
+  }
+  .travel-index-list {
+    display: none;
+    min-height: 0;
+    flex: 1;
+    margin: 4px var(--spacing-page-gutter) 0;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: none;
+  }
+  .travel-index[data-open] .travel-index-list {
+    display: block;
+  }
+  .travel-index[data-open] .travel-peek-trip {
+    display: none;
+  }
+  .travel-index-row {
+    padding-inline: 0;
+  }
+  /* Pulled up, the rows rise in turn as the sheet does, without the overview's wait for the globe. */
+  .travel-index-list .travel-index-entry {
+    animation-delay: calc(80ms + var(--rise, 0) * 40ms);
+  }
+
+  /* A trip: the panel scrolls in the sheet. */
+  .travel-section[data-view='trip'] .travel-sheet {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-inline: var(--spacing-page-gutter);
+    padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+    scrollbar-width: none;
+  }
+  .travel-section[data-view='trip'] .travel-trip {
+    flex-shrink: 0;
   }
   .travel-trip-title {
     font-size: 1.5rem;
+  }
+  .travel-photos {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
   .travel-back {
     margin-top: 16px;
@@ -410,7 +556,8 @@
     animation: none;
   }
   .travel-environment .travel-content,
-  .travel-section[data-exiting] .travel-sheet {
+  .travel-section[data-exiting] .travel-sheet,
+  .travel-sheet {
     transition: none;
   }
 }

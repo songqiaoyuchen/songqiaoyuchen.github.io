@@ -61,7 +61,9 @@ through baked regional ground; frame-checked in the browser, awaiting the user's
   resting on no trip). Values: friction 2.6, snap below 40°/s, capture 35°, snap rate 5.
 - Composition: overview keeps the globe left with the trip index as a right-hand column;
   a selected trip shifts and dollies the camera (globe lower left, text right) while the globe
-  turns the trip to an offset from its centre. Phones keep the globe above a sheet.
+  turns the trip to an offset from its centre. Phones (2026-10-11, direction B of three live mockups): the whole
+  globe above a cardless peek sheet showing the trip in focus; the sheet pulls up into the list as the camera steps
+  back, built for many trips; a trip zooms the globe in at the top above its sheet; no title tags on the globe.
 - Routes `/travel` and `/travel/[trip]`, `?photo=` for the viewer; Travel in the top nav and a
   fifth scene link. Stories are Blog MDX; every trip has an intro, photos and article optional.
 - Placeholder content: G318 (two recordings that do not meet, their gap drawn dotted) and Mont
@@ -82,7 +84,7 @@ through baked regional ground; frame-checked in the browser, awaiting the user's
 - Review in the live scene: the zoom-out (landscape width in km, journey time, when haze thins and
   lines arrive, the tile's hillshade gain against the globe's, the tiny dark remnant of the landscape
   just before it is sub-pixel), globe size and pose, relief, hillshade, coastline weight, marker offset, the selected composition, capture feel, the panel's type and
-  spacing, the phone sheet.
+  spacing, the phone sheet (peek height, the three phone poses, light scale).
 - Attribution for the Terrarium-derived tile (Mapzen/Tilezen, SRTM, GMTED2010, ETOPO1) and Natural
   Earth needs a visible home, with the artwork credits; track in production.
 - Every journey is one motion (2026-10-11, `lib/scene/cameraJourney.ts`: a trip leaves straight to Art or Home

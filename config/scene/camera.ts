@@ -26,11 +26,18 @@ export const CAMERA_CONFIG = {
   travelPosition: [-5.334, 16.786, -14.985] as Vector3Tuple,
   travelLookAt: [-3.107, 17.258, 0.441] as Vector3Tuple,
   // A selected trip (desktop): the globe lower left, the trip's text to its right; the globe itself turns the
-  // trip to its marker point (TRAVEL_TRIP_CONFIG.markerOffset). Phones keep the Travel pose.
+  // trip to its marker point (TRAVEL_TRIP_CONFIG.markerOffset).
   travelTripPosition: [-0.821, 16.188, -4.573] as Vector3Tuple,
   travelTripLookAt: [-3.736, 24.568, 5.012] as Vector3Tuple,
-  mobileTravelPosition: [0, 17, -10] as Vector3Tuple,
-  mobileTravelLookAt: [0, 15.6, 0] as Vector3Tuple,
+  // Phones (375 × 812 reference): the whole globe and its rings in the upper half, above the peek sheet; with the
+  // trip list pulled up, stepped back and higher, above the open sheet; a trip, close in at the top of the screen,
+  // the trip turned to just above the sheet (TRAVEL_TRIP_CONFIG.phoneMarkerOffset).
+  mobileTravelPosition: [0, 17, -29.5] as Vector3Tuple,
+  mobileTravelLookAt: [0, 15.17, 0] as Vector3Tuple,
+  mobileTravelIndexPosition: [0, 17, -44.4] as Vector3Tuple,
+  mobileTravelIndexLookAt: [0, 9.12, 0] as Vector3Tuple,
+  mobileTravelTripPosition: [0, 17, -12.1] as Vector3Tuple,
+  mobileTravelTripLookAt: [0, 14.27, 0] as Vector3Tuple,
   fov: 38,
   transitionSeconds: 1.8,
   // Journeys into and out of Art.
@@ -74,10 +81,15 @@ const MOBILE_TRAVEL_POSE: CameraPose = {
   lookAt: CAMERA_CONFIG.mobileTravelLookAt,
 };
 
-/** The camera framing a selected trip (phones keep the Travel pose, the globe above the sheet). */
+/** The camera framing a selected trip. */
 export function getTravelTripPose(isMobile = false): CameraPose {
-  if (isMobile) return MOBILE_TRAVEL_POSE;
+  if (isMobile) return {position: CAMERA_CONFIG.mobileTravelTripPosition, lookAt: CAMERA_CONFIG.mobileTravelTripLookAt};
   return {position: CAMERA_CONFIG.travelTripPosition, lookAt: CAMERA_CONFIG.travelTripLookAt};
+}
+
+/** Phones only: all trips with the trip list pulled up, the globe stepped back above it. */
+export function getTravelIndexPose(): CameraPose {
+  return {position: CAMERA_CONFIG.mobileTravelIndexPosition, lookAt: CAMERA_CONFIG.mobileTravelIndexLookAt};
 }
 
 export function getCameraPose(

@@ -200,13 +200,14 @@ export function TravelGlobe({
     focusWithin, innerRingTilt, outerRingTilt,
   } = overviewSettings;
   const {
-    markerOffset, holdRate, focusSeconds, turnFrom, turnSettle, revealAt,
+    markerOffset, phoneMarkerOffset, holdRate, focusSeconds, turnFrom, turnSettle, revealAt,
     relief: tripRelief, shade: tripShade, landTint: tripTint, trailRadius: tripTrailRadius,
     markerSize: tripMarkerSize,
   } = tripSettings;
   const {patchRelief, vanish, maxPitch} = TRAVEL_CONFIG;
   const {shade} = TRAVEL_OVERVIEW_CONFIG;
-  const [offsetX, offsetY] = markerOffset;
+  // Phones frame a trip at the top of the screen, above its sheet.
+  const [offsetX, offsetY] = isMobile ? phoneMarkerOffset : markerOffset;
   const [linesFrom, linesTo] = linesIn;
   const [reliefFrom, reliefTo] = TRAVEL_CONFIG.reliefIn;
   // The planet's datum: the landing place's elevation in landscape units, and the terrain surface at the pivot.
@@ -814,7 +815,7 @@ export function TravelGlobe({
         onPoints={setLightPoints}
         radius={radius}
         reliefRef={reliefNow}
-        size={lightSize}
+        size={isMobile ? lightSize * TRAVEL_CONFIG.phoneLightScale : lightSize}
         terrainDepthTexture={terrainDepthTexture}
         visibilityRef={lightLod}
       />
