@@ -1,7 +1,7 @@
 // The navigation frame around the resting globe: tilted orbit rings drawn as arcs with gaps, each arc brightening
 // along its length like a sweep, a fainter inner track and tick marks (every sixth longer). They turn about their
-// own fixed axes, faster while the globe is being turned (TravelGlobe's spin factor), in the line colour, bright
-// enough at the arcs' heads to carry into the bloom pass.
+// own fixed axes with the globe's turn (TravelGlobe's signed spin factor: faster with a faster turn, reversing with
+// it), in the line colour, faint so they frame without competing; only the arcs' heads reach the bloom pass.
 'use client';
 
 import {useFrame} from '@react-three/fiber';
@@ -11,9 +11,9 @@ import {useReducedMotion} from '@/hooks/useReducedMotion';
 
 const SEGMENTS_PER_DEGREE = 0.75;
 // Brightness along an arc, tail to head, of the ticks and of the inner track.
-const ARC_TAIL = 0.12;
-const TICK_BRIGHTNESS = 0.8;
-const TRACK_BRIGHTNESS = 0.3;
+const ARC_TAIL = 0.05;
+const TICK_BRIGHTNESS = 0.45;
+const TRACK_BRIGHTNESS = 0.2;
 const TRACK_RADIUS = 0.975;
 
 export type RingSpec = {
@@ -26,8 +26,6 @@ export type RingSpec = {
   ticks: number;
   /** A fainter continuous track just inside the ring. */
   double: boolean;
-  /** Tilt about x and z, degrees. */
-  tilt: readonly [number, number];
   /** Turn about the ring's own axis, degrees per second. */
   spin: number;
 };
@@ -53,7 +51,7 @@ function ringGeometry(radius: number, ring: RingSpec) {
   }
   for (let index = 0; index < ring.ticks; index++) {
     const angle = MathUtils.degToRad(index / ring.ticks * 360);
-    const length = radius * (index % 6 === 0 ? 0.045 : 0.018);
+    const length = radius * (index % 6 === 0 ? 0.028 : 0.01);
     point(angle, radius, TICK_BRIGHTNESS);
     point(angle, radius + length, TICK_BRIGHTNESS);
   }
@@ -72,6 +70,8 @@ function ringGeometry(radius: number, ring: RingSpec) {
 
 type TravelRingsProps = {
   rings: readonly RingSpec[];
+  /** Per ring, its axis's tilt about x and z, degrees. */
+  tilts: readonly (readonly [number, number])[];
   radius: number;
   color: string;
   intensity: number;
@@ -82,7 +82,9 @@ type TravelRingsProps = {
   onLines: (lines: LineSegments[]) => void;
 };
 
-export function TravelRings({rings, radius, color, intensity, visibilityRef, spinRef, onLines}: TravelRingsProps) {
+export function TravelRings(
+  {rings, tilts, radius, color, intensity, visibilityRef, spinRef, onLines}: TravelRingsProps,
+) {
   const linesRef = useRef<Array<LineSegments | null>>([]);
   const materialsRef = useRef<Array<LineBasicMaterial | null>>([]);
   const reducedMotion = useReducedMotion();
@@ -104,30 +106,34 @@ export function TravelRings({rings, radius, color, intensity, visibilityRef, spi
       if (!line || !material) return;
       material.opacity = intensity * visibilityRef.current;
       line.visible = material.opacity > 0.002;
-      if (!reducedMotion) line.rotateY(MathUtils.degToRad(ring.spin) * spinRef.current * Math.min(delta, 1 / 30));
+      if (!reducedMotion) line.rotation.y += MathUtils.degToRad(ring.spin) * spinRef.current * Math.min(delta, 1 / 30);
     });
   });
 
   return (
     <>
-      {rings.map((ring, index) => (
-        <lineSegments
-          frustumCulled={false}
-          geometry={geometries[index]}
-          key={index}
-          ref={(line) => { linesRef.current[index] = line; }}
-          renderOrder={1}
-          rotation={[MathUtils.degToRad(ring.tilt[0]), 0, MathUtils.degToRad(ring.tilt[1])]}
-          visible={false}
-        >
-          <lineBasicMaterial
-            depthWrite={false}
-            ref={(material) => { materialsRef.current[index] = material; }}
-            transparent
-            vertexColors
-          />
-        </lineSegments>
-      ))}
+      {rings.map((_, index) => {
+        const [x, z] = tilts[index] ?? [0, 0];
+        // The tilt sits on a parent, so retuning it keeps the ring's spin where it is.
+        return (
+          <group key={index} rotation={[MathUtils.degToRad(x), 0, MathUtils.degToRad(z)]}>
+            <lineSegments
+              frustumCulled={false}
+              geometry={geometries[index]}
+              ref={(line) => { linesRef.current[index] = line; }}
+              renderOrder={1}
+              visible={false}
+            >
+              <lineBasicMaterial
+                depthWrite={false}
+                ref={(material) => { materialsRef.current[index] = material; }}
+                transparent
+                vertexColors
+              />
+            </lineSegments>
+          </group>
+        );
+      })}
     </>
   );
 }

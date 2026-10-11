@@ -1,7 +1,8 @@
 // Moves the camera between section poses (overview, projects, art, blog, about, travel) and drives Art flight fog.
 // A journey is one motion straight from pose to pose (lib/scene/cameraJourney.ts), its effects running over the
 // whole of it. On About, an entry being read gets its own framing of that checkpoint (AboutPath publishes the
-// poses); on Travel, a selected trip gets the quarter-sphere framing TravelGlobe publishes.
+// poses); on Travel, all trips and a selected trip are two poses, the trip's its quarter-sphere framing. The
+// first frame lands on the view the route opens (a refresh on a trip stays on the trip).
 'use client';
 
 import { useMemo, useRef, type MutableRefObject } from 'react';
@@ -11,6 +12,7 @@ import type { OrbitControls as OrbitControlsInstance } from 'three-stdlib';
 import {
   CAMERA_CONFIG,
   getCameraPose,
+  getTravelTripPose,
   SCENE_LAYOUT_CONFIG,
   type CameraPose,
 } from '@/config/scene';
@@ -37,8 +39,6 @@ type CameraRigProps = {
   aboutFocusPosesRef?: MutableRefObject<readonly CameraPose[]>;
   /** Journey times into/out of About and between its entries (Leva About Path; config defaults). */
   aboutSeconds?: {journeySeconds: number; focusSeconds: number};
-  /** Travel: a selected trip (TravelSceneContext) is framed by the pose in travelFocusPoseRef. */
-  travelFocusPoseRef?: MutableRefObject<CameraPose | null>;
   /** Journey times into/out of Travel and between its overview and a trip (Leva Travel: Journey; Travel Trip:
    * Focus; config defaults). */
   travelSeconds?: {journeySeconds: number; focusSeconds: number};
@@ -48,7 +48,7 @@ type CameraRigProps = {
 
 export function CameraRig({
   activeId, aboutStop = -1, aboutFocusPosesRef, aboutSeconds = ABOUT_PATH_CONFIG,
-  travelFocusPoseRef, travelSeconds = TRAVEL_SECONDS, controlsRef, onPoseSettled,
+  travelSeconds = TRAVEL_SECONDS, controlsRef, onPoseSettled,
 }: CameraRigProps) {
   const cameraFrameState = useCameraFrameState();
   const travelSelected = useTravelScene().selectedId !== null;
@@ -75,7 +75,7 @@ export function CameraRig({
     : poseId === 'travel' && travelSelected
       ? 'travel:trip'
       : poseId ?? (isMobile ? 'mobile-overview' : 'overview');
-  const configuredPose = getCameraPose(poseId, isMobile);
+  const configuredPose = poseKey === 'travel:trip' ? getTravelTripPose(isMobile) : getCameraPose(poseId, isMobile);
   const configuredPosition = useMemo(
     () => new Vector3(...configuredPose.position),
     [configuredPose.position],
@@ -138,7 +138,7 @@ export function CameraRig({
       } else if (key.startsWith('about:')) {
         pose = aboutFocusPosesRef?.current[Number(key.slice('about:'.length))] ?? getCameraPose('about', isMobile);
       } else if (key === 'travel:trip') {
-        pose = travelFocusPoseRef?.current ?? getCameraPose('travel', isMobile);
+        pose = getTravelTripPose(isMobile);
       } else {
         pose = getCameraPose(key as SectionId, isMobile);
       }

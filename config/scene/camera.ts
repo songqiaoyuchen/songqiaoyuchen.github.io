@@ -74,8 +74,9 @@ const MOBILE_TRAVEL_POSE: CameraPose = {
   lookAt: CAMERA_CONFIG.mobileTravelLookAt,
 };
 
-/** The camera framing a selected trip on desktop (phones keep the Travel pose). */
-export function getTravelTripPose(): CameraPose {
+/** The camera framing a selected trip (phones keep the Travel pose, the globe above the sheet). */
+export function getTravelTripPose(isMobile = false): CameraPose {
+  if (isMobile) return MOBILE_TRAVEL_POSE;
   return {position: CAMERA_CONFIG.travelTripPosition, lookAt: CAMERA_CONFIG.travelTripLookAt};
 }
 

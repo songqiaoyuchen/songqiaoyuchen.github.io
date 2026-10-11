@@ -26,6 +26,7 @@ import type {
   TravelControlValues, TravelOverviewControlValues, TravelTripControlValues,
 } from '@/components/scene/controls/useSceneControls';
 import {useTravelScene} from '@/components/travel/TravelSceneContext';
+import type {GlobeFront} from '@/components/travel/TravelSceneContext';
 import type {GlobeOutline} from '@/components/travel/useTripSheetPlacement';
 import {BLOOM_LAYER} from '@/components/scene/effects/IsolatedBloom';
 import {
@@ -36,8 +37,9 @@ import {TRAVEL_CONFIG, TRAVEL_OVERVIEW_CONFIG, TRAVEL_TRIP_CONFIG} from '@/confi
 import {TRIPS, type LonLat} from '@/data/travel';
 import {useReducedMotion} from '@/hooks/useReducedMotion';
 import {
-  advanceGlobe, aimForOffset, anglesToward, createGlobeState, createGlobeView, EARTH_RADIUS_KM, facingAngles,
-  globeQuaternion, graticulePositions, lonLatToUnit, offsetForMarker, planetScale, projectGlobe, regionSpread,
+  advanceGlobe, aimForOffset, anglesToward, createGlobeState, createGlobeView, densifyTrack, EARTH_RADIUS_KM,
+  facingAngles, focusedTrip, globeQuaternion, graticulePositions, lonLatToUnit, offsetForMarker, planetScale,
+  projectGlobe, regionSpread,
   releaseGlobe, rideDistance, toGlobeSettings, viewFromCamera, wrapAngle,
 } from '@/lib/scene/travel';
 import {useTerrainAssets} from '@/lib/terrain/assets';
@@ -56,6 +58,14 @@ import {useElevation} from './useElevation';
 import {useRegion} from './useRegion';
 
 const FADE_RATE = 4;
+// Back to all trips, the rings, other markers and titles come in more slowly than they leave.
+const REVEAL_RATE = 3;
+// The rings' spin eases toward the globe's turn this fast, per second; turns slower than RING_TURN_BELOW degrees per
+// second (the servo settling, a coast dying out) leave their drift direction as it was.
+const RING_FOLLOW_RATE = 10;
+const RING_TURN_BELOW = 3;
+const FOCUS_RELEASE = 5; // degrees past focusWithin a focused trip keeps focus
+const FOCUS_STEP = 1; // degrees between a route's samples for the focus zone
 const SILHOUETTE_POINTS = 36;
 
 type OutlineScratch = {toCamera: Vector3; u: Vector3; v: Vector3; point: Vector3; points: number[]};
@@ -95,6 +105,10 @@ function silhouette(
 }
 const RELEASE_WINDOW_MS = 80;
 const PLACES = TRIPS.map((trip) => trip.place.lonLat);
+// Where each trip can be in focus: its place and anywhere along its route.
+const FOCUS_POINTS = TRIPS.map((trip) => [
+  lonLatToUnit(trip.place.lonLat), ...densifyTrack((trip.segments ?? []).flat(), FOCUS_STEP),
+]);
 const UP = new Vector3(0, 1, 0);
 const DEG = Math.PI / 180;
 
@@ -127,6 +141,8 @@ type TravelGlobeProps = {
   measureOffsetRef?: MutableRefObject<(() => [number, number] | null) | null>;
   /** Receives the globe's outline on screen (CSS pixels) every frame, for the trip panel to keep clear of. */
   globeOutlineRef?: MutableRefObject<GlobeOutline | null>;
+  /** Receives the place at the globe's centre as seen every frame, once arrived, for the trip index. */
+  globeFrontRef?: MutableRefObject<GlobeFront | null>;
   /** The globe as both views draw it, and the zoom-out (TRAVEL_CONFIG). */
   settings: TravelControlValues;
   /** All trips: the resting globe's ground and its feel by hand (TRAVEL_OVERVIEW_CONFIG). */
@@ -136,8 +152,6 @@ type TravelGlobeProps = {
   /** The terrain cache's depth and colour: the morphing terrain hides what lies behind it, fading in at its rim. */
   terrainDepthTexture: DepthTexture | null;
   terrainColorTexture: Texture | null;
-  /** Receives the camera pose framing a selected trip (CameraRig). */
-  focusPoseRef: MutableRefObject<CameraPose | null>;
   /** Receives the lines and trails for the bloom pass. */
   onBloomObjects: (objects: Object3D[]) => void;
   /** The trip the globe rests on or is about to land on, for the trip index. */
@@ -147,8 +161,8 @@ type TravelGlobeProps = {
 };
 
 export function TravelGlobe({
-  visible, interactive: pointerFree = true, editingCamera = false, measureOffsetRef, globeOutlineRef,
-  settings, overviewSettings, tripSettings, terrainDepthTexture, terrainColorTexture, focusPoseRef, onBloomObjects,
+  visible, interactive: pointerFree = true, editingCamera = false, measureOffsetRef, globeOutlineRef, globeFrontRef,
+  settings, overviewSettings, tripSettings, terrainDepthTexture, terrainColorTexture, onBloomObjects,
   onCapture, onSelect, onHover,
 }: TravelGlobeProps) {
   // The trip pinned by the route (null for the overview) and the trip under the pointer in the trip index or on
@@ -175,16 +189,20 @@ export function TravelGlobe({
   const elevation = useElevation(TRAVEL_CONFIG.elevationSrc, tripSettings.summaryBlur);
   const region = useRegion(TRAVEL_CONFIG.regionSrc, TRAVEL_CONFIG.regionMetaSrc);
   const {shellBase} = useTerrainAssets();
-  const {radius, center: centerTuple, graticuleStep, trailStep, dashLength, trailLift} = TRAVEL_CONFIG;
+  const {radius, center: centerTuple, graticuleStep, trailStep, trailLift} = TRAVEL_CONFIG;
   const center = useMemo(() => new Vector3(...centerTuple), [centerTuple]);
   const {
-    baseColor, rimColor, rimIntensity, lineColor, graticuleIntensity, coastIntensity, trailColor, trailRadius,
+    baseColor, rimColor, rimIntensity, lineColor, graticuleIntensity, coastIntensity, trailColor,
     lightDensity, lightSize, starSize, landscapeKm, linesIn,
   } = settings;
-  const {relief, landTint, friction, snapBelow, capture, snapRate, idleDrift, idleAfter} = overviewSettings;
   const {
-    markerOffset, holdRate, focusSeconds, turnFrom, turnSettle,
-    relief: tripRelief, shade: tripShade, landTint: tripTint,
+    relief, landTint, trailRadius, markerSize, friction, snapBelow, capture, snapRate, idleDrift, idleAfter,
+    focusWithin, innerRingTilt, outerRingTilt,
+  } = overviewSettings;
+  const {
+    markerOffset, holdRate, focusSeconds, turnFrom, turnSettle, revealAt,
+    relief: tripRelief, shade: tripShade, landTint: tripTint, trailRadius: tripTrailRadius,
+    markerSize: tripMarkerSize,
   } = tripSettings;
   const {patchRelief, vanish, maxPitch} = TRAVEL_CONFIG;
   const {shade} = TRAVEL_OVERVIEW_CONFIG;
@@ -200,8 +218,8 @@ export function TravelGlobe({
     TERRAIN_MATERIAL_CONFIG.elevation, TERRAIN_MATERIAL_CONFIG.seaLevel,
   ), [overviewPose.lookAt, shellBase]);
   const trailSettings = useMemo(
-    () => ({trailColor, trailRadius, trailLift, dashLength, trailStep}),
-    [dashLength, trailColor, trailLift, trailRadius, trailStep],
+    () => ({trailColor, trailRadius, tripTrailRadius, trailLift, trailStep}),
+    [trailColor, trailLift, trailRadius, trailStep, tripTrailRadius],
   );
   const selectedIndex = TRIPS.findIndex((trip) => trip.id === selectedId);
   // Leaving Travel from a trip, the route (and so the selection) changes while the globe is still shrinking away:
@@ -237,9 +255,15 @@ export function TravelGlobe({
   // The rings: how far in (with the lines, gone while a trip is open) and their spin factor from the globe's turn.
   const ringLod = useRef(0);
   const ringSpin = useRef(1);
+  const ringDirection = useRef(1);
   const previousYaw = useRef<number | null>(null);
-  // 1 over all trips, eased to 0 while a trip is open.
+  // 1 over all trips, eased to 0 while a trip is open and back only as the return turn settles: the rings, the
+  // other trips' markers and the titles.
   const overviewAmount = useRef(1);
+  // The trip near the globe's centre (focusedTrip), or -1.
+  const focused = useRef(-1);
+  const front = useRef(new Vector3());
+  const inverse = useRef(new Quaternion());
   // The relief this frame, for the lights standing on it.
   const reliefNow = useRef(TRAVEL_CONFIG.physicalRelief);
   // The raised-relief look of an open trip: its progress, linear in time over the focus journey, and eased.
@@ -254,8 +278,8 @@ export function TravelGlobe({
   const initialized = useRef(false);
   const radiusPx = useRef(1);
   const drag = useRef<{pointerId: number; x: number; y: number; time: number; samples: DragSample[]} | null>(null);
-  const reported = useRef<{active: number; candidate: number}>({active: -2, candidate: -2});
-  const [frameState, setFrameState] = useState({active: -1, candidate: -1});
+  const reportedFocus = useRef(-2);
+  const [focusedIndex, setFocusedIndex] = useState(-1);
   const patchLocal = useMemo(() => {
     // The terrain lands on the regional ground's centre when there is one, else where the globe opens (the newest
     // trip), with east and north there. Flat is the globe's turn that lays that tangent frame onto the landscape
@@ -423,12 +447,6 @@ export function TravelGlobe({
   const handleTrailMeshes = useCallback((meshes: Mesh[]) => setTrailMeshes(meshes), []);
   const handleRingLines = useCallback((lines: LineSegments[]) => setRingLines(lines), []);
 
-  // The camera framing of a selected trip (CameraRig). Phones keep the globe above the sheet, so their pose
-  // stands.
-  useEffect(() => {
-    focusPoseRef.current = isMobile ? getCameraPose('travel', true) : getTravelTripPose();
-  }, [focusPoseRef, isMobile]);
-
   // Pointer drag on the sphere: the surface follows the pointer at the globe's on-screen scale.
   const dragAngle = (pixels: number) => pixels / Math.max(radiusPx.current, 1) * TRAVEL_OVERVIEW_CONFIG.dragGain;
   function handlePointerDown(event: ThreeEvent<PointerEvent>) {
@@ -526,13 +544,18 @@ export function TravelGlobe({
     }
 
     viewFromCamera(center, camera.position, view.current);
+    // A trip open turns to its marker offset; over all trips a captured trip turns to the globe's centre.
+    const offset: [number, number] = selected >= 0 ? [offsetX, offsetY] : [0, 0];
+    aimForOffset(camera, center, radius, offset, aim.current);
     if (!initialized.current) {
-      // Open resting on the newest trip.
-      const newest = PLACES.length - 1;
-      const facing = facingAngles(PLACES[newest], view.current);
+      // Open resting on the route's trip at its framing (a refresh on a trip), or over all trips on the newest.
+      const place = selected >= 0 ? selected : PLACES.length - 1;
+      const facing = selected >= 0
+        ? anglesToward(PLACES[place], aim.current, view.current, maxPitch)
+        : facingAngles(PLACES[place], view.current);
       state.current.yaw = facing.yaw;
       state.current.pitch = facing.pitch;
-      state.current.target = newest;
+      state.current.target = place;
       initialized.current = true;
     }
     const drawn = projectGlobe(camera, center, radius);
@@ -545,9 +568,6 @@ export function TravelGlobe({
         ? silhouette(camera, group.position, radius * group.scale.x, width, height, outlineScratch)
         : null;
     }
-    // A trip open turns to its marker offset; over all trips a captured trip turns to the globe's centre.
-    const offset: [number, number] = selected >= 0 ? [offsetX, offsetY] : [0, 0];
-    aimForOffset(camera, center, radius, offset, aim.current);
     if (hoveredIndex >= 0 || editingCamera) state.current.idle = 0;
     // Between the overview and a trip the camera moves, and the aim and the turn's frame with it: chasing them, the
     // globe would swing toward where the departing camera sees the trip, then drift back. Instead it turns once,
@@ -576,10 +596,10 @@ export function TravelGlobe({
       Object.assign(state.current, {yaw: facing.yaw, pitch: facing.pitch, vYaw: 0, vPitch: 0});
       turn.active = false;
     }
+    const turnSeconds = Math.max((1 - turnFrom) * focusSeconds + turnSettle, 1e-3);
     if (turn.active) {
       // The goal is the trip as the arriving camera will see it.
-      poseCamera(turn.camera, selected >= 0 && focusPoseRef.current
-        ? focusPoseRef.current : getCameraPose('travel', isMobile), camera);
+      poseCamera(turn.camera, selected >= 0 ? getTravelTripPose(isMobile) : getCameraPose('travel', isMobile), camera);
       const goalView = viewFromCamera(center, turn.camera.position, turn.view);
       const goalAim = aimForOffset(turn.camera, center, radius, offset, turn.aim);
       const goal = anglesToward(PLACES[focusPlace], goalAim, goalView, maxPitch);
@@ -588,7 +608,6 @@ export function TravelGlobe({
       // for the rest of the zoom and the settle; eased out, so most of it comes early and its end is slight and slow.
       if (!turn.started && (focus < 0 || focus >= turnFrom)) turn.started = true;
       if (turn.started) turn.elapsed += Math.min(delta, 1 / 30);
-      const turnSeconds = Math.max((1 - turnFrom) * focusSeconds + turnSettle, 1e-3);
       const eased = MathUtils.smoothstep(turn.elapsed / turnSeconds, 0, 1);
       const turned = !turn.started ? 0 : reducedMotion ? 1 : 1 - (1 - eased) * (1 - eased);
       group.quaternion.slerpQuaternions(turn.from, turn.to, turned);
@@ -619,14 +638,23 @@ export function TravelGlobe({
       globeQuaternion(state.current.yaw, state.current.pitch,
         riding ? morphScratch.current.rideView : view.current, group.quaternion);
     }
-    // The rings leave while a trip is open and spin faster the faster the globe is turned.
-    overviewAmount.current = ease(overviewAmount.current, selected >= 0 ? 0 : 1, FADE_RATE, delta, reducedMotion);
+    // The rings (with the other markers and the titles) leave as a trip opens; back to all trips they wait until
+    // the globe's return turn is about to settle (revealAt of it, or of the camera's way when there is no turn).
+    const settling = turn.active
+      ? !turn.started || turn.elapsed / turnSeconds < revealAt
+      : focus >= 0 && focus < revealAt;
+    const revealed = selected < 0 && !settling;
+    overviewAmount.current = revealed
+      ? ease(overviewAmount.current, 1, REVEAL_RATE, delta, reducedMotion)
+      : ease(overviewAmount.current, 0, FADE_RATE * 2, delta, reducedMotion);
     ringLod.current = lod.current * overviewAmount.current;
+    // Signed: the rings turn with the hand, faster the faster it turns, and keep drifting the way it last went.
     const yawRate = previousYaw.current === null
-      ? 0 : Math.abs(wrapAngle(state.current.yaw - previousYaw.current)) / Math.max(delta, 1e-3);
+      ? 0 : MathUtils.radToDeg(wrapAngle(state.current.yaw - previousYaw.current)) / Math.max(delta, 1e-3);
     previousYaw.current = state.current.yaw;
-    ringSpin.current = ease(ringSpin.current, 1 + MathUtils.radToDeg(yawRate) * TRAVEL_OVERVIEW_CONFIG.ringDragGain,
-      FADE_RATE, delta, reducedMotion);
+    if (Math.abs(yawRate) > RING_TURN_BELOW) ringDirection.current = Math.sign(yawRate);
+    ringSpin.current = ease(ringSpin.current, ringDirection.current + yawRate * TRAVEL_OVERVIEW_CONFIG.ringDragGain,
+      RING_FOLLOW_RATE, delta, reducedMotion);
 
     const patch = cameraFrameState.current.travelPatch;
     const scratch = morphScratch.current;
@@ -664,9 +692,7 @@ export function TravelGlobe({
         .applyQuaternion(scratch.lens.copy(camera.quaternion).invert()).normalize();
       scratch.normal.copy(patchLocal.anchor).applyQuaternion(group.quaternion);
       if (!scratch.restKnown) {
-        const destination = selected >= 0 && focusPoseRef.current
-          ? focusPoseRef.current
-          : getCameraPose('travel', isMobile);
+        const destination = selected >= 0 ? getTravelTripPose(isMobile) : getCameraPose('travel', isMobile);
         poseCamera(scratch.restCamera, destination, camera);
         viewFromCamera(center, scratch.restCamera.position, scratch.rideView);
         if (selected >= 0) {
@@ -717,16 +743,33 @@ export function TravelGlobe({
     patch.center.copy(group.position);
     patch.pivot.copy(scratch.pivot);
 
-    const {active, candidate} = state.current;
-    if (reported.current.active !== active || reported.current.candidate !== candidate) {
-      reported.current = {active, candidate};
-      setFrameState({active, candidate});
-      const captured = active >= 0 ? active : candidate;
-      onCapture(captured >= 0 ? TRIPS[captured].id : null);
+    // The place at the globe's centre as seen, once arrived. Focus is where the globe stands alone: the trip near
+    // its centre, over all trips once revealed.
+    const arrived = visible && morph >= 1;
+    if (arrived) {
+      front.current.copy(camera.position).sub(group.position).normalize()
+        .applyQuaternion(inverse.current.copy(group.quaternion).invert());
+    }
+    if (globeFrontRef) {
+      if (!arrived) globeFrontRef.current = null;
+      else {
+        const lon = Math.atan2(front.current.x, front.current.z) / DEG;
+        const lat = Math.asin(MathUtils.clamp(front.current.y, -1, 1)) / DEG;
+        if (globeFrontRef.current) Object.assign(globeFrontRef.current, {lon, lat});
+        else globeFrontRef.current = {lon, lat};
+      }
+    }
+    focused.current = revealed && arrived
+      ? focusedTrip(FOCUS_POINTS, front.current, focusWithin, FOCUS_RELEASE, focused.current)
+      : -1;
+    if (reportedFocus.current !== focused.current) {
+      reportedFocus.current = focused.current;
+      setFocusedIndex(focused.current);
+      onCapture(focused.current >= 0 ? TRIPS[focused.current].id : null);
     }
   }, 0.1);
 
-  const brightIndex = selectedIndex >= 0 ? selectedIndex : frameState.active;
+  const brightIndex = selectedIndex >= 0 ? selectedIndex : focusedIndex;
 
   return (
     <>
@@ -783,21 +826,23 @@ export function TravelGlobe({
         radius={radius}
         reliefRef={reliefNow}
         settings={trailSettings}
-        terrainDepthTexture={terrainDepthTexture}
         trips={TRIPS}
         visibilityRef={trailLod}
       />
       {visible ? (
         <TravelCallouts
-          activeIndex={frameState.active}
-          candidateIndex={frameState.candidate}
+          focusedIndex={focusedIndex}
           groupRef={groupRef}
           hoveredIndex={hoveredIndex}
           onHover={onHover}
           onSelect={onSelect}
+          globeRadius={radius}
+          markerSize={markerSize}
+          overviewRef={overviewAmount}
           radiusAt={radiusAt}
           selectedIndex={selectedIndex}
           signalColor={trailColor}
+          tripMarkerSize={tripMarkerSize}
           trips={TRIPS}
           visibilityRef={visibility}
         />
@@ -812,6 +857,7 @@ export function TravelGlobe({
         radius={radius}
         rings={TRAVEL_OVERVIEW_CONFIG.rings}
         spinRef={ringSpin}
+        tilts={[innerRingTilt, outerRingTilt]}
         visibilityRef={ringLod}
       />
       <TravelStars

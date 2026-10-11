@@ -1,4 +1,4 @@
-/* Travel section (TravelSection.tsx): arrival gating, the trip index on the overview, the selected trip's panel,
+/* Travel section (TravelSection.tsx): arrival gating, the trip index drawer on the overview, the selected trip's panel,
    the phone sheet and the photo viewer. The globe behind is the scene; this layer takes pointer events only on
    its own text, so the globe stays draggable everywhere else. */
 
@@ -22,21 +22,33 @@
 .travel-section {
   --travel-signal: #8fe3d6; /* the trail colour (TRAVEL_CONFIG.trailColor) */
   --travel-pad-top: 96px;
-  --travel-index-column: clamp(16rem, 28vw, 24rem);
+  --travel-index-drawer: clamp(24rem, 46vw, 42rem);
+  --travel-index-pad-start: clamp(2.5rem, 5vw, 4.5rem);
+  --travel-index-pad-end: clamp(2rem, 5vw, 5rem); /* as About's column */
   --travel-trip-column: clamp(20rem, 40vw, 34rem);
   --travel-rise: 520ms;
+  /* Between the views (TravelSection.tsx): the old content fades out over --travel-exit (VIEW_EXIT_MS), then the
+     trip panel rises as the camera lands (focusSeconds, 1.2 s) and the index as the globe settles back (revealAt). */
+  --travel-exit: 240ms;
+  --travel-panel-delay: 460ms;
+  --travel-index-delay: 760ms;
   --z-travel-section: 2;
   --z-travel-overlay: 60;
 
   position: fixed;
   inset: 0;
   z-index: var(--z-travel-section);
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) var(--travel-index-column);
   padding: var(--travel-pad-top) var(--spacing-page-gutter) 28px;
   font-family: var(--font-krypton), ui-monospace, monospace;
   pointer-events: none;
 }
+/* Changing view: the old content fades out before the new one replaces it. */
+.travel-section[data-exiting] .travel-sheet {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--travel-exit) ease;
+}
+
 /* A selected trip: the panel spans from the globe's centre column to the right gutter, and its text flows
    around a float shaped like the globe as drawn (useTripSheetPlacement.ts sets both, inline), so no line sits
    over the globe; until then it takes the right-hand column. */
@@ -56,13 +68,6 @@
   shape-margin: 4rem;
   pointer-events: none;
 }
-.travel-sheet {
-  grid-column: 2;
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  justify-content: flex-start;
-}
 .travel-section[data-view='trip'] .travel-sheet {
   position: absolute;
   top: var(--travel-pad-top);
@@ -80,7 +85,7 @@
   outline-offset: 4px;
 }
 
-/* Small caps line above the index and the trip: dates, days, distance, mode. */
+/* Small caps line above the trip: dates, days, distance, mode. */
 .travel-eyebrow {
   margin: 0 0 12px;
   color: var(--color-dim);
@@ -89,54 +94,29 @@
   text-transform: uppercase;
 }
 
-/* Trip index: year and title per row; the captured trip takes the signal diamond. */
-.travel-index-list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.travel-index-link {
-  display: grid;
-  min-height: var(--size-hit-target);
-  grid-template-columns: 3.4em minmax(0, 1fr);
-  align-items: baseline;
-  gap: 12px;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--color-line);
-  color: var(--color-muted);
-  font-size: 0.78rem;
-  text-decoration: none;
-  transition: color var(--duration-ui);
-}
-.travel-index-link:hover,
-.travel-index-link[data-hovered] {
-  color: var(--color-text);
-}
-.travel-index-link[data-captured] {
-  color: var(--color-accent);
-}
-.travel-index-year {
-  color: var(--color-dim);
-  font-size: var(--text-meta);
-  letter-spacing: var(--tracking-meta);
-}
-.travel-index-title {
-  position: relative;
-}
-.travel-index-title::before {
-  position: absolute;
-  top: 0.45em;
-  left: -14px;
-  width: 5px;
-  height: 5px;
-  background: var(--travel-signal);
-  content: '';
-  opacity: 0;
-  rotate: 45deg;
-  transition: opacity var(--duration-ui);
-}
-.travel-index-link[data-captured] .travel-index-title::before {
-  opacity: 1;
+/* Trip index (desktop): a right-hand drawer like About's. The sheet is its frame, the about-backdrop utility
+   (Drawer.css) fades it in from over the globe, and the column scrolls with the drawer panels' padding. */
+@media (width >= 48rem) {
+  .travel-section[data-view='overview'] .travel-sheet {
+    position: fixed;
+    inset: 0 0 0 auto;
+    width: var(--travel-index-drawer);
+  }
+  /* Its left edge is the utility's: the fade reaches out past the drawer. */
+  .travel-index-backdrop {
+    position: absolute;
+    inset-block: 0;
+    right: 0;
+    pointer-events: none;
+  }
+  .travel-index {
+    position: relative;
+    height: 100%;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 7rem var(--travel-index-pad-end) 2.5rem var(--travel-index-pad-start);
+    scrollbar-width: none;
+  }
 }
 
 /* Selected trip: eyebrow, italic title, place, introduction, description, then photos and links. Each block
@@ -146,7 +126,68 @@
   display: block;
 }
 .travel-trip > * {
-  animation: travel-rise var(--travel-rise) var(--ease-settle) calc(var(--rise, 0) * 60ms) both;
+  animation: travel-rise var(--travel-rise) var(--ease-settle)
+    calc(var(--travel-panel-delay) + var(--rise, 0) * 60ms) both;
+}
+/* Index rows: the coordinates in a column; the trips the globe faces away from dim, the one in focus lights. */
+.travel-index-coord {
+  display: grid;
+  color: var(--color-muted);
+  font-size: var(--text-label);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+  line-height: 1.5;
+  transition: color var(--duration-ui);
+}
+.travel-index-row[data-captured] .travel-index-coord {
+  color: var(--travel-signal);
+}
+.travel-index-row[data-far]:not([data-hovered], :hover, :focus-visible) {
+  opacity: 0.55;
+}
+
+/* Meridian strip (MeridianStrip.tsx): the map canvas, N and S at its poles, over its longitude scale. The pole
+   labels sit at the map's top and bottom (MeridianStrip PAD_TOP, TICKS_HEIGHT + TICKS_GAP). */
+.travel-strip-map {
+  position: relative;
+}
+.travel-strip canvas {
+  display: block;
+  width: 100%;
+  height: 104px;
+  border-block: 1px solid var(--color-line);
+}
+.travel-strip-pole {
+  position: absolute;
+  left: -1.25rem;
+  color: var(--color-dim);
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  line-height: 1;
+}
+.travel-strip-pole[data-pole='north'] {
+  top: 4px;
+}
+.travel-strip-pole[data-pole='south'] {
+  bottom: 21px;
+}
+.travel-strip-scale {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  color: var(--color-dim);
+  font-size: var(--text-label);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--tracking-label);
+}
+
+/* The index rises row by row as the globe settles, its backdrop fading in first. */
+.travel-index-backdrop {
+  animation: travel-fade 600ms ease var(--travel-index-delay) both;
+}
+.travel-index-entry {
+  animation: travel-rise var(--travel-rise) var(--ease-settle)
+    calc(var(--travel-index-delay) + 120ms + var(--rise, 0) * 60ms) both;
 }
 .travel-trip-title {
   margin: 0 0 8px;
@@ -298,6 +339,12 @@
   object-fit: contain;
 }
 
+@keyframes travel-fade {
+  from {
+    opacity: 0;
+  }
+}
+
 @keyframes travel-rise {
   from {
     opacity: 0;
@@ -349,17 +396,21 @@
   .travel-back {
     margin-top: 16px;
   }
-  .travel-globe-shape {
+  .travel-globe-shape,
+  .travel-index-backdrop {
     display: none;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .travel-trip > *,
+  .travel-index-backdrop,
+  .travel-index-entry,
   .travel-viewer[open] {
     animation: none;
   }
-  .travel-environment .travel-content {
+  .travel-environment .travel-content,
+  .travel-section[data-exiting] .travel-sheet {
     transition: none;
   }
 }

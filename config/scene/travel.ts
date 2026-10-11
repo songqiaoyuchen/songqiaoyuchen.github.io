@@ -31,11 +31,10 @@ export const TRAVEL_CONFIG = {
   starAxis: [0.25, 1, 0.15] as readonly [number, number, number], // tilted off the pole: the drift reads as a swirl
   starsIn: [0.5, 0.9] as readonly [number, number], // share of the zoom-out
 
-  // Trip trails along recorded tracks (TravelTrails.tsx); lights and markers stand on the same lift.
+  // Trip trails along recorded tracks (TravelTrails.tsx), one line per trip across any gaps between recordings;
+  // lights and markers stand on the same lift. Each view sets its own thickness (trailRadius).
   trailColor: '#8fe3d6', // also the markers' signal colour (Travel.css --travel-signal)
-  trailRadius: 0.0035, // tube radius, share of the globe radius
   trailLift: 0.004, // height above the relief, share of the globe radius
-  dashLength: 0.03, // dash and gap of a dotted connector between recordings, world units
   trailStep: 0.5, // degrees between samples along a track
 
   maxPitch: 80, // degrees the poles may tip toward the camera, by hand or by any turn to a trip
@@ -70,19 +69,20 @@ export const TRAVEL_OVERVIEW_CONFIG = {
   relief: 0.012, // surface height at the highest ground, share of the radius
   shade: 0, // hillshade strength; off for the night globe
   landTint: 0.015, // land lightening with height
+  trailRadius: 0.0035, // trail tube radius, share of the globe radius
+  markerSize: 14, // CSS pixels: every trip's reticle (TravelCallouts.tsx); the diamond is half
 
   // Orbit rings (TravelRings.tsx), outside the globe's turn; in with the lines, gone while a trip is open.
   // Per ring: radius (share of the globe's), arcs with gap degrees between, a fainter inner track when double,
-  // ticks (every sixth longer), tilt about x and z in degrees, spin in degrees per second about its own axis.
+  // ticks (every sixth longer), spin in degrees per second about its own axis. Their tilts are tuned apart.
   rings: [
-    {radius: 1.28, arcs: 4, gap: 10, ticks: 72, double: true, tilt: [76, -14], spin: 2},
-    {radius: 1.42, arcs: 1, gap: 0, ticks: 180, double: false, tilt: [99, 29], spin: -1.2},
-  ] as readonly {
-    radius: number; arcs: number; gap: number; ticks: number; double: boolean; tilt: readonly [number, number];
-    spin: number;
-  }[],
-  ringIntensity: 0.85, // ring brightness
-  ringDragGain: 0.04, // extra spin multiples per degree per second the globe turns
+    {radius: 1.28, arcs: 4, gap: 14, ticks: 72, double: false, spin: 2},
+    {radius: 1.42, arcs: 1, gap: 0, ticks: 90, double: false, spin: -1.2},
+  ] as readonly {radius: number; arcs: number; gap: number; ticks: number; double: boolean; spin: number}[],
+  innerRingTilt: [-197.799805, 117.800018] as readonly [number, number], // the first ring's tilt about x and z, degrees
+  outerRingTilt: [-20.799561, -20.999817] as readonly [number, number], // the second ring's
+  ringIntensity: 0.4, // ring brightness
+  ringDragGain: 0.12, // extra spin multiples per degree per second the globe turns, signed with the turn
 
   // Turning by hand (TravelGlobe.tsx -> lib/scene/travel.ts advanceGlobe): drag, coast, capture, drift.
   dragGain: 0.9, // surface speed as a share of the pointer's
@@ -92,6 +92,10 @@ export const TRAVEL_OVERVIEW_CONFIG = {
   snapRate: 2, // share of the remaining error the capture servo closes per second
   idleDrift: 3, // degrees per second while untouched and resting on no trip
   idleAfter: 2, // seconds untouched before drifting
+
+  // Focus (TravelGlobe.tsx -> lib/scene/travel.ts focusedTrip): a trip near the globe's centre shows its open cue,
+  // by where the globe stands alone, apart from the capture servo.
+  focusWithin: 22, // degrees from the globe's front; a focused trip keeps focus until 5 degrees past it
 } as const;
 
 export const TRAVEL_TRIP_CONFIG = {
@@ -103,10 +107,13 @@ export const TRAVEL_TRIP_CONFIG = {
   focusSeconds: 1.2,
   turnFrom: 0.3, // share of the journey the globe holds before turning
   turnSettle: 0.6, // seconds the turn settles past the camera's landing
+  revealAt: 0.75, // share of the return turn before the rings, other markers and titles come back
 
   // Raised-relief map (globe.vert/.frag); replaces the overview's ground. Trails, lights and markers ride it.
   summaryBlur: 0.1, // elevation blur radius in texels, three box passes; 0 keeps the full map (useElevation.ts)
-  relief: 0.03, // surface height at the highest ground, share of the radius
-  shade: 0.5, // hillshade strength
+  relief: 0.026, // surface height at the highest ground, share of the radius
+  shade: 0.25, // hillshade strength
   landTint: 0.08, // land lightening with height
+  trailRadius: 0.0014, // trail tube radius, share of the globe radius; thinner up close
+  markerSize: 38, // CSS pixels, the open trip's markers; larger up close
 } as const;

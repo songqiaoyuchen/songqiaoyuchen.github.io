@@ -29,7 +29,6 @@ function useTravelGlobeControls() {
       lightSize: {value: TRAVEL_CONFIG.lightSize, min: 0.5, max: 8, step: 0.1, label: 'Light size (px)'},
       starSize: {value: TRAVEL_CONFIG.starSize, min: 0.5, max: 8, step: 0.1, label: 'Star size (px)'},
       trailColor: {value: TRAVEL_CONFIG.trailColor, label: 'Trail colour'},
-      trailRadius: {value: TRAVEL_CONFIG.trailRadius, min: 0.001, max: 0.02, step: 0.0005, label: 'Trail radius'},
     }, {collapsed: false}),
     'Zoom-out': folder({
       // TravelGlobe.tsx -> terrain.vert, CameraRig: the journey between the landscape and either Travel view.
@@ -47,6 +46,19 @@ function useTravelOverviewControls() {
       // TravelGlobe.tsx -> globe.vert/.frag (and the riding landscape's tint, terrain.frag).
       relief: {value: TRAVEL_OVERVIEW_CONFIG.relief, min: 0, max: 0.05, step: 0.001, label: 'Relief'},
       landTint: {value: TRAVEL_OVERVIEW_CONFIG.landTint, min: 0, max: 0.3, step: 0.005, label: 'Land tint'},
+      // TravelTrails.tsx: the trail's thickness here; it eases to the trip's over the focus journey.
+      trailRadius: {
+        value: TRAVEL_OVERVIEW_CONFIG.trailRadius, min: 0.0005, max: 0.02, step: 0.0001, label: 'Trail radius',
+      },
+      // TravelCallouts.tsx: the trips' markers, CSS pixels.
+      markerSize: {value: TRAVEL_OVERVIEW_CONFIG.markerSize, min: 6, max: 48, step: 1, label: 'Marker size (px)'},
+    }, {collapsed: false}),
+    Rings: folder({
+      // TravelRings.tsx: each ring's axis, tilted about x and z in degrees; drag the joystick to turn it.
+      innerRingTilt: {value: pair(TRAVEL_OVERVIEW_CONFIG.innerRingTilt), step: 1,
+        label: 'Inner tilt (x, z)'},
+      outerRingTilt: {value: pair(TRAVEL_OVERVIEW_CONFIG.outerRingTilt), step: 1,
+        label: 'Outer tilt (x, z)'},
     }, {collapsed: false}),
     Rotation: folder({
       // TravelGlobe.tsx -> lib/scene/travel.ts: coasting, capture and idle drift.
@@ -56,6 +68,8 @@ function useTravelOverviewControls() {
       snapRate: {value: TRAVEL_OVERVIEW_CONFIG.snapRate, min: 1, max: 12, step: 0.5, label: 'Snap rate'},
       idleDrift: {value: TRAVEL_OVERVIEW_CONFIG.idleDrift, min: 0, max: 10, step: 0.5, label: 'Idle drift (°/s)'},
       idleAfter: {value: TRAVEL_OVERVIEW_CONFIG.idleAfter, min: 0, max: 15, step: 0.5, label: 'Idle after (s)'},
+      // TravelGlobe.tsx: how near the globe's centre a trip shows its open cue, apart from the capture.
+      focusWithin: {value: TRAVEL_OVERVIEW_CONFIG.focusWithin, min: 5, max: 60, step: 1, label: 'Focus within (°)'},
     }, {collapsed: false}),
   }, {collapsed: false, ...TRAVEL_OVERVIEW_FOLDER});
 }
@@ -73,6 +87,8 @@ function useTravelTripControls() {
       focusSeconds: {value: TRAVEL_TRIP_CONFIG.focusSeconds, min: 0.2, max: 6, step: 0.1, label: 'Focus (s)'},
       turnFrom: {value: TRAVEL_TRIP_CONFIG.turnFrom, min: 0, max: 1, step: 0.01, label: 'Turn from'},
       turnSettle: {value: TRAVEL_TRIP_CONFIG.turnSettle, min: 0, max: 3, step: 0.1, label: 'Turn settle (s)'},
+      // TravelGlobe.tsx: back to all trips, the rings, other markers and titles wait for this share of the turn.
+      revealAt: {value: TRAVEL_TRIP_CONFIG.revealAt, min: 0, max: 1, step: 0.05, label: 'Reveal at'},
     }, {collapsed: false}),
     Ground: folder({
       // useElevation.ts -> globe.vert/.frag: the raised-relief map. The blur rebuilds the summary on change.
@@ -80,6 +96,10 @@ function useTravelTripControls() {
       relief: {value: TRAVEL_TRIP_CONFIG.relief, min: 0, max: 0.1, step: 0.001, label: 'Relief'},
       shade: {value: TRAVEL_TRIP_CONFIG.shade, min: 0, max: 4, step: 0.05, label: 'Shade'},
       landTint: {value: TRAVEL_TRIP_CONFIG.landTint, min: 0, max: 0.3, step: 0.005, label: 'Land tint'},
+      trailRadius: {
+        value: TRAVEL_TRIP_CONFIG.trailRadius, min: 0.0005, max: 0.02, step: 0.0001, label: 'Trail radius',
+      },
+      markerSize: {value: TRAVEL_TRIP_CONFIG.markerSize, min: 6, max: 48, step: 1, label: 'Marker size (px)'},
     }, {collapsed: false}),
   }, {collapsed: false, ...TRAVEL_TRIP_FOLDER});
 }

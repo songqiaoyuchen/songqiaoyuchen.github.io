@@ -6,7 +6,7 @@ import {getCameraPose} from '../../config/scene/camera.ts';
 import {TRAVEL_CONFIG, TRAVEL_OVERVIEW_CONFIG} from '../../config/scene/travel.ts';
 import {
   advanceGlobe, aimForOffset, aimFromScreen, anglesToward, angularDistance, createGlobeState, decodeLines,
-  densifyTrack, encodeLines, facingAngles, frontPlace, globeQuaternion, graticulePositions,
+  densifyTrack, encodeLines, facingAngles, focusedTrip, frontPlace, globeQuaternion, graticulePositions,
   lonLatToUnit, markerScreenFor, nearestPlace, offsetForMarker, planetScale, polylineLength, regionSpread, rideDistance,
   releaseGlobe,
   toGlobeSettings, trackGaps, viewFromCamera,
@@ -261,6 +261,17 @@ for (const [index, startYaw] of [[0, 0], [1, Math.PI], [2, 2.5], [3, -1]]) {
   assert.equal(far.left, 1280 - 40 - 512, 'no nearer the gutter than the column');
   const offLeft = placeTripSheet(ring(-100, 352, 200), page, 512);
   assert.equal(offLeft.left, 40, 'never left of the gutter');
+}
+
+// Focus is where the globe stands alone: the nearest trip point within the zone, kept a little past its edge.
+{
+  const trips = [[lonLatToUnit([0, 0])], [lonLatToUnit([40, 0]), lonLatToUnit([30, 0])]];
+  assert.equal(focusedTrip(trips, lonLatToUnit([5, 0]), 22, 5, -1), 0);
+  assert.equal(focusedTrip(trips, lonLatToUnit([20, 0]), 22, 5, -1), 1, 'any point along a route counts');
+  assert.equal(focusedTrip(trips, lonLatToUnit([0, 40]), 22, 5, -1), -1, 'nothing near the centre');
+  assert.equal(focusedTrip(trips, lonLatToUnit([0, 25]), 22, 5, 0), 0, 'kept past the edge');
+  assert.equal(focusedTrip(trips, lonLatToUnit([0, 25]), 22, 5, -1), -1, 'but not taken there');
+  assert.equal(focusedTrip(trips, lonLatToUnit([0, 28]), 22, 5, 0), -1, 'released beyond the margin');
 }
 
 console.log('travel globe checks passed');

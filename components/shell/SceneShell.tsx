@@ -217,6 +217,7 @@ export function SceneShell({articles, children}: SceneShellProps) {
               onTravelHover={travelActions.setHoveredId}
               onTravelCapture={travelActions.setCapturedId}
               travelGlobeOutlineRef={travelActions.globeOutline}
+              travelGlobeFrontRef={travelActions.globeFront}
               backdrop={isArt && !artArriving && !isLeaving ? backdrop : null}
               artActive={isArt}
               artCameraEditing={artCameraEditing && !artArriving && !capture.enabled}

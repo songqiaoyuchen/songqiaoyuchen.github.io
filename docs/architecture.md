@@ -81,16 +81,21 @@ resized by `scripts/assets/build-travel-geo.mjs`) for a small relief and a faint
 (`shaders/terrain/landShading.glsl`, registered by `lib/scene/landShading.ts`; its hillshade is off) under a gold
 rim; land carries a field of gold light points sampled from the same map, denser in lowlands (`TravelLights`,
 `shaders/terrain/travelPoints.*`); a faint gold graticule and baked coastlines and lakes (`public/travel/coast.bin`,
-Natural Earth 110m) as line segments; trail tubes along each trip's tracks riding the relief (gaps between
-recordings dotted) and HTML markers with titles (`TravelCallouts`, laid out like About's). About the resting globe,
+Natural Earth 110m) as line segments; trail tubes along each trip's tracks riding the relief (one line across
+gaps between recordings, thinner with a trip open) and HTML markers with titles (`TravelCallouts`, laid out like About's). About the resting globe,
 outside its turn, two tilted orbit rings with tick marks turn slowly (`TravelRings`) and a sparse sky of stars
 stands far behind (`TravelStars`, the same point shader); lights, rings and stars join the isolated bloom. The camera parks at the Travel
 pose and the globe turns (`lib/scene/travel.ts`): a drag follows the pointer; a release coasts under friction
 and, below the snap speed, the nearest trip within the capture angle pulls the globe in; untouched, it drifts
-slowly. A selected trip is pinned: while `CameraRig` journeys to the quarter-sphere framing `TravelGlobe` publishes,
+slowly. Apart from that capture, the trip nearest the globe's centre as it stands (within `focusWithin`, any point of
+its route counting) is in focus: its marker locks on and its title's tag (one slanted style for every trip) lights with an open cue. A
+selected trip is pinned: while `CameraRig` journeys to the quarter-sphere framing `TravelGlobe` publishes,
 the globe holds for the first `turnFrom` of the way, then turns the trip to an offset from its centre, most of the turn
 done by the time the camera lands and the last of it a slight settle over `turnSettle` seconds more; the return to the
-overview plays the same way toward the globe's centre. Lines and trails join the isolated bloom.
+overview plays the same way toward the globe's centre. A trip opening, the rings, the other markers and the titles
+leave at once; back to all trips they return only at `revealAt` of the return turn, as the globe settles. The HTML
+follows: the old view fades out, then the trip panel rises as the camera lands and the index as the globe settles
+(`TravelSection`, `Travel.css`). Lines and trails join the isolated bloom.
 
 Entry is one zoom-out in which the globe is the planet the landscape lies on. `CameraRig` raises a Travel morph
 (0 to 1) over the 2 s journey. The landscape stands for `landscapeKm` of real ground, which sizes an Earth-scale
@@ -113,13 +118,17 @@ relief is real on the way and takes the map's exaggeration as it arrives (`relie
 with altitude (`hazeOut`, `hazeFactor`); the lights come on at half strength over the dark ground as the landscape recedes
 (`lightsIn`) and reach full with the lines, the stars arrive with altitude (`starsIn`), and the rim, graticule,
 coastlines, rings and trails come in late (`linesIn`, `trailsIn`).
-The terrain cache redraws while the morph runs; the globe and trails discard fragments behind the terrain's
-depth, and the tile writes none, so nothing reads as two objects. Leaving Travel plays it backwards; the globe
+The terrain cache redraws while the morph runs; the globe and lights discard fragments behind the terrain's
+depth (trails and markers hide only behind the globe's body, never terrain), and the tile writes none, so nothing reads as two objects. Leaving Travel plays it backwards; the globe
 is never faded as a whole. The globe mounts quietly after the intro so its maps are loaded before the first
 journey. Travel clears the scene text like About. The trip index
 (overview) and trip panel share state with the scene through `TravelSceneContext`, which `TravelGlobe` and `CameraRig`
 read inside the canvas (R3F bridges the contexts above it), so a selection or hover re-renders only them; arrows step through
-trips, Escape returns to the overview. Phones use their own Travel pose with the content in a sheet.
+trips, Escape returns to the overview. The index lists trips west to east under a meridian strip, a small world map
+(trips as diamonds) whose shaded facing half and crosshair follow the place the globe faces (written each frame by `TravelGlobe` to a ref in the
+context); trips on the far side dim. The two views are two camera poses (`getCameraPose('travel')` and
+`getTravelTripPose`, phones sharing one); the selection is read from the URL by the context itself, so the scene's first
+frame already holds the route's view: a refresh on a trip opens at its framing with the globe turned to it. Phones use their own Travel pose with the content in a sheet.
 `config/scene/travel.ts` holds three groups that never stand in for each other: `TRAVEL_CONFIG` (the globe as
 both views draw it, and the zoom-out), `TRAVEL_OVERVIEW_CONFIG` (all trips: ground, rings, feel by hand) and
 `TRAVEL_TRIP_CONFIG` (a trip: framing, its own servo hold rate, the focus journey and the raised-relief ground,

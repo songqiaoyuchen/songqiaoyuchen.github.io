@@ -92,8 +92,6 @@ through baked regional ground; frame-checked in the browser, awaiting the user's
   to about a unit off it at the start of the zoom-out; the rim now fades into the ground (its edge fade kept as
   alpha and composited by `globe.frag`), which hides the step from any camera. A fine ground patch around the
   landing place would remove the step itself if a future section looks at the rim more closely.
-- Direct entry to `/travel/[trip]` opens at the overview pose with the trip selected (the rig initialises at
-  the section pose; the trip pose is static, `getTravelTripPose`). Decide whether to open at the trip pose.
 - Motion blur during the zoom-out was part of the brief; there is none yet. Judge whether it needs
   any once the zoom-out is tuned.
 - Track loading for real recordings: inline segments today; add a fetched `public/travel/tracks`

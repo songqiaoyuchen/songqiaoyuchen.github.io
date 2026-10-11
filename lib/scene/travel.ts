@@ -326,6 +326,34 @@ export function releaseGlobe(state: GlobeState, vYaw: number, vPitch: number, ma
   state.phase = 'coasting';
 }
 
+/**
+ * The trip in the globe's focus zone: the one with a point (its place, or anywhere along its route) nearest the
+ * globe's front, within `within` degrees. Purely where the globe stands, whatever the servo is doing; the trip
+ * already in focus keeps it until it leaves by `release` degrees more, so the zone's edge does not flicker.
+ * `points` are unit vectors per trip and `front` the unit direction toward the camera, both in globe space.
+ */
+export function focusedTrip(
+  points: readonly (readonly Vector3[])[],
+  front: Vector3,
+  within: number,
+  release: number,
+  current: number,
+) {
+  const nearest = points.map((trip) => trip.reduce((best, point) => Math.max(best, point.dot(front)), -1));
+  if (current >= 0 && current < points.length && nearest[current] >= Math.cos((within + release) * DEG)) {
+    return current;
+  }
+  let best = -1;
+  let bestCosine = Math.cos(within * DEG);
+  nearest.forEach((cosine, index) => {
+    if (cosine > bestCosine) {
+      bestCosine = cosine;
+      best = index;
+    }
+  });
+  return best;
+}
+
 /** Points along a track, following the great circle between recorded places every `stepDegrees` at most. */
 export function densifyTrack(track: readonly LonLat[], stepDegrees: number) {
   const points: Vector3[] = [];
@@ -443,6 +471,22 @@ export function planetScale(landscapeKm: number, planeSize: number, globeRadius:
 export function rideDistance(radius: number, cosine: number, height: number) {
   const grazing = radius * cosine;
   return grazing + Math.sqrt(grazing * grazing + height * (2 * radius + height));
+}
+
+/** Whether the globe's body, a sphere of `radius` about the origin, stands between a point above it and the eye
+ * (both in globe space). Relief is left out: trails and markers ride it but hide only past the horizon (the trail
+ * shader, travelTrail.vert, makes the same test). */
+export function behindGlobe(point: Vector3, eye: Vector3, radius: number) {
+  const dx = eye.x - point.x;
+  const dy = eye.y - point.y;
+  const dz = eye.z - point.z;
+  const a = dx * dx + dy * dy + dz * dz;
+  const b = 2 * (point.x * dx + point.y * dy + point.z * dz);
+  const c = point.lengthSq() - radius * radius;
+  const disc = b * b - 4 * a * c;
+  if (disc <= 0) return false;
+  const enter = (-b - Math.sqrt(disc)) / (2 * a);
+  return enter > 0 && enter < 1;
 }
 
 /** Arc length of a polyline, world units. */

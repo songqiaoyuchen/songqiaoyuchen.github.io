@@ -104,17 +104,29 @@ function withSummary({texture, width, height, values: heights}: ElevationMap, su
   summary.minFilter = LinearFilter;
   summary.magFilter = LinearFilter;
   summary.needsUpdate = true;
-  const indexAt = ([lon, lat]: LonLat) => {
-    const column = Math.min(width - 1, Math.max(0, Math.round((lon + 180) / 360 * (width - 1))));
-    const row = Math.min(height - 1, Math.max(0, Math.round((90 - lat) / 180 * (height - 1))));
-    return row * width + column;
+  // Bilinear between texel centres, wrapping east-west and clamped at the poles, as the shaders' linear filter
+  // reads the map (u = 0.5 + lon / 360, v = 0.5 + lat / 180), so markers stand exactly on the trails.
+  const sample = (map: ArrayLike<number>, [lon, lat]: LonLat) => {
+    const x = (lon + 180) / 360 * width - 0.5;
+    const y = Math.min(height - 1, Math.max(0, (90 - lat) / 180 * height - 0.5));
+    const x0 = Math.floor(x);
+    const y0 = Math.floor(y);
+    const fx = x - x0;
+    const fy = y - y0;
+    const c0 = ((x0 % width) + width) % width;
+    const c1 = (c0 + 1) % width;
+    const r0 = y0 * width;
+    const r1 = Math.min(height - 1, y0 + 1) * width;
+    const top = map[r0 + c0] * (1 - fx) + map[r0 + c1] * fx;
+    const bottom = map[r1 + c0] * (1 - fx) + map[r1 + c1] * fx;
+    return (top * (1 - fy) + bottom * fy) / 255;
   };
   return {
     texture,
     texel: new Vector2(1 / width, 1 / height),
-    heightAt: (place) => heights[indexAt(place)] / 255,
+    heightAt: (place) => sample(heights, place),
     summary,
-    summaryAt: (place) => values[indexAt(place)] / 255,
+    summaryAt: (place) => sample(values, place),
   };
 }
 

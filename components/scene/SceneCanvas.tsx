@@ -44,6 +44,7 @@ import { GlyphRain } from './text/GlyphRain';
 import {SceneHeroName} from './text/SceneHeroName';
 import {SceneLinks} from './text/SceneLinks';
 import {TravelGlobe} from './travel/TravelGlobe';
+import type {GlobeFront} from '@/components/travel/TravelSceneContext';
 import type {GlobeOutline} from '@/components/travel/useTripSheetPlacement';
 import {useSceneAssembly} from './useSceneAssembly';
 
@@ -85,6 +86,8 @@ type SceneCanvasProps = {
   onTravelCapture: (id: string | null) => void;
   /** Receives the globe's circle on screen every frame (the trip panel keeps clear of it). */
   travelGlobeOutlineRef: MutableRefObject<GlobeOutline | null>;
+  /** Receives the place at the globe's centre every frame (the trip index's meridian strip). */
+  travelGlobeFrontRef: MutableRefObject<GlobeFront | null>;
   onPoseSettled?: (pose: SectionId | null | undefined) => void;
   introStarted: boolean;
   onSceneError: (error: Error) => void;
@@ -109,6 +112,7 @@ export const SceneCanvas = memo(function SceneCanvas({
   onTravelHover,
   onTravelCapture,
   travelGlobeOutlineRef,
+  travelGlobeFrontRef,
   onPoseSettled,
   introStarted,
   onSceneError,
@@ -121,7 +125,6 @@ export const SceneCanvas = memo(function SceneCanvas({
   const travelMeasureOffsetRef = useRef<(() => [number, number] | null) | null>(null);
   const composerRef = useRef<EffectComposerImpl>(null);
   const aboutFocusPosesRef = useRef<readonly CameraPose[]>([]);
-  const travelFocusPoseRef = useRef<CameraPose | null>(null);
   const {capture} = useArtScene();
   const capturing = artActive && capture.enabled;
   const [canvasReady, setCanvasReady] = useState(false);
@@ -237,7 +240,6 @@ export const SceneCanvas = memo(function SceneCanvas({
               aboutStop={aboutStop}
               aboutFocusPosesRef={aboutFocusPosesRef}
               aboutSeconds={settings.aboutPath}
-              travelFocusPoseRef={travelFocusPoseRef}
               travelSeconds={travelSeconds}
               onPoseSettled={onPoseSettled}
               controlsRef={isDevelopment ? orbitcontrolsRef : undefined}
@@ -340,10 +342,10 @@ export const SceneCanvas = memo(function SceneCanvas({
                       tripSettings={settings.travelTrip}
                       terrainDepthTexture={terrainDepthTexture}
                       terrainColorTexture={terrainColorTexture}
-                      focusPoseRef={travelFocusPoseRef}
                       onBloomObjects={setTravelBloom}
                       onCapture={onTravelCapture}
                       globeOutlineRef={travelGlobeOutlineRef}
+                      globeFrontRef={travelGlobeFrontRef}
                       onSelect={onTravelSelect}
                       onHover={onTravelHover}
                     />
