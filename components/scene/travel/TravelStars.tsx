@@ -1,15 +1,18 @@
 // The sky behind the resting globe: a sparse field of stars on a far sphere about the globe's centre, varied in
 // size and brightness with a slight warm-to-cool spread, a few bright enough to bloom, twinkling faintly. They
-// appear with altitude on the way in and sit outside the globe's turning group.
+// appear with altitude on the way in and sit outside the globe's turning group; the whole field drifts slowly about
+// a tilted axis, one object rotation a frame (held still for reduced motion).
 'use client';
 
 import {useFrame, useThree} from '@react-three/fiber';
-import {useEffect, useMemo, useRef, type MutableRefObject} from 'react';
-import {AdditiveBlending, BufferGeometry, Color, Float32BufferAttribute, Points, ShaderMaterial} from 'three';
+import {useCallback, useEffect, useMemo, useRef, type MutableRefObject} from 'react';
+import {AdditiveBlending, BufferGeometry, Color, Float32BufferAttribute, Points, ShaderMaterial, Vector3} from 'three';
 import {TRAVEL_CONFIG} from '@/config/scene/travel';
 import {useReducedMotion} from '@/hooks/useReducedMotion';
 import fragmentShader from '@/shaders/terrain/travelPoints.frag';
 import vertexShader from '@/shaders/terrain/travelPoints.vert';
+
+const DRIFT_AXIS = new Vector3(...TRAVEL_CONFIG.starAxis).normalize();
 
 function hash(index: number, salt: number) {
   const value = Math.sin(index * 12.9898 + salt * 78.233) * 43758.5453;
@@ -30,6 +33,8 @@ type TravelStarsProps = {
 
 export function TravelStars({count, radius, size, color, visibilityRef, onPoints}: TravelStarsProps) {
   const materialRef = useRef<ShaderMaterial>(null);
+  const pointsRef = useRef<Points | null>(null);
+  const drift = useRef(0);
   const dpr = useThree((state) => state.viewport.dpr);
   const reducedMotion = useReducedMotion();
 
@@ -83,15 +88,26 @@ export function TravelStars({count, radius, size, color, visibilityRef, onPoints
     material.uniforms.uTwinkle.value = reducedMotion ? 0 : 1;
   }, [color, dpr, radius, reducedMotion, size]);
 
-  useFrame((state) => {
+  useFrame((state, delta) => {
     const material = materialRef.current;
     if (!material) return;
     material.uniforms.uTime.value = state.clock.elapsedTime;
     material.uniforms.uVisibility.value = visibilityRef.current;
+    const points = pointsRef.current;
+    if (points && !reducedMotion && visibilityRef.current > 0) {
+      // Clamp the step so a tab return doesn't jump the sky.
+      drift.current = (drift.current + Math.min(delta, 0.1) * TRAVEL_CONFIG.starDrift) % (Math.PI * 2);
+      points.quaternion.setFromAxisAngle(DRIFT_AXIS, drift.current);
+    }
   });
 
+  const handlePoints = useCallback((points: Points | null) => {
+    pointsRef.current = points;
+    onPoints(points);
+  }, [onPoints]);
+
   return (
-    <points frustumCulled={false} geometry={geometry} ref={onPoints} renderOrder={-1}>
+    <points frustumCulled={false} geometry={geometry} ref={handlePoints} renderOrder={-1}>
       <shaderMaterial
         blending={AdditiveBlending}
         depthWrite={false}

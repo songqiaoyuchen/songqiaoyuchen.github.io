@@ -27,6 +27,8 @@ export const TRAVEL_CONFIG = {
   starCount: 1400,
   starRadius: 60, // world units from the globe's centre
   starSize: 3.2, // CSS pixels
+  starDrift: 0.012, // radians per second the sky turns about starAxis (about nine minutes a turn)
+  starAxis: [0.25, 1, 0.15] as readonly [number, number, number], // tilted off the pole: the drift reads as a swirl
   starsIn: [0.5, 0.9] as readonly [number, number], // share of the zoom-out
 
   // Trip trails along recorded tracks (TravelTrails.tsx); lights and markers stand on the same lift.
