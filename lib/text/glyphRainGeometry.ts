@@ -99,7 +99,7 @@ export function generateGlyphRainLayers({
 
     candidates.push({
       anchor: [x, z],
-      charCount: Math.round(randomBetween(22, 42, random01(attempt, 3, seed))),
+      charCount: Math.round(randomBetween(22, 52, random01(attempt, 3, seed))),
       glyphHeight: randomBetween(0.078, 0.112, random01(attempt, 4, seed)),
       bottomOffset,
       density: randomBetween(0.28, 0.72, random01(attempt, 6, seed)),

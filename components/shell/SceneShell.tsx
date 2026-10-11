@@ -41,7 +41,12 @@ interface SceneShellProps {
 }
 
 /** The nav destinations inside this shell, and the section each one means to the camera. */
-const SHELL_DESTINATIONS: Record<string, SectionId | null> = {'/': null, '/artworks': 'art', '/travel': 'travel'};
+const SHELL_DESTINATIONS: Record<string, SectionId | null> = {
+  '/': null,
+  '/about': 'about',
+  '/artworks': 'art',
+  '/travel': 'travel',
+};
 /** How long a routed section's content takes to fade out before its route changes (ArtSection.css, Travel.css). */
 const SECTION_LEAVE_MS = 400;
 

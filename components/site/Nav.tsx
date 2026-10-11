@@ -27,6 +27,7 @@ const NAV_ITEMS = [
   {href: '/artworks', label: SECTION_LABELS.art},
   {href: '/blog', label: SECTION_LABELS.blog},
   {href: '/travel', label: SECTION_LABELS.travel},
+  {href: '/about', label: SECTION_LABELS.about},
 ] as const;
 
 /** Sections whose deeper views stay put when their nav item is clicked again. */
