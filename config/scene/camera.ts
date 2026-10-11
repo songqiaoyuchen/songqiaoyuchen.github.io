@@ -26,7 +26,7 @@ export const CAMERA_CONFIG = {
   travelPosition: [-5.334, 16.786, -14.985] as Vector3Tuple,
   travelLookAt: [-3.107, 17.258, 0.441] as Vector3Tuple,
   // A selected trip (desktop): the globe lower left, the trip's text to its right; the globe itself turns the
-  // trip to its marker point (TRAVEL_CONFIG.markerOffset). Phones keep the Travel pose.
+  // trip to its marker point (TRAVEL_TRIP_CONFIG.markerOffset). Phones keep the Travel pose.
   travelTripPosition: [-0.821, 16.188, -4.573] as Vector3Tuple,
   travelTripLookAt: [-3.736, 24.568, 5.012] as Vector3Tuple,
   mobileTravelPosition: [0, 17, -10] as Vector3Tuple,

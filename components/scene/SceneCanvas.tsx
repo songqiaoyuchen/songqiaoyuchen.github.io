@@ -8,7 +8,7 @@ import {Canvas, type RootState} from '@react-three/fiber';
 import { OrbitControls, StatsGl } from '@react-three/drei';
 import { EffectComposer } from '@react-three/postprocessing';
 import {SMAAPreset, type EffectComposer as EffectComposerImpl} from 'postprocessing';
-import type {DepthTexture, Mesh, Object3D} from 'three';
+import type {DepthTexture, Mesh, Object3D, Texture} from 'three';
 import type { OrbitControls as OrbitControlsInstance } from 'three-stdlib';
 import type {useCreateStore} from 'leva';
 import {CAMERA_CONFIG, FOG_CONFIG, type CameraPose} from '@/config/scene';
@@ -27,6 +27,7 @@ import {ArtCameraControls} from './controls/ArtCameraControls';
 import {ArtCursorControls} from './controls/ArtCursorControls';
 import {ArtTransitionControls} from './controls/ArtTransitionControls';
 import { SaveCameraButton } from './controls/SaveCameraButton';
+import { TravelTripScope } from './controls/sectionScope';
 import { SaveConfigButton } from './controls/SaveConfigButton';
 import {useSceneControls} from './controls/useSceneControls';
 import { ColorOnlySMAA } from './effects/ColorOnlySMAA';
@@ -37,7 +38,7 @@ import {StillFrameGate} from './StillFrameGate';
 import {CachedTerrain} from './terrain/CachedTerrain';
 import { Contours } from './terrain/Contours';
 import {ABOUT_MAP_CONFIG} from '@/config/scene/aboutPath';
-import {TRAVEL_CONFIG} from '@/config/scene/travel';
+import {TRAVEL_OVERVIEW_CONFIG} from '@/config/scene/travel';
 import { SceneFog } from './terrain/SceneFog';
 import { GlyphRain } from './text/GlyphRain';
 import {SceneHeroName} from './text/SceneHeroName';
@@ -132,6 +133,7 @@ export const SceneCanvas = memo(function SceneCanvas({
   const [travelBloom, setTravelBloom] = useState<Object3D[]>([]);
   const [bloomReady, setBloomReady] = useState(false);
   const [terrainDepthTexture, setTerrainDepthTexture] = useState<DepthTexture | null>(null);
+  const [terrainColorTexture, setTerrainColorTexture] = useState<Texture | null>(null);
   const isDevelopment = process.env.NODE_ENV === 'development';
   const settings = useSceneControls(activeId);
   const hideHomeScene = artActive || activeId === 'art';
@@ -154,11 +156,17 @@ export const SceneCanvas = memo(function SceneCanvas({
     () => ({...settings.contours, ...ABOUT_MAP_CONFIG.contours}),
     [settings.contours],
   );
-  const {baseColor: travelBase, lineColor: travelLine, landTint: travelTint} = settings.travel;
+  // The riding landscape lands on the overview's ground: a trip's own look only eases in once the globe has formed.
+  const {baseColor: travelBase, lineColor: travelLine} = settings.travel;
+  const travelTint = settings.travelOverview.landTint;
   const travelLook = useMemo(
-    () => ({baseColor: travelBase, lineColor: travelLine, landTint: travelTint, shade: TRAVEL_CONFIG.shade}),
+    () => ({baseColor: travelBase, lineColor: travelLine, landTint: travelTint, shade: TRAVEL_OVERVIEW_CONFIG.shade}),
     [travelBase, travelLine, travelTint],
   );
+  const {journeySeconds: travelJourney} = settings.travel;
+  const {focusSeconds: travelFocus} = settings.travelTrip;
+  const travelSeconds = useMemo(
+    () => ({journeySeconds: travelJourney, focusSeconds: travelFocus}), [travelFocus, travelJourney]);
   // Contours and scene links must be ready before the composer; the About path and Travel lines join when mounted.
   const bloomBaseReady = contourMesh !== null && sceneLinksMesh !== null;
   const bloomSelection = useMemo(
@@ -188,9 +196,11 @@ export const SceneCanvas = memo(function SceneCanvas({
   });
 
   return (
+    // Viewport-wide (100vw, under any scrollbar) rather than the container's width: a scrollbar coming or going
+    // between routes would otherwise resize the canvas mid-journey, and a resized canvas is blank for a frame.
     <div data-art-capture-frame={capturing || undefined} className={artActive
-      ? `${artCameraEditing ? 'pointer-events-auto' : 'pointer-events-none'} fixed inset-0 z-0 h-svh w-full`
-      : 'sticky top-0 z-0 h-svh w-full md:absolute md:inset-0'}>
+      ? `${artCameraEditing ? 'pointer-events-auto' : 'pointer-events-none'} fixed inset-0 z-0 h-svh w-screen`
+      : 'sticky top-0 z-0 h-svh w-screen md:absolute md:inset-0'}>
       {!backdrop && <SaveConfigButton values={settings} />}
       <SceneErrorBoundary onError={onSceneError}>
         <Canvas
@@ -228,10 +238,11 @@ export const SceneCanvas = memo(function SceneCanvas({
               aboutFocusPosesRef={aboutFocusPosesRef}
               aboutSeconds={settings.aboutPath}
               travelFocusPoseRef={travelFocusPoseRef}
-              travelSeconds={settings.travel}
+              travelSeconds={travelSeconds}
               onPoseSettled={onPoseSettled}
               controlsRef={isDevelopment ? orbitcontrolsRef : undefined}
             />
+            {isDevelopment ? <TravelTripScope /> : null}
             {isDevelopment && !artActive && activeId !== 'art' ? (
               <SaveCameraButton
                 activeId={activeId}
@@ -256,6 +267,7 @@ export const SceneCanvas = memo(function SceneCanvas({
                   preloadBackdrops={hideHomeScene}
                   fogSettings={settings.fog}
                   onDepthTextureChange={setTerrainDepthTexture}
+                  onColorTextureChange={setTerrainColorTexture}
                   terrainSettings={settings.terrain}
                   travelLook={travelLook}
                 />
@@ -324,7 +336,10 @@ export const SceneCanvas = memo(function SceneCanvas({
                       measureOffsetRef={travelMeasureOffsetRef}
                       interactive={!settings.travel.editCamera}
                       settings={settings.travel}
+                      overviewSettings={settings.travelOverview}
+                      tripSettings={settings.travelTrip}
                       terrainDepthTexture={terrainDepthTexture}
+                      terrainColorTexture={terrainColorTexture}
                       focusPoseRef={travelFocusPoseRef}
                       onBloomObjects={setTravelBloom}
                       onCapture={onTravelCapture}

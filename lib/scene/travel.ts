@@ -434,6 +434,17 @@ export function planetScale(landscapeKm: number, planeSize: number, globeRadius:
   return {startRadius, radius, scale: radius / startRadius, metresPerUnit};
 }
 
+/**
+ * The zoom-out's landing point along a camera ray: how far from the camera, along the unit ray, a planet of the
+ * given radius must have its surface, the surface normal there at the given cosine to the ray (negative where the
+ * surface faces the camera), for the camera to stand `height` above that surface. Placing the planet about the
+ * camera this way keeps the camera outside it for any height above zero.
+ */
+export function rideDistance(radius: number, cosine: number, height: number) {
+  const grazing = radius * cosine;
+  return grazing + Math.sqrt(grazing * grazing + height * (2 * radius + height));
+}
+
 /** Arc length of a polyline, world units. */
 export function polylineLength(points: readonly Vector3[]) {
   let length = 0;

@@ -37,6 +37,8 @@ type TravelLightsProps = {
   size: number;
   /** The globe's relief this frame, as a share of its radius at the map's top. */
   reliefRef: MutableRefObject<number>;
+  /** How far the globe has taken the elevation summary (a trip open), 0 to 1, read every frame. */
+  focusRef: MutableRefObject<number>;
   /** How far the lights have come in, 0 to 1, read every frame. */
   visibilityRef: MutableRefObject<number>;
   terrainDepthTexture: DepthTexture | null;
@@ -44,7 +46,7 @@ type TravelLightsProps = {
 };
 
 export function TravelLights({
-  elevation, radius, lift, color, density, size, reliefRef, visibilityRef, terrainDepthTexture, onPoints,
+  elevation, radius, lift, color, density, size, reliefRef, focusRef, visibilityRef, terrainDepthTexture, onPoints,
 }: TravelLightsProps) {
   const materialRef = useRef<ShaderMaterial>(null);
   const dpr = useThree((state) => state.viewport.dpr);
@@ -54,6 +56,7 @@ export function TravelLights({
     if (!elevation) return geometry;
     const positions: number[] = [];
     const heights: number[] = [];
+    const summaries: number[] = [];
     const intensities: number[] = [];
     const seeds: number[] = [];
     const golden = Math.PI * (3 - Math.sqrt(5));
@@ -82,11 +85,13 @@ export function TravelLights({
       if (hash(lon * 3.1, lat * 2.7) > density * (0.65 + 1.3 * lowland * Math.max(cluster, 0.2))) continue;
       positions.push(x, y, z);
       heights.push(height);
+      summaries.push(elevation.summaryAt([lon, lat]));
       intensities.push(0.35 + 0.65 * Math.pow(hash(lat * 5.3, lon * 7.1), 1.8) * (0.4 + 0.6 * lowland));
       seeds.push(hash(lon * 1.7, lat * 9.3));
     }
     geometry.setAttribute('position', new Float32BufferAttribute(positions, 3));
     geometry.setAttribute('aHeight', new Float32BufferAttribute(heights, 1));
+    geometry.setAttribute('aSummary', new Float32BufferAttribute(summaries, 1));
     geometry.setAttribute('aIntensity', new Float32BufferAttribute(intensities, 1));
     geometry.setAttribute('aSeed', new Float32BufferAttribute(seeds, 1));
     return geometry;
@@ -97,6 +102,7 @@ export function TravelLights({
   const uniforms = useMemo(() => ({
     uRadius: {value: TRAVEL_CONFIG.radius},
     uRelief: {value: 0},
+    uFocus: {value: 0},
     uLift: {value: TRAVEL_CONFIG.trailLift},
     uSize: {value: TRAVEL_CONFIG.lightSize},
     uScale: {value: 1},
@@ -125,6 +131,7 @@ export function TravelLights({
     const material = materialRef.current;
     if (!material) return;
     material.uniforms.uRelief.value = reliefRef.current;
+    material.uniforms.uFocus.value = focusRef.current;
     material.uniforms.uVisibility.value = visibilityRef.current;
   });
 

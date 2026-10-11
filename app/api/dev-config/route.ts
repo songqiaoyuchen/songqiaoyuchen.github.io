@@ -27,18 +27,16 @@ export async function POST(request: Request) {
     return NextResponse.json({error: 'missing values'}, {status: 400});
   }
 
+  // One source per file: several scopes may write into the same file.
   const scopes = Object.keys(EDITABLE_CONFIG) as ConfigScope[];
-  const sourceEntries = await Promise.all(
-    scopes.map(async (scope) => {
-      const filePath = path.join(process.cwd(), 'config', EDITABLE_CONFIG[scope].file);
-      return [scope, {
-        filePath,
-        source: await fs.readFile(filePath, 'utf8'),
-        changed: false,
-      }] as const;
+  const files = [...new Set(scopes.map((scope) => EDITABLE_CONFIG[scope].file))];
+  const fileEntries = await Promise.all(
+    files.map(async (file) => {
+      const filePath = path.join(process.cwd(), 'config', file);
+      return [file, {filePath, source: await fs.readFile(filePath, 'utf8'), changed: false}] as const;
     }),
   );
-  const sources = new Map<ConfigScope, ConfigSource>(sourceEntries);
+  const sources = new Map<string, ConfigSource>(fileEntries);
 
   const missed: string[] = [];
   let saved = 0;
@@ -61,13 +59,14 @@ export async function POST(request: Request) {
       continue;
     }
 
-    const target = sources.get(scope);
+    const config: {file: string; object?: string} = EDITABLE_CONFIG[scope];
+    const target = sources.get(config.file);
     if (!target) {
       missed.push(rawKey);
       continue;
     }
 
-    const next = replaceKey(target.source, key, literal);
+    const next = replaceKey(target.source, key, literal, config.object);
     if (next === null) {
       missed.push(rawKey);
       continue;

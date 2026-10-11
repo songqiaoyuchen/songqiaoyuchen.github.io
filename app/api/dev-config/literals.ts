@@ -34,8 +34,17 @@ export function toLiteral(value: unknown): string | null {
 // A flat or one-level nested array, a string, a number or a boolean.
 const LITERAL = "\\[(?:[^\\[\\]]|\\[[^\\[\\]]*\\])*\\]|'[^']*'|-?\\d[\\d.]*(?:e-?\\d+)?|true|false";
 
-/** Replaces the literal after the first `key:` in `source`; null when the key is not there. */
-export function replaceKey(source: string, key: string, literal: string): string | null {
+/** Replaces the literal after the first `key:` in `source`, or within `export const <object>` up to the next
+ * export when `object` is given; null when the key is not there. */
+export function replaceKey(source: string, key: string, literal: string, object?: string): string | null {
+  if (object) {
+    const start = source.search(new RegExp(`\\bexport const ${object}\\b`));
+    if (start < 0) return null;
+    const next = source.indexOf('\nexport ', start + 1);
+    const end = next < 0 ? source.length : next;
+    const replaced = replaceKey(source.slice(start, end), key, literal);
+    return replaced === null ? null : source.slice(0, start) + replaced + source.slice(end);
+  }
   const pattern = new RegExp(`(\\b${key}:\\s*)(${LITERAL})`);
   if (!pattern.test(source)) return null;
   return source.replace(pattern, (_, prefix: string) => `${prefix}${literal}`);

@@ -85,10 +85,15 @@ through baked regional ground; frame-checked in the browser, awaiting the user's
   spacing, the phone sheet.
 - Attribution for the Terrarium-derived tile (Mapzen/Tilezen, SRTM, GMTED2010, ETOPO1) and Natural
   Earth needs a visible home, with the artwork credits; track in production.
-- Entry from About or Art starts the zoom-out from that camera, not the overview; the anchor is pinned
-  to the landscape over the first tenth, so it holds, but review how the first second reads from there.
-- Direct entry to `/travel/[trip]` opens at the overview pose with the trip turned to its marker;
-  the focus pose is only known once the globe has mounted. Decide whether to start there instead.
+- Every journey is one motion (2026-10-11, `lib/scene/cameraJourney.ts`: a trip leaves straight to Art or Home
+  in the one shrink, from its own framing); review the zoom-out from the Art pose, the shrink from the trip
+  framing, and the fade-out of All works before the route changes.
+- The planet's surface under the landscape is one coarse facet at Earth scale, so the landscape's rim stands up
+  to about a unit off it at the start of the zoom-out; the rim now fades into the ground (its edge fade kept as
+  alpha and composited by `globe.frag`), which hides the step from any camera. A fine ground patch around the
+  landing place would remove the step itself if a future section looks at the rim more closely.
+- Direct entry to `/travel/[trip]` opens at the overview pose with the trip selected (the rig initialises at
+  the section pose; the trip pose is static, `getTravelTripPose`). Decide whether to open at the trip pose.
 - Motion blur during the zoom-out was part of the brief; there is none yet. Judge whether it needs
   any once the zoom-out is tuned.
 - Track loading for real recordings: inline segments today; add a fetched `public/travel/tracks`

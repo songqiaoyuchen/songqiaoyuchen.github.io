@@ -12,7 +12,7 @@ import {
 import type {TerrainControlValues} from '@/components/scene/controls/useSceneControls';
 import {useRegion} from '@/components/scene/travel/useRegion';
 import {TERRAIN_MATERIAL_CONFIG, TERRAIN_MESH_CONFIG} from '@/config/scene';
-import {TRAVEL_CONFIG} from '@/config/scene/travel';
+import {TRAVEL_CONFIG, TRAVEL_OVERVIEW_CONFIG} from '@/config/scene/travel';
 import {
   requestTerrainGradient,
   useTerrainAssets,
@@ -185,8 +185,8 @@ export function TerrainMesh({settings, look}: TerrainMeshProps) {
     uMetresPerUnit: { value: 1000 },
     uLandBase:      { value: new Color(TRAVEL_CONFIG.baseColor) },
     uLandLine:      { value: new Color(TRAVEL_CONFIG.lineColor) },
-    uLandTint:      { value: TRAVEL_CONFIG.landTint },
-    uLandShade:     { value: TRAVEL_CONFIG.shade },
+    uLandTint:      { value: TRAVEL_OVERVIEW_CONFIG.landTint },
+    uLandShade:     { value: TRAVEL_OVERVIEW_CONFIG.shade },
     uRideBlend:     { value: 0 },
   }), [displacementMap, staticLightingMap]);
 
@@ -253,7 +253,6 @@ export function TerrainMesh({settings, look}: TerrainMeshProps) {
         vertexShader={vertexShader}
         fragmentShader={fragmentShader}
         uniforms={uniforms}
-        transparent
         fog
       />
     </mesh>

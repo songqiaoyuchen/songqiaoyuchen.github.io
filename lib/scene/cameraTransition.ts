@@ -32,8 +32,9 @@ export class CameraTransition {
     // A stalled frame must not skip the visible journey.
     this.elapsed += Math.min(Math.max(delta, 0), 1 / 30);
     const progress = reducedMotion ? 1 : Math.min(this.elapsed / seconds, 1);
-    // Zero velocity and acceleration at either end, including the final frame.
-    const eased = progress ** 3 * (progress * (progress * 6 - 15) + 10);
+    // Zero velocity and acceleration at either end, including the final frame (clamped: the polynomial can
+    // round a hair past 1 just before the end).
+    const eased = Math.min(progress ** 3 * (progress * (progress * 6 - 15) + 10), 1);
     this.progress = progress;
     camera.position.lerpVectors(this.startPosition, this.endPosition, eased);
     camera.quaternion.slerpQuaternions(this.startRotation, this.endRotation, eased);

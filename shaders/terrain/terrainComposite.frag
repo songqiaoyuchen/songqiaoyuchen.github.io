@@ -111,7 +111,8 @@ vec3 digital() {
   vec2 grid = uResolution / DIGITAL_CELL;
   vec2 cell = floor(vUv * grid);
   vec2 sampleUv = (cell + .5) / grid;
-  vec3 sampleColor = texture2D(uTexture, sampleUv).rgb;
+  vec4 cached = texture2D(uTexture, sampleUv);
+  vec3 sampleColor = mix(uBackground, cached.rgb, cached.a);
   float illumination = dot(sampleColor, LUMA);
   float background = dot(uBackground, LUMA);
   // Lift faint lighting continuously without assigning uniform dots to shadow
@@ -202,9 +203,12 @@ float replacementMask(out float glow) {
 }
 
 void main() {
-  vec4 original = texture2D(uTexture, vUv);
+  // The cache holds the fogged terrain with its edge fade as alpha (stored straight, so the globe can composite
+  // it over its own ground); here it lies over the background.
+  vec4 cached = texture2D(uTexture, vUv);
+  vec3 original = mix(uBackground, cached.rgb, cached.a);
   if (uCaptureSource >= 0.0) {
-    vec3 color = mediumColor(uCaptureSource, original.rgb, imageUv(vUv));
+    vec3 color = mediumColor(uCaptureSource, original, imageUv(vUv));
     color *= exp2(uCaptureAdjust.x);
     float luminance = dot(color, vec3(.2126, .7152, .0722));
     color = max(vec3(0.0), mix(vec3(luminance), color, uCaptureAdjust.z));
@@ -213,7 +217,7 @@ void main() {
     return;
   }
   if (uArtOpacity < .0001) {
-    gl_FragColor = original;
+    gl_FragColor = vec4(original, 1.0);
     return;
   }
   vec2 uv = imageUv(vUv);
@@ -221,11 +225,11 @@ void main() {
   float mask = replacementMask(glow);
   vec3 color;
   // Only evaluate the two styles inside the narrow moving boundary.
-  if (mask <= 0.0) color = mediumColor(uFrom, original.rgb, uv);
-  else if (mask >= 1.0) color = mediumColor(uTo, original.rgb, uv);
-  else color = mix(mediumColor(uFrom, original.rgb, uv), mediumColor(uTo, original.rgb, uv), mask);
+  if (mask <= 0.0) color = mediumColor(uFrom, original, uv);
+  else if (mask >= 1.0) color = mediumColor(uTo, original, uv);
+  else color = mix(mediumColor(uFrom, original, uv), mediumColor(uTo, original, uv), mask);
   // Match the Home major rings' pale gold and additive light treatment.
   vec3 ring = uRevealColor * uRevealIntensity;
   color += ring * clamp(max(ring.r, max(ring.g, ring.b)), 0.0, 1.0) * glow;
-  gl_FragColor = vec4(mix(original.rgb, color, uArtOpacity), original.a);
+  gl_FragColor = vec4(mix(original, color, uArtOpacity), 1.0);
 }

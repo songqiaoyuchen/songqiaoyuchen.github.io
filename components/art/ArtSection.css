@@ -21,6 +21,12 @@
   pointer-events: none;
   transition: none;
 }
+/* Leaving for another section: the content fades before the route changes (SceneShell SECTION_LEAVE_MS). */
+.art-environment[data-leaving='true'] .art-content {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 400ms ease;
+}
 
 .art-section {
   /* Page frame; overridden per breakpoint below. */

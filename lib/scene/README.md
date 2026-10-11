@@ -3,6 +3,7 @@
 | File | Purpose |
 | --- | --- |
 | `camera.ts` | Homepage field of view that keeps the authored framing on wider/narrower screens |
+| `cameraJourney.ts` | Journey planning: the one motion between two poses and its kind, which sets its pace (node-tested) |
 | `cameraTransition.ts` | Camera journey: eased position, slerped orientation (node-tested) |
 | `aboutPath.ts` | About route through the checkpoints and each checkpoint's camera framing (node-tested) |
 | `travel.ts` | Travel globe: places on the sphere, yaw/pitch toward the camera, drag release, coast, capture and snap, track densifying, coastline file format, trip framing (node-tested) |

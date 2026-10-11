@@ -104,8 +104,11 @@ about the pivot and, across the edge fade, takes the heights of a baked tile of 
 landing place (Terrarium tiles baked by `scripts/assets/build-travel-geo.mjs region`), which the globe reads for
 its own surface there (`globe.vert`/`.frag`, ever more coarsely toward the tile's edge, `regionSpread`, so it
 softens into the global map); the home contour lines ride a little way and dissolve (`contours.vert`,
-`travelRide`), and the terrain's pool of light gives way to the globe's dark ground (`terrain.frag`), its edge
-fade turning opaque so the landscape meets the planet without a seam; its
+`travelRide`), and the terrain's pool of light gives way to the globe's dark ground (`terrain.frag`). The
+terrain cache keeps the edge fade as alpha (the terrain is stored unblended; `terrainComposite.frag` lays it
+over the background) and `globe.frag` composites it over its own ground where the terrain is translucent, so the
+landscape's rim, which stands a little off the planet's coarse surface, fades into the ground from any camera
+rather than ending in an edge; the globe fogs by each fragment's own depth for the same reason. The terrain's
 relief is real on the way and takes the map's exaggeration as it arrives (`reliefIn`). `SceneFog` thins the haze
 with altitude (`hazeOut`, `hazeFactor`); the lights come on at half strength over the dark ground as the landscape recedes
 (`lightsIn`) and reach full with the lines, the stars arrive with altitude (`starsIn`), and the rim, graticule,
@@ -116,8 +119,13 @@ is never faded as a whole. The globe mounts quietly after the intro so its maps 
 journey. Travel clears the scene text like About. The trip index
 (overview) and trip panel share state with the scene through `TravelSceneContext`, which `TravelGlobe` and `CameraRig`
 read inside the canvas (R3F bridges the contexts above it), so a selection or hover re-renders only them; arrows step through
-trips, Escape returns to the overview. Phones use their own Travel pose with the content in a sheet. Leva's
-Travel folder tunes look, relief, feel, framing and the zoom-out and saves to `config/scene/travel.ts`; its
+trips, Escape returns to the overview. Phones use their own Travel pose with the content in a sheet.
+`config/scene/travel.ts` holds three groups that never stand in for each other: `TRAVEL_CONFIG` (the globe as
+both views draw it, and the zoom-out), `TRAVEL_OVERVIEW_CONFIG` (all trips: ground, rings, feel by hand) and
+`TRAVEL_TRIP_CONFIG` (a trip: framing, its own servo hold rate, the focus journey and the raised-relief ground,
+whose summary blur rebuilds live); the globe eases between the overview's and the trip's values over the focus
+journey. Leva shows the matching Travel, Travel Overview (overview only) and Travel Trip (trip open only) folders,
+each saving to its group (the dev-config writer scopes keys to an exported object). The Travel folder's
 Edit camera toggle hands the pointer to the dev orbit camera so Save Camera can store the Travel (and phone
 Travel) poses.
 
@@ -202,7 +210,43 @@ In development, Leva's Art Camera folder enables orbit/pan/zoom and numeric
 position/target editing. Save Art View persists that shared pose to
 `config/scene/camera.ts`; Reset restores the last saved view. Reduced motion
 settles section transitions immediately.
-Camera journeys interpolate position and orientation independently with eased
+A camera journey is one motion straight from the pose the camera holds to the one asked for, planned by
+`lib/scene/cameraJourney.ts`, which names its kind (Travel's morph, the globe's focus turn, Art's flight,
+About's) and so its time. The rules:
+
+- One zoom or one shrink, never a stop on the way. A trip leaves straight to Art or Home in the one shrink of
+  the planet; Art, About or the overview enters Travel, or a trip, in the one zoom-out. The overview is just
+  another camera angle, not a waypoint.
+- The effects go by the journey's two ends and run over its whole length: the Travel morph whenever one end
+  is Travel, the Art flight fog whenever one end is Art, the globe's focus progress between Travel's overview
+  and a trip. A journey from Art to Travel does both at once.
+- A new destination mid-journey sets off from where the camera is, the effects continuing from their live
+  values; the last frame lands exactly on their end values.
+- The globe keeps the trip it was showing while it shrinks away (the route, and so the selection, changes
+  mid-way), so leaving a trip is one shrink from that framing rather than a swing back to the overview first.
+  On the ride the globe's own turn holds still: its servo would chase the marker offset against a camera that
+  moves every frame, and the turn is composed in the view of the lens the globe rests under (yaw about the axis,
+  pitch about that camera's right), not the moving camera's, or it would turn with the camera. Arriving at a
+  trip from outside Travel, the own turn is set once at the start of the ride to where the arriving camera will
+  see the trip, hidden under the flat planet until the globe forms, so no correction follows on arrival. The
+  globe publishes its outline for the trip panel only once it has arrived, so the panel is not reflowed around
+  an Earth-sized shape every frame of the ride.
+- The camera is never inside the planet, and nothing pushes it off its path. The planet is placed about the
+  camera: the landing point's direction eases, in the live camera's own frame, from where the landscape stands to
+  where the anchor rests, and its distance along that ray is whatever stands the camera a set height above the
+  planet's surface (`rideDistance`), that height falling geometrically from the camera's height over the flat
+  Earth-sized planet to its height over the resting globe. Placed the other way round (the landing point at an
+  interpolated distance), the planet, growing about the landing place while tilting into its own turn, would
+  sweep past a camera framing a trip near its limb. Directions, not screen positions: the landscape falls behind
+  a camera that has turned up to the globe, where projection folds over and a screen glide swings wild.
+- The glide starts from the live camera's view of the landing point, not the overview's, so a journey from any
+  pose begins exactly where the landscape stands and never pans to meet it.
+
+Leaving Art or Travel by the nav, `SceneShell` cancels the link, fades the section's content out
+(`data-leaving`) while the camera sets off, and pushes the route once it is invisible; Back/Forward keep the
+instant swap. The canvas is sized to the viewport width (`w-screen`), not its container, so a scrollbar coming
+or going with the route (All works scrolls, Travel does not) cannot resize it mid-journey: a resized WebGL
+canvas is blank for a frame. Journeys interpolate position and orientation independently with eased
 departure/arrival; the focus follows the rotation so large turns cannot cross
 the camera. The rig applies its pose after development orbit controls, which are off on About, where
 the pose and each checkpoint's framing are authored and the route editor takes the pointer.

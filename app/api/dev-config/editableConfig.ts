@@ -1,4 +1,5 @@
-// Allowlist for the dev config writer: save scope -> config file and the keys Leva may overwrite.
+// Allowlist for the dev config writer: save scope -> config file (and optionally the exported object within it)
+// and the keys Leva may overwrite.
 // Scopes match the `scope.key` names posted by components/scene/controls.
 export const EDITABLE_CONFIG = {
   camera: {
@@ -15,13 +16,24 @@ export const EDITABLE_CONFIG = {
       'fov', 'artTransitionSeconds',
     ],
   },
+  // Three groups in one file share key names (relief, landTint); `object` keeps each scope's writes to its own.
   travel: {
     file: 'scene/travel.ts',
+    object: 'TRAVEL_CONFIG',
     keys: ['baseColor', 'rimColor', 'rimIntensity', 'lineColor', 'graticuleIntensity', 'coastIntensity',
-      'relief', 'landTint', 'lightDensity', 'lightSize', 'starSize', 'trailColor', 'trailRadius',
-      'landscapeKm', 'linesIn', 'journeySeconds',
-      'friction', 'snapBelow', 'capture', 'snapRate', 'idleDrift', 'idleAfter',
-      'markerOffset', 'focusSeconds', 'turnFrom', 'turnSettle'],
+      'lightDensity', 'lightSize', 'starSize', 'trailColor', 'trailRadius',
+      'landscapeKm', 'linesIn', 'journeySeconds'],
+  },
+  travelOverview: {
+    file: 'scene/travel.ts',
+    object: 'TRAVEL_OVERVIEW_CONFIG',
+    keys: ['relief', 'landTint', 'friction', 'snapBelow', 'capture', 'snapRate', 'idleDrift', 'idleAfter'],
+  },
+  travelTrip: {
+    file: 'scene/travel.ts',
+    object: 'TRAVEL_TRIP_CONFIG',
+    keys: ['markerOffset', 'holdRate', 'focusSeconds', 'turnFrom', 'turnSettle',
+      'summaryBlur', 'relief', 'shade', 'landTint'],
   },
   aboutPath: {
     file: 'scene/aboutPath.ts',

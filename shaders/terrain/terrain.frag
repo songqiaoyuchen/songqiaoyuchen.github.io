@@ -71,7 +71,8 @@ vec3 rideColor(float edge) {
 
 void main() {
   // The fade follows the landscape's own plan distance, so it rides along onto the globe; what it has hidden
-  // leaves no depth behind, so the globe shows through there.
+  // leaves no depth behind, so the globe shows through there, and what it has only thinned the globe shows
+  // through by this alpha.
   float edge = smoothstep(edgeFade.x, edgeFade.y, vPlan);
   float edgeOpacity = 1.0 - edge;
   if (edgeOpacity < 0.004) discard;
@@ -83,6 +84,9 @@ void main() {
   float settle = max(uRideBlend, smoothstep(0.0, edgeFade.x, vPlan) * smoothstep(0.0, 0.04, uMorph));
   if (settle > 0.0) color = mix(color, rideColor(edge), settle);
 
-  gl_FragColor = vec4(color, mix(edgeOpacity, 1.0, settle));
+  // The fade stays on the ride: the globe draws the planet's ground through it (globe.frag composites the cache
+  // over itself where the terrain is translucent), so the rim, which stands a little off the planet's coarse
+  // surface, never ends in a visible edge. Stored straight (no blending) so the cache keeps this alpha.
+  gl_FragColor = vec4(color, edgeOpacity);
   #include <fog_fragment>
 }

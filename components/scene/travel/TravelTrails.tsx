@@ -28,9 +28,10 @@ type TravelTrailsProps = {
   trips: readonly Trip[];
   radius: number;
   settings: TrailSettings;
-  /** The globe's relief: trails ride it. */
+  /** The globe's relief this frame and how far it has taken the elevation summary: trails ride it. */
   elevation: Elevation | null;
-  relief: number;
+  reliefRef: MutableRefObject<number>;
+  focusRef: MutableRefObject<number>;
   terrainDepthTexture: DepthTexture | null;
   /** Trip drawn bright: the selected one, else the one the globe rests on; -1 for none. */
   brightIndex: number;
@@ -52,13 +53,15 @@ type Tube = {
     uHasElevation: {value: number};
     uRelief: {value: number};
     uRadius: {value: number};
+    uSummary: {value: Texture | null};
+    uFocus: {value: number};
     uTerrainDepth: {value: DepthTexture | null};
     uUseTerrainDepth: {value: number};
   };
 };
 
 export function TravelTrails({
-  trips, radius, settings, elevation, relief, terrainDepthTexture, brightIndex, visibilityRef, onMeshes,
+  trips, radius, settings, elevation, reliefRef, focusRef, terrainDepthTexture, brightIndex, visibilityRef, onMeshes,
 }: TravelTrailsProps) {
   const {trailColor, trailRadius, trailLift, dashLength, trailStep} = settings;
   const meshesRef = useRef<Array<Mesh | null>>([]);
@@ -83,6 +86,8 @@ export function TravelTrails({
           uHasElevation: {value: 0},
           uRelief: {value: 0},
           uRadius: {value: radius},
+          uSummary: {value: null},
+          uFocus: {value: 0},
           uTerrainDepth: {value: null},
           uUseTerrainDepth: {value: 0},
         },
@@ -111,11 +116,11 @@ export function TravelTrails({
       if (!material) return;
       material.uniforms.uElevation.value = elevation?.texture ?? null;
       material.uniforms.uHasElevation.value = elevation ? 1 : 0;
-      material.uniforms.uRelief.value = relief;
+      material.uniforms.uSummary.value = elevation?.summary ?? null;
       material.uniforms.uTerrainDepth.value = terrainDepthTexture;
       material.uniforms.uUseTerrainDepth.value = terrainDepthTexture ? 1 : 0;
     });
-  }, [elevation, relief, terrainDepthTexture, tubes]);
+  }, [elevation, terrainDepthTexture, tubes]);
 
   useEffect(() => {
     onMeshes(meshesRef.current.slice(0, tubes.length).filter((mesh): mesh is Mesh => mesh !== null));
@@ -126,8 +131,10 @@ export function TravelTrails({
     for (let index = 0; index < materials.length; index++) {
       const material = materials[index];
       if (!material) continue;
-      const {uVisibility} = material.uniforms;
+      const {uVisibility, uRelief, uFocus} = material.uniforms;
       uVisibility.value = visibilityRef.current;
+      uRelief.value = reliefRef.current;
+      uFocus.value = focusRef.current;
     }
   });
 

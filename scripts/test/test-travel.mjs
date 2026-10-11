@@ -3,11 +3,11 @@
 import assert from 'node:assert/strict';
 import {PerspectiveCamera, Vector3} from 'three';
 import {getCameraPose} from '../../config/scene/camera.ts';
-import {TRAVEL_CONFIG} from '../../config/scene/travel.ts';
+import {TRAVEL_CONFIG, TRAVEL_OVERVIEW_CONFIG} from '../../config/scene/travel.ts';
 import {
   advanceGlobe, aimForOffset, aimFromScreen, anglesToward, angularDistance, createGlobeState, decodeLines,
   densifyTrack, encodeLines, facingAngles, frontPlace, globeQuaternion, graticulePositions,
-  lonLatToUnit, markerScreenFor, nearestPlace, offsetForMarker, planetScale, polylineLength, regionSpread,
+  lonLatToUnit, markerScreenFor, nearestPlace, offsetForMarker, planetScale, polylineLength, regionSpread, rideDistance,
   releaseGlobe,
   toGlobeSettings, trackGaps, viewFromCamera,
 } from '../../lib/scene/travel.ts';
@@ -59,7 +59,7 @@ assert.equal(nearestPlace(places, [60, 10], 360), 1);
 // high latitudes included.
 const travel = cameraAt(getCameraPose('travel'));
 const travelView = viewFromCamera(center, travel.position);
-const settings = toGlobeSettings(TRAVEL_CONFIG);
+const settings = toGlobeSettings({...TRAVEL_OVERVIEW_CONFIG, maxPitch: TRAVEL_CONFIG.maxPitch});
 // A fixed offset well inside the globe's outline: the configured one is tuned by hand and may sit near its limb.
 const MARKER_OFFSET = [0.25, 0.15];
 const markerScreen = markerScreenFor(travel, center, radius, MARKER_OFFSET);
@@ -211,6 +211,17 @@ for (const [index, startYaw] of [[0, 0], [1, Math.PI], [2, 2.5], [3, -1]]) {
   const half = planetScale(20, 22, 3, 0.5);
   assert.ok(Math.abs(half.radius - Math.sqrt(3 * start.startRadius)) < 1e-6, 'geometric midpoint');
   assert.ok(planetScale(60, 22, 3, 0).startRadius < start.startRadius, 'a wider landscape means a smaller planet');
+  // The landing point along a ray: the camera stands exactly the asked height above the planet placed through it.
+  for (const [radius, cosine, height] of [[7008, -0.4, 30], [3, -0.02, 1.7], [50, 0.1, 2], [600, -0.9, 0.5]]) {
+    const along = rideDistance(radius, cosine, height);
+    assert.ok(along > 0);
+    // Camera at the origin looking along +z, the surface normal at the given cosine to the ray, in the x-z plane.
+    const normal = [Math.sqrt(1 - cosine * cosine), 0, cosine];
+    const centre = [-normal[0] * radius, 0, along - normal[2] * radius];
+    const distance = Math.hypot(centre[0], centre[1], centre[2]);
+    assert.ok(Math.abs(distance - (radius + height)) < 1e-6 * (radius + height), `outside at ${radius}`);
+  }
+  assert.ok(Math.abs(rideDistance(7008, -1, 30) - 30) < 1e-9, 'straight down, the ground is the height away');
   // The 600 km tile at 1024 px is read 33 texels wide by its edge, one global-map texel (2048 px round the equator).
   assert.ok(Math.abs(regionSpread(600, 1024, 1 / 2048) - 33.36) < 0.01);
   // Terrarium tiles: Web Mercator and the zoom for a wanted resolution.

@@ -43,4 +43,21 @@ assert.ok(replaceKey(source, 'focusScreen', '[0, 0]').includes('focusScreen: [0,
 assert.ok(replaceKey(source, 'trailColor', "'#fff'").includes("trailColor: '#fff'}"));
 assert.equal(replaceKey(source, 'missing', '1'), null);
 
+// With an object, the key is looked up only within that export (config/scene/travel.ts groups share key names).
+const groups = [
+  'export const A = {',
+  '  relief: 0.012,',
+  '} as const;',
+  '',
+  '// relief: a comment',
+  'export const B = {',
+  '  relief: 0.03,',
+  '} as const;',
+].join('\n');
+assert.ok(replaceKey(groups, 'relief', '0.05', 'B').includes('  relief: 0.012,\n} as const;\n\n// relief: a comment'));
+assert.ok(replaceKey(groups, 'relief', '0.05', 'B').endsWith('  relief: 0.05,\n} as const;'));
+assert.ok(replaceKey(groups, 'relief', '0.02', 'A').startsWith('export const A = {\n  relief: 0.02,'));
+assert.equal(replaceKey(groups, 'relief', '1', 'C'), null);
+assert.equal(replaceKey(groups, 'missing', '1', 'A'), null);
+
 console.log('dev config: ok');

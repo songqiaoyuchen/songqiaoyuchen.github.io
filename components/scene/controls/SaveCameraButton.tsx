@@ -7,6 +7,7 @@ import {useTravelScene} from '@/components/travel/TravelSceneContext';
 import {SCENE_LAYOUT_CONFIG} from '@/config/scene';
 import type {SectionId} from '@/data/sections';
 import {postConfigValues} from './saveConfig';
+import {TRAVEL_TRIP_FOLDER_NAME} from './useTravelControls';
 
 const round3 = (value: number) => Math.round(value * 1000) / 1000;
 
@@ -57,8 +58,8 @@ export function SaveCameraButton({
       const offset = pose === 'travelTrip' ? measureTravelOffset?.current?.() : null;
       if (offset) {
         const rounded: [number, number] = [round3(offset[0]), round3(offset[1])];
-        values['travel.markerOffset'] = rounded;
-        levaStore.set({'Travel.Trip.markerOffset': rounded}, false);
+        values['travelTrip.markerOffset'] = rounded;
+        levaStore.set({[`${TRAVEL_TRIP_FOLDER_NAME}.Framing.markerOffset`]: rounded}, false);
       }
       void postConfigValues('Save Camera', values);
     }),

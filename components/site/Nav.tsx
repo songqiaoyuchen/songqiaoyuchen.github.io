@@ -9,6 +9,18 @@ import {navStyles} from './Nav.styles';
 
 /** Dispatched on window when SQYC is clicked on Home: SceneShell closes any open section. */
 export const HOME_OVERVIEW_EVENT = 'sqyc:home-overview';
+/**
+ * Dispatched on window (cancelable, detail {href}) before a nav link navigates: SceneShell cancels it to fade a
+ * routed section's content out and start the camera before it pushes the route itself.
+ */
+export const SECTION_NAVIGATE_EVENT = 'sqyc:section-navigate';
+
+/** Let the shell take over an ordinary (unmodified) click on a section link. */
+function requestSectionNavigation(event: React.MouseEvent, href: string) {
+  if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+  const handled = !window.dispatchEvent(new CustomEvent(SECTION_NAVIGATE_EVENT, {cancelable: true, detail: {href}}));
+  if (handled) event.preventDefault();
+}
 
 const NAV_ITEMS = [
   {href: '/projects', label: SECTION_LABELS.projects},
@@ -30,7 +42,9 @@ export function Nav() {
         className={`${navStyles.brand} ${pathname === '/' ? navStyles.current : navStyles.idle}`}
         href="/"
         // Already Home: the link cannot navigate, so ask the scene to return to the landscape overview.
-        onClick={pathname === '/' ? () => window.dispatchEvent(new Event(HOME_OVERVIEW_EVENT)) : undefined}
+        onClick={pathname === '/'
+          ? () => window.dispatchEvent(new Event(HOME_OVERVIEW_EVENT))
+          : (event) => requestSectionNavigation(event, '/')}
         // Start fetching the terrain manifest as soon as Home looks likely.
         onFocus={pathname === '/' ? undefined : preloadTerrainManifest}
         onPointerEnter={pathname === '/' ? undefined : preloadTerrainManifest}
@@ -49,6 +63,7 @@ export function Nav() {
                 // Already on Art or Travel: keep the current view instead of resetting it.
                 if (KEEPS_VIEW.includes(item.href) && pathname.startsWith(item.href)
                   && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) event.preventDefault();
+                else requestSectionNavigation(event, item.href);
               }}
             >
               {item.label}

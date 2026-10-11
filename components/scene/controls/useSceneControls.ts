@@ -21,9 +21,9 @@ export function useSceneControls(activeId: SectionId | null) {
   const sceneLinks = useSceneLinkControls();
   const glyphRain = useGlyphRainControls();
   const aboutPath = useAboutPathControls();
-  const travel = useTravelControls();
+  const {travel, travelOverview, travelTrip} = useTravelControls();
 
-  return {terrain, contours, fog, postProcessing, sceneLinks, glyphRain, aboutPath, travel};
+  return {terrain, contours, fog, postProcessing, sceneLinks, glyphRain, aboutPath, travel, travelOverview, travelTrip};
 }
 
 export type SceneControlValues = ReturnType<typeof useSceneControls>;
@@ -34,3 +34,5 @@ export type SceneLinkControlValues = SceneControlValues['sceneLinks'];
 export type GlyphRainControlValues = SceneControlValues['glyphRain'];
 export type AboutPathControlValues = SceneControlValues['aboutPath'];
 export type TravelControlValues = SceneControlValues['travel'];
+export type TravelOverviewControlValues = SceneControlValues['travelOverview'];
+export type TravelTripControlValues = SceneControlValues['travelTrip'];

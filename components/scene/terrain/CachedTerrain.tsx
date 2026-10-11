@@ -8,6 +8,7 @@ import {useLayoutEffect, useMemo, useRef} from 'react';
 import {
   Fog, HalfFloatType, Scene, Vector2,
   type Camera, type ShaderMaterial, type WebGLRenderer,
+  type Texture,
 } from 'three';
 import {useArtScene} from '@/components/art/ArtSceneContext';
 import type {
@@ -53,6 +54,8 @@ type CachedTerrainProps = {
   preloadBackdrops: boolean;
   fogSettings: FogControlValues;
   onDepthTextureChange: (texture: ReturnType<typeof useFBO>['depthTexture']) => void;
+  /** The cache itself: the fogged terrain with its edge fade as alpha (the globe composites it over its ground). */
+  onColorTextureChange: (texture: Texture | null) => void;
   terrainSettings: TerrainControlValues;
   /** The globe's colours, for the terrain riding to Travel. */
   travelLook: {baseColor: string; lineColor: string; landTint: number; shade: number};
@@ -70,6 +73,7 @@ export function CachedTerrain({
   preloadBackdrops,
   fogSettings,
   onDepthTextureChange,
+  onColorTextureChange,
   terrainSettings,
   travelLook,
 }: CachedTerrainProps) {
@@ -120,8 +124,12 @@ export function CachedTerrain({
 
   useLayoutEffect(() => {
     onDepthTextureChange(target.depthTexture);
-    return () => onDepthTextureChange(null);
-  }, [onDepthTextureChange, target.depthTexture]);
+    onColorTextureChange(target.texture);
+    return () => {
+      onDepthTextureChange(null);
+      onColorTextureChange(null);
+    };
+  }, [onColorTextureChange, onDepthTextureChange, target.depthTexture, target.texture]);
 
   useLayoutEffect(() => {
     dirty.current = true;

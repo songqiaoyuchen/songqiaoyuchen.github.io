@@ -12,6 +12,12 @@
   pointer-events: none;
   transition: none;
 }
+/* Leaving for another section: the content fades before the route changes (SceneShell SECTION_LEAVE_MS). */
+.travel-environment[data-leaving='true'] .travel-content {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 400ms ease;
+}
 
 .travel-section {
   --travel-signal: #8fe3d6; /* the trail colour (TRAVEL_CONFIG.trailColor) */
