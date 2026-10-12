@@ -1,4 +1,4 @@
-// Archive list on /blog: numbered rows with title, summary, tags, date and reading time.
+// Archive list on /blog/all: numbered rows with title, summary, tags, date and reading time.
 import Link from 'next/link';
 import type {ArticleSummary} from '@/lib/content/types';
 

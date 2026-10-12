@@ -1,4 +1,4 @@
-// Blog archive route (/blog): every published article, newest first.
+// Blog archive route (/blog/all): every published article, newest first.
 import type {Metadata} from 'next';
 import {ArticleList} from '@/components/blog/ArticleList';
 import {pageStyles} from '@/components/site/page.styles';
@@ -16,8 +16,8 @@ export default async function BlogPage() {
     <main className={pageStyles.main}>
       <div className={`${pageStyles.container} max-w-6xl`}>
         <header>
-          <h1 className={pageStyles.title}>
-            Blog
+          <h1 className={pageStyles.archiveTitle}>
+            All writing <span aria-hidden="true" className={pageStyles.archiveTotal}>{articles.length}</span>
           </h1>
         </header>
 

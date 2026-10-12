@@ -1,6 +1,6 @@
 # components/home/drawer
 
-Preview drawer that slides in beside the scene when a scene link (ABOUT, BLOG, PROJECTS) is clicked.
+Preview drawer that slides in beside the scene on the `/about`, `/blog` and `/projects` routes (scene links and nav open them).
 Blog and Projects open on the left; About opens on the right of its terrain path, wider, with its own column padding.
 
 | File / folder | Purpose |

@@ -1,5 +1,5 @@
 // Project card linking to the repository: pixel-shimmer cover, title, summary and tech stack.
-// Used by the Projects drawer and the /projects page.
+// Used by the Projects drawer and the /projects/all page.
 'use client';
 
 import Image from 'next/image';

@@ -297,7 +297,8 @@ reads the completed composer frame to PNG at 2048 or 4096 pixels wide without
 retaining the drawing buffer; it restores device pixel ratio on exit. Settings
 export records the live camera and adjustments. One consolidated prompt per
 backdrop lives in `public/art-prompts/`, alongside a brief capture guide.
-Archives remain at `/projects` and `/blog`; About/contact lives in its drawer.
+`/projects` and `/blog` are drawer routes in the `(scene)` layout, like `/about`: the nav and scene links open the
+drawer, whose "View all" link leads to the archive at `/projects/all` or `/blog/all` (as Selected works leads to All works).
 Project cards link directly to repositories.
 
 Review backdrops in the actual `/artworks` scene so camera, fog,

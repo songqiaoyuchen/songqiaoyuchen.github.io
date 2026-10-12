@@ -1,4 +1,4 @@
-// Projects drawer panel: featured project cards and a link to /projects.
+// Projects drawer panel: featured project cards and a link to /projects/all.
 'use client';
 
 import Link from 'next/link';
@@ -42,7 +42,7 @@ export function ProjectsPanel({isOpen}: ProjectsPanelProps) {
             ))}
           </div>
 
-          <Link className={`${panelStyles.viewAll} ${panelStyles.focusRing}`} href="/projects">
+          <Link className={`${panelStyles.viewAll} ${panelStyles.focusRing}`} href="/projects/all">
             View all projects <span aria-hidden="true" className="ml-2">&rarr;</span>
           </Link>
         </div>

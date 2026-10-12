@@ -1,5 +1,6 @@
-// Persistent shell for the Home, About, Art and Travel routes: one WebGL scene, the homepage hero/drawer/preloader,
-// and the Art or Travel route content layered on top. Kept mounted across those routes so the canvas survives.
+// Persistent shell for the Home, About, Blog, Projects, Art and Travel routes: one WebGL scene, the homepage
+// hero/drawer/preloader, and the Art or Travel route content layered on top.
+// Kept mounted across those routes so the canvas survives.
 'use client';
 
 import {
@@ -45,7 +46,15 @@ const SHELL_DESTINATIONS: Record<string, SectionId | null> = {
   '/': null,
   '/about': 'about',
   '/artworks': 'art',
+  '/blog': 'blog',
+  '/projects': 'projects',
   '/travel': 'travel',
+};
+/** Drawer routes: the drawer section each path opens beside the scene. */
+const DRAWER_ROUTES: Record<string, SectionId> = {
+  '/about': 'about',
+  '/blog': 'blog',
+  '/projects': 'projects',
 };
 /** How long a routed section's content takes to fade out before its route changes (ArtSection.css, Travel.css). */
 const SECTION_LEAVE_MS = 400;
@@ -54,21 +63,22 @@ export function SceneShell({articles, children}: SceneShellProps) {
   const pathname = usePathname();
   const router = useRouter();
   const isArt = pathname.startsWith('/artworks');
-  const isAbout = pathname === '/about';
+  const drawerRoute: SectionId | null = DRAWER_ROUTES[pathname] ?? null;
+  const isAbout = drawerRoute === 'about';
   const isTravel = pathname.startsWith('/travel');
   const {backdrop, capture} = useArtScene();
   // Only the stable setters: the selected, hovered and captured trips reach the globe and the camera through the
   // canvas's context bridge, so their changes leave the shell (and the canvas tree) alone.
   const travelActions = useTravelSceneActions();
-  // Blog and Projects are drawer state; Art, About and Travel are routes. A routed section is also held here for
-  // the moment between its link click and its route arriving, so the camera and drawer start at once.
+  // Every section is a route. The one clicked is also held here for the moment between its link click and its
+  // route arriving, so the camera and drawer start at once.
   const [previewId, setPreviewId] = useState<SectionId | null>(null);
   // Leaving Art or Travel by the nav: the content fades and the camera sets off before the route changes.
   const [leaving, setLeaving] = useState<{href: string; id: SectionId | null; from: string} | null>(null);
   // The route has moved on (by the shell's own push or by history): the leaving state has done its job.
   if (leaving !== null && leaving.from !== pathname) setLeaving(null);
   const activeId: SectionId | null = leaving ? leaving.id
-    : isArt ? 'art' : isAbout ? 'about' : isTravel ? 'travel' : previewId;
+    : isArt ? 'art' : isTravel ? 'travel' : drawerRoute ?? previewId;
   // About: the timeline stop the drawer has settled on, and checkpoint clicks asking it to scroll.
   const [aboutStop, setAboutStop] = useState(-1);
   const [aboutScrollRequest, setAboutScrollRequest] = useState<AboutScrollRequest | null>(null);
@@ -93,7 +103,7 @@ export function SceneShell({articles, children}: SceneShellProps) {
 
   // A routed section dismisses the old homepage preview, including entry via Nav.
   // Adjust before rendering so Home always returns to the landscape overview.
-  if ((isArt || isAbout || isTravel) && previewId !== null) setPreviewId(null);
+  if ((isArt || isTravel || drawerRoute !== null) && previewId !== null) setPreviewId(null);
   // Leaving About returns its camera to the section pose and forgets where the drawer was: a reopened
   // panel starts at the top rather than scrolling back to the last checkpoint clicked.
   if (activeId !== 'about' && aboutStop !== -1) setAboutStop(-1);
@@ -163,27 +173,24 @@ export function SceneShell({articles, children}: SceneShellProps) {
       router.push('/artworks');
       return;
     }
-    if (id === 'about') {
-      if (isAbout) {
-        router.push('/');
-      } else {
-        setPreviewId('about');
-        router.push('/about');
-      }
-      return;
-    }
     if (id === 'travel') {
       setPreviewId('travel');
       router.push('/travel');
       return;
     }
-    setPreviewId((currentId) => (currentId === id ? null : id));
-  }, [isAbout, router]);
+    // About, Blog and Projects open as drawer routes; their scene link again closes the drawer.
+    if (drawerRoute === id) {
+      router.push('/');
+    } else {
+      setPreviewId(id);
+      router.push(`/${id}`);
+    }
+  }, [drawerRoute, router]);
 
   const closeSection = useCallback(() => {
-    if (isAbout) router.push('/');
+    if (drawerRoute !== null) router.push('/');
     else setPreviewId(null);
-  }, [isAbout, router]);
+  }, [drawerRoute, router]);
 
   const openTrip = useCallback((id: string) => router.push(`/travel/${id}`), [router]);
 

@@ -4,7 +4,7 @@ Blog UI and the components available inside MDX articles (`mdx-components.tsx`).
 
 | File | Purpose |
 | --- | --- |
-| `ArticleList.tsx` | `/blog` archive rows |
+| `ArticleList.tsx` | `/blog/all` archive rows |
 | `ArticleHeader.tsx` | Article title, deck, date, reading time and tags |
 | `Callout.tsx` | MDX `<Callout>` |
 | `Figure.tsx` | MDX `<Figure>` |

@@ -9,7 +9,7 @@ React UI, grouped by the part of the site it belongs to.
 | `home/` | Homepage overlays: hero, preloader, preview drawer |
 | `art/` | Art section: Selected works carousel, All works, inspection, Screenshot mode |
 | `travel/` | Travel section: trip index, trip panel, photo viewer, state shared with the globe |
-| `projects/` | Project cards (drawer and `/projects`) |
+| `projects/` | Project cards (drawer and `/projects/all`) |
 | `blog/` | Article list, article header and MDX components |
 | `scene/` | Everything inside the React Three Fiber canvas |
 

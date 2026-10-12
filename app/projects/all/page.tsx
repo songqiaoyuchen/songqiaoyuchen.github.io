@@ -1,4 +1,4 @@
-// Projects archive route (/projects): every project card in a responsive grid.
+// Projects archive route (/projects/all): every project card in a responsive grid.
 import type {Metadata} from 'next';
 import {ProjectCard} from '@/components/projects/ProjectCard';
 import {pageStyles} from '@/components/site/page.styles';
@@ -14,8 +14,8 @@ export default function ProjectsPage() {
     <main className={pageStyles.main}>
       <div className={`${pageStyles.container} max-w-7xl`}>
         <header className="max-w-2xl">
-          <h1 className={pageStyles.title}>
-            Projects
+          <h1 className={pageStyles.archiveTitle}>
+            All projects <span aria-hidden="true" className={pageStyles.archiveTotal}>{PROJECTS.length}</span>
           </h1>
         </header>
 

@@ -15,7 +15,7 @@ function formatDate(date: string) {
 export function ArticleHeader({article}: {article: ArticleMetadata}) {
   return (
     <header className="border-b border-line pb-8 sm:pb-12">
-      <Link className={`${pageStyles.textLink} text-muted hover:text-accent`} href="/blog">
+      <Link className={`${pageStyles.textLink} text-muted hover:text-accent`} href="/blog/all">
         <span aria-hidden="true">←&nbsp;</span> All writing
       </Link>
 

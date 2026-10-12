@@ -1,4 +1,4 @@
-// Software projects shown in the Projects drawer (featured) and on /projects (all).
+// Software projects shown in the Projects drawer (featured) and on /projects/all.
 import type {StaticImageData} from 'next/image';
 import thisSiteImage from '@/public/images/projects/this-site.webp';
 import uniplansImage from '@/public/images/projects/uniplans.webp';

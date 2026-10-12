@@ -53,7 +53,7 @@ export function BlogPanel({articles, isOpen}: BlogPanelProps) {
             </p>
           )}
 
-          <Link className={`${panelStyles.viewAll} ${panelStyles.focusRing}`} href="/blog">
+          <Link className={`${panelStyles.viewAll} ${panelStyles.focusRing}`} href="/blog/all">
             View all writing <span aria-hidden="true" className="ml-2">&rarr;</span>
           </Link>
         </div>
