@@ -10,4 +10,11 @@
   body {
     @apply m-0 min-h-full bg-background p-0 text-foreground;
   }
+
+  /* No editable fields: text stays selectable without the I-beam or a blinking caret.
+     Both inherit; links and buttons keep the UA pointer, and explicit cursors still win. */
+  html {
+    cursor: default;
+    caret-color: transparent;
+  }
 }
