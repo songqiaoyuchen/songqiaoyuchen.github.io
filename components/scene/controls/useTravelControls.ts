@@ -52,6 +52,10 @@ function useTravelOverviewControls() {
       },
       // TravelCallouts.tsx: the trips' markers, CSS pixels.
       markerSize: {value: TRAVEL_OVERVIEW_CONFIG.markerSize, min: 6, max: 48, step: 1, label: 'Marker size (px)'},
+      // TravelCallouts.tsx: trips nearer than this share one marker, which fans out on a click.
+      clusterWithin: {
+        value: TRAVEL_OVERVIEW_CONFIG.clusterWithin, min: 0, max: 10, step: 0.1, label: 'Cluster within (°)',
+      },
     }, {collapsed: false}),
     Rings: folder({
       // TravelRings.tsx: each ring's axis, tilted about x and z in degrees; drag the joystick to turn it.

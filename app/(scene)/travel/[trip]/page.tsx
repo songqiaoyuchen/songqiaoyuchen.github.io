@@ -1,5 +1,5 @@
 // Selected trip route (/travel/[trip]): static params and metadata; TravelSection renders the trip panel.
-// ?photo=<index> opens the photo viewer on one of the trip's photos.
+// ?gallery=<id>&photo=<index> opens the photo viewer on one of the trip's galleries.
 import type {Metadata} from 'next';
 import {notFound} from 'next/navigation';
 import {getTrip, TRIPS} from '@/data/travel';

@@ -72,6 +72,7 @@ export const TRAVEL_OVERVIEW_CONFIG = {
   landTint: 0.015, // land lightening with height
   trailRadius: 0.0035, // trail tube radius, share of the globe radius
   markerSize: 14, // CSS pixels: every trip's reticle (TravelCallouts.tsx); the diamond is half
+  clusterWithin: 3.5, // degrees: trips nearer than this (chained) share one marker that fans out on a click
 
   // Orbit rings (TravelRings.tsx), outside the globe's turn; in with the lines, gone while a trip is open.
   // Per ring: radius (share of the globe's), arcs with gap degrees between, a fainter inner track when double,
@@ -87,7 +88,7 @@ export const TRAVEL_OVERVIEW_CONFIG = {
 
   // Turning by hand (TravelGlobe.tsx -> lib/scene/travel.ts advanceGlobe): drag, coast, capture, drift.
   dragGain: 0.9, // surface speed as a share of the pointer's
-  friction: 1.2, // release velocity decay, per second
+  friction: 2.3, // release velocity decay, per second
   snapBelow: 5, // degrees per second; slower coasting lets the nearest trip take over
   capture: 35, // degrees from the globe's front a trip can capture from
   snapRate: 2, // share of the remaining error the capture servo closes per second

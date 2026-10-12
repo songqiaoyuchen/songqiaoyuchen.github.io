@@ -1,30 +1,31 @@
-// A trip's photo at full size (/travel/[trip]?photo=<index>): a modal dialog with previous/next and a return to
-// the trip, after Art's inspection dialog.
+// A gallery's photo at full size with its text (/travel/[trip]?gallery=<id>&photo=<index>): a modal dialog with
+// previous/next and a return to the trip, after Art's inspection dialog.
 'use client';
 
 import Image from 'next/image';
 import Link from 'next/link';
 import {useModalDialog} from '@/components/art/inspection/useModalDialog';
-import type {Trip} from '@/data/travel';
+import type {Gallery, GalleryPhoto} from '@/data/travel';
 
 type PhotoViewerProps = {
-  trip: Trip;
+  gallery: Gallery;
+  photos: readonly GalleryPhoto[];
   index: number;
   tripHref: string;
   onClose: () => void;
 };
 
-export function PhotoViewer({trip, index, tripHref, onClose}: PhotoViewerProps) {
+export function PhotoViewer({gallery, photos, index, tripHref, onClose}: PhotoViewerProps) {
   const {dialogRef, closeRef, trapFocus} = useModalDialog();
-  const photos = trip.photos ?? [];
   const photo = photos[index];
   if (!photo) return null;
+  const href = (at: number) => `${tripHref}?gallery=${gallery.id}&photo=${at}`;
   const previous = index > 0 ? index - 1 : null;
   const next = index < photos.length - 1 ? index + 1 : null;
 
   return (
     <dialog
-      aria-label={`${trip.title}: photo ${index + 1} of ${photos.length}`}
+      aria-label={`${gallery.title}: photo ${index + 1} of ${photos.length}`}
       className="travel-viewer"
       onCancel={(event) => {
         event.preventDefault();
@@ -35,7 +36,7 @@ export function PhotoViewer({trip, index, tripHref, onClose}: PhotoViewerProps) 
       ref={dialogRef}
     >
       <div className="travel-viewer-toolbar">
-        <span className="travel-viewer-count">{index + 1} / {photos.length}</span>
+        <span className="travel-viewer-count">{gallery.title} · {index + 1} / {photos.length}</span>
         <a
           aria-label="Close photo and return to the trip"
           className="travel-link"
@@ -51,7 +52,7 @@ export function PhotoViewer({trip, index, tripHref, onClose}: PhotoViewerProps) 
       </div>
       <div className="travel-viewer-image">
         <Image
-          alt={photo.alt}
+          alt={photo.text || `${gallery.title}, photo ${index + 1}`}
           height={photo.height}
           priority
           sizes="(max-width: 767px) 94vw, 86vw"
@@ -61,13 +62,13 @@ export function PhotoViewer({trip, index, tripHref, onClose}: PhotoViewerProps) 
       </div>
       <div className="travel-viewer-nav">
         {previous !== null ? (
-          <Link className="travel-link" href={`${tripHref}?photo=${previous}`} replace scroll={false}>
+          <Link className="travel-link" href={href(previous)} replace scroll={false}>
             <span aria-hidden="true">←</span> Previous
           </Link>
         ) : <span />}
-        <p className="travel-viewer-caption">{photo.alt}</p>
+        <p className="travel-viewer-caption">{photo.text}</p>
         {next !== null ? (
-          <Link className="travel-link" href={`${tripHref}?photo=${next}`} replace scroll={false}>
+          <Link className="travel-link" href={href(next)} replace scroll={false}>
             Next <span aria-hidden="true">→</span>
           </Link>
         ) : <span />}

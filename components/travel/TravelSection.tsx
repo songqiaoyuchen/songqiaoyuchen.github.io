@@ -23,7 +23,7 @@ const VIEW_EXIT_MS = 240;
 
 export function TravelSection() {
   const [queryString, setQueryString] = useState('');
-  const {trip, photo, tripHref} = useTravelRoute(queryString);
+  const {trip, gallery, photos, photo, tripHref} = useTravelRoute(queryString);
   const router = useRouter();
   const {hoveredId, capturedId, indexOpen} = useTravelScene();
   const {setHoveredId, setIndexOpen, globeOutline, globeFront} = useTravelSceneActions();
@@ -107,11 +107,12 @@ export function TravelSection() {
           )}
         </div>
       </main>
-      {trip && photo >= 0 ? (
+      {gallery && photo >= 0 ? (
         <PhotoViewer
+          gallery={gallery}
           index={photo}
+          photos={photos}
           onClose={() => router.replace(tripHref, {scroll: false})}
-          trip={trip}
           tripHref={tripHref}
         />
       ) : null}

@@ -1,8 +1,9 @@
-/* Travel markers (TravelCallouts.tsx): a diamond per trip in the trail's signal colour, a leader line and the
-   trip's title in gold-lit text, as About's checkpoints. The trip in focus (near the globe's centre) or open
-   gains the lock-on reticle; in focus, the reticle breathes, a ping leaves the marker, and the title's slanted
-   tag lights with an arrow nudging inside it: it can be opened. A trip with recorded tracks is marked along its
-   route instead (see Route marks). Label heights mirror TITLE_ROW; offsets keep to a 4px grid. */
+/* Travel markers (TravelCallouts.tsx): a diamond per trip in the trail's signal colour. The trip in focus (near
+   the globe's centre) or open gains the lock-on reticle; in focus, the reticle breathes and a ping leaves the
+   marker: it can be opened. A trip with recorded tracks is marked along its route instead (see Route marks).
+   Nearby trips share a stacked marker that fans out (see Clusters); an open trip's stops are smaller diamonds,
+   a hovered stop's name in gold-lit text on a leader line, as About's checkpoints (see Stops). Label heights mirror
+   TITLE_ROW; offsets keep to a 4px grid. */
 .travel-callouts {
   --callout-ink: #e8c77a; /* --color-accent */
   --callout-signal: #8fe3d6; /* overridden inline by TravelCallouts.tsx */
@@ -35,15 +36,6 @@
   stroke: var(--callout-line);
   stroke-width: 1;
   transition: stroke 180ms ease-out;
-}
-
-.travel-callout-leader[data-hovered] {
-  stroke: var(--callout-line-strong);
-}
-
-.travel-callout-leader[data-state='focused'],
-.travel-callout-leader[data-state='selected'] {
-  stroke: var(--callout-signal-soft);
 }
 
 /* Positioners: TravelCallouts.tsx moves these with transforms every frame. */
@@ -231,97 +223,129 @@
   stroke-width: 1.25;
 }
 
-/* Title tag: every title over all trips sits in a slanted outline, lit in focus. */
-.travel-callout-title::before {
+/* Clusters: nearby trips' shared marker, a diamond resting on another just below it, the count beside; a click fans
+   it out into the trips' own markers, tied to its middle by fine lines (TravelCallouts.tsx places the fan every
+   frame). The front diamond's dark fill hides the back one's upper edges, so the two read as one stack. */
+.travel-cluster {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: grid;
+  width: 32px;
+  height: 32px;
+  margin: -16px 0 0 -16px;
+  place-items: center;
+  cursor: pointer;
+  pointer-events: auto;
+  will-change: transform, opacity;
+}
+
+.travel-cluster::before,
+.travel-cluster::after {
+  position: absolute;
+  width: calc(var(--marker-size) / 2);
+  height: calc(var(--marker-size) / 2);
+  border: 1px solid var(--callout-signal);
+  content: '';
+  rotate: 45deg;
+  transition: background-color 180ms ease-out, translate 260ms var(--ease-settle), box-shadow 260ms ease-out;
+}
+
+.travel-cluster::after {
+  translate: 0 3px;
+  opacity: 0.55;
+}
+
+.travel-cluster::before {
+  z-index: 1;
+  translate: 0 -1px;
+  background: rgb(8 10 13);
+}
+
+.travel-cluster:hover::before,
+.travel-cluster[data-hovered]::before {
+  background: var(--callout-signal-soft);
+}
+
+.travel-cluster:hover::before,
+.travel-cluster[data-hovered]::before {
+  translate: 0 -3px;
+}
+
+.travel-cluster[data-state='focused']::before {
+  background: var(--callout-signal);
+  box-shadow: 0 0 10px var(--callout-signal-glow);
+}
+
+.travel-cluster[data-state='focused']::after {
+  opacity: 0.8;
+}
+
+.travel-cluster-count {
+  position: absolute;
+  top: -4px;
+  left: 26px;
+  color: var(--callout-signal);
+  font-family: var(--font-krypton), ui-monospace, monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  text-shadow: 0 0 2px var(--callout-halo);
+}
+
+.travel-fan-leader {
+  stroke: var(--callout-line-strong);
+  stroke-width: 1;
+}
+
+/* Stops: an open trip's places of note, smaller diamonds than a trip's, named on hover. */
+.travel-stop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: grid;
+  width: 28px;
+  height: 28px;
+  margin: -14px 0 0 -14px;
+  place-items: center;
+  pointer-events: auto;
+  will-change: transform, opacity;
+}
+
+.travel-stop::before {
+  width: calc(var(--marker-size-open) / 3);
+  height: calc(var(--marker-size-open) / 3);
+  border: 1px solid var(--callout-signal);
+  background: rgb(8 10 13 / 60%);
+  content: '';
+  rotate: 45deg;
+  transition: background-color 180ms ease-out;
+}
+
+.travel-stop[data-hovered]::before {
+  background: var(--callout-signal-soft);
+}
+
+/* A hovered trip's or stop's name, on one row; a trip's sits in the slanted tag. */
+.travel-callout-title {
+  position: relative;
+  display: block;
+  height: 20px;
+  color: var(--callout-text);
+  font-family: var(--font-krypton), ui-serif, serif;
+  font-size: 0.95rem;
+  font-style: italic;
+  line-height: 20px;
+  text-shadow: 0 0 2px var(--callout-halo), 0 0 14px var(--callout-halo-wide);
+  white-space: nowrap;
+}
+
+.travel-callout-title[data-tag]::before {
   position: absolute;
   inset: -2px -14px -2px -10px;
   border: 1px solid var(--callout-signal);
   content: '';
-  opacity: 0;
-  transform: skewX(-20deg);
-  transition: opacity 220ms ease-out;
-}
-
-.travel-callout-label[data-state='focused'] .travel-callout-title::before {
   opacity: 0.8;
-}
-
-/* Label: the title on one row. */
-.travel-callout-label {
-  display: grid;
-  height: 20px;
-  align-content: start;
-  gap: 4px;
-  margin: -12px -16px -12px -8px;
-  padding: 12px 16px 12px 8px;
-  border: 0;
-  background: none;
-  color: var(--callout-text);
-  cursor: pointer;
-  font-family: var(--font-krypton), ui-serif, serif;
-  pointer-events: auto;
-  text-align: left;
-  text-shadow: 0 0 2px var(--callout-halo), 0 0 14px var(--callout-halo-wide);
-  box-sizing: content-box;
-}
-
-.travel-callout-label:focus-visible {
-  outline: 1px solid var(--callout-ink);
-  outline-offset: -4px;
-}
-
-.travel-callout-title {
-  position: relative;
-  display: block;
-  justify-self: start;
-  height: 20px;
-  font-size: 0.95rem;
-  font-style: italic;
-  line-height: 20px;
-  opacity: 0.62;
-  white-space: nowrap;
-  transition: opacity 180ms ease-out;
-}
-
-/* Hover answers with a fine gold underline drawn from the left. */
-.travel-callout-title::after {
-  position: absolute;
-  right: 0;
-  bottom: 1px;
-  left: 0;
-  height: 1px;
-  background: var(--callout-ink);
-  content: '';
-  scale: 0 1;
-  transform-origin: left;
-  transition: scale 260ms var(--ease-settle);
-}
-
-.travel-callout-label[data-state='focused'] .travel-callout-title,
-.travel-callout-label[data-state='selected'] .travel-callout-title,
-.travel-callout-label[data-hovered] .travel-callout-title {
-  opacity: 1;
-}
-
-.travel-callout-label[data-hovered] .travel-callout-title::after {
-  scale: 1 1;
-}
-
-/* The open cue: an arrow after the title, in focus only, nudging toward the click. */
-.travel-callout-cue {
-  display: inline-block;
-  margin-left: 8px;
-  color: var(--callout-signal);
-  font-style: normal;
-  opacity: 0;
-  translate: -6px 0;
-  transition: opacity 220ms ease-out, translate 320ms var(--ease-settle);
-}
-
-.travel-callout-label[data-state='focused'] .travel-callout-cue {
-  opacity: 1;
-  translate: 0 0;
-  animation: travel-callout-nudge 1.8s ease-in-out 420ms infinite;
+  transform: skewX(-20deg);
 }
 
 @keyframes travel-callout-breathe {
@@ -329,37 +353,31 @@
   50% { scale: 1.18; }
 }
 
-@keyframes travel-callout-nudge {
-  0%, 100% { translate: 0 0; }
-  50% { translate: 4px 0; }
-}
-
 @keyframes travel-callout-ping {
   0% { opacity: 0.9; scale: 1; }
   70%, 100% { opacity: 0; scale: 3.4; }
 }
 
-/* Phones: the whole globe is small, so it keeps its markers only; the trip's title lives in the sheet (Travel.css). */
+/* Phones: the whole globe is small, so it keeps its markers only; a stop's name lives in the sheet (Travel.css). */
 @media (width < 48rem) {
   .travel-callout,
-  .travel-callouts-leaders {
+  .travel-callout-leader {
     display: none;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .travel-callout-anchor::after,
-  .travel-callout-anchor[data-state='focused'] .travel-callout-reticle,
-  .travel-callout-label[data-state='focused'] .travel-callout-cue {
+  .travel-callout-anchor[data-state='focused'] .travel-callout-reticle {
     animation: none;
   }
 
-  .travel-callout-title,
-  .travel-callout-title::after,
   .travel-callout-reticle,
-  .travel-callout-cue,
   .travel-route-hex,
-  .travel-callout-anchor::before {
+  .travel-callout-anchor::before,
+  .travel-cluster::before,
+  .travel-cluster::after,
+  .travel-stop::before {
     transition: none;
   }
 }

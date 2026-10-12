@@ -80,10 +80,11 @@ closing (×, Escape, SQYC) returns to `/`, and Back/Forward follow. The settled 
 
 ## Travel
 
-Travel routes are `/travel` (globe overview) and `/travel/[trip]` (selected trip), with `?photo=` opening
-the photo viewer; both live in the `(scene)` layout like Art, and `TravelSection` (mounted by the travel
+Travel routes are `/travel` (globe overview) and `/travel/[trip]` (selected trip), with `?gallery=&photo=`
+opening the photo viewer; both live in the `(scene)` layout like Art, and `TravelSection` (mounted by the travel
 layout) derives its view from the URL. Trips are `data/travel.ts`: real places, oldest first, each with an
-introduction and optionally recorded tracks (`segments`), photos and a Blog article slug. The globe
+introduction and optionally recorded tracks (`segments`), stops (named markers), dated galleries (photos with
+text, one folder each under `public/travel/photos/<trip>/<gallery>/`, read by `npm run sync:travel-photos`) and stories; a city visit has no mode and shows no dates of its own. The globe
 (`components/scene/travel/`) hangs above the terrain's centre (`TRAVEL_CONFIG`), drawn as a night globe in the
 terrain's language: `globe.frag` reads the baked elevation map (`public/travel/elevation.png`, NASA topography
 resized by `scripts/assets/build-travel-geo.mjs`) for a small relief and a faint land tint
@@ -91,17 +92,19 @@ resized by `scripts/assets/build-travel-geo.mjs`) for a small relief and a faint
 rim; land carries a field of gold light points sampled from the same map, denser in lowlands (`TravelLights`,
 `shaders/terrain/travelPoints.*`); a faint gold graticule and baked coastlines and lakes (`public/travel/coast.bin`,
 Natural Earth 110m) as line segments; trail tubes along each trip's tracks riding the relief (one line across
-gaps between recordings, thinner with a trip open) and HTML markers with titles (`TravelCallouts`, laid out like About's). About the resting globe,
+gaps between recordings, thinner with a trip open) and HTML markers without titles (`TravelCallouts`): trips
+within `clusterWithin` degrees (chained) share a stacked marker that fans out on a click and holds the globe
+still, and an open trip's stops are small diamonds named on hover, laid out like About's. About the resting globe,
 outside its turn, two tilted orbit rings with tick marks turn slowly (`TravelRings`) and a sparse sky of stars
 stands far behind (`TravelStars`, the same point shader); lights, rings and stars join the isolated bloom. The camera parks at the Travel
 pose and the globe turns (`lib/scene/travel.ts`): a drag follows the pointer; a release coasts under friction
 and, below the snap speed, the nearest trip within the capture angle pulls the globe in; untouched, it drifts
 slowly. Apart from that capture, the trip nearest the globe's centre as it stands (within `focusWithin`, any point of
-its route counting) is in focus: its marker locks on and its title's tag (one slanted style for every trip) lights with an open cue. A
+its route or stops counting) is in focus: its marker, or its cluster's, locks on. A
 selected trip is pinned: while `CameraRig` journeys to the quarter-sphere framing `TravelGlobe` publishes,
 the globe holds for the first `turnFrom` of the way, then turns the trip to an offset from its centre, most of the turn
 done by the time the camera lands and the last of it a slight settle over `turnSettle` seconds more; the return to the
-overview plays the same way toward the globe's centre. A trip opening, the rings, the other markers and the titles
+overview plays the same way toward the globe's centre. A trip opening, the rings and the other markers
 leave at once; back to all trips they return only at `revealAt` of the return turn, as the globe settles. The HTML
 follows: the old view fades out, then the trip panel rises as the camera lands and the index as the globe settles
 (`TravelSection`, `Travel.css`). Lines and trails join the isolated bloom.
@@ -142,7 +145,7 @@ Phones have their own poses: the whole globe and its rings above a cardless peek
 last one, and a bar that pulls the list up); the list pulled up (`indexOpen` in the context) steps the camera back
 to a third pose, `getTravelIndexPose` (a quick `travelIndex` journey, no turn); a trip frames the globe close at the
 top with the trip turned just above its sheet (`phoneMarkerOffset`). Phones hide the meridian strip, the index
-heading and the globe's title tags, and draw the land lights smaller (`phoneLightScale`).
+heading and the stops' names, and draw the land lights smaller (`phoneLightScale`).
 `config/scene/travel.ts` holds three groups that never stand in for each other: `TRAVEL_CONFIG` (the globe as
 both views draw it, and the zoom-out), `TRAVEL_OVERVIEW_CONFIG` (all trips: ground, rings, feel by hand) and
 `TRAVEL_TRIP_CONFIG` (a trip: framing, its own servo hold rate, the focus journey and the raised-relief ground,

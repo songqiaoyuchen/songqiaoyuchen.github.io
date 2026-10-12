@@ -105,9 +105,10 @@ function silhouette(
 }
 const RELEASE_WINDOW_MS = 80;
 const PLACES = TRIPS.map((trip) => trip.place.lonLat);
-// Where each trip can be in focus: its place and anywhere along its route.
+// Where each trip can be in focus: its place, its stops and anywhere along its route.
 const FOCUS_POINTS = TRIPS.map((trip) => [
-  lonLatToUnit(trip.place.lonLat), ...densifyTrack((trip.segments ?? []).flat(), FOCUS_STEP),
+  lonLatToUnit(trip.place.lonLat), ...(trip.stops ?? []).map((stop) => lonLatToUnit(stop.lonLat)),
+  ...densifyTrack((trip.segments ?? []).flat(), FOCUS_STEP),
 ]);
 const UP = new Vector3(0, 1, 0);
 const DEG = Math.PI / 180;
@@ -196,8 +197,8 @@ export function TravelGlobe({
     lightDensity, lightSize, starSize, landscapeKm, linesIn,
   } = settings;
   const {
-    relief, landTint, trailRadius, markerSize, friction, snapBelow, capture, snapRate, idleDrift, idleAfter,
-    focusWithin, innerRingTilt, outerRingTilt,
+    relief, landTint, trailRadius, markerSize, clusterWithin, friction, snapBelow, capture, snapRate, idleDrift,
+    idleAfter, focusWithin, innerRingTilt, outerRingTilt,
   } = overviewSettings;
   const {
     markerOffset, phoneMarkerOffset, holdRate, focusSeconds, turnFrom, turnSettle, revealAt,
@@ -228,6 +229,8 @@ export function TravelGlobe({
   // rather than swinging back to the overview mid-way. Held from the last frame Travel was open.
   const heldSelected = useRef(selectedIndex);
   const hoveredIndex = TRIPS.findIndex((trip) => trip.id === hoveredId);
+  // Set by the markers while a cluster is fanned out: the globe holds still under it.
+  const hold = useRef(false);
   // The servo's feel: the overview's by hand; with a trip open only its hold rate turns the globe.
   const overviewGlobe = useMemo(() => toGlobeSettings({
     friction, snapBelow, capture, snapRate, idleDrift, idleAfter, maxPitch,
@@ -569,7 +572,7 @@ export function TravelGlobe({
         ? silhouette(camera, group.position, radius * group.scale.x, width, height, outlineScratch)
         : null;
     }
-    if (hoveredIndex >= 0 || editingCamera) state.current.idle = 0;
+    if (hoveredIndex >= 0 || hold.current || editingCamera) state.current.idle = 0;
     // Between the overview and a trip the camera moves, and the aim and the turn's frame with it: chasing them, the
     // globe would swing toward where the departing camera sees the trip, then drift back. Instead it turns once,
     // straight to where the arriving camera sees the trip: holding for the first turnFrom of the camera's way, then
@@ -832,8 +835,10 @@ export function TravelGlobe({
       />
       {visible ? (
         <TravelCallouts
+          clusterWithin={clusterWithin}
           focusedIndex={focusedIndex}
           groupRef={groupRef}
+          holdRef={hold}
           hoveredIndex={hoveredIndex}
           onHover={onHover}
           onSelect={onSelect}

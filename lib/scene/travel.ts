@@ -354,6 +354,28 @@ export function focusedTrip(
   return best;
 }
 
+/**
+ * Places nearer each other than `within` degrees, chained (a place joins a group when it is near any member), as
+ * groups of indices; each group in index order, the groups by their first index. A place on its own is a group of one.
+ */
+export function clusterPlaces(places: readonly LonLat[], within: number) {
+  const root = places.map((_, index) => index);
+  const find = (index: number): number => (root[index] === index ? index : (root[index] = find(root[index])));
+  for (let a = 0; a < places.length; a++) {
+    for (let b = a + 1; b < places.length; b++) {
+      if (angularDistance(places[a], places[b]) > within) continue;
+      const [first, second] = [find(a), find(b)].sort((x, y) => x - y);
+      root[second] = first;
+    }
+  }
+  const groups = new Map<number, number[]>();
+  places.forEach((_, index) => {
+    const key = find(index);
+    groups.set(key, [...(groups.get(key) ?? []), index]);
+  });
+  return [...groups.values()].sort((a, b) => a[0] - b[0]);
+}
+
 /** Points along a track, following the great circle between recorded places every `stepDegrees` at most. */
 export function densifyTrack(track: readonly LonLat[], stepDegrees: number) {
   const points: Vector3[] = [];

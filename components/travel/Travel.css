@@ -243,6 +243,35 @@
   height: 100%;
   object-fit: cover;
 }
+/* A gallery: its title and dates over its row of photos, or a note while its folder is empty. */
+.travel-gallery-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 8px;
+  color: var(--color-muted);
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+.travel-gallery-date {
+  color: var(--color-dim);
+  font-variant-numeric: tabular-nums;
+}
+.travel-gallery-empty {
+  margin: 0 0 20px;
+  color: var(--color-dim);
+  font-size: var(--text-label);
+}
+/* Stories: a row each. */
+.travel-story {
+  display: flex;
+  margin: 0;
+}
+.travel-story[data-pending] {
+  color: var(--color-muted);
+}
+
 .travel-link,
 .travel-back {
   display: inline-flex;

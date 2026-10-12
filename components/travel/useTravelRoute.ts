@@ -1,8 +1,8 @@
-// Reads the Travel URL: the selected trip (/travel/[trip]) and the open photo (?photo=<index>).
+// Reads the Travel URL: the selected trip (/travel/[trip]) and the open photo (?gallery=<id>&photo=<index>).
 'use client';
 
 import {usePathname} from 'next/navigation';
-import {getTrip} from '@/data/travel';
+import {galleryPhotos, getTrip} from '@/data/travel';
 
 /** The trip the route opens (/travel/[trip]); undefined over all trips and outside Travel. */
 export function useRouteTrip() {
@@ -12,9 +12,12 @@ export function useRouteTrip() {
 
 export function useTravelRoute(queryString: string) {
   const trip = useRouteTrip();
-  const raw = new URLSearchParams(queryString).get('photo');
+  const query = new URLSearchParams(queryString);
+  const gallery = trip?.galleries?.find((candidate) => candidate.id === query.get('gallery'));
+  const raw = query.get('photo');
   const index = raw === null ? Number.NaN : Number(raw);
-  const photo = trip?.photos && Number.isInteger(index) && index >= 0 && index < trip.photos.length ? index : -1;
+  const photos = trip && gallery ? galleryPhotos(trip, gallery) : [];
+  const photo = Number.isInteger(index) && index >= 0 && index < photos.length ? index : -1;
   const tripHref = trip ? `/travel/${trip.id}` : '/travel';
-  return {trip, photo, tripHref};
+  return {trip, gallery, photos, photo, tripHref};
 }

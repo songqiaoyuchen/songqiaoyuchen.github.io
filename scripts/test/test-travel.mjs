@@ -5,7 +5,7 @@ import {PerspectiveCamera, Vector3} from 'three';
 import {getCameraPose} from '../../config/scene/camera.ts';
 import {TRAVEL_CONFIG, TRAVEL_OVERVIEW_CONFIG} from '../../config/scene/travel.ts';
 import {
-  advanceGlobe, aimForOffset, aimFromScreen, anglesToward, angularDistance, createGlobeState, decodeLines,
+  advanceGlobe, aimForOffset, aimFromScreen, anglesToward, angularDistance, clusterPlaces, createGlobeState, decodeLines,
   densifyTrack, encodeLines, facingAngles, focusedTrip, frontPlace, globeQuaternion, graticulePositions,
   lonLatToUnit, markerScreenFor, nearestPlace, offsetForMarker, planetScale, polylineLength, regionSpread, rideDistance,
   releaseGlobe,
@@ -27,6 +27,17 @@ assert.ok(Math.abs(lonLatToUnit([90, 0]).distanceTo(new Vector3(1, 0, 0))) < 1e-
 assert.ok(Math.abs(lonLatToUnit([0, 90]).distanceTo(new Vector3(0, 1, 0))) < 1e-12);
 assert.ok(Math.abs(angularDistance([0, 0], [90, 0]) - 90) < 1e-9);
 assert.ok(Math.abs(angularDistance([0, 0], [0, 45]) - 45) < 1e-9);
+
+// Clusters chain near places: Marseille, Ventoux and Alpe d'Huez share one marker (Marseille to Alpe d'Huez is
+// over the threshold but both are near Ventoux); Zurich and London stand alone.
+const marseille = [5.37, 43.3];
+const ventoux = [5.279, 44.174];
+const huez = [6.07, 45.09];
+const zurich = [8.54, 47.37];
+const london = [-0.13, 51.51];
+assert.deepEqual(clusterPlaces([london, marseille, ventoux, huez, zurich], 1.5), [[0], [1, 2, 3], [4]]);
+assert.deepEqual(clusterPlaces([huez, london, marseille], 1.5), [[0], [1], [2]]);
+assert.deepEqual(clusterPlaces([marseille, ventoux], 0), [[0], [1]]);
 
 function cameraAt(pose, aspect = 1.6) {
   const camera = new PerspectiveCamera(38, aspect, 0.1, 100);
