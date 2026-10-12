@@ -47,7 +47,7 @@ export const TRAVEL_CONFIG = {
   patchRelief: 1, // riding terrain height exaggeration, 1 = true scale
   vanish: 1, // shrink the terrain away from this share, 1 = scale alone
   landIn: [0.03, 0.18] as readonly [number, number], // landscape light gives way to the globe's land shading
-  linesIn: [0.75, 0.97] as readonly [number, number], // rim, graticule, coastlines and rings come in
+  linesIn: [0.75, 0.97] as readonly [number, number], // rim, graticule and coastlines come in (rings: ringsRoom)
   trailsIn: [0.85, 1] as readonly [number, number], // trails come in
   hazeOut: [0.15, 0.8] as readonly [number, number], // haze thins (SceneFog.tsx)
   hazeFactor: 60, // fog distances grow this many times
@@ -75,9 +75,12 @@ export const TRAVEL_OVERVIEW_CONFIG = {
   clusterWithin: 3.5, // degrees: trips nearer than this (chained) share one marker that fans out on a click
   phoneClusterWithin: 9, // degrees, on phones: the globe is drawn about half the size, so more trips share a marker
 
-  // Orbit rings (TravelRings.tsx), outside the globe's turn; in with the lines, gone while a trip is open.
+  // Orbit rings (TravelRings.tsx), outside the globe's turn and its ride; gone while a trip is open. On the
+  // zoom-out they are the last thing in and the first out: the planet grows about the camera, off the resting
+  // centre, long before the lines fade, so the rings leave as it grows past ringsRoom times the globe's radius.
   // Per ring: radius (share of the globe's), arcs with gap degrees between, a fainter inner track when double,
   // ticks (every sixth longer), spin in degrees per second about its own axis. Their tilts are tuned apart.
+  ringsRoom: 1.1, // the planet this many times the globe's radius has the rings gone (less than the first ring's)
   rings: [
     {radius: 1.28, arcs: 4, gap: 14, ticks: 72, double: false, spin: 2},
     {radius: 1.42, arcs: 1, gap: 0, ticks: 90, double: false, spin: -1.2},

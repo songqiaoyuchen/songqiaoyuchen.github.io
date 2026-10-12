@@ -1,7 +1,7 @@
 // Travel globe maths: places on the sphere, the globe's yaw/pitch turn toward the camera, coasting and the snap
 // servo that lands it on a trip, and tracks densified along great circles.
 // Framework-free apart from three's maths, so scripts/test can check it.
-import {Quaternion, Vector3, type Camera, type PerspectiveCamera} from 'three';
+import {MathUtils, Quaternion, Vector3, type Camera, type PerspectiveCamera} from 'three';
 import type {LonLat} from '@/data/travel';
 
 const DEG = Math.PI / 180;
@@ -10,6 +10,7 @@ const TAU = Math.PI * 2;
 // Scratch for the per-frame maths below, so the frame loop allocates nothing: none of these is held across calls.
 const SPIN = new Quaternion();
 const DIRECTION = new Vector3();
+const RIDE_DIRECTION = new Vector3();
 const TO_ORIGIN = new Vector3();
 const SEEN = new Vector3();
 const UNIT = new Vector3();
@@ -554,6 +555,52 @@ export function behindGlobe(point: Vector3, eye: Vector3, radius: number) {
   if (disc <= 0) return false;
   const enter = (-b - Math.sqrt(disc)) / (2 * a);
   return enter > 0 && enter < 1;
+}
+
+/** Where the landscape rides on the planet while the Travel morph runs (CameraFrameState's travelPatch): the
+ * planet's centre and radius, the unit direction from its centre to the patch with the patch's east and north axes
+ * there, the terrain point (plane level, world space) that lands on that anchor, world units of arc per landscape
+ * unit (scale), the terrain's height factor there (relief), the landing place's elevation in landscape units
+ * (seaUnits) and the terrain surface's world y at the pivot (datumY). */
+export type PatchFrame = {
+  anchor: Vector3; east: Vector3; north: Vector3; center: Vector3; pivot: Vector3;
+  radius: number; scale: number; relief: number; seaUnits: number; datumY: number;
+};
+
+/** The share of the ride a point has made at this morph: the wrap is complete early, the planet then shrinking
+ * from Earth-sized under it. The same step as terrain.vert, contours.vert and aboutPath.vert. */
+export function rideShare(morph: number) {
+  return MathUtils.smoothstep(morph, 0, 0.05);
+}
+
+/** How much of the landscape's own drawing (its contour lines, About's map, route and callouts) shows at this
+ * morph: they ride a little way with the terrain and dissolve as it recedes into the regional ground, which has no
+ * lines of its own; on the way back they return the same way. */
+export function rideDissolve(morph: number) {
+  return 1 - MathUtils.smoothstep(morph, 0.04, 0.25);
+}
+
+/**
+ * A world point of the landscape as it stands on the planet at this moment of the ride: the wrap terrain.vert,
+ * contours.vert and aboutPath.vert apply, for layers laid out on the CPU (About's callouts). Plan offsets from the
+ * pivot follow the patch's tangent frame (world +x onto -east, world +z onto north); the point stands above sea
+ * level by its own height over the datum plus the landing place's elevation. At morph 0 the point is returned as
+ * it is. `out` may be `point` itself.
+ */
+export function rideOntoPlanet(point: Vector3, patch: PatchFrame, morph: number, out = new Vector3()) {
+  const ride = rideShare(morph);
+  if (ride <= 0) return out.copy(point);
+  const {x, y, z} = point;
+  const localX = x - patch.pivot.x;
+  const localY = patch.pivot.z - z;
+  const standOff = patch.radius + (y - patch.datumY) * patch.relief + patch.seaUnits * patch.scale;
+  const direction = RIDE_DIRECTION.copy(patch.anchor).multiplyScalar(patch.radius)
+    .addScaledVector(patch.east, -localX * patch.scale)
+    .addScaledVector(patch.north, -localY * patch.scale)
+    .normalize();
+  out.copy(patch.center).addScaledVector(direction, standOff);
+  if (ride < 1) out.set(x + (out.x - x) * ride, y + (out.y - y) * ride, z + (out.z - z) * ride);
+  return out;
 }
 
 /** Arc length of a polyline, world units. */

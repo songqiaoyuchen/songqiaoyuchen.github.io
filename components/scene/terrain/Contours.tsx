@@ -9,7 +9,6 @@ import { useFrame, useThree } from '@react-three/fiber';
 import {
   AdditiveBlending,
   Color,
-  MathUtils,
   Vector2,
   Vector3,
   Vector4,
@@ -36,6 +35,7 @@ import {createContourTubeGeometry} from '@/lib/terrain/lineTube';
 import vertexShader from '@/shaders/terrain/contours.vert';
 import fragmentShader from '@/shaders/terrain/contours.frag';
 import {useReducedMotion} from '@/hooks/useReducedMotion';
+import {rideDissolve} from '@/lib/scene/travel';
 import {useCameraFrameState} from '../camera/CameraFrameState';
 
 // While riding to Travel, shrinking tubes keep this on-screen radius (device pixels) and dim instead.
@@ -75,6 +75,8 @@ export const Contours = forwardRef<Mesh, ContoursProps>(function Contours(
   const cameraFrameState = useCameraFrameState();
   const layerRef = useRef<Group>(null);
   const introStart = useRef<number | null>(null);
+  const wasRiding = useRef(false);
+  const rideShown = useRef(false);
   const reducedMotion = useReducedMotion();
 
   const {elevation, seaLevel, edgeFade} = terrainSettings;
@@ -249,10 +251,13 @@ export const Contours = forwardRef<Mesh, ContoursProps>(function Contours(
     const visibility = material.uniforms.uVisibility;
     // Settings that differ from the bake wait for their own geometry rather than showing the baked lines.
     const pending = contourKey !== initialContours.key && geometryBuffers === initialContours.buffers;
-    // Lines hidden for Travel ride a little way with the terrain, dissolving as the landscape recedes into the
-    // regional ground, which has no glowing lines of its own.
-    const target = pending ? 0
-      : hidden ? (riding ? 1 - MathUtils.smoothstep(travelMorph, 0.04, 0.25) : 0) : 1;
+    // On the ride the lines go a little way with the terrain and dissolve as the landscape recedes into the
+    // regional ground, which has no glowing lines of its own; coming back, they return the same way. Lines that
+    // were not showing when the ride began (the home set under About or Art) stay out of it.
+    if (riding && !wasRiding.current) rideShown.current = visibility.value > 0.5;
+    if (!hidden) rideShown.current = true;
+    wasRiding.current = riding;
+    const target = pending ? 0 : riding ? (rideShown.current ? rideDissolve(travelMorph) : 0) : hidden ? 0 : 1;
     visibility.value = reducedMotion || Math.abs(visibility.value - target) < 0.001
       ? target
       : visibility.value + (target - visibility.value) * (1 - Math.exp(-4 * Math.min(delta, 1 / 30)));

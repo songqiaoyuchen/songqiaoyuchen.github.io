@@ -1,15 +1,17 @@
 // About experience path: a route draped over the ridge through one checkpoint per timeline entry, ending at "Next?".
 // The whole route shows faintly; the part up to the drawer's reading head is drawn bright and blooms like the
 // major contours. Also publishes how to frame each checkpoint from an About pose, for CameraRig (the configured
-// pose, phones having their own, or the one composed with Edit camera). In development, Edit route
-// (AboutPathEditor) reshapes the route and slides the checkpoints along it.
+// pose, phones having their own, or the one composed with Edit camera). While the Travel morph runs, the route
+// rides onto the globe with the terrain (aboutPath.vert, from the patch frame TravelGlobe publishes) and
+// dissolves as the landscape recedes, so a journey between About and Travel keeps it on the ground. In
+// development, Edit route (AboutPathEditor) reshapes the route and slides the checkpoints along it.
 'use client';
 
 import {useFrame, useThree} from '@react-three/fiber';
 import {useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject} from 'react';
 import {
   AdditiveBlending, CatmullRomCurve3, Color, PerspectiveCamera, TubeGeometry, UniformsLib, UniformsUtils,
-  type DepthTexture, type Group, type Mesh, type ShaderMaterial,
+  Vector2, Vector3, type DepthTexture, type Group, type Mesh, type ShaderMaterial,
 } from 'three';
 import {setAboutCheckpoint} from '@/components/scene/controls/useAboutPathControls';
 import type {
@@ -24,12 +26,14 @@ import {ABOUT_STOP_IDS, ABOUT_TIMELINE, formatEntryStart} from '@/data/about';
 import {useReducedMotion} from '@/hooks/useReducedMotion';
 import {getHomeFov} from '@/lib/scene/camera';
 import {buildAboutRoute, getAboutFocusPose, placeAltitudeMarks, type AboutFraming} from '@/lib/scene/aboutPath';
+import {rideDissolve} from '@/lib/scene/travel';
 import {useTerrainAssets} from '@/lib/terrain/assets';
 import {
   normalizeRawHeight, sampleHeight, sampleNormalizedHeight, sampleSurfaceHeight,
 } from '@/lib/terrain/height';
 import fragmentShader from '@/shaders/terrain/aboutPath.frag';
 import vertexShader from '@/shaders/terrain/aboutPath.vert';
+import {useCameraFrameState} from '../camera/CameraFrameState';
 import {AboutCallouts, type CalloutItem} from './AboutCallouts';
 import {AboutPathEditor} from './AboutPathEditor';
 
@@ -80,6 +84,9 @@ export function AboutPath({
   const visible = requestedVisible;
   const groupRef = useRef<Group>(null);
   const materialRef = useRef<ShaderMaterial>(null);
+  const cameraFrameState = useCameraFrameState();
+  // The route's own fade; on the ride it is dimmed further as the landscape recedes.
+  const fade = useRef(0);
   const reducedMotion = useReducedMotion();
   const {shellBase} = useTerrainAssets();
   const {elevation, seaLevel} = terrainSettings;
@@ -126,12 +133,11 @@ export function AboutPath({
     );
   }, [elevation, route, seaLevel, shellBase]);
 
-  const geometry = useMemo(() => new TubeGeometry(
-    new CatmullRomCurve3(route.points),
-    route.points.length * 2,
-    ABOUT_PATH_CONFIG.radius * (isMobile ? ABOUT_PATH_CONFIG.phoneRadiusScale : 1),
-    6,
-  ), [isMobile, route]);
+  const radius = ABOUT_PATH_CONFIG.radius * (isMobile ? ABOUT_PATH_CONFIG.phoneRadiusScale : 1);
+  const geometry = useMemo(
+    () => new TubeGeometry(new CatmullRomCurve3(route.points), route.points.length * 2, radius, 6),
+    [radius, route],
+  );
   useEffect(() => () => geometry.dispose(), [geometry]);
 
   useEffect(() => {
@@ -157,7 +163,24 @@ export function AboutPath({
     uDashLength: {value: ABOUT_PATH_CONFIG.dashLength},
     uTrackColor: {value: new Color()},
     uDrawnColor: {value: new Color()},
+    uRadius: {value: ABOUT_PATH_CONFIG.radius},
+    uMorph: {value: 0},
+    uGlobeCenter: {value: new Vector3()},
+    uGlobeRadius: {value: 1},
+    uPatchAnchor: {value: new Vector3(0, 1, 0)},
+    uPatchEast: {value: new Vector3(-1, 0, 0)},
+    uPatchNorth: {value: new Vector3(0, 0, 1)},
+    uPatchPivot: {value: new Vector2()},
+    uPatchScale: {value: 1},
+    uPatchRelief: {value: 1},
+    uSeaUnits: {value: 0},
+    uDatumY: {value: 0},
   }), []);
+
+  useEffect(() => {
+    const material = materialRef.current;
+    if (material) material.uniforms.uRadius.value = radius;
+  }, [radius]);
 
   // Phones see the whole route from far off: the trail ahead brighter, its dashes longer.
   const {trailColor} = settings;
@@ -184,11 +207,30 @@ export function AboutPath({
     material.uniforms.uUseTerrainDepth.value = terrainDepthTexture ? 1 : 0;
   }, [terrainDepthTexture]);
 
+  // After TravelGlobe (0.1) has placed the patch for the frame, with the terrain and contours (0.2).
   useFrame((_, delta) => {
     const material = materialRef.current;
     if (!material) return;
-    const {uDrawn, uVisibility} = material.uniforms;
-    uVisibility.value = ease(uVisibility.value, visible ? 1 : 0, FADE_RATE, delta, reducedMotion);
+    const {uDrawn, uVisibility, uMorph} = material.uniforms;
+    fade.current = ease(fade.current, visible ? 1 : 0, FADE_RATE, delta, reducedMotion);
+    const {travelMorph, travelPatch: patch} = cameraFrameState.current;
+    const riding = travelMorph > 0 && travelMorph < 1;
+    uMorph.value = riding ? travelMorph : 0;
+    if (riding) {
+      const {uGlobeCenter, uGlobeRadius, uPatchAnchor, uPatchEast, uPatchNorth, uPatchPivot, uPatchScale,
+        uPatchRelief, uSeaUnits, uDatumY} = material.uniforms;
+      uGlobeCenter.value.copy(patch.center);
+      uGlobeRadius.value = patch.radius;
+      uPatchAnchor.value.copy(patch.anchor);
+      uPatchEast.value.copy(patch.east);
+      uPatchNorth.value.copy(patch.north);
+      uPatchPivot.value.set(patch.pivot.x, patch.pivot.z);
+      uPatchScale.value = patch.scale;
+      uPatchRelief.value = patch.relief;
+      uSeaUnits.value = patch.seaUnits;
+      uDatumY.value = patch.datumY;
+    }
+    uVisibility.value = fade.current * (riding ? rideDissolve(travelMorph) : 1);
     const progress = Math.min(Math.max(progressRef.current, 0), NEXT_INDEX);
     const segment = Math.min(Math.floor(progress), NEXT_INDEX - 1);
     const {stopFractions} = route;
@@ -196,7 +238,7 @@ export function AboutPath({
       + (stopFractions[segment + 1] - stopFractions[segment]) * (progress - segment);
     uDrawn.value = ease(uDrawn.value, drawnTarget, DRAW_RATE, delta, reducedMotion);
     if (groupRef.current) groupRef.current.visible = uVisibility.value > 0;
-  });
+  }, 0.2);
 
   return (
     <>

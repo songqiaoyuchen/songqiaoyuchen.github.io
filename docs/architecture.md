@@ -62,6 +62,9 @@ landscape. The route, checkpoints and map live in `config/scene/aboutPath.ts` (c
 framing in Leva's About Path folder, shown only on About; its Edit route mode drags the route's
 anchors over the terrain, adds or removes them, slides checkpoints along the route and saves both). The
 path rests on the rendered surface (`sampleSurfaceHeight`) plus a tuned lift, not the text sampler's clearance.
+A journey between About and Travel runs the Travel morph (below) under the open map: the map lines, the route
+(`aboutPath.vert`) and the callouts (`rideOntoPlanet`, the same wrap on the CPU) ride onto the planet with the
+terrain and dissolve with the home lines (`rideDissolve`), so nothing stands flat over a curling landscape.
 Phones fold this vertically: the drawer starts at 40% of the height, the path's window above fading into it. Phones
 have their own About pose (`mobileAbout*` in `config/scene/camera.ts`, the whole route in that window) and frame
 each checkpoint from it toward a point in the window (`phoneFocus*`, Leva About Path); the reading head sits near

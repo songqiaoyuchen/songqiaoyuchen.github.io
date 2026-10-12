@@ -8,7 +8,7 @@ import {
   advanceGlobe, aimForOffset, aimFromScreen, anglesToward, angularDistance, clusterPlaces, createGlobeState, decodeLines,
   densifyTrack, encodeLines, facingAngles, focusedTrip, frontPlace, globeQuaternion, graticulePositions,
   lonLatToUnit, markerScreenFor, nearestPlace, offsetForMarker, planetScale, polylineLength, regionSpread, rideDistance,
-  releaseGlobe,
+  rideDissolve, rideOntoPlanet, rideShare, releaseGlobe,
   toGlobeSettings, trackGaps, viewFromCamera,
 } from '../../lib/scene/travel.ts';
 import {placeTripSheet} from '../../components/travel/useTripSheetPlacement.ts';
@@ -286,3 +286,28 @@ for (const [index, startYaw] of [[0, 0], [1, Math.PI], [2, 2.5], [3, -1]]) {
 }
 
 console.log('travel globe checks passed');
+
+// The ride wrap: at morph 0 a point stands where it is; wrapped, the pivot lands on the anchor at its own height
+// over the datum (plus the landing elevation) above the planet, east offsets fall to -east and north to -north at
+// the arc scale, and the drawing dissolves between 0.04 and 0.25 of the morph.
+{
+  const patch = {
+    anchor: new Vector3(0, 1, 0), east: new Vector3(1, 0, 0), north: new Vector3(0, 0, -1),
+    center: new Vector3(0, -100, 0), pivot: new Vector3(2, -0.5, -3),
+    radius: 100, scale: 0.5, relief: 0.5, seaUnits: 0.2, datumY: 0.1,
+  };
+  const point = new Vector3(2, 0.6, -3);
+  assert.deepEqual(rideOntoPlanet(point, patch, 0).toArray(), point.toArray());
+  const landed = rideOntoPlanet(point, patch, 0.05);
+  assert.ok(landed.distanceTo(new Vector3(0, 100 + 0.5 * 0.5 + 0.2 * 0.5 - 100, 0)) < 1e-9, String(landed));
+  const eastward = rideOntoPlanet(new Vector3(2 + 10, 0.1, -3), patch, 1);
+  assert.ok(eastward.x < -4 && Math.abs(eastward.z) < 1e-9 && eastward.y < 100 - 100, String(eastward));
+  const northward = rideOntoPlanet(new Vector3(2, 0.1, -3 - 10), patch, 1);
+  assert.ok(Math.abs(northward.x) < 1e-9 && northward.z > 4, String(northward));
+  const halfway = rideOntoPlanet(point, patch, 0.025, point.clone());
+  assert.ok(Math.abs(halfway.y - (point.y + (landed.y - point.y) * rideShare(0.025))) < 1e-9);
+  assert.ok(rideShare(0.025) > 0 && rideShare(0.025) < 1 && rideShare(0.05) === 1);
+  assert.equal(rideDissolve(0), 1);
+  assert.equal(rideDissolve(0.25), 0);
+  assert.ok(rideDissolve(0.1) > 0 && rideDissolve(0.1) < 1);
+}

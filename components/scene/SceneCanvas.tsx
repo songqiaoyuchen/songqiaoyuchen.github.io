@@ -376,6 +376,7 @@ export const SceneCanvas = memo(function SceneCanvas({
                   {aboutMapWanted ? (
                     <AboutMapLines
                       hidden={!isAbout}
+                      travelRide
                       contourSettings={aboutMapSettings}
                       terrainDepthTexture={terrainDepthTexture}
                       terrainSettings={settings.terrain}

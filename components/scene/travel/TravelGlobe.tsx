@@ -704,7 +704,6 @@ export function TravelGlobe({
     overviewAmount.current = revealed
       ? ease(overviewAmount.current, 1, REVEAL_RATE, delta, reducedMotion)
       : ease(overviewAmount.current, 0, FADE_RATE * 2, delta, reducedMotion);
-    ringLod.current = lod.current * overviewAmount.current;
     // Signed: the rings turn with the hand, faster the faster it turns, and keep drifting the way it last went.
     const yawRate = previousYaw.current === null
       ? 0 : MathUtils.radToDeg(wrapAngle(state.current.yaw - previousYaw.current)) / Math.max(delta, 1e-3);
@@ -799,6 +798,10 @@ export function TravelGlobe({
       cameraFrameState.current.setTravelPatchMetrics(metrics);
     }
     group.updateMatrixWorld();
+    // The rings stay about the resting globe while the planet grows about the camera, so they go as it outgrows
+    // them (ringsRoom of the globe's radius: a sliver of the zoom-out, well inside the lines' window).
+    ringLod.current = lod.current * overviewAmount.current
+      * (1 - MathUtils.smoothstep(group.scale.x, 1, TRAVEL_OVERVIEW_CONFIG.ringsRoom));
 
     // Where the terrain rides, in world space, for terrain.vert.
     patch.anchor.copy(patchLocal.anchor).applyQuaternion(group.quaternion);
