@@ -197,8 +197,8 @@ export function TravelGlobe({
     lightDensity, lightSize, starSize, landscapeKm, linesIn,
   } = settings;
   const {
-    relief, landTint, trailRadius, markerSize, clusterWithin, friction, snapBelow, capture, snapRate, idleDrift,
-    idleAfter, focusWithin, innerRingTilt, outerRingTilt,
+    relief, landTint, trailRadius, markerSize, clusterWithin, phoneClusterWithin, friction, snapBelow, capture,
+    snapRate, idleDrift, idleAfter, focusWithin, innerRingTilt, outerRingTilt,
   } = overviewSettings;
   const {
     markerOffset, phoneMarkerOffset, holdRate, focusSeconds, turnFrom, turnSettle, revealAt,
@@ -206,6 +206,7 @@ export function TravelGlobe({
     markerSize: tripMarkerSize,
   } = tripSettings;
   const {patchRelief, vanish, maxPitch} = TRAVEL_CONFIG;
+  const {stopsFrom} = TRAVEL_TRIP_CONFIG;
   const {shade} = TRAVEL_OVERVIEW_CONFIG;
   // Phones frame a trip at the top of the screen, above its sheet.
   const [offsetX, offsetY] = isMobile ? phoneMarkerOffset : markerOffset;
@@ -273,6 +274,8 @@ export function TravelGlobe({
   // The raised-relief look of an open trip: its progress, linear in time over the focus journey, and eased.
   const focusProgress = useRef(0);
   const focusAmount = useRef(0);
+  // The open trip's stops, 0 to 1 (TravelCallouts).
+  const stopsAmount = useRef(0);
   // Markers stand on the relief.
   const radiusAt = useCallback((place: LonLat) => {
     if (!elevation) return radius * (1 + trailLift);
@@ -525,6 +528,10 @@ export function TravelGlobe({
     focusProgress.current = reducedMotion ? focusTarget : focusTarget > focusProgress.current
       ? Math.min(focusProgress.current + focusStep, 1) : Math.max(focusProgress.current - focusStep, 0);
     focusAmount.current = MathUtils.smootherstep(focusProgress.current, 0, 1);
+    // The open trip's stops come in only as the camera settles on it, and leave the moment it sets off.
+    const stopsTarget = selected >= 0 && focusProgress.current >= stopsFrom ? 1 : 0;
+    stopsAmount.current = ease(
+      stopsAmount.current, stopsTarget, stopsTarget ? FADE_RATE : FADE_RATE * 4, delta, reducedMotion);
     shell.uniforms.uFocus.value = focusAmount.current;
     // The planet's relief is real on the way and takes the overview's map exaggeration as the globe arrives; a
     // trip open eases it to the trip's own.
@@ -835,7 +842,7 @@ export function TravelGlobe({
       />
       {visible ? (
         <TravelCallouts
-          clusterWithin={clusterWithin}
+          clusterWithin={isMobile ? phoneClusterWithin : clusterWithin}
           focusedIndex={focusedIndex}
           groupRef={groupRef}
           holdRef={hold}
@@ -845,6 +852,7 @@ export function TravelGlobe({
           globeRadius={radius}
           markerSize={markerSize}
           overviewRef={overviewAmount}
+          stopsShownRef={stopsAmount}
           radiusAt={radiusAt}
           selectedIndex={selectedIndex}
           signalColor={trailColor}

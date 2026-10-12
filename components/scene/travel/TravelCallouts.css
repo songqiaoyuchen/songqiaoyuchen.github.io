@@ -148,6 +148,67 @@
   animation: travel-callout-ping 2.4s ease-out 400ms infinite;
 }
 
+/* A trip's own icon (TripIcon.tsx) in place of the diamond: the plain drawing over all trips, more detail in focus
+   (and larger, glowing) and the full drawing with the trip open, up close. The lines keep one weight at each size. */
+/* No diamond, and no diamond's ping: the reticle and the glow carry focus. */
+.travel-callout-anchor[data-icon]::before,
+.travel-callout-anchor[data-icon]::after {
+  content: none;
+}
+
+.travel-trip-icon {
+  position: relative;
+  display: grid;
+  width: var(--marker-size);
+  height: var(--marker-size);
+  color: var(--callout-signal);
+  transition:
+    width 320ms var(--ease-settle), height 320ms var(--ease-settle), filter 260ms ease-out;
+}
+
+.travel-trip-icon svg {
+  grid-area: 1 / 1;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  opacity: 0;
+  transition: opacity 220ms ease-out;
+}
+
+.travel-trip-icon [data-detail='small'] {
+  stroke-width: 2.2;
+}
+
+.travel-trip-icon [data-detail='focus'] {
+  stroke-width: 1.7;
+}
+
+.travel-trip-icon [data-detail='open'] {
+  stroke-width: 1.05;
+}
+
+.travel-callout-anchor:not([data-state='focused'], [data-state='selected']) [data-detail='small'],
+.travel-callout-anchor[data-state='focused'] [data-detail='focus'],
+.travel-callout-anchor[data-state='selected'] [data-detail='open'] {
+  opacity: 1;
+}
+
+.travel-callout-anchor[data-state='focused'] .travel-trip-icon {
+  width: calc(var(--marker-size) * 1.43);
+  height: calc(var(--marker-size) * 1.43);
+}
+
+.travel-callout-anchor[data-state='focused'] .travel-trip-icon,
+.travel-callout-anchor[data-state='selected'] .travel-trip-icon,
+.travel-callout-anchor[data-hovered] .travel-trip-icon {
+  filter: drop-shadow(0 0 4px var(--callout-signal-glow));
+}
+
+.travel-callout-anchor[data-state='selected'] .travel-trip-icon {
+  width: var(--marker-size-open);
+  height: var(--marker-size-open);
+}
+
 /* Route marks (a waypoint chain): TravelCallouts.tsx places and turns each every frame. Hexes stand at the
    start and end, outlines until framed. */
 .travel-route > .travel-route-node {
@@ -375,6 +436,8 @@
   .travel-callout-reticle,
   .travel-route-hex,
   .travel-callout-anchor::before,
+  .travel-trip-icon,
+  .travel-trip-icon svg,
   .travel-cluster::before,
   .travel-cluster::after,
   .travel-stop::before {

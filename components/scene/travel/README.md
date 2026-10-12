@@ -10,6 +10,7 @@ The Travel globe inside the canvas (`SceneCanvas` mounts it the first time Trave
 | `TravelStars.tsx` | The sky behind the resting globe: a far sphere of stars, a few bright, faintly twinkling, slowly drifting about a tilted axis, in with altitude |
 | `TravelTrails.tsx` | Trail tubes along each trip's recorded tracks, riding the relief, one line per trip across recording gaps, thinner with a trip open |
 | `TravelCallouts.tsx` / `.css` | HTML markers placed every frame on the relief, no titles: a diamond for a trip at one place, hexes at the route's start and end for a trip with tracks, a stacked marker for nearby trips that fans out on a click, an open trip's stops named on hover; hover, focus (near the globe's centre) and selection states; the other trips fade with a trip open |
+| `TripIcon.tsx` | A trip's own marker drawing in place of the diamond (`icon` in `data/travel.ts`), at three levels of detail picked by the marker's state |
 | `useCoastlines.ts` | Loads `public/travel/coast.bin` once |
 | `useElevation.ts` | Loads `public/travel/elevation.png` once: a texture for the shaders and a CPU height sampler for markers |
 | `useRegion.ts` | Loads `public/travel/region.png` and its `region.json` once: the real ground around the landing place, whose heights the landscape's edge takes and the globe draws on the zoom-out (`TerrainMesh`, `TravelGlobe`) |

@@ -56,6 +56,9 @@ function useTravelOverviewControls() {
       clusterWithin: {
         value: TRAVEL_OVERVIEW_CONFIG.clusterWithin, min: 0, max: 10, step: 0.1, label: 'Cluster within (°)',
       },
+      phoneClusterWithin: {
+        value: TRAVEL_OVERVIEW_CONFIG.phoneClusterWithin, min: 0, max: 20, step: 0.1, label: 'Phone cluster (°)',
+      },
     }, {collapsed: false}),
     Rings: folder({
       // TravelRings.tsx: each ring's axis, tilted about x and z in degrees; drag the joystick to turn it.

@@ -73,6 +73,7 @@ export const TRAVEL_OVERVIEW_CONFIG = {
   trailRadius: 0.0035, // trail tube radius, share of the globe radius
   markerSize: 14, // CSS pixels: every trip's reticle (TravelCallouts.tsx); the diamond is half
   clusterWithin: 3.5, // degrees: trips nearer than this (chained) share one marker that fans out on a click
+  phoneClusterWithin: 9, // degrees, on phones: the globe is drawn about half the size, so more trips share a marker
 
   // Orbit rings (TravelRings.tsx), outside the globe's turn; in with the lines, gone while a trip is open.
   // Per ring: radius (share of the globe's), arcs with gap degrees between, a fainter inner track when double,
@@ -115,6 +116,7 @@ export const TRAVEL_TRIP_CONFIG = {
   turnFrom: 0.3, // share of the journey the globe holds before turning
   turnSettle: 0.6, // seconds the turn settles past the camera's landing
   revealAt: 0.75, // share of the return turn before the rings, other markers and titles come back
+  stopsFrom: 0.85, // share of the journey in before the trip's stops fade in (they leave as the return starts)
 
   // Raised-relief map (globe.vert/.frag); replaces the overview's ground. Trails, lights and markers ride it.
   summaryBlur: 0.1, // elevation blur radius in texels, three box passes; 0 keeps the full map (useElevation.ts)

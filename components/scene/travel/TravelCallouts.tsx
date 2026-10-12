@@ -20,6 +20,7 @@ import {
 import {Group, Vector3, type Camera} from 'three';
 import type {LonLat, Trip} from '@/data/travel';
 import {behindGlobe, clusterPlaces, densifyTrack, lonLatToUnit} from '@/lib/scene/travel';
+import {TripIcon} from './TripIcon';
 
 export type MarkerState = 'idle' | 'focused' | 'selected';
 
@@ -56,6 +57,8 @@ type TravelCalloutsProps = {
   visibilityRef: MutableRefObject<number>;
   /** How far all trips are shown, 0 to 1: the other markers and the clusters. */
   overviewRef: MutableRefObject<number>;
+  /** How far the open trip's stops are shown, 0 to 1: in as the camera settles on the trip, out as it leaves. */
+  stopsShownRef: MutableRefObject<number>;
   /** Set while a cluster is fanned out: the globe holds still. */
   holdRef: MutableRefObject<boolean>;
   selectedIndex: number;
@@ -106,7 +109,7 @@ function Hex({dot}: {dot?: boolean}) {
 
 export function TravelCallouts({
   trips, groupRef, radiusAt, globeRadius, markerSize, tripMarkerSize, clusterWithin, visibilityRef, overviewRef,
-  holdRef, selectedIndex, focusedIndex, hoveredIndex, signalColor, onSelect, onHover,
+  stopsShownRef, holdRef, selectedIndex, focusedIndex, hoveredIndex, signalColor, onSelect, onHover,
 }: TravelCalloutsProps) {
   const anchorsRef = useRef<Array<HTMLDivElement | null>>([]);
   const endsRef = useRef<Array<HTMLDivElement | null>>([]);
@@ -243,8 +246,10 @@ export function TravelCallouts({
         const shown = open && at.front ? others * fan.current * fadeOf(at.facing) : 0;
         line.setAttribute('x1', String(at.x));
         line.setAttribute('y1', String(at.y));
-        line.setAttribute('x2', String(at.x + offset.x * fan.current));
-        line.setAttribute('y2', String(at.y + offset.y * fan.current));
+        // The line stops short of the marker, clear of its drawing.
+        const reach = Math.max(1 - (markerSize * 0.6) / Math.hypot(offset.x, offset.y), 0) * fan.current;
+        line.setAttribute('x2', String(at.x + offset.x * reach));
+        line.setAttribute('y2', String(at.y + offset.y * reach));
         line.style.visibility = shown > 0.01 ? 'visible' : 'hidden';
         line.style.opacity = String(shown);
       });
@@ -257,8 +262,8 @@ export function TravelCallouts({
       const own = index === selectedIndex || (selectedIndex < 0 && index === lastSelected.current);
       const route = routes[index];
       const {cluster, at: slot} = clusterOf[index];
-      // A trip giving its marker over to its stops fades it as the trip opens.
-      const handsOver = !route && Boolean(trip.stops?.length) ? others : 1;
+      // A trip giving its marker over to its stops fades it as they come in.
+      const handsOver = !route && Boolean(trip.stops?.length) && own ? 1 - stopsShownRef.current : 1;
       // A clustered trip stands at its own place only while open; over all trips it is its cluster's, or in its fan
       // (back to all trips it leaves at once: lingering, it would sit over the stack and take its clicks).
       const alone = cluster < 0 ? (own ? 1 : others) : index === selectedIndex ? 1 - others : 0;
@@ -291,9 +296,9 @@ export function TravelCallouts({
       const titled = index === hoveredIndex && selectedIndex < 0 && at.front && markShown > 0.01;
       name(labelsRef.current[index], leadersRef.current[index], at.x, at.y, titled, fadeOf(at.facing) * markShown);
 
-      // The open trip's stops, coming in as the others leave; the hovered stop is named.
+      // The open trip's stops, in as the camera settles on it and out as it leaves; the hovered stop is named.
       const stops = trip.stops ?? [];
-      const stopShown = own ? 1 - others : 0;
+      const stopShown = own ? stopsShownRef.current : 0;
       stops.forEach((stop, stopIndex) => {
         const point = project(stopUnits[index][stopIndex], camera, middle.current);
         place(stopsRef.current[index]?.[stopIndex], point, stopShown);
@@ -400,6 +405,7 @@ export function TravelCallouts({
                 aria-hidden="true"
                 className="travel-callout-anchor"
                 data-hovered={hovered || undefined}
+                data-icon={trip.icon && !route ? true : undefined}
                 data-route={route ? true : undefined}
                 data-state={state}
                 onClick={() => onSelect(trip.id)}
@@ -413,7 +419,12 @@ export function TravelCallouts({
                   <div className="travel-route-node">
                     <Hex dot />
                   </div>
-                ) : <span className="travel-callout-reticle" />}
+                ) : (
+                  <>
+                    {trip.icon ? <TripIcon name={trip.icon} /> : null}
+                    <span className="travel-callout-reticle" />
+                  </>
+                )}
               </div>
               <div
                 aria-hidden="true"

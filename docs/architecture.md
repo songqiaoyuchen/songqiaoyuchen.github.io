@@ -93,8 +93,10 @@ rim; land carries a field of gold light points sampled from the same map, denser
 `shaders/terrain/travelPoints.*`); a faint gold graticule and baked coastlines and lakes (`public/travel/coast.bin`,
 Natural Earth 110m) as line segments; trail tubes along each trip's tracks riding the relief (one line across
 gaps between recordings, thinner with a trip open) and HTML markers without titles (`TravelCallouts`): trips
-within `clusterWithin` degrees (chained) share a stacked marker that fans out on a click and holds the globe
-still, and an open trip's stops are small diamonds named on hover, laid out like About's. About the resting globe,
+within `clusterWithin` degrees (chained; `phoneClusterWithin` on phones, whose globe is smaller) share a stacked marker that fans out on a click and holds the globe
+still; a trip may draw its own icon in place of the diamond (`TripIcon`, more detail in focus and open); and an
+open trip's stops are small diamonds named on hover, fading in only as the camera settles on the trip
+(`stopsFrom`) and out as it leaves, laid out like About's. About the resting globe,
 outside its turn, two tilted orbit rings with tick marks turn slowly (`TravelRings`) and a sparse sky of stars
 stands far behind (`TravelStars`, the same point shader); lights, rings and stars join the isolated bloom. The camera parks at the Travel
 pose and the globe turns (`lib/scene/travel.ts`): a drag follows the pointer; a release coasts under friction

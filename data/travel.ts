@@ -11,6 +11,9 @@ export type LonLat = readonly [number, number];
 
 export type TravelMode = 'bicycle' | 'hike' | 'train' | 'flight';
 
+/** A trip's own marker on the globe in place of the diamond (components/scene/travel/TripIcon.tsx). */
+export type TripIcon = 'ventoux' | 'hairpins';
+
 /** A gallery's photo and its text, from its folder (galleryPhotos). */
 export type GalleryPhoto = {src: string; width: number; height: number; text: string};
 
@@ -40,6 +43,8 @@ export type Trip = {
   mode?: TravelMode;
   /** The place the marker stands on and the globe turns to; the start of a long route. */
   place: {name: string; lonLat: LonLat};
+  /** Its own marker in place of the diamond. */
+  icon?: TripIcon;
   summary: string;
   description: string;
   /**
@@ -131,6 +136,7 @@ export const TRIPS: readonly Trip[] = [
     distanceKm: 21, // placeholder: Bédoin to the summit
     mode: 'bicycle',
     place: {name: 'Mont Ventoux, Provence', lonLat: [5.279, 44.174]},
+    icon: 'ventoux',
     summary: 'The bald mountain of Provence, climbed from Bédoin.',
     description: 'Placeholder. A single day, a single climb: the forest, then the moonscape above Chalet Reynard, '
       + 'then the tower. Distance is a placeholder until the ride is written up.',
@@ -143,6 +149,7 @@ export const TRIPS: readonly Trip[] = [
     distanceKm: 14, // placeholder: Le Bourg-d'Oisans to the top
     mode: 'bicycle',
     place: {name: 'Alpe d’Huez, Isère', lonLat: [6.07, 45.09]},
+    icon: 'hairpins',
     summary: 'Placeholder. The twenty-one hairpins from Le Bourg-d’Oisans.',
     description: 'Placeholder.',
   },
@@ -168,13 +175,13 @@ export function galleryPhotos(trip: Trip, gallery: Gallery) {
 }
 
 const MODE_LABELS: Record<TravelMode, string> = {
-  bicycle: 'bicycle',
-  hike: 'on foot',
+  bicycle: 'ride',
+  hike: 'hike',
   train: 'train',
   flight: 'flight',
 };
 
-/** "Jun 2025 · 14 days · 2,150 km · bicycle"; parts a trip lacks are left out, a city visit's dates too. */
+/** "Jun 2025 · 14 days · 2,150 km · ride"; parts a trip lacks are left out, a city visit's dates too. */
 export function formatTripMeta(trip: Trip) {
   if (!trip.mode) return 'City';
   const parts = [formatEntryStart(trip.start.slice(0, 7))];
