@@ -93,6 +93,13 @@
   outline-offset: 4px;
 }
 
+/* Selected works' × back to Home (SectionClose.tsx): where About's sits. */
+.art-close {
+  position: fixed;
+  top: 6rem;
+  right: clamp(2rem, 5vw, 5rem);
+}
+
 /* The gallery column: stage above, a fixed-height wall label row below. */
 .art-gallery {
   grid-column: 2;
@@ -157,6 +164,7 @@
   }
   .art-gallery { --art-caption-height: 14.25rem; grid-column: 1; gap: 12px; }
   .art-scene-status { display: none; }
+  .art-close { top: 4.5rem; right: 1.5rem; }
 }
 /* Portrait phones (short landscape screens keep their side-by-side layout below). */
 @media (max-width: 599px), (max-width: 767px) and (min-height: 541px) {

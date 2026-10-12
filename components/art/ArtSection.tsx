@@ -4,6 +4,7 @@
 
 import {useRouter} from 'next/navigation';
 import {Suspense, useState} from 'react';
+import {SectionClose} from '@/components/site/SectionClose';
 import {ALL_ARTWORKS, getArtworkMedium, type ArtMedium} from '@/data/artworks';
 import {Collection} from './all/Collection';
 import {CollectionHeader} from './all/CollectionHeader';
@@ -58,7 +59,12 @@ export function ArtSection() {
         <QuerySync onChange={setQueryString} />
       </Suspense>
       <main ref={galleryRef} className={`art-section ${all ? 'art-section-all' : ''}`} data-medium={medium}>
-        {all ? <CollectionHeader scopeLink={scopeLink} /> : <h1 className="sr-only">Art</h1>}
+        {all ? <CollectionHeader scopeLink={scopeLink} /> : (
+          <>
+            <h1 className="sr-only">Art</h1>
+            <SectionClose className="art-close" label="Art" />
+          </>
+        )}
 
         <section className="art-gallery" aria-label={all ? 'All artworks' : 'Selected artworks'}>
 

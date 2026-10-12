@@ -9,6 +9,7 @@
 import {useRouter} from 'next/navigation';
 import {Suspense, useEffect, useRef, useState} from 'react';
 import {QuerySync} from '@/components/art/QuerySync';
+import {SectionClose} from '@/components/site/SectionClose';
 import {TRIPS} from '@/data/travel';
 import {useReducedMotion} from '@/hooks/useReducedMotion';
 import {PhotoViewer} from './PhotoViewer';
@@ -88,6 +89,7 @@ export function TravelSection() {
         data-view={shownTrip ? 'trip' : 'overview'}
       >
         <h1 className="sr-only">Travel</h1>
+        <SectionClose className="travel-close" label="Travel" />
         <div className="travel-sheet" ref={sheetRef}>
           {shownTrip ? (
             <>

@@ -9,7 +9,7 @@
 import Link from 'next/link';
 import {useMemo, useRef, useState, type CSSProperties, type MutableRefObject, type PointerEvent} from 'react';
 import {panelStyles} from '@/components/home/drawer/Drawer.styles';
-import {formatTripMeta, formatTripYears, type LonLat, type Trip} from '@/data/travel';
+import {formatTripMeta, type LonLat, type Trip} from '@/data/travel';
 import {MeridianStrip} from './MeridianStrip';
 import type {GlobeFront} from './TravelSceneContext';
 
@@ -48,7 +48,6 @@ export function TripIndex({trips, hoveredId, capturedId, globeFront, onHover, op
   if (capturedId && capturedId !== peekId) setPeekId(capturedId);
   const peek = trips.find((trip) => trip.id === peekId);
   const swipe = useRef<number | null>(null);
-  const summary = `${trips.length === 1 ? '1 trip' : `${trips.length} trips`} · ${formatTripYears(trips)}`;
 
   function handleSwipeStart(event: PointerEvent) {
     swipe.current = event.clientY;
@@ -68,7 +67,6 @@ export function TripIndex({trips, hoveredId, capturedId, globeFront, onHover, op
         <div className={`travel-index-body ${panelStyles.content}`}>
           <header className="travel-index-entry travel-index-head mb-6">
             <h2 className={panelStyles.title} id="travel-index-title">Travel</h2>
-            <p className={panelStyles.intro}>{summary} · west to east</p>
           </header>
           <div className="travel-index-entry travel-index-strip mb-6" style={{'--rise': 1} as CSSProperties}>
             <MeridianStrip
@@ -93,7 +91,6 @@ export function TripIndex({trips, hoveredId, capturedId, globeFront, onHover, op
               tabIndex={-1}
               type="button"
             />
-            <p className="travel-peek-summary">{summary}</p>
             <button
               aria-controls="travel-index-list"
               aria-expanded={open}

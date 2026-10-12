@@ -1,4 +1,6 @@
 // Tailwind classes shared by the drawer frame (Drawer.tsx) and its About/Blog/Projects panels.
+import {closeMark} from '@/components/site/close.styles';
+
 export const drawerStyles = {
   // Drawer.tsx adds the side and desktop width: asideStart, or asideEnd for About.
   aside: `fixed inset-y-0 z-40 w-full
@@ -16,10 +18,7 @@ export const drawerStyles = {
   // into it from above.
   backdropEnd: 'md:about-backdrop max-md:about-phone-backdrop',
   body: 'relative z-10 h-full',
-  close: `absolute right-6 top-20 z-50 grid size-11 place-items-center border-0 bg-transparent
-    p-0 font-mono text-xl font-light leading-none text-dim transition-colors
-    duration-interaction ease-out hover:text-text focus-visible:outline-1
-    focus-visible:outline-offset-4 focus-visible:outline-accent md:top-24`,
+  close: `${closeMark} absolute right-6 top-20 z-50 md:top-24`,
   closeStart: 'md:right-0',
   // In line with the About column's right edge rather than the viewport's; on phones at the drawer's top.
   closeEnd: 'max-md:top-6 md:right-[clamp(2rem,5vw,5rem)]',

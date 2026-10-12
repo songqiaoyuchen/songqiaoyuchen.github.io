@@ -15,8 +15,8 @@ export const HOME_OVERVIEW_EVENT = 'sqyc:home-overview';
  */
 export const SECTION_NAVIGATE_EVENT = 'sqyc:section-navigate';
 
-/** Let the shell take over an ordinary (unmodified) click on a section link. */
-function requestSectionNavigation(event: React.MouseEvent, href: string) {
+/** Let the shell take over an ordinary (unmodified) click on a section link (also SectionClose). */
+export function requestSectionNavigation(event: React.MouseEvent, href: string) {
   if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
   const handled = !window.dispatchEvent(new CustomEvent(SECTION_NAVIGATE_EVENT, {cancelable: true, detail: {href}}));
   if (handled) event.preventDefault();

@@ -1,14 +1,20 @@
 /* All works (CollectionHeader.tsx, Collection.tsx, CollectionWork.tsx): title row, medium sections with
    running headers, and justified image rows with hover notes. */
 
-/* Page title row: the heading on the left, the way back on the right. */
+/* Page title row: the heading on the left, the way back and the close on the right. */
 .art-collection-head {
   grid-column: 1 / -1;
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 24px;
   padding-top: 24px;
+}
+/* The way back to Selected works, then the × back to Home. */
+.art-collection-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
 }
 /* A small caps label like the nav, so the medium headers below carry the page. */
 .art-collection-title {
@@ -22,6 +28,7 @@
   line-height: 1.2;
   text-transform: uppercase;
   letter-spacing: var(--tracking-label);
+  white-space: nowrap;
 }
 .art-medium-section {
   scroll-margin-top: 100px; /* clears the fixed nav when jumping to a section */

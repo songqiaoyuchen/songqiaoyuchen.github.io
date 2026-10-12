@@ -79,6 +79,21 @@
 .travel-sheet :is(a, button) {
   pointer-events: auto;
 }
+/* The × back to Home (SectionClose.tsx): where About's sits, at the index column's right edge. */
+.travel-close {
+  position: absolute;
+  top: 6rem;
+  right: var(--travel-index-pad-end);
+  z-index: 1;
+  pointer-events: auto;
+}
+/* A trip: at its panel's right edge, the meta line and title kept clear of it. */
+.travel-section[data-view='trip'] .travel-close {
+  right: var(--spacing-page-gutter);
+}
+.travel-section[data-view='trip'] :is(.travel-eyebrow, .travel-trip-title) {
+  padding-right: 3rem;
+}
 .travel-section :is(a, button):focus-visible,
 .travel-viewer :is(a, button):focus-visible {
   outline: var(--focus-ring);
@@ -394,6 +409,15 @@
   display: none;
 }
 @media (width < 48rem) {
+  /* Under the nav, clear of the globe's window. */
+  .travel-close,
+  .travel-section[data-view='trip'] .travel-close {
+    top: 4.5rem;
+    right: 1.5rem;
+  }
+  .travel-section[data-view='trip'] :is(.travel-eyebrow, .travel-trip-title) {
+    padding-right: 0;
+  }
   .travel-section {
     --travel-peek: 12.5rem;
     --travel-sheet-open: 60svh;
