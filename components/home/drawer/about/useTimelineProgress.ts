@@ -17,7 +17,7 @@ export const TIMELINE_STOP_COUNT = ABOUT_TIMELINE.length + 1;
 const READING_HEAD = 0.58;
 const PHONE_READING_HEAD = 0.3;
 const PHONE = '(width < 48rem)';
-const readingHeadShare = () => (window.matchMedia(PHONE).matches ? PHONE_READING_HEAD : READING_HEAD);
+const readingHeadShare = (phone: MediaQueryList) => (phone.matches ? PHONE_READING_HEAD : READING_HEAD);
 // Hysteresis (px) so a marker does not flicker at the reading head.
 const ENTER_OFFSET = 10;
 const LEAVE_OFFSET = 18;
@@ -58,9 +58,14 @@ export function useTimelineProgress(
     const scrollerElement = scroller;
     const timelineElement = timeline;
 
+    const phone = window.matchMedia(PHONE);
     let animationFrame = 0;
     let timelineOffset = 0;
     let markerOffsets: number[] = [];
+    // The column's extent, measured with the markers (the observer covers the column and its content) rather
+    // than read per scroll frame.
+    let viewHeight = 0;
+    let scrollHeight = 0;
 
     function startRipple(index: number) {
       setRippleCounts((current) => current.map((count, currentIndex) => (
@@ -69,6 +74,8 @@ export function useTimelineProgress(
     }
 
     function measureTimeline() {
+      viewHeight = scrollerElement.clientHeight;
+      scrollHeight = scrollerElement.scrollHeight;
       const scrollerRect = scrollerElement.getBoundingClientRect();
       const timelineRect = timelineElement.getBoundingClientRect();
       timelineOffset = timelineRect.top - scrollerRect.top + scrollerElement.scrollTop;
@@ -87,13 +94,11 @@ export function useTimelineProgress(
     function updateTimeline() {
       animationFrame = 0;
 
-      const readingHead = scrollerElement.scrollTop
-        + scrollerElement.clientHeight * readingHeadShare()
-        - timelineOffset;
+      const scrollTop = scrollerElement.scrollTop;
+      const readingHead = scrollTop + viewHeight * readingHeadShare(phone) - timelineOffset;
       const routeStart = markerOffsets[0] ?? 0;
       const routeEnd = markerOffsets.at(-1) ?? routeStart;
-      const isAtEnd = scrollerElement.scrollTop + scrollerElement.clientHeight
-        >= scrollerElement.scrollHeight - 2;
+      const isAtEnd = scrollTop + viewHeight >= scrollHeight - 2;
       // The last stops may never reach the reading head; the end of the panel arrives at "Next?".
       const drawn = isAtEnd
         ? routeEnd - routeStart
@@ -118,7 +123,7 @@ export function useTimelineProgress(
         nextIndex -= 1;
       }
       // The top of the panel is the overview, even where the first marker already meets the head.
-      if (scrollerElement.scrollTop <= 2) nextIndex = -1;
+      if (scrollTop <= 2) nextIndex = -1;
       else if (isAtEnd) nextIndex = markerOffsets.length - 1;
 
       if (nextIndex !== activeIndexRef.current) {
@@ -134,8 +139,10 @@ export function useTimelineProgress(
         }
       }
 
-      shellElement.dataset.atStart = String(scrollerElement.scrollTop <= 2);
-      shellElement.dataset.atEnd = String(isAtEnd);
+      const atStart = String(scrollTop <= 2);
+      const atEnd = String(isAtEnd);
+      if (shellElement.dataset.atStart !== atStart) shellElement.dataset.atStart = atStart;
+      if (shellElement.dataset.atEnd !== atEnd) shellElement.dataset.atEnd = atEnd;
     }
 
     function scheduleUpdate() {
@@ -155,7 +162,7 @@ export function useTimelineProgress(
         : stop >= markerOffsets.length - 1
           ? maxScroll
           : timelineOffset + markerOffsets[stop] + LAND_OFFSET
-            - scrollerElement.clientHeight * readingHeadShare();
+            - scrollerElement.clientHeight * readingHeadShare(phone);
       scrollerElement.scrollTo({
         top: Math.min(Math.max(top, 0), maxScroll),
         behavior: isReducedMotion ? 'auto' : 'smooth',

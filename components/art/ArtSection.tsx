@@ -8,7 +8,7 @@ import {SectionClose} from '@/components/site/SectionClose';
 import {ALL_ARTWORKS, getArtworkMedium, type ArtMedium} from '@/data/artworks';
 import {Collection} from './all/Collection';
 import {CollectionHeader} from './all/CollectionHeader';
-import {useArtScene} from './ArtSceneContext';
+import {useArtBackdrop} from './ArtSceneContext';
 import {Inspection} from './inspection/Inspection';
 import {QuerySync} from './QuerySync';
 import {ScopeLink} from './ScopeLink';
@@ -25,7 +25,7 @@ export function ArtSection() {
   const [queryString, setQueryString] = useState('');
   const {all, inspecting, selected, index, query, collectionHref, scopeHref} = useArtRoute(queryString);
   const router = useRouter();
-  const {setBackdrop} = useArtScene();
+  const {setBackdrop} = useArtBackdrop();
   const [collectionMedium, setCollectionMedium] = useState<ArtMedium>(getArtworkMedium(ALL_ARTWORKS[0]));
   const {galleryRef, captureGallery} = useGalleryTransition(all);
   // The backdrop follows the inspected work, else the visible medium section, else the selected work.

@@ -28,10 +28,12 @@ type TravelStarsProps = {
   color: string;
   /** How far the sky has come in, 0 to 1, read every frame. */
   visibilityRef: MutableRefObject<number>;
+  /** Whether the globe is drawn this frame (TravelGlobe): hidden, the sky is left as it stands. */
+  shownRef: MutableRefObject<boolean>;
   onPoints: (points: Points | null) => void;
 };
 
-export function TravelStars({count, radius, size, color, visibilityRef, onPoints}: TravelStarsProps) {
+export function TravelStars({count, radius, size, color, visibilityRef, shownRef, onPoints}: TravelStarsProps) {
   const materialRef = useRef<ShaderMaterial>(null);
   const pointsRef = useRef<Points | null>(null);
   const drift = useRef(0);
@@ -89,6 +91,7 @@ export function TravelStars({count, radius, size, color, visibilityRef, onPoints
   }, [color, dpr, radius, reducedMotion, size]);
 
   useFrame((state, delta) => {
+    if (!shownRef.current) return;
     const material = materialRef.current;
     if (!material) return;
     material.uniforms.uTime.value = state.clock.elapsedTime;

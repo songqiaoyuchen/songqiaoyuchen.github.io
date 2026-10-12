@@ -10,7 +10,7 @@ import {
   type Camera, type ShaderMaterial, type WebGLRenderer,
   type Texture,
 } from 'three';
-import {useArtScene} from '@/components/art/ArtSceneContext';
+import {useArtCapture} from '@/components/art/ArtSceneContext';
 import type {
   ContourControlValues, FogControlValues, TerrainControlValues,
 } from '@/components/scene/controls/useSceneControls';
@@ -78,7 +78,7 @@ export function CachedTerrain({
   travelLook,
 }: CachedTerrainProps) {
   const scene = useMemo(() => new Scene(), []);
-  const {capture} = useArtScene();
+  const {capture} = useArtCapture();
   const materialRef = useRef<ShaderMaterial>(null);
   const target = useFBO({
     depthBuffer: true,

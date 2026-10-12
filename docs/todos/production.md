@@ -19,11 +19,12 @@ Evidence below is from 2026-09-29, not a guarantee of current failures.
   startup/GPU cost on representative hardware. Reviewed source totals were
   6.31 MB compressed terrain and 10.84 MB artwork, not measured page transfers.
   Check cold/cached behavior and hosting cache headers during release review.
+  Measured on 2026-10-12; findings and fixes live in [performance](performance.md).
 - [ ] **Further GPU savings (each changes the look slightly, so not done):** the nav's
   `backdrop-filter` re-blurs the live canvas every frame; glyph rain renders four full-size
   layers per frame (rear layers could render at half size); SMAA adds little at pixel ratio 2;
   slow devices could drop the pixel ratio, bloom levels or SMAA when frames run slow.
-  Profile on the slow laptop first (Chrome Performance panel, GPU track).
+  Profiled on 2026-10-12 (GPU timer queries per pass): see [performance](performance.md) for the per-pass budget.
 - [ ] **Resilience:** review scene/asset failure, cancellation, no-JavaScript
   entry, and slow loading after startup behavior stabilizes. Global navigation
   is currently blocked by the preloader; initial HTML lacks the introduction.

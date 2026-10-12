@@ -7,6 +7,17 @@ import type {LonLat} from '@/data/travel';
 const DEG = Math.PI / 180;
 const UP = new Vector3(0, 1, 0);
 const TAU = Math.PI * 2;
+// Scratch for the per-frame maths below, so the frame loop allocates nothing: none of these is held across calls.
+const SPIN = new Quaternion();
+const DIRECTION = new Vector3();
+const TO_ORIGIN = new Vector3();
+const SEEN = new Vector3();
+const UNIT = new Vector3();
+const TURNED = new Vector3();
+const PROJECTED: GlobeProjection = {x: 0, y: 0, radiusX: 0, radiusY: 0};
+const SCREEN: [number, number] = [0, 0];
+const GOAL: GlobeAngles = {yaw: 0, pitch: 0};
+const NEAREST: number[] = [];
 
 /** Unit vector of a place on the globe: +Y north, longitude 0 toward +Z, east toward +X. */
 export function lonLatToUnit([lon, lat]: LonLat, out = new Vector3()) {
@@ -63,9 +74,12 @@ export function facingAngles(place: LonLat, view: GlobeView) {
 
 /** The globe's rotation for a yaw and pitch: yaw first about +Y, then pitch about the view's axis. */
 export function globeQuaternion(yaw: number, pitch: number, view: GlobeView, out = new Quaternion()) {
-  const spin = new Quaternion().setFromAxisAngle(UP, yaw);
+  const spin = SPIN.setFromAxisAngle(UP, yaw);
   return out.setFromAxisAngle(view.pitchAxis, pitch).multiply(spin);
 }
+
+/** A yaw and pitch of the globe's turn, radians. */
+export type GlobeAngles = {yaw: number; pitch: number};
 
 /** The place the globe has turned to the camera at this yaw and pitch, degrees. */
 export function frontPlace(yaw: number, pitch: number, view: GlobeView): LonLat {
@@ -147,8 +161,8 @@ export function aimFromScreen(
   out = new Vector3(),
 ) {
   const origin = camera.position;
-  const direction = new Vector3(screen[0], screen[1], 0.5).unproject(camera).sub(origin).normalize();
-  const toOrigin = origin.clone().sub(center);
+  const direction = DIRECTION.set(screen[0], screen[1], 0.5).unproject(camera).sub(origin).normalize();
+  const toOrigin = TO_ORIGIN.copy(origin).sub(center);
   const b = toOrigin.dot(direction);
   const discriminant = b * b - (toOrigin.lengthSq() - radius * radius);
   const along = discriminant >= 0 ? -b - Math.sqrt(discriminant) : -b;
@@ -156,10 +170,19 @@ export function aimFromScreen(
 }
 
 /** The globe's centre and radius as the camera draws them, normalized device coordinates. */
-export function projectGlobe(camera: PerspectiveCamera, center: Vector3, radius: number) {
-  const seen = center.clone().project(camera);
+export type GlobeProjection = {x: number; y: number; radiusX: number; radiusY: number};
+
+export function projectGlobe(
+  camera: PerspectiveCamera, center: Vector3, radius: number,
+  out: GlobeProjection = {x: 0, y: 0, radiusX: 0, radiusY: 0},
+) {
+  const seen = SEEN.copy(center).project(camera);
   const radiusY = radius / (camera.position.distanceTo(center) * Math.tan(camera.fov * DEG / 2));
-  return {x: seen.x, y: seen.y, radiusX: radiusY / camera.aspect, radiusY};
+  out.x = seen.x;
+  out.y = seen.y;
+  out.radiusX = radiusY / camera.aspect;
+  out.radiusY = radiusY;
+  return out;
 }
 
 /** Screen point `offset` (shares of the globe's radius, right and up) from the globe's centre. */
@@ -168,9 +191,12 @@ export function markerScreenFor(
   center: Vector3,
   radius: number,
   offset: readonly [number, number],
-): [number, number] {
-  const globe = projectGlobe(camera, center, radius);
-  return [globe.x + offset[0] * globe.radiusX, globe.y + offset[1] * globe.radiusY];
+  out: [number, number] = [0, 0],
+) {
+  const globe = projectGlobe(camera, center, radius, PROJECTED);
+  out[0] = globe.x + offset[0] * globe.radiusX;
+  out[1] = globe.y + offset[1] * globe.radiusY;
+  return out;
 }
 
 /** The marker offset (shares of the globe's radius, right and up) at which the camera draws a world point. */
@@ -180,8 +206,8 @@ export function offsetForMarker(
   radius: number,
   marker: Vector3,
 ): [number, number] {
-  const globe = projectGlobe(camera, center, radius);
-  const seen = marker.clone().project(camera);
+  const globe = projectGlobe(camera, center, radius, PROJECTED);
+  const seen = SEEN.copy(marker).project(camera);
   return [(seen.x - globe.x) / globe.radiusX, (seen.y - globe.y) / globe.radiusY];
 }
 
@@ -193,7 +219,7 @@ export function aimForOffset(
   offset: readonly [number, number],
   out = new Vector3(),
 ) {
-  return aimFromScreen(camera, center, radius, markerScreenFor(camera, center, radius, offset), out);
+  return aimFromScreen(camera, center, radius, markerScreenFor(camera, center, radius, offset, SCREEN), out);
 }
 
 /**
@@ -202,8 +228,10 @@ export function aimForOffset(
  * A place too near a pole cannot reach an aim far to the side (a north-up globe never tilts sideways); it then
  * comes as close as the axes allow.
  */
-export function anglesToward(place: LonLat, aim: Vector3, view: GlobeView, maxPitch: number) {
-  const unit = lonLatToUnit(place);
+export function anglesToward(
+  place: LonLat, aim: Vector3, view: GlobeView, maxPitch: number, out: GlobeAngles = {yaw: 0, pitch: 0},
+) {
+  const unit = lonLatToUnit(place, UNIT);
   const axis = view.pitchAxis;
   // Height of the aim turned back by theta about the axis: A cos(theta) + B sin(theta).
   const a = aim.y;
@@ -215,9 +243,10 @@ export function anglesToward(place: LonLat, aim: Vector3, view: GlobeView, maxPi
   const second = wrapAngle(base - spread);
   const theta = Math.abs(second) < Math.abs(first) ? second : first;
   const pitch = Math.min(maxPitch, Math.max(-maxPitch, -theta));
-  const turnedBack = aim.clone().applyAxisAngle(axis, -pitch);
-  const yaw = wrapAngle(Math.atan2(turnedBack.x, turnedBack.z) - Math.atan2(unit.x, unit.z));
-  return {yaw, pitch};
+  const turnedBack = TURNED.copy(aim).applyAxisAngle(axis, -pitch);
+  out.yaw = wrapAngle(Math.atan2(turnedBack.x, turnedBack.z) - Math.atan2(unit.x, unit.z));
+  out.pitch = pitch;
+  return out;
 }
 
 export type GlobeInput = {
@@ -264,7 +293,7 @@ export function advanceGlobe(
   if (state.target >= 0) {
     const index = state.target;
     const gain = input.reducedMotion ? 1 : 1 - Math.exp(-settings.snapRate * dt);
-    const goal = anglesToward(places[index], input.aim, view, settings.maxPitch);
+    const goal = anglesToward(places[index], input.aim, view, settings.maxPitch, GOAL);
     // The aim moves with the camera, so the goal is solved afresh every frame and eased toward.
     state.yaw += wrapAngle(goal.yaw - state.yaw) * gain;
     state.pitch += (goal.pitch - state.pitch) * gain;
@@ -339,18 +368,25 @@ export function focusedTrip(
   release: number,
   current: number,
 ) {
-  const nearest = points.map((trip) => trip.reduce((best, point) => Math.max(best, point.dot(front)), -1));
+  const nearest = NEAREST;
+  nearest.length = points.length;
+  for (let index = 0; index < points.length; index++) {
+    const trip = points[index];
+    let cosine = -1;
+    for (let at = 0; at < trip.length; at++) cosine = Math.max(cosine, trip[at].dot(front));
+    nearest[index] = cosine;
+  }
   if (current >= 0 && current < points.length && nearest[current] >= Math.cos((within + release) * DEG)) {
     return current;
   }
   let best = -1;
   let bestCosine = Math.cos(within * DEG);
-  nearest.forEach((cosine, index) => {
-    if (cosine > bestCosine) {
-      bestCosine = cosine;
+  for (let index = 0; index < nearest.length; index++) {
+    if (nearest[index] > bestCosine) {
+      bestCosine = nearest[index];
       best = index;
     }
-  });
+  }
   return best;
 }
 
@@ -477,11 +513,20 @@ export function regionSpread(regionKm: number, regionSize: number, mapTexel: num
  * world units on the planet per world unit of landscape at that moment; `metresPerUnit` converts the landscape's
  * own heights to metres above its datum.
  */
-export function planetScale(landscapeKm: number, planeSize: number, globeRadius: number, morph: number) {
+export type PlanetScale = {startRadius: number; radius: number; scale: number; metresPerUnit: number};
+
+export function planetScale(
+  landscapeKm: number, planeSize: number, globeRadius: number, morph: number,
+  out: PlanetScale = {startRadius: 0, radius: 0, scale: 0, metresPerUnit: 0},
+) {
   const metresPerUnit = landscapeKm * 1000 / planeSize;
   const startRadius = EARTH_RADIUS_KM * 1000 / metresPerUnit;
   const radius = startRadius * Math.pow(globeRadius / startRadius, Math.min(1, Math.max(0, morph)));
-  return {startRadius, radius, scale: radius / startRadius, metresPerUnit};
+  out.startRadius = startRadius;
+  out.radius = radius;
+  out.scale = radius / startRadius;
+  out.metresPerUnit = metresPerUnit;
+  return out;
 }
 
 /**

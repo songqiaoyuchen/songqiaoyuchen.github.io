@@ -74,55 +74,95 @@ export function useTripSheetPlacement(
     if (!active || !sheet || !shape) return;
     const phone = window.matchMedia(PHONE);
     let frame = 0;
-    let last = '';
+    let placedOnce = false;
+    // The outline as last placed, half pixels: a frame whose outline matches it changes nothing on screen.
+    let placedX = NaN;
+    let placedY = NaN;
+    let placedPoints: number[] = [];
+    // The page's measures, read on resize rather than every frame: computed style right after the scene's
+    // callout writes would force a style recalculation per frame.
+    const page = {width: 0, height: 0, padTop: 0, gutter: 0};
+    let rem = 16;
+    const measure = () => {
+      const section = sheet.parentElement;
+      const sectionStyle = section ? window.getComputedStyle(section) : null;
+      rem = parseFloat(window.getComputedStyle(document.documentElement).fontSize) || 16;
+      page.width = window.innerWidth;
+      page.height = window.innerHeight;
+      page.padTop = (sectionStyle && parseFloat(sectionStyle.paddingTop)) || 0;
+      page.gutter = (sectionStyle && parseFloat(sectionStyle.paddingRight)) || 0;
+      placedX = NaN;
+    };
+    // The styles as written: the browser serialises them differently ("96.0px" reads back "96px"), so the
+    // element's own values cannot tell a repeat from a change.
+    const sheetWritten: Partial<Record<WrittenStyle, string>> = {};
+    const shapeWritten: Partial<Record<WrittenStyle, string>> = {};
+    const write = (
+      style: CSSStyleDeclaration, written: Partial<Record<WrittenStyle, string>>, property: WrittenStyle, value: string,
+    ) => {
+      if (written[property] === value) return;
+      written[property] = value;
+      style[property] = value;
+    };
     const clear = () => {
       sheet.style.top = sheet.style.left = sheet.style.width = sheet.style.height = '';
       sheet.style.translate = sheet.style.right = '';
       shape.style.marginLeft = shape.style.marginTop = shape.style.width = shape.style.height = '';
       shape.style.shapeOutside = '';
-      last = '';
+      for (const property of Object.keys(sheetWritten) as WrittenStyle[]) delete sheetWritten[property];
+      for (const property of Object.keys(shapeWritten) as WrittenStyle[]) delete shapeWritten[property];
+      placedOnce = false;
+      placedX = NaN;
+    };
+    const half = (value: number) => Math.round(value * 2) / 2;
+    const unchanged = (outline: GlobeOutline) => {
+      if (half(outline.x) !== placedX || half(outline.y) !== placedY) return false;
+      if (outline.points.length !== placedPoints.length) return false;
+      for (let index = 0; index < placedPoints.length; index += 1) {
+        if (half(outline.points[index]) !== placedPoints[index]) return false;
+      }
+      return true;
     };
     const tick = () => {
       frame = window.requestAnimationFrame(tick);
       const outline = outlineRef.current;
-      const section = sheet.parentElement;
-      if (phone.matches || !outline || outline.points.length < 6 || !section) {
-        if (last) clear();
+      if (phone.matches || !outline || outline.points.length < 6 || !sheet.parentElement) {
+        if (placedOnce) clear();
         return;
       }
-      const sectionStyle = window.getComputedStyle(section);
-      const rem = parseFloat(window.getComputedStyle(document.documentElement).fontSize) || 16;
-      const page = {
-        width: window.innerWidth,
-        height: window.innerHeight,
-        padTop: parseFloat(sectionStyle.paddingTop) || 0,
-        gutter: parseFloat(sectionStyle.paddingRight) || 0,
-      };
+      if (unchanged(outline)) return;
+      placedX = half(outline.x);
+      placedY = half(outline.y);
+      if (placedPoints.length !== outline.points.length) placedPoints = new Array<number>(outline.points.length);
+      for (let index = 0; index < placedPoints.length; index += 1) placedPoints[index] = half(outline.points[index]);
       // The column caps the measure where the globe leaves a row free; the float narrows it where it does not.
       const placed = placeTripSheet(outline, page, 40 * rem);
       const polygon = polygonShape(placed.shape.polygon);
-      const key = `${placed.top.toFixed(0)},${placed.left.toFixed(0)},${placed.width.toFixed(0)},`
-        + `${placed.shape.left.toFixed(0)},${placed.shape.top.toFixed(0)},${polygon}`;
-      if (key === last) return;
-      last = key;
-      sheet.style.top = `${placed.top.toFixed(1)}px`;
-      sheet.style.left = `${placed.left.toFixed(1)}px`;
-      sheet.style.width = `${placed.width.toFixed(1)}px`;
-      sheet.style.height = `${placed.height.toFixed(1)}px`;
-      sheet.style.right = 'auto';
-      sheet.style.translate = '0 0';
+      write(sheet.style, sheetWritten, 'top', `${placed.top.toFixed(1)}px`);
+      write(sheet.style, sheetWritten, 'left', `${placed.left.toFixed(1)}px`);
+      write(sheet.style, sheetWritten, 'width', `${placed.width.toFixed(1)}px`);
+      write(sheet.style, sheetWritten, 'height', `${placed.height.toFixed(1)}px`);
+      write(sheet.style, sheetWritten, 'right', 'auto');
+      write(sheet.style, sheetWritten, 'translate', '0 0');
       // Margins, not offsets: the text flows around where the float's margins put it.
-      shape.style.marginLeft = `${placed.shape.left.toFixed(1)}px`;
-      shape.style.marginTop = `${placed.shape.top.toFixed(1)}px`;
-      shape.style.width = `${placed.shape.width.toFixed(1)}px`;
-      shape.style.height = `${placed.shape.height.toFixed(1)}px`;
+      write(shape.style, shapeWritten, 'marginLeft', `${placed.shape.left.toFixed(1)}px`);
+      write(shape.style, shapeWritten, 'marginTop', `${placed.shape.top.toFixed(1)}px`);
+      write(shape.style, shapeWritten, 'width', `${placed.shape.width.toFixed(1)}px`);
+      write(shape.style, shapeWritten, 'height', `${placed.shape.height.toFixed(1)}px`);
       // From the border box: the default margin box is shrunk by the negative margins that place the float.
-      shape.style.shapeOutside = `${polygon} border-box`;
+      write(shape.style, shapeWritten, 'shapeOutside', `${polygon} border-box`);
+      placedOnce = true;
     };
+    measure();
+    window.addEventListener('resize', measure);
     frame = window.requestAnimationFrame(tick);
     return () => {
+      window.removeEventListener('resize', measure);
       window.cancelAnimationFrame(frame);
       clear();
     };
   }, [active, outlineRef, shapeRef, sheetRef]);
 }
+
+type WrittenStyle = 'top' | 'left' | 'width' | 'height' | 'right' | 'translate' | 'marginLeft' | 'marginTop'
+  | 'shapeOutside';

@@ -1,7 +1,7 @@
 // Card whose surface fills with shimmering pixels on hover/focus (used by ProjectCard).
 // Adopted from https://reactbits.dev/components/pixel-card
 
-import {useCallback, useEffect, useRef, type JSX} from 'react';
+import {useEffect, useRef, type JSX} from 'react';
 import {useReducedMotion} from '@/hooks/useReducedMotion';
 import {
   getEffectiveSpeed,
@@ -75,11 +75,8 @@ export default function PixelCard({
   const isControlled = active !== undefined;
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const contextRef = useRef<CanvasRenderingContext2D | null>(null);
-  const frameRef = useRef<ImageData | null>(null);
-  const pixelsRef = useRef<Pixel[]>([]);
-  const animationRef = useRef<ReturnType<typeof requestAnimationFrame> | null>(null);
-  const timePreviousRef = useRef(performance.now());
+  // Starts an appear or disappear; the effect below owns the loop and sets this.
+  const startAnimationRef = useRef<(name: PixelAnimation) => void>(() => {});
   const reducedMotion = useReducedMotion();
 
   const variantCfg: VariantConfig = VARIANTS[variant] || VARIANTS.default;
@@ -88,123 +85,140 @@ export default function PixelCard({
   const finalColors = colors ?? variantCfg.colors;
   const finalNoFocus = noFocus ?? variantCfg.noFocus;
 
-  const initPixels = () => {
-    if (!containerRef.current || !canvasRef.current) return;
-
-    const rect = containerRef.current.getBoundingClientRect();
-    const width = Math.floor(rect.width);
-    const height = Math.floor(rect.height);
-    const ctx = canvasRef.current.getContext('2d');
-
-    if (width <= 0 || height <= 0 || !ctx) {
-      pixelsRef.current = [];
-      contextRef.current = null;
-      frameRef.current = null;
-      return;
-    }
-
-    canvasRef.current.width = width;
-    canvasRef.current.height = height;
-    canvasRef.current.style.width = `${width}px`;
-    canvasRef.current.style.height = `${height}px`;
-
-    contextRef.current = ctx;
-    frameRef.current = ctx.createImageData(width, height);
-    const colorsArray = finalColors.split(',').map((color) => readPixelColor(ctx, color));
-    ctx.clearRect(0, 0, width, height);
-    const pixelGap = Math.max(1, Math.floor(finalGap));
-    const pxs = [];
-    for (let x = 0; x < width; x += pixelGap) {
-      for (let y = 0; y < height; y += pixelGap) {
-        const color = colorsArray[Math.floor(Math.random() * colorsArray.length)];
-
-        const dx = x - width / 2;
-        const dy = y - height / 2;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        const delay = reducedMotion ? 0 : distance * 0.75;
-        pxs.push(new Pixel(
-          width,
-          height,
-          x,
-          y,
-          color,
-          getEffectiveSpeed(finalSpeed, reducedMotion),
-          delay,
-        ));
-      }
-    }
-    pixelsRef.current = pxs;
-  };
-
-  const doAnimate = useCallback((fnName: PixelAnimation) => {
-    animationRef.current = requestAnimationFrame(() => doAnimate(fnName));
-    const timeNow = performance.now();
-    const timePassed = timeNow - timePreviousRef.current;
-    const timeInterval = 1000 / 60;
-
-    if (timePassed < timeInterval) return;
-    timePreviousRef.current = timeNow - (timePassed % timeInterval);
-
-    const ctx = contextRef.current;
-    const frame = frameRef.current;
-    if (!ctx || !frame) return;
-
-    frame.data.fill(0);
-
-    let allIdle = true;
-    for (let i = 0; i < pixelsRef.current.length; i++) {
-      const pixel = pixelsRef.current[i];
-      pixel[fnName]();
-      rasterizePixel(frame, pixel);
-      if (!pixel.isIdle) {
-        allIdle = false;
-      }
-    }
-    ctx.putImageData(frame, 0, 0);
-    if (allIdle) {
-      cancelAnimationFrame(animationRef.current);
-    }
-  }, []);
-
-  const handleAnimation = useCallback((name: PixelAnimation) => {
-    if (animationRef.current !== null) {
-      cancelAnimationFrame(animationRef.current);
-    }
-    animationRef.current = requestAnimationFrame(() => doAnimate(name));
-  }, [doAnimate]);
-
-  const onMouseEnter = () => handleAnimation('appear');
-  const onMouseLeave = () => handleAnimation('disappear');
+  const onMouseEnter = () => startAnimationRef.current('appear');
+  const onMouseLeave = () => startAnimationRef.current('disappear');
   const onFocus: React.FocusEventHandler<HTMLDivElement> = e => {
     if (e.currentTarget.contains(e.relatedTarget)) return;
-    handleAnimation('appear');
+    startAnimationRef.current('appear');
   };
   const onBlur: React.FocusEventHandler<HTMLDivElement> = e => {
     if (e.currentTarget.contains(e.relatedTarget)) return;
-    handleAnimation('disappear');
+    startAnimationRef.current('disappear');
   };
 
   useEffect(() => {
-    initPixels();
-    const observer = new ResizeObserver(() => {
-      initPixels();
-    });
-    if (containerRef.current) {
-      observer.observe(containerRef.current);
+    const container = containerRef.current;
+    const canvas = canvasRef.current;
+    if (!container || !canvas) return;
+
+    let width = 0;
+    let height = 0;
+    let ctx: CanvasRenderingContext2D | null = null;
+    let frame: ImageData | null = null;
+    // Null until the first appear: nothing shows at rest, so the pixels (thousands per card) wait for it.
+    let pixels: Pixel[] | null = null;
+    let animation: number | null = null;
+    let timePrevious = 0;
+
+    // Sizes the canvas to the card and drops any pixels: the next appear builds them for the new size.
+    const initPixels = (nextWidth: number, nextHeight: number) => {
+      width = nextWidth;
+      height = nextHeight;
+      pixels = null;
+      frame = null;
+      ctx = width > 0 && height > 0 ? canvas.getContext('2d') : null;
+      if (!ctx) return;
+
+      canvas.width = width;
+      canvas.height = height;
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+      ctx.clearRect(0, 0, width, height);
+    };
+
+    function buildPixels() {
+      if (!ctx) return;
+      frame = ctx.createImageData(width, height);
+      const colorsArray = finalColors.split(',').map(readPixelColor);
+      const pixelGap = Math.max(1, Math.floor(finalGap));
+      const pxs = [];
+      for (let x = 0; x < width; x += pixelGap) {
+        for (let y = 0; y < height; y += pixelGap) {
+          const color = colorsArray[Math.floor(Math.random() * colorsArray.length)];
+
+          const dx = x - width / 2;
+          const dy = y - height / 2;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          const delay = reducedMotion ? 0 : distance * 0.75;
+          pxs.push(new Pixel(
+            width,
+            height,
+            x,
+            y,
+            color,
+            getEffectiveSpeed(finalSpeed, reducedMotion),
+            delay,
+          ));
+        }
+      }
+      pixels = pxs;
     }
+
+    function animate(fnName: PixelAnimation) {
+      animation = requestAnimationFrame(() => animate(fnName));
+      const timeNow = performance.now();
+      const timePassed = timeNow - timePrevious;
+      const timeInterval = 1000 / 60;
+
+      if (timePassed < timeInterval) return;
+      timePrevious = timeNow - (timePassed % timeInterval);
+
+      if (!ctx) return;
+      if (!pixels) buildPixels();
+      if (!frame || !pixels) return;
+
+      frame.data.fill(0);
+
+      let allIdle = true;
+      for (let i = 0; i < pixels.length; i++) {
+        const pixel = pixels[i];
+        pixel[fnName]();
+        rasterizePixel(frame, pixel);
+        if (!pixel.isIdle) {
+          allIdle = false;
+        }
+      }
+      ctx.putImageData(frame, 0, 0);
+      if (allIdle) {
+        cancelAnimationFrame(animation);
+      }
+    }
+
+    startAnimationRef.current = (name) => {
+      if (animation !== null) {
+        cancelAnimationFrame(animation);
+      }
+      // No pixels yet means nothing drawn (a controlled card mounts inactive): a disappear has nothing to clear.
+      if (name === 'disappear' && !pixels) return;
+      animation = requestAnimationFrame(() => animate(name));
+    };
+
+    const measure = () => {
+      const rect = container.getBoundingClientRect();
+      return {width: Math.floor(rect.width), height: Math.floor(rect.height)};
+    };
+    const size = measure();
+    initPixels(size.width, size.height);
+    const observer = new ResizeObserver(() => {
+      // The observer reports once on observe, with the size just set.
+      const next = measure();
+      if (next.width === width && next.height === height) return;
+      initPixels(next.width, next.height);
+    });
+    observer.observe(container);
     return () => {
       observer.disconnect();
-      if (animationRef.current !== null) {
-        cancelAnimationFrame(animationRef.current);
+      startAnimationRef.current = () => {};
+      if (animation !== null) {
+        cancelAnimationFrame(animation);
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [finalGap, finalSpeed, finalColors, finalNoFocus, reducedMotion]);
+  }, [finalGap, finalSpeed, finalColors, reducedMotion]);
 
   useEffect(() => {
     if (!isControlled) return;
-    handleAnimation(active ? 'appear' : 'disappear');
-  }, [active, handleAnimation, isControlled]);
+    startAnimationRef.current(active ? 'appear' : 'disappear');
+  }, [active, isControlled]);
 
   const isActive = active ?? false;
   const interactionClassName = isControlled

@@ -90,6 +90,9 @@ export const SceneLinks = forwardRef<Mesh, SceneLinksProps>(function SceneLinks(
   const layoutMode = useRef<SceneLinkLayoutMode>(initialLayoutMode);
   const transition = useRef({key: transitionKey,
     visibility: hidden || (initialLayoutMode === 'overview-mobile' && activeId !== null) ? 0 : 1});
+  // Per-frame scratch, written in place rather than allocated each frame.
+  const transitionRequest = useRef({key: transitionKey, visible: true, ready: true});
+  const mode = useRef({isOverview: true, isMobileOverview: false});
   const layoutInitialized = useRef(false);
   const layoutDirty = useRef(true);
   const layoutAnimating = useRef(false);
@@ -139,6 +142,9 @@ export const SceneLinks = forwardRef<Mesh, SceneLinksProps>(function SceneLinks(
     ],
   );
   const hitProjection = useMemo(() => createHitProjection(), []);
+  const terrain = useMemo(() => ({shellBase, elevation, seaLevel}), [elevation, seaLevel, shellBase]);
+  const viewport = useMemo(
+    () => ({width: viewportWidth, height: viewportHeight}), [viewportHeight, viewportWidth]);
   const compiledVertexShader = useMemo(
     () => sceneTextVertexShader(SCENE_LINKS.length),
     [],
@@ -191,17 +197,19 @@ export const SceneLinks = forwardRef<Mesh, SceneLinksProps>(function SceneLinks(
       interactionAnimating.current = true;
     }
     // Layouts swap only while fully dissolved; the new layout reveals after the camera arrives.
-    transition.current = advanceTextTransition(transition.current,
-      {key: transitionKey, visible, ready}, delta, isReducedMotion,
+    const request = transitionRequest.current;
+    request.key = transitionKey;
+    request.visible = visible;
+    request.ready = ready;
+    transition.current = advanceTextTransition(transition.current, request, delta, isReducedMotion,
       SCENE_LINK_EFFECT_CONFIG.dissolveInSpeed, SCENE_LINK_EFFECT_CONFIG.dissolveOutSpeed);
     const layoutSwitched = previousKey !== transition.current.key;
     if (layoutSwitched) layoutMode.current = desiredLayoutMode;
 
-    const mode = {
-      isOverview: layoutMode.current === 'overview' || layoutMode.current === 'overview-mobile',
-      isMobileOverview: layoutMode.current === 'overview-mobile',
-    };
-    const targetLayout = mode.isOverview
+    const layoutModeNow = mode.current;
+    layoutModeNow.isOverview = layoutMode.current === 'overview' || layoutMode.current === 'overview-mobile';
+    layoutModeNow.isMobileOverview = layoutMode.current === 'overview-mobile';
+    const targetLayout = layoutModeNow.isOverview
       ? layouts.overview
       : layouts.focused;
     const offsetX = material.uniforms.uLayoutOffsetX.value as Float32Array;
@@ -220,13 +228,13 @@ export const SceneLinks = forwardRef<Mesh, SceneLinksProps>(function SceneLinks(
       const layoutAlpha = isReducedMotion || !layoutInitialized.current || layoutSwitched
         ? 1
         : 1 - Math.exp(-SCENE_LINK_EFFECT_CONFIG.layoutDamping * delta);
-      const layout = advanceLinkLayout(offsetX, offsetZ, verticalOffsets, targetLayout, layoutAlpha, mode);
+      const layout = advanceLinkLayout(offsetX, offsetZ, verticalOffsets, targetLayout, layoutAlpha, layoutModeNow);
       hitTargetsMoved ||= layout.moved;
 
       layoutInitialized.current = true;
       layoutDirty.current = false;
       layoutAnimating.current = layout.unsettled;
-      material.uniforms.uFocused.value = mode.isOverview ? 0 : 1;
+      material.uniforms.uFocused.value = layoutModeNow.isOverview ? 0 : 1;
     }
     material.uniforms.uDissolve.value = transition.current.visibility;
 
@@ -237,8 +245,9 @@ export const SceneLinks = forwardRef<Mesh, SceneLinksProps>(function SceneLinks(
 
     const cameraRevision = cameraFrameState.current.revision;
     const cameraMoved = projectedCameraRevision.current !== cameraRevision;
+    const disabled = !visible || !ready || transition.current.visibility < 1;
     for (const button of hitButtonRefs.current) {
-      if (button) button.disabled = !visible || !ready || transition.current.visibility < 1;
+      if (button && button.disabled !== disabled) button.disabled = disabled;
     }
     if (!hitTargetsDirty.current && !hitTargetsMoved && !cameraMoved) return;
 
@@ -248,12 +257,13 @@ export const SceneLinks = forwardRef<Mesh, SceneLinksProps>(function SceneLinks(
       if (!hitTarget || !hitButton) continue;
       const x = link.anchor[0] + offsetX[link.index];
       const z = link.anchor[1] + offsetZ[link.index];
-      const hit = measureHitTarget(link, x, z, mode, {shellBase, elevation, seaLevel}, camera,
-        hitProjection, {width: viewportWidth, height: viewportHeight});
+      const hit = measureHitTarget(link, x, z, layoutModeNow, terrain, camera, hitProjection, viewport);
       hitTarget.position.set(x, hit.y, z);
 
-      const heightStyle = `${hit.height}px`;
-      const widthStyle = `${hit.width}px`;
+      // Whole pixels: the invisible button need not follow sub-pixel camera noise, and the style then reads
+      // back as written, so a repeat is skipped.
+      const heightStyle = `${Math.round(hit.height)}px`;
+      const widthStyle = `${Math.round(hit.width)}px`;
       if (hitButton.style.height !== heightStyle) hitButton.style.height = heightStyle;
       if (hitButton.style.width !== widthStyle) hitButton.style.width = widthStyle;
     }

@@ -42,6 +42,8 @@ type TravelTrailsProps = {
   brightIndex: number;
   /** The globe's fade, 0 to 1, read every frame. */
   visibilityRef: MutableRefObject<number>;
+  /** Whether the globe is drawn this frame (TravelGlobe): hidden, the tubes' uniforms are left as they stand. */
+  shownRef: MutableRefObject<boolean>;
   onMeshes: (meshes: Mesh[]) => void;
 };
 
@@ -63,7 +65,7 @@ type Tube = {
 };
 
 export function TravelTrails({
-  trips, radius, settings, elevation, reliefRef, focusRef, brightIndex, visibilityRef, onMeshes,
+  trips, radius, settings, elevation, reliefRef, focusRef, brightIndex, visibilityRef, shownRef, onMeshes,
 }: TravelTrailsProps) {
   const {trailColor, trailRadius, tripTrailRadius, trailLift, trailStep} = settings;
   const meshesRef = useRef<Array<Mesh | null>>([]);
@@ -132,6 +134,7 @@ export function TravelTrails({
   }, [onMeshes, tubes]);
 
   useFrame(({camera}) => {
+    if (!shownRef.current) return;
     const materials = materialsRef.current;
     for (let index = 0; index < materials.length; index++) {
       const material = materials[index];

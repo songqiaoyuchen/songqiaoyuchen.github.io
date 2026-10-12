@@ -45,12 +45,17 @@ type GlyphRainProps = {
   terrainSettings: TerrainControlValues;
 };
 
+// The compositor's own frame interval (config); 0 draws every frame.
+const {stepsPerSecond: STEPS_PER_SECOND} = GLYPH_RAIN_CONFIG.compositor;
+const STEP_SECONDS = STEPS_PER_SECOND > 0 ? 1 / STEPS_PER_SECOND : 0;
+
 export const GlyphRain = forwardRef<MeshType, GlyphRainProps>(function GlyphRain(
   {hidden = false, contourSettings, glyphRainSettings, terrainSettings},
   forwardedRef,
 ) {
   const compositorDirty = useRef(true);
   const animationTime = useRef(0);
+  const compositedTime = useRef(0);
   const materialRef = useRef<ShaderMaterial | null>(null);
   const compositeMaterialRef = useRef<ShaderMaterial | null>(null);
   const layerRef = useRef<Group>(null);
@@ -202,11 +207,16 @@ export const GlyphRain = forwardRef<MeshType, GlyphRainProps>(function GlyphRain
       // Lusion advances the ray shader continuously. Clamping only protects a
       // resumed background tab from a visible catch-up jump.
       animationTime.current += Math.min(delta, 1 / 15);
-      const currentMaterial = materialRef.current;
-      if (currentMaterial) {
-        currentMaterial.uniforms.uAnimationTime.value = animationTime.current;
+      // The columns step at the compositor's own rate (config): at 60 Hz every other frame skips the offscreen
+      // passes and shows the last step.
+      if (animationTime.current - compositedTime.current >= STEP_SECONDS - 1e-4) {
+        compositedTime.current = animationTime.current;
+        const currentMaterial = materialRef.current;
+        if (currentMaterial) {
+          currentMaterial.uniforms.uAnimationTime.value = animationTime.current;
+        }
+        compositorDirty.current = true;
       }
-      compositorDirty.current = true;
     }
     // Fully faded out (Art, camera journeys): skip the offscreen passes; they redraw on return.
     if (layerRef.current?.visible === false) return;

@@ -20,5 +20,8 @@ export const GLYPH_RAIN_CONFIG = {
   compositor: {
     blurResolutionScale: 0.5,
     blurRadii: [4, 2, 1], // blur per depth layer, farthest first; the nearest stays sharp
+    // The rain's own frame rate: its offscreen passes are the costliest layer on Home, and the slow, blurred
+    // fall reads the same at half the display rate. 0 draws every frame.
+    stepsPerSecond: 30,
   },
 } as const;

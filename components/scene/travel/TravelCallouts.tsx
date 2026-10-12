@@ -98,6 +98,42 @@ function fanOffset(at: number, count: number) {
   return {x: Math.cos(angle) * radius, y: Math.sin(angle) * radius};
 }
 
+// The last values written to a node's style or attributes: each is written again only once it changes, positions
+// to a hundredth of a pixel and opacities to a thousandth, so float noise from a resting globe forces no rewrite.
+// A hidden node keeps its stale position and opacity until it shows again.
+type Written = {x: number; y: number; x2: number; y2: number; visible: boolean | null; opacity: number};
+
+const round2 = (value: number) => Math.round(value * 100) / 100;
+const round3 = (value: number) => Math.round(value * 1000) / 1000;
+
+function writtenOf(cache: WeakMap<Element, Written>, node: Element) {
+  let written = cache.get(node);
+  if (!written) {
+    written = {x: NaN, y: NaN, x2: NaN, y2: NaN, visible: null, opacity: NaN};
+    cache.set(node, written);
+  }
+  return written;
+}
+
+function show(node: HTMLElement | SVGElement, written: Written, visible: boolean) {
+  if (written.visible === visible) return;
+  node.style.visibility = visible ? 'visible' : 'hidden';
+  written.visible = visible;
+}
+
+function fade(node: HTMLElement | SVGElement, written: Written, opacity: number) {
+  if (written.opacity === opacity) return;
+  node.style.opacity = String(opacity);
+  written.opacity = opacity;
+}
+
+function move(node: HTMLElement, written: Written, x: number, y: number) {
+  if (written.x === x && written.y === y) return;
+  node.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+  written.x = x;
+  written.y = y;
+}
+
 function Hex({dot}: {dot?: boolean}) {
   return (
     <svg className="travel-route-hex" viewBox="0 0 14 14">
@@ -155,6 +191,11 @@ export function TravelCallouts({
   const eye = useRef(new Vector3());
   // The trip last open: back to all trips its marker stays while the others come back, and its stops leave.
   const lastSelected = useRef(selectedIndex);
+  // What each node was last given (see Written), whether the layer was fully hidden last frame, and which trips'
+  // stops are hidden and left alone.
+  const written = useRef(new WeakMap<Element, Written>());
+  const layerHidden = useRef(false);
+  const stopsHidden = useRef<boolean[]>([]);
 
   // The fan holds the globe; a click outside it or Escape folds it, and so does opening a trip.
   useEffect(() => {
@@ -175,6 +216,10 @@ export function TravelCallouts({
   useEffect(() => () => {
     holdRef.current = false;
   }, [holdRef]);
+  // New stop nodes start visible: hide them again on the next frame.
+  useEffect(() => {
+    stopsHidden.current = [];
+  }, [trips]);
   if (selectedIndex >= 0 && expanded >= 0) setExpanded(-1);
   if (expanded >= clusters.length) setExpanded(-1);
 
@@ -183,9 +228,8 @@ export function TravelCallouts({
     const group = groupRef.current;
     const layer = layerRef.current;
     if (!group || !layer) return;
-    layer.style.opacity = String(visibilityRef.current);
-    group.getWorldPosition(center.current);
-    group.worldToLocal(eye.current.copy(camera.position));
+    const cache = written.current;
+    fade(layer, writtenOf(cache, layer), round3(visibilityRef.current));
     if (selectedIndex >= 0) lastSelected.current = selectedIndex;
     const others = overviewRef.current;
     const fanTarget = expandedRef.current >= 0 ? 1 : 0;
@@ -195,6 +239,14 @@ export function TravelCallouts({
     if (fan.current === 0) fanCluster.current = -1;
     // Everything outside the open fan fades back.
     const quiet = 1 - FAN_QUIET * fan.current;
+    // The layer fully hidden (the entry zoom, before the globe arrives) since last frame: the markers were laid out
+    // once and nothing of it can be seen, so they wait where they stand.
+    const hidden = visibilityRef.current === 0;
+    const wasHidden = layerHidden.current;
+    layerHidden.current = hidden;
+    if (hidden && wasHidden) return;
+    group.getWorldPosition(center.current);
+    group.worldToLocal(eye.current.copy(camera.position));
 
     // A place on the relief to CSS pixels, with how squarely it faces the camera and whether it can be seen.
     const project = (unit: Vector3, viewer: Camera, out: ScreenPoint) => {
@@ -212,25 +264,48 @@ export function TravelCallouts({
     const fadeOf = (facing: number) => Math.min(1, Math.max(0, facing / EDGE_FADE));
     const place = (node: HTMLElement | null | undefined, at: ScreenPoint, shown: number, dx = 0, dy = 0) => {
       if (!node) return;
-      node.style.transform = `translate3d(${at.x + dx}px, ${at.y + dy}px, 0)`;
-      node.style.visibility = shown > 0.01 && at.front ? 'visible' : 'hidden';
-      node.style.opacity = String(fadeOf(at.facing) * shown);
+      const last = writtenOf(cache, node);
+      const visible = shown > 0.01 && at.front;
+      show(node, last, visible);
+      if (!visible) return;
+      move(node, last, round2(at.x + dx), round2(at.y + dy));
+      fade(node, last, round3(fadeOf(at.facing) * shown));
     };
     // A name beside a marker at (x, y) on a leader line, shown while `titled`.
     const name = (
       label: HTMLElement | null | undefined, leader: SVGPolylineElement | null | undefined,
-      x: number, y: number, titled: boolean, fade: number,
+      x: number, y: number, titled: boolean, opacity: number,
     ) => {
       if (!label || !leader) return;
-      const top = y - LABEL_RISE - TITLE_ROW / 2;
-      const labelX = x + LABEL_OFFSET_X;
+      const lastLabel = writtenOf(cache, label);
+      const lastLeader = writtenOf(cache, leader);
+      show(label, lastLabel, titled);
+      show(leader, lastLeader, titled);
+      if (!titled) return;
+      const px = round2(x);
+      const py = round2(y);
+      const top = py - LABEL_RISE - TITLE_ROW / 2;
+      const labelX = px + LABEL_OFFSET_X;
       const row = top + TITLE_ROW / 2;
-      label.style.transform = `translate3d(${labelX}px, ${top}px, 0)`;
-      label.style.visibility = titled ? 'visible' : 'hidden';
-      label.style.opacity = String(fade);
-      leader.setAttribute('points', `${x},${y} ${labelX - LEADER_GAP - ELBOW},${row} ${labelX - LEADER_GAP},${row}`);
-      leader.style.visibility = titled ? 'visible' : 'hidden';
-      leader.style.opacity = String(fade);
+      move(label, lastLabel, labelX, top);
+      if (lastLeader.x !== px || lastLeader.y !== py) {
+        leader.setAttribute(
+          'points', `${px},${py} ${labelX - LEADER_GAP - ELBOW},${row} ${labelX - LEADER_GAP},${row}`);
+        lastLeader.x = px;
+        lastLeader.y = py;
+      }
+      const level = round3(opacity);
+      fade(label, lastLabel, level);
+      fade(leader, lastLeader, level);
+    };
+    // A stop's marker and name, hidden; the stop is then left alone until it is shown again.
+    const hideStop = (tripIndex: number, stopIndex: number) => {
+      const stop = stopsRef.current[tripIndex]?.[stopIndex];
+      const label = stopLabelsRef.current[tripIndex]?.[stopIndex];
+      const leader = stopLeadersRef.current[tripIndex]?.[stopIndex];
+      if (stop) show(stop, writtenOf(cache, stop), false);
+      if (label) show(label, writtenOf(cache, label), false);
+      if (leader) show(leader, writtenOf(cache, leader), false);
     };
 
     // Clusters over all trips: the stacked marker, or its fan once open. A fan turned away folds.
@@ -242,16 +317,30 @@ export function TravelCallouts({
       cluster.members.forEach((member, slot) => {
         const line = fanLinesRef.current[member];
         if (!line) return;
-        const offset = fanOffset(slot, cluster.members.length);
+        const last = writtenOf(cache, line);
         const shown = open && at.front ? others * fan.current * fadeOf(at.facing) : 0;
-        line.setAttribute('x1', String(at.x));
-        line.setAttribute('y1', String(at.y));
+        show(line, last, shown > 0.01);
+        if (shown <= 0.01) return;
+        const offset = fanOffset(slot, cluster.members.length);
         // The line stops short of the marker, clear of its drawing.
         const reach = Math.max(1 - (markerSize * 0.6) / Math.hypot(offset.x, offset.y), 0) * fan.current;
-        line.setAttribute('x2', String(at.x + offset.x * reach));
-        line.setAttribute('y2', String(at.y + offset.y * reach));
-        line.style.visibility = shown > 0.01 ? 'visible' : 'hidden';
-        line.style.opacity = String(shown);
+        const x1 = round2(at.x);
+        const y1 = round2(at.y);
+        const x2 = round2(at.x + offset.x * reach);
+        const y2 = round2(at.y + offset.y * reach);
+        if (last.x !== x1 || last.y !== y1) {
+          line.setAttribute('x1', String(x1));
+          line.setAttribute('y1', String(y1));
+          last.x = x1;
+          last.y = y1;
+        }
+        if (last.x2 !== x2 || last.y2 !== y2) {
+          line.setAttribute('x2', String(x2));
+          line.setAttribute('y2', String(y2));
+          last.x2 = x2;
+          last.y2 = y2;
+        }
+        fade(line, last, round3(shown));
       });
     });
 
@@ -297,8 +386,17 @@ export function TravelCallouts({
       name(labelsRef.current[index], leadersRef.current[index], at.x, at.y, titled, fadeOf(at.facing) * markShown);
 
       // The open trip's stops, in as the camera settles on it and out as it leaves; the hovered stop is named.
+      // Another trip's stops, or the open trip's before they come in, are hidden once and left there.
       const stops = trip.stops ?? [];
       const stopShown = own ? stopsShownRef.current : 0;
+      if (stopShown === 0) {
+        if (!stopsHidden.current[index]) {
+          stops.forEach((_, stopIndex) => hideStop(index, stopIndex));
+          stopsHidden.current[index] = true;
+        }
+        return;
+      }
+      stopsHidden.current[index] = false;
       stops.forEach((stop, stopIndex) => {
         const point = project(stopUnits[index][stopIndex], camera, middle.current);
         place(stopsRef.current[index]?.[stopIndex], point, stopShown);

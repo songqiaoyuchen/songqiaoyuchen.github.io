@@ -13,6 +13,7 @@ export function useActiveMedium(onMediumChange: (medium: ArtMedium) => void) {
     const sections = ARTWORK_SECTIONS.map(({id}) => document.getElementById(id))
       .filter((section): section is HTMLElement => section !== null);
     let frame: number | null = null;
+    let reported: string | null = null;
 
     // Honor existing medium links once on collection entry. Inspection returns
     // keep the collection mounted and restore their own exact scroll position.
@@ -26,7 +27,11 @@ export function useActiveMedium(onMediumChange: (medium: ArtMedium) => void) {
       const active = sections.reduce((current, section) =>
         section.getBoundingClientRect().top <= window.innerHeight * ACTIVE_LINE ? section : current,
       sections[0]);
-      if (active) onMediumChange(active.id as ArtMedium);
+      // Only a change is reported: the parent sets state on each call.
+      if (active && active.id !== reported) {
+        reported = active.id;
+        onMediumChange(active.id as ArtMedium);
+      }
     };
     const scheduleUpdate = () => {
       if (frame === null) frame = window.requestAnimationFrame(update);

@@ -96,12 +96,29 @@ export class Pixel {
   }
 }
 
-export function readPixelColor(context: CanvasRenderingContext2D, value: string): PixelColor {
+// One CPU-side 1x1 canvas parses every card's colours: reading a card's own (GPU-backed) canvas would stall on the
+// GPU while the scene is busy. Parsed colours are kept per string, so each is read once.
+let colorContext: CanvasRenderingContext2D | null = null;
+const parsedColors = new Map<string, PixelColor>();
+
+export function readPixelColor(value: string): PixelColor {
+  const key = value.trim();
+  const cached = parsedColors.get(key);
+  if (cached) return cached;
+  if (!colorContext) {
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 1;
+    colorContext = canvas.getContext('2d', {willReadFrequently: true});
+  }
+  const context = colorContext;
+  if (!context) return {alpha: 0, blue: 0, green: 0, red: 0};
   context.clearRect(0, 0, 1, 1);
-  context.fillStyle = value.trim();
+  context.fillStyle = key;
   context.fillRect(0, 0, 1, 1);
   const [red, green, blue, alpha] = context.getImageData(0, 0, 1, 1).data;
-  return {alpha, blue, green, red};
+  const color = {alpha, blue, green, red};
+  parsedColors.set(key, color);
+  return color;
 }
 
 function blendPixel(

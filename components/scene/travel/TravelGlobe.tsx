@@ -19,8 +19,8 @@ import {useFrame, useThree, type ThreeEvent} from '@react-three/fiber';
 import {useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject} from 'react';
 import {
   BufferGeometry, Color, Float32BufferAttribute, Group, LineBasicMaterial, LineSegments, MathUtils, Matrix4, Mesh,
-  PerspectiveCamera, Points, Quaternion, ShaderMaterial, SphereGeometry, Vector2, Vector3,
-  type DepthTexture, type Object3D, type Texture,
+  PerspectiveCamera, Points, Quaternion, ShaderMaterial, Sphere, SphereGeometry, Vector2, Vector3,
+  type DepthTexture, type Intersection, type Object3D, type Raycaster, type Texture,
 } from 'three';
 import type {
   TravelControlValues, TravelOverviewControlValues, TravelTripControlValues,
@@ -41,6 +41,7 @@ import {
   facingAngles, focusedTrip, globeQuaternion, graticulePositions, lonLatToUnit, offsetForMarker, planetScale,
   projectGlobe, regionSpread,
   releaseGlobe, rideDistance, toGlobeSettings, viewFromCamera, wrapAngle,
+  type GlobeAngles, type GlobeProjection, type PlanetScale,
 } from '@/lib/scene/travel';
 import {useTerrainAssets} from '@/lib/terrain/assets';
 import {sampleSurfaceHeight} from '@/lib/terrain/height';
@@ -112,6 +113,10 @@ const FOCUS_POINTS = TRIPS.map((trip) => [
 ]);
 const UP = new Vector3(0, 1, 0);
 const DEG = Math.PI / 180;
+// Scratch for the pointer's ray against the sphere.
+const RAY_SPHERE = new Sphere();
+const RAY_HIT = new Vector3();
+const RAY_SCALE = new Vector3();
 
 type DragSample = {vYaw: number; vPitch: number; time: number};
 
@@ -177,6 +182,7 @@ export function TravelGlobe({
   const cameraFrameState = useCameraFrameState();
   const groupRef = useRef<Group>(null);
   const frameRef = useRef<Group>(null);
+  const sphereRef = useRef<Mesh>(null);
   const shellRef = useRef<ShaderMaterial>(null);
   const graticuleRef = useRef<LineSegments>(null);
   const graticuleMaterialRef = useRef<LineBasicMaterial>(null);
@@ -187,14 +193,14 @@ export function TravelGlobe({
   const [starPoints, setStarPoints] = useState<Points | null>(null);
   const [ringLines, setRingLines] = useState<LineSegments[]>([]);
   const coastPositions = useCoastlines(TRAVEL_CONFIG.coastSrc);
-  const elevation = useElevation(TRAVEL_CONFIG.elevationSrc, tripSettings.summaryBlur);
+  const elevation = useElevation(TRAVEL_CONFIG.elevationSrc, tripSettings.summaryBlur, settings.lightDensity);
   const region = useRegion(TRAVEL_CONFIG.regionSrc, TRAVEL_CONFIG.regionMetaSrc);
   const {shellBase} = useTerrainAssets();
   const {radius, center: centerTuple, graticuleStep, trailStep, trailLift} = TRAVEL_CONFIG;
   const center = useMemo(() => new Vector3(...centerTuple), [centerTuple]);
   const {
     baseColor, rimColor, rimIntensity, lineColor, graticuleIntensity, coastIntensity, trailColor,
-    lightDensity, lightSize, starSize, landscapeKm, linesIn,
+    lightSize, starSize, landscapeKm, linesIn,
   } = settings;
   const {
     relief, landTint, trailRadius, markerSize, clusterWithin, phoneClusterWithin, friction, snapBelow, capture,
@@ -249,6 +255,9 @@ export function TravelGlobe({
     from: new Quaternion(), to: new Quaternion(), inverse: new Quaternion(), front: new Vector3(),
     camera: new PerspectiveCamera(), view: createGlobeView(), aim: new Vector3(),
   });
+  // Whether the globe is drawn this frame (group.visible as last set): hidden, the lights, trails, rings and stars
+  // skip their per-frame work.
+  const shown = useRef(false);
   // Callout opacity (shown once the globe has arrived) and the altitude levels of lines, trails, lights and stars.
   const visibility = useRef(0);
   const lod = useRef(0);
@@ -301,6 +310,8 @@ export function TravelGlobe({
     );
     return {anchor, east, north, flat};
   }, [region]);
+  // The patch frame last copied into the shell's uniforms.
+  const writtenPatch = useRef<typeof patchLocal | null>(null);
   // Scratch for placing the globe along the zoom-out; restCamera is the lens the globe was last seen resting from.
   const morphScratch = useRef({
     restCamera: new PerspectiveCamera(), restKnown: false, travel: new Quaternion(), lens: new Quaternion(),
@@ -308,6 +319,15 @@ export function TravelGlobe({
     start: new Vector3(), startLocal: new Vector3(), endLocal: new Vector3(), ray: new Vector3(),
     // The view the globe's own turn is composed in while on the ride: the resting lens's, not the moving camera's.
     rideView: createGlobeView(),
+  });
+  // Per-frame scratch: the aim's marker offset, the globe as drawn, the turn's goal, the ride's planet and the
+  // patch metrics published, so the frame loop allocates nothing.
+  const frameScratch = useRef({
+    offset: [0, 0] as [number, number],
+    drawn: {x: 0, y: 0, radiusX: 0, radiusY: 0} as GlobeProjection,
+    goal: {yaw: 0, pitch: 0} as GlobeAngles,
+    planet: {startRadius: 0, radius: 0, scale: 0, metresPerUnit: 0} as PlanetScale,
+    metrics: {radius: 0, scale: 0, relief: 0, lift: 0, seaUnits: 0, datumY: 0, metresPerUnit: 0},
   });
   // Editing the camera (development): the orbit camera turns and zooms about the globe, not the pose's look-at,
   // and the globe holds still rather than re-aiming the open trip at the camera. Save Camera reads where the
@@ -454,6 +474,24 @@ export function TravelGlobe({
   const handleTrailMeshes = useCallback((meshes: Mesh[]) => setTrailMeshes(meshes), []);
   const handleRingLines = useCallback((lines: LineSegments[]) => setRingLines(lines), []);
 
+  // The pointer meets the globe as a sphere, in world space: the relief is the shader's alone, so this is what a
+  // test of the sphere's triangles (65k of them, on every pointer move) approximated; the handlers read only the
+  // pointer, never the hit point. Hidden (Home, with the globe built in the background) nothing is hit, and as
+  // before nothing is hit from inside the sphere, whose faces then look away.
+  const raycastGlobe = useCallback((raycaster: Raycaster, intersects: Intersection[]) => {
+    const mesh = sphereRef.current;
+    if (!mesh || !groupRef.current?.visible) return;
+    RAY_SPHERE.center.setFromMatrixPosition(mesh.matrixWorld);
+    RAY_SPHERE.radius = radius * RAY_SCALE.setFromMatrixScale(mesh.matrixWorld).x;
+    const {ray} = raycaster;
+    if (ray.origin.distanceToSquared(RAY_SPHERE.center) < RAY_SPHERE.radius * RAY_SPHERE.radius) return;
+    const point = ray.intersectSphere(RAY_SPHERE, RAY_HIT);
+    if (!point) return;
+    const distance = ray.origin.distanceTo(point);
+    if (distance < raycaster.near || distance > raycaster.far) return;
+    intersects.push({distance, point: point.clone(), object: mesh});
+  }, [radius]);
+
   // Pointer drag on the sphere: the surface follows the pointer at the globe's on-screen scale.
   const dragAngle = (pixels: number) => pixels / Math.max(radiusPx.current, 1) * TRAVEL_OVERVIEW_CONFIG.dragGain;
   function handlePointerDown(event: ThreeEvent<PointerEvent>) {
@@ -508,6 +546,7 @@ export function TravelGlobe({
     const selected = visible ? selectedIndex : heldSelected.current;
     // The globe is there whenever a journey has it as the ground or Travel is open; never faded as a whole.
     group.visible = visible || morph > 0;
+    shown.current = group.visible;
     if (frameRef.current) frameRef.current.visible = group.visible;
     // Callouts appear once the globe has arrived; lines and trails come in with altitude, as the fog leaves.
     visibility.current = ease(visibility.current, visible && morph >= 1 ? 1 : 0, FADE_RATE, delta, reducedMotion);
@@ -539,9 +578,13 @@ export function TravelGlobe({
       TRAVEL_CONFIG.physicalRelief, MathUtils.lerp(relief, tripRelief, focusAmount.current),
       MathUtils.smoothstep(morph, reliefFrom, reliefTo));
     reliefNow.current = shell.uniforms.uRelief.value;
-    shell.uniforms.uRegionAnchor.value.copy(patchLocal.anchor);
-    shell.uniforms.uRegionEast.value.copy(patchLocal.east);
-    shell.uniforms.uRegionNorth.value.copy(patchLocal.north);
+    if (writtenPatch.current !== patchLocal) {
+      // The tangent frame is constant until the region loads: written once per frame object.
+      writtenPatch.current = patchLocal;
+      shell.uniforms.uRegionAnchor.value.copy(patchLocal.anchor);
+      shell.uniforms.uRegionEast.value.copy(patchLocal.east);
+      shell.uniforms.uRegionNorth.value.copy(patchLocal.north);
+    }
     // The fog the planet's ground takes is the scene's, as the zoom-out thins it.
     const sceneFog = getState().scene.fog;
     if (sceneFog && 'near' in sceneFog) shell.uniforms.uFogRange.value.set(sceneFog.near, sceneFog.far);
@@ -555,8 +598,11 @@ export function TravelGlobe({
     }
 
     viewFromCamera(center, camera.position, view.current);
+    const frame = frameScratch.current;
     // A trip open turns to its marker offset; over all trips a captured trip turns to the globe's centre.
-    const offset: [number, number] = selected >= 0 ? [offsetX, offsetY] : [0, 0];
+    const {offset} = frame;
+    offset[0] = selected >= 0 ? offsetX : 0;
+    offset[1] = selected >= 0 ? offsetY : 0;
     aimForOffset(camera, center, radius, offset, aim.current);
     if (!initialized.current) {
       // Open resting on the route's trip at its framing (a refresh on a trip), or over all trips on the newest.
@@ -569,7 +615,7 @@ export function TravelGlobe({
       state.current.target = place;
       initialized.current = true;
     }
-    const drawn = projectGlobe(camera, center, radius);
+    const drawn = projectGlobe(camera, center, radius, frame.drawn);
     radiusPx.current = drawn.radiusY * height / 2;
     // The globe's outline on screen, for the trip panel to keep clear of (useTripSheetPlacement): only once the
     // globe has arrived. On the ride the planet is Earth-sized and the panel invisible, and a new outline every
@@ -613,7 +659,7 @@ export function TravelGlobe({
       poseCamera(turn.camera, selected >= 0 ? getTravelTripPose(isMobile) : getCameraPose('travel', isMobile), camera);
       const goalView = viewFromCamera(center, turn.camera.position, turn.view);
       const goalAim = aimForOffset(turn.camera, center, radius, offset, turn.aim);
-      const goal = anglesToward(PLACES[focusPlace], goalAim, goalView, maxPitch);
+      const goal = anglesToward(PLACES[focusPlace], goalAim, goalView, maxPitch, frame.goal);
       globeQuaternion(goal.yaw, goal.pitch, goalView, turn.to);
       // Cued at turnFrom of the zoom (or at once if the camera has already landed), the turn runs on its own clock
       // for the rest of the zoom and the settle; eased out, so most of it comes early and its end is slight and slow.
@@ -669,6 +715,11 @@ export function TravelGlobe({
 
     const patch = cameraFrameState.current.travelPatch;
     const scratch = morphScratch.current;
+    const {metrics} = frame;
+    metrics.lift = relief;
+    metrics.seaUnits = seaUnits;
+    metrics.datumY = datumY;
+    metrics.metresPerUnit = metresPerUnit;
     if (morph >= 1) {
       group.position.copy(center);
       group.scale.setScalar(1);
@@ -677,14 +728,15 @@ export function TravelGlobe({
       scratch.restCamera.updateMatrixWorld(true);
       scratch.restKnown = true;
       viewFromCamera(center, camera.position, scratch.rideView);
-      cameraFrameState.current.setTravelPatchMetrics({
-        radius, scale: 0, relief: 0, lift: relief, seaUnits, datumY, metresPerUnit,
-      });
+      metrics.radius = radius;
+      metrics.scale = 0;
+      metrics.relief = 0;
+      cameraFrameState.current.setTravelPatchMetrics(metrics);
     } else {
       // The zoom-out. The planet's radius falls geometrically from Earth-sized (for the landscape's width) to the
       // globe's; its turn eases from lying flat under the landscape to its own; the terrain and the regional
       // ground ride on it at the matching arc scale, standing above sea level.
-      const planet = planetScale(landscapeKm, TERRAIN_MESH_CONFIG.planeSize, radius, morph);
+      const planet = planetScale(landscapeKm, TERRAIN_MESH_CONFIG.planeSize, radius, morph, frame.planet);
       const radiusNow = planet.radius;
       const scale = planet.scale * (1 - MathUtils.smoothstep(morph, vanish, 1));
       scratch.travel.copy(group.quaternion);
@@ -741,9 +793,10 @@ export function TravelGlobe({
       group.position.copy(camera.position).addScaledVector(scratch.ray, along)
         .addScaledVector(scratch.normal, -reach);
       group.scale.setScalar(radiusNow / radius);
-      cameraFrameState.current.setTravelPatchMetrics({
-        radius: radiusNow, scale, relief: scale * patchRelief, lift: relief, seaUnits, datumY, metresPerUnit,
-      });
+      metrics.radius = radiusNow;
+      metrics.scale = scale;
+      metrics.relief = scale * patchRelief;
+      cameraFrameState.current.setTravelPatchMetrics(metrics);
     }
     group.updateMatrixWorld();
 
@@ -793,6 +846,8 @@ export function TravelGlobe({
         onPointerOut={() => setHovering(false)}
         onPointerOver={() => setHovering(true)}
         onPointerUp={endDrag}
+        raycast={raycastGlobe}
+        ref={sphereRef}
         renderOrder={0}
       >
         <shaderMaterial
@@ -818,13 +873,13 @@ export function TravelGlobe({
       ) : null}
       <TravelLights
         color={lineColor}
-        density={lightDensity}
         elevation={elevation}
         focusRef={focusAmount}
         lift={trailLift}
         onPoints={setLightPoints}
         radius={radius}
         reliefRef={reliefNow}
+        shownRef={shown}
         size={isMobile ? lightSize * TRAVEL_CONFIG.phoneLightScale : lightSize}
         terrainDepthTexture={terrainDepthTexture}
         visibilityRef={lightLod}
@@ -837,6 +892,7 @@ export function TravelGlobe({
         radius={radius}
         reliefRef={reliefNow}
         settings={trailSettings}
+        shownRef={shown}
         trips={TRIPS}
         visibilityRef={trailLod}
       />
@@ -870,6 +926,7 @@ export function TravelGlobe({
         onLines={handleRingLines}
         radius={radius}
         rings={TRAVEL_OVERVIEW_CONFIG.rings}
+        shownRef={shown}
         spinRef={ringSpin}
         tilts={[innerRingTilt, outerRingTilt]}
         visibilityRef={ringLod}
@@ -879,6 +936,7 @@ export function TravelGlobe({
         count={TRAVEL_CONFIG.starCount}
         onPoints={setStarPoints}
         radius={TRAVEL_CONFIG.starRadius}
+        shownRef={shown}
         size={starSize}
         visibilityRef={starLod}
       />

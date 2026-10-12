@@ -8,7 +8,8 @@ Everything inside the React Three Fiber canvas behind Home and Art.
 | `useSceneAssembly.ts` | Staged startup (terrain → contours → text → composer → bloom → ready) and progress |
 | `SceneErrorBoundary.tsx` | Switches to the static fallback when WebGL fails |
 | `SceneReadySignal.tsx` | Reports ready after shaders compile and two frames render |
-| `StillFrameGate.tsx` | On Art, skips drawing frames identical to the last one so a still gallery idles |
+| `StillFrameGate.tsx` | Skips drawing frames identical to the last one, so a still gallery, About or trip idles |
+| `PrecompileHidden.tsx` | Compiles the shaders of layers that mount hidden (globe, About map) while the scene is quiet |
 | `camera/` | Section poses, camera journeys, per-frame camera state |
 | `terrain/` | Cached terrain, its compositor, contour lines and fog |
 | `backdrop/` | Art backdrops: images, projection, wipe decisions, cursor, Screenshot export |

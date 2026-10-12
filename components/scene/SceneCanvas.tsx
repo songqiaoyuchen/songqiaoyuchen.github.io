@@ -12,7 +12,7 @@ import type {DepthTexture, Mesh, Object3D, Texture} from 'three';
 import type { OrbitControls as OrbitControlsInstance } from 'three-stdlib';
 import type {useCreateStore} from 'leva';
 import {CAMERA_CONFIG, FOG_CONFIG} from '@/config/scene';
-import {useArtScene} from '@/components/art/ArtSceneContext';
+import {useArtCapture} from '@/components/art/ArtSceneContext';
 import type {ArtMedium} from '@/data/artworks';
 import type {SectionId} from '@/data/sections';
 import {
@@ -34,12 +34,25 @@ import { SaveConfigButton } from './controls/SaveConfigButton';
 import {useSceneControls} from './controls/useSceneControls';
 import { ColorOnlySMAA } from './effects/ColorOnlySMAA';
 import {IsolatedBloom} from './effects/IsolatedBloom';
+import {PrecompileHidden} from './PrecompileHidden';
 import {SceneErrorBoundary} from './SceneErrorBoundary';
 import {SceneReadySignal} from './SceneReadySignal';
 import {StillFrameGate} from './StillFrameGate';
 import {CachedTerrain} from './terrain/CachedTerrain';
 import { Contours } from './terrain/Contours';
 import {ABOUT_MAP_CONFIG} from '@/config/scene/aboutPath';
+
+// Memoized: a layer re-renders only when its own props change, not with every render of the canvas (a context
+// above it, a mesh ref settling). The props they take are state, refs, memoized objects and stable callbacks.
+const Fog = memo(SceneFog);
+const Terrain = memo(CachedTerrain);
+const ContourLines = memo(Contours);
+const Rain = memo(GlyphRain);
+const HeroName = memo(SceneHeroName);
+const Links = memo(SceneLinks);
+const AboutMapLines = memo(AboutMap);
+const AboutRoute = memo(AboutPath);
+const Globe = memo(TravelGlobe);
 
 const ABOUT_EDIT_ROTATE_SPEED = 0.3;
 import {TRAVEL_OVERVIEW_CONFIG} from '@/config/scene/travel';
@@ -52,8 +65,12 @@ import type {GlobeFront} from '@/components/travel/TravelSceneContext';
 import type {GlobeOutline} from '@/components/travel/useTripSheetPlacement';
 import {useSceneAssembly} from './useSceneAssembly';
 
-// Quiet delay after the intro starts before the Travel globe (and its map) is built in the background.
+// Quiet delay after the intro starts before the Travel globe (and its map) is built in the background, and a
+// further one before Art's backdrop paintings are decoded and uploaded, so the two never share a frame.
 const TRAVEL_PREFETCH_MS = 2500;
+const BACKDROP_PREFETCH_MS = 5000;
+// Then the About map's contours are built by the terrain worker, so the first About journey finds them ready.
+const ABOUT_MAP_PREFETCH_MS = 7500;
 
 // The Canvas re-measures itself on each of its own renders, which every context above it triggers (it bridges
 // them all: the router's on every navigation, Travel's on every hover, capture and selection). Its measured rect
@@ -129,7 +146,7 @@ export const SceneCanvas = memo(function SceneCanvas({
   const travelMeasureOffsetRef = useRef<(() => [number, number] | null) | null>(null);
   const composerRef = useRef<EffectComposerImpl>(null);
   const aboutFramingRef = useRef<AboutFraming | null>(null);
-  const {capture} = useArtScene();
+  const {capture} = useArtCapture();
   const capturing = artActive && capture.enabled;
   const [canvasReady, setCanvasReady] = useState(false);
   const [contourMesh, setContourMesh] = useState<Mesh | null>(null);
@@ -148,8 +165,8 @@ export const SceneCanvas = memo(function SceneCanvas({
   const isTravel = activeId === 'travel';
   // Sections with their own journey (Art, About, Travel) clear the homepage text: glyph rain and scene links.
   const hideSceneText = hideHomeScene || isAbout || isTravel;
-  // About's map contours are built the first time About opens, then kept. The Travel globe too, or quietly a
-  // moment after the intro starts, so its map is in hand before the first journey (the globe is its ground).
+  // About's map contours and the Travel globe are built when their section first opens, or quietly a moment after
+  // the intro starts (the timers below), so each is in hand, its shaders compiled, before its first journey.
   const [aboutMapWanted, setAboutMapWanted] = useState(isAbout);
   if (isAbout && !aboutMapWanted) setAboutMapWanted(true);
   const [travelWanted, setTravelWanted] = useState(isTravel);
@@ -159,6 +176,19 @@ export const SceneCanvas = memo(function SceneCanvas({
     const timer = window.setTimeout(() => setTravelWanted(true), TRAVEL_PREFETCH_MS);
     return () => window.clearTimeout(timer);
   }, [introStarted, travelWanted]);
+  const [backdropsWanted, setBackdropsWanted] = useState(false);
+  useEffect(() => {
+    if (backdropsWanted || !introStarted) return;
+    const timer = window.setTimeout(() => setBackdropsWanted(true), BACKDROP_PREFETCH_MS);
+    return () => window.clearTimeout(timer);
+  }, [backdropsWanted, introStarted]);
+  useEffect(() => {
+    if (aboutMapWanted || !introStarted) return;
+    const timer = window.setTimeout(() => setAboutMapWanted(true), ABOUT_MAP_PREFETCH_MS);
+    return () => window.clearTimeout(timer);
+  }, [aboutMapWanted, introStarted]);
+  // Each hidden layer mounting (the globe; the About map) gets its shaders compiled while the scene is quiet.
+  const precompileRevision = (travelWanted ? 1 : 0) + (aboutMapWanted ? 2 : 0);
   // The dev orbit camera: free on the overview and the drawer sections, on About and Travel only while Leva's Edit
   // camera is on.
   const cameraEditable = activeId !== 'art'
@@ -189,7 +219,6 @@ export const SceneCanvas = memo(function SceneCanvas({
     [aboutPathMesh, contourMesh, sceneLinksMesh, travelBloom],
   );
   const handleBloomReady = useCallback(() => setBloomReady(true), []);
-
   useEffect(() => {
     retainTerrainPipeline();
     return scheduleTerrainPipelineDisposal;
@@ -207,6 +236,30 @@ export const SceneCanvas = memo(function SceneCanvas({
     onSceneProgress,
   });
 
+  // The composer rebuilds its pass whenever its children are new elements, which every render of this component
+  // would make; hold them so only a post-processing change (or the bloom joining) rebuilds the pass.
+  const {bloomIntensity, bloomThreshold, bloomSmoothing} = settings.postProcessing;
+  const composer = useMemo(
+    () => (
+      <EffectComposer ref={composerRef} multisampling={0}>
+        <ColorOnlySMAA preset={SMAAPreset.MEDIUM} />
+        {assemblyPhase >= 5 ? (
+          <IsolatedBloom
+            onReady={handleBloomReady}
+            selection={bloomSelection}
+            // Preserve the one-pixel contour and glyph cores before the
+            // bloom mip chain downsamples them.
+            resolutionScale={1}
+            intensity={bloomIntensity}
+            luminanceThreshold={bloomThreshold}
+            luminanceSmoothing={bloomSmoothing}
+          />
+        ) : <></>}
+      </EffectComposer>
+    ),
+    [assemblyPhase, bloomIntensity, bloomSelection, bloomSmoothing, bloomThreshold, handleBloomReady],
+  );
+
   return (
     // Viewport-wide (100vw, under any scrollbar) rather than the container's width: a scrollbar coming or going
     // between routes would otherwise resize the canvas mid-journey, and a resized canvas is blank for a frame.
@@ -218,7 +271,9 @@ export const SceneCanvas = memo(function SceneCanvas({
         <Canvas
           camera={{position: CAMERA_CONFIG.overviewPosition, fov: CAMERA_CONFIG.fov}}
           fallback={null}
-          gl={{ antialias: false, powerPreference: 'high-performance' }}
+          // Opaque: the scene paints its own background, so the compositor can blit the canvas instead of
+          // blending it over the page every frame (the full viewport at device pixel ratio).
+          gl={{antialias: false, alpha: false, powerPreference: 'high-performance'}}
           onCreated={(state) => {
             keepCanvasSize(state);
             setCanvasReady(true);
@@ -269,13 +324,13 @@ export const SceneCanvas = memo(function SceneCanvas({
                 <ArtCursorControls store={artCameraStore} />
               </>
             ) : null}
-            <SceneFog about={activeId === 'about'} settings={settings.fog} />
+            <Fog about={activeId === 'about'} settings={settings.fog} />
             <Suspense fallback={null}>
               {assemblyPhase >= 1 ? (
-                <CachedTerrain
+                <Terrain
                   contourSettings={settings.contours}
                   backdrop={backdrop}
-                  preloadBackdrops={hideHomeScene}
+                  preloadBackdrops={hideHomeScene || backdropsWanted}
                   fogSettings={settings.fog}
                   onDepthTextureChange={setTerrainDepthTexture}
                   onColorTextureChange={setTerrainColorTexture}
@@ -284,7 +339,7 @@ export const SceneCanvas = memo(function SceneCanvas({
                 />
               ) : null}
               {assemblyPhase >= 2 ? (
-                <Contours
+                <ContourLines
                   hidden={hideHomeScene || isAbout || isTravel}
                   travelRide
                   ref={setContourMesh}
@@ -295,14 +350,14 @@ export const SceneCanvas = memo(function SceneCanvas({
               ) : null}
               {assemblyPhase >= 3 ? (
                 <>
-                  <GlyphRain
+                  <Rain
                     hidden={hideSceneText}
                     ref={setGlyphRainMesh}
                     contourSettings={settings.contours}
                     glyphRainSettings={settings.glyphRain}
                     terrainSettings={settings.terrain}
                   />
-                  <SceneLinks
+                  <Links
                     hidden={hideSceneText}
                     ref={setSceneLinksMesh}
                     activeId={activeId}
@@ -311,7 +366,7 @@ export const SceneCanvas = memo(function SceneCanvas({
                     onLinkClick={onLinkClick}
                     terrainSettings={settings.terrain}
                   />
-                  <SceneHeroName
+                  <HeroName
                     ref={setHeroMesh}
                     contourSettings={settings.contours}
                     isHidden={hideHomeScene || activeId !== null}
@@ -319,14 +374,14 @@ export const SceneCanvas = memo(function SceneCanvas({
                     terrainSettings={settings.terrain}
                   />
                   {aboutMapWanted ? (
-                    <AboutMap
+                    <AboutMapLines
                       hidden={!isAbout}
                       contourSettings={aboutMapSettings}
                       terrainDepthTexture={terrainDepthTexture}
                       terrainSettings={settings.terrain}
                     />
                   ) : null}
-                  <AboutPath
+                  <AboutRoute
                     meshRef={setAboutPathMesh}
                     visible={!hideHomeScene && activeId === 'about'}
                     activeStop={aboutStop}
@@ -338,7 +393,7 @@ export const SceneCanvas = memo(function SceneCanvas({
                     onSelect={onAboutSelect}
                   />
                   {travelWanted ? (
-                    <TravelGlobe
+                    <Globe
                       visible={!hideHomeScene && isTravel}
                       editingCamera={settings.travel.editCamera}
                       measureOffsetRef={travelMeasureOffsetRef}
@@ -363,30 +418,15 @@ export const SceneCanvas = memo(function SceneCanvas({
                 onProgress={onSceneProgress}
                 onReady={onSceneReady}
               />
+              {assemblyPhase >= 6 ? <PrecompileHidden composerRef={composerRef} revision={precompileRevision} /> : null}
             </Suspense>
           </CameraFrameProvider>
           {/* Keep the composer single-sampled: MSAA resolve blits intermittently
               present empty frames on some GPUs. Color-only SMAA smooths edges
               without requesting the composer's sampled depth texture. */}
-          {assemblyPhase >= 4 && bloomBaseReady ? (
-            <EffectComposer ref={composerRef} multisampling={0}>
-              <ColorOnlySMAA preset={SMAAPreset.MEDIUM} />
-              {assemblyPhase >= 5 ? (
-                <IsolatedBloom
-                  onReady={handleBloomReady}
-                  selection={bloomSelection}
-                  // Preserve the one-pixel contour and glyph cores before the
-                  // bloom mip chain downsamples them.
-                  resolutionScale={1}
-                  intensity={settings.postProcessing.bloomIntensity}
-                  luminanceThreshold={settings.postProcessing.bloomThreshold}
-                  luminanceSmoothing={settings.postProcessing.bloomSmoothing}
-                />
-              ) : <></>}
-            </EffectComposer>
-          ) : null}
+          {assemblyPhase >= 4 && bloomBaseReady ? composer : null}
           {capturing && assemblyPhase >= 4 && bloomBaseReady ? <CaptureExport /> : null}
-          <StillFrameGate enabled={hideHomeScene && assemblyPhase >= 6 && !capturing} composerRef={composerRef} />
+          <StillFrameGate enabled={assemblyPhase >= 6 && !capturing} composerRef={composerRef} />
         </Canvas>
       </SceneErrorBoundary>
     </div>

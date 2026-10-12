@@ -4,12 +4,12 @@
 import {useEffect, useRef} from 'react';
 import {useFrame, useThree} from '@react-three/fiber';
 import {PerspectiveCamera, Vector2} from 'three';
-import {useArtScene} from '@/components/art/ArtSceneContext';
+import {useArtCapture} from '@/components/art/ArtSceneContext';
 import {downloadBlob} from '@/lib/art/capture';
 
 /** Mounted only alongside the composer; read the completed frame before its buffer is cleared. */
 export function CaptureExport() {
-  const {capture, exportCapture} = useArtScene();
+  const {capture, exportCapture} = useArtCapture();
   const setDpr = useThree((state) => state.setDpr);
   const width = useThree((state) => state.size.width);
   const initialDpr = useThree((state) => state.viewport.initialDpr);

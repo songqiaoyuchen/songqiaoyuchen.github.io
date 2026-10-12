@@ -43,7 +43,7 @@ Art hides all scene text from navigation start, independently of backdrop loadin
 The About drawer opens on the right, wider than Blog/Projects; its camera frames the ridges on
 the left. Like Art, About clears the glyph rain and scene links; the HTML hero returns only once
 the camera has settled back home. About swaps the glowing homepage contours for a quieter map
-set (evenly spaced, thin, no pulse) built by the terrain worker on first visit. Its lines keep a
+set (evenly spaced, thin, no pulse) built by the terrain worker at idle after the intro, or on first visit. Its lines keep a
 minimum on-screen width; away from the route they darken, more so on unlit ground. The ground and
 its lines fall to the background with plan distance from the plane's centre (`edgeFade`), so no camera
 or flight sees the plane's edge. The route, its markers and the travelled path take one signal colour
@@ -89,7 +89,8 @@ text, one folder each under `public/travel/photos/<trip>/<gallery>/`, read by `n
 terrain's language: `globe.frag` reads the baked elevation map (`public/travel/elevation.png`, NASA topography
 resized by `scripts/assets/build-travel-geo.mjs`) for a small relief and a faint land tint
 (`shaders/terrain/landShading.glsl`, registered by `lib/scene/landShading.ts`; its hillshade is off) under a gold
-rim; land carries a field of gold light points sampled from the same map, denser in lowlands (`TravelLights`,
+rim; land carries a field of gold light points sampled from the same map in a worker (`lib/scene/travel.worker.ts`, which
+also decodes the map and builds its summary off the main thread), denser in lowlands (`TravelLights`,
 `shaders/terrain/travelPoints.*`); a faint gold graticule and baked coastlines and lakes (`public/travel/coast.bin`,
 Natural Earth 110m) as line segments; trail tubes along each trip's tracks riding the relief (one line across
 gaps between recordings, thinner with a trip open) and HTML markers without titles (`TravelCallouts`): trips
@@ -287,8 +288,14 @@ entries, take their own times (Leva About Path: Journey, Focus; `config/scene/ab
 Artworks are ordinary HTML images.
 
 To save GPU time, layers that are fully faded out skip their offscreen work: glyph rain while hidden, bloom while no
-contour or scene link is drawn. On Art, `StillFrameGate` skips frames identical to the last drawn one
-(`lib/scene/stillFrames.ts`), so a still gallery leaves the GPU idle.
+contour or scene link is drawn. On every route, `StillFrameGate` skips frames identical to the last drawn one
+(`lib/scene/stillFrames.ts`), so a still gallery, About between checkpoints or a trip at rest leaves the GPU idle
+(Home always draws: its contours pulse and the rain falls). The glyph rain's offscreen passes step at their own
+rate (`GLYPH_RAIN_CONFIG.compositor.stepsPerSecond`), every other frame at 60 Hz. The canvas is opaque
+(`alpha: false`), so the compositor blits it rather than blending it over the page. Layers that mount hidden (the
+Travel globe, the About map) get their shaders compiled while the scene is quiet (`PrecompileHidden`), and Art's
+backdrop paintings are decoded off the main thread and uploaded at idle after the intro, so no journey links a
+program or uploads a texture mid-flight.
 
 Art's Screenshot mode uses `CapturePanel` and the shared Art scene context.
 It hides the gallery/scrim/navigation, frames the terrain at 2:1, and applies

@@ -38,6 +38,8 @@ does not start implementation or select a dependency.
   naming and typography; these are not automatic stage 2 scope.
 - [Bugs](bugs.md): issue ownership and links to the relevant design tracker.
 - [Production](production.md): build/lint baseline, delivery, metadata and resilience.
+- [Performance](performance.md): 2026-10-12 transition profile (GPU budget, main-thread stalls,
+  asset delivery, worker candidates) and the ranked fixes.
 
 Keep one actionable record per issue. Cross-link related work rather than copying
 checklists, and preserve evidence when regrouping or resolving an item.

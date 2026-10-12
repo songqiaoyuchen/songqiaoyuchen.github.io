@@ -79,11 +79,13 @@ type TravelRingsProps = {
   visibilityRef: MutableRefObject<number>;
   /** Multiple of the rings' own spin this frame, read every frame (1 at rest, more while the globe turns). */
   spinRef: MutableRefObject<number>;
+  /** Whether the globe is drawn this frame (TravelGlobe): hidden, the rings neither fade nor turn. */
+  shownRef: MutableRefObject<boolean>;
   onLines: (lines: LineSegments[]) => void;
 };
 
 export function TravelRings(
-  {rings, tilts, radius, color, intensity, visibilityRef, spinRef, onLines}: TravelRingsProps,
+  {rings, tilts, radius, color, intensity, visibilityRef, spinRef, shownRef, onLines}: TravelRingsProps,
 ) {
   const linesRef = useRef<Array<LineSegments | null>>([]);
   const materialsRef = useRef<Array<LineBasicMaterial | null>>([]);
@@ -100,6 +102,7 @@ export function TravelRings(
   }, [geometries, onLines, rings.length]);
 
   useFrame((_, delta) => {
+    if (!shownRef.current) return;
     rings.forEach((ring, index) => {
       const line = linesRef.current[index];
       const material = materialsRef.current[index];

@@ -17,6 +17,9 @@ const TICKS_HEIGHT = 16;
 const TICKS_GAP = 4;
 const COLUMN = 2; // CSS pixels per column of the facing half
 const DEG = Math.PI / 180;
+// The front is drawn in steps of this many degrees: under a device pixel along the strip at its widest
+// (~520 CSS px for 360°, times a device pixel ratio of 2), so the idle drift (3°/s) redraws ~12 times a second.
+const FRONT_STEP = 0.25;
 
 type MeridianStripProps = {
   trips: readonly Trip[];
@@ -42,10 +45,18 @@ export function MeridianStrip({trips, globeFront, hoveredId, capturedId, onFar}:
     const style = getComputedStyle(canvas);
     const signal = style.getPropertyValue('--travel-signal').trim() || '#8fe3d6';
     const ink = style.getPropertyValue('--color-panel').trim() || '#080a0d';
+    // The content is unseen while the camera rides in or the section leaves (Travel.css): no drawing then.
+    const environment = canvas.closest<HTMLElement>('.travel-environment');
     let width = 0;
     let height = 0;
-    let drawn = '';
-    let far = '';
+    // What the canvas shows: the front in FRONT_STEP steps (Infinity for none), the lit trips.
+    let drawnLon = NaN;
+    let drawnLat = NaN;
+    let drawnHovered: string | null = null;
+    let drawnCaptured: string | null = null;
+    let farLon = NaN;
+    let farLat = NaN;
+    const far = trips.map(() => false);
     let frame = 0;
     const resize = () => {
       const ratio = Math.min(2, window.devicePixelRatio || 1);
@@ -54,7 +65,7 @@ export function MeridianStrip({trips, globeFront, hoveredId, capturedId, onFar}:
       canvas.width = Math.round(width * ratio);
       canvas.height = Math.round(height * ratio);
       context.setTransform(ratio, 0, 0, ratio, 0, 0);
-      drawn = '';
+      drawnLon = NaN;
     };
     const observer = new ResizeObserver(resize);
     observer.observe(canvas);
@@ -65,13 +76,37 @@ export function MeridianStrip({trips, globeFront, hoveredId, capturedId, onFar}:
     const mapBottom = () => height - TICKS_HEIGHT - TICKS_GAP;
     const y = (lat: number) => PAD_TOP + (90 - lat) / 180 * (mapBottom() - PAD_TOP);
 
+    // The trips the globe faces away from, reported when the set changes (the list dims them even on phones,
+    // where the strip itself is hidden).
+    const reportFar = (front: GlobeFront | null) => {
+      const lon = front ? Math.round(front.lon / FRONT_STEP) : Infinity;
+      const lat = front ? Math.round(front.lat / FRONT_STEP) : Infinity;
+      if (lon === farLon && lat === farLat) return;
+      farLon = lon;
+      farLat = lat;
+      let changed = false;
+      trips.forEach((trip, index) => {
+        const away = front ? angularDistance(trip.place.lonLat, [front.lon, front.lat]) > 90 : false;
+        if (away !== far[index]) changed = true;
+        far[index] = away;
+      });
+      if (changed) live.current.onFar(new Set(trips.filter((_, index) => far[index]).map((trip) => trip.id)));
+    };
+
     const draw = () => {
       frame = requestAnimationFrame(draw);
       const front = globeFront.current;
+      reportFar(front);
+      const hidden = environment?.dataset.travelArriving === 'true' || environment?.dataset.leaving === 'true';
+      if (hidden || width === 0) return;
       const {hoveredId: hovered, capturedId: captured} = live.current;
-      const key = `${front ? `${front.lon.toFixed(2)},${front.lat.toFixed(2)}` : '-'}|${hovered}|${captured}|${width}`;
-      if (key === drawn) return;
-      drawn = key;
+      const lon = front ? Math.round(front.lon / FRONT_STEP) : Infinity;
+      const lat = front ? Math.round(front.lat / FRONT_STEP) : Infinity;
+      if (lon === drawnLon && lat === drawnLat && hovered === drawnHovered && captured === drawnCaptured) return;
+      drawnLon = lon;
+      drawnLat = lat;
+      drawnHovered = hovered;
+      drawnCaptured = captured;
 
       context.clearRect(0, 0, width, height);
       const top = PAD_TOP;
@@ -129,16 +164,6 @@ export function MeridianStrip({trips, globeFront, hoveredId, capturedId, onFar}:
         context.strokeRect(-size / 2, -size / 2, size, size);
         context.restore();
       });
-
-      // The trips the globe faces away from.
-      const away = front
-        ? trips.filter((trip) => angularDistance(trip.place.lonLat, [front.lon, front.lat]) > 90).map((trip) => trip.id)
-        : [];
-      const awayKey = away.join(',');
-      if (awayKey !== far) {
-        far = awayKey;
-        live.current.onFar(new Set(away));
-      }
     };
     frame = requestAnimationFrame(draw);
     return () => {

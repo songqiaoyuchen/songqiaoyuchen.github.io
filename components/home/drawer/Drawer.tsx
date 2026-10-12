@@ -15,15 +15,20 @@ import type {ArticleSummary} from '@/lib/content/types';
 import type {AboutScrollRequest} from './about/useTimelineProgress';
 import {drawerStyles} from './Drawer.styles';
 
-const AboutPanel = lazy(() => import('./about/AboutPanel').then(
-  ({AboutPanel: Panel}) => ({default: Panel}),
-));
-const BlogPanel = lazy(() => import('./blog/BlogPanel').then(
-  ({BlogPanel: Panel}) => ({default: Panel}),
-));
-const ProjectsPanel = lazy(() => import('./projects/ProjectsPanel').then(
-  ({ProjectsPanel: Panel}) => ({default: Panel}),
-));
+const loadAboutPanel = () => import('./about/AboutPanel');
+const loadBlogPanel = () => import('./blog/BlogPanel');
+const loadProjectsPanel = () => import('./projects/ProjectsPanel');
+const AboutPanel = lazy(() => loadAboutPanel().then(({AboutPanel: Panel}) => ({default: Panel})));
+const BlogPanel = lazy(() => loadBlogPanel().then(({BlogPanel: Panel}) => ({default: Panel})));
+const ProjectsPanel = lazy(() => loadProjectsPanel().then(({ProjectsPanel: Panel}) => ({default: Panel})));
+
+/** Fetches the panels' chunks ahead of the first open (SceneShell calls this at idle once the scene is ready),
+ * so a drawer's content does not wait on the network mid-journey. */
+export function preloadDrawerPanels() {
+  void loadAboutPanel();
+  void loadBlogPanel();
+  void loadProjectsPanel();
+}
 
 type PreviewSectionId = Exclude<SectionId, 'art' | 'travel'>;
 

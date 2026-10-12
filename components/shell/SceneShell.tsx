@@ -8,16 +8,17 @@ import {
   Suspense,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   type ReactNode,
 } from 'react';
 import {usePathname, useRouter} from 'next/navigation';
 import {useCreateStore} from 'leva';
-import {useArtScene} from '@/components/art/ArtSceneContext';
+import {useArtBackdrop, useArtCapture} from '@/components/art/ArtSceneContext';
 import {CapturePanel} from '@/components/art/capture/CapturePanel';
 import type {AboutScrollRequest} from '@/components/home/drawer/about/useTimelineProgress';
-import {Drawer} from '@/components/home/drawer/Drawer';
+import {Drawer, preloadDrawerPanels} from '@/components/home/drawer/Drawer';
 import {HeroLayer} from '@/components/home/hero/HeroLayer';
 import {Preloader} from '@/components/home/preloader/Preloader';
 import {HOME_OVERVIEW_EVENT, SECTION_NAVIGATE_EVENT} from '@/components/site/Nav';
@@ -66,7 +67,8 @@ export function SceneShell({articles, children}: SceneShellProps) {
   const drawerRoute: SectionId | null = DRAWER_ROUTES[pathname] ?? null;
   const isAbout = drawerRoute === 'about';
   const isTravel = pathname.startsWith('/travel');
-  const {backdrop, capture} = useArtScene();
+  const {backdrop} = useArtBackdrop();
+  const {capture} = useArtCapture();
   // Only the stable setters: the selected, hovered and captured trips reach the globe and the camera through the
   // canvas's context bridge, so their changes leave the shell (and the canvas tree) alone.
   const travelActions = useTravelSceneActions();
@@ -126,6 +128,17 @@ export function SceneShell({articles, children}: SceneShellProps) {
     window.history.replaceState(null, '', `${window.location.pathname}${search}`);
   }, [aboutStop, isAbout]);
 
+  // The drawer panels' chunks, fetched at idle once the scene is ready rather than on the first open.
+  useEffect(() => {
+    if (sceneState !== 'ready') return;
+    if (typeof window.requestIdleCallback !== 'function') {
+      preloadDrawerPanels();
+      return;
+    }
+    const handle = window.requestIdleCallback(preloadDrawerPanels, {timeout: 4000});
+    return () => window.cancelIdleCallback(handle);
+  }, [sceneState]);
+
   // SQYC on Home closes the open section (Nav cannot navigate to the page it is on).
   useEffect(() => {
     const returnToOverview = () => setPreviewId(null);
@@ -166,6 +179,12 @@ export function SceneShell({articles, children}: SceneShellProps) {
     setAboutScrollRequest((current) => ({stop, key: (current?.key ?? 0) + 1}));
   }, []);
 
+  // Read through a ref: the callbacks keep their identity across routes, so the memoized canvas is left alone
+  // when a drawer route lands.
+  const drawerRouteRef = useRef(drawerRoute);
+  useLayoutEffect(() => {
+    drawerRouteRef.current = drawerRoute;
+  }, [drawerRoute]);
   const toggleSection = useCallback((id: SectionId) => {
     if (id === 'art') {
       // Start from the live camera pose, even while the route is being fetched.
@@ -179,18 +198,18 @@ export function SceneShell({articles, children}: SceneShellProps) {
       return;
     }
     // About, Blog and Projects open as drawer routes; their scene link again closes the drawer.
-    if (drawerRoute === id) {
+    if (drawerRouteRef.current === id) {
       router.push('/');
     } else {
       setPreviewId(id);
       router.push(`/${id}`);
     }
-  }, [drawerRoute, router]);
+  }, [router]);
 
   const closeSection = useCallback(() => {
-    if (drawerRoute !== null) router.push('/');
+    if (drawerRouteRef.current !== null) router.push('/');
     else setPreviewId(null);
-  }, [drawerRoute, router]);
+  }, [router]);
 
   const openTrip = useCallback((id: string) => router.push(`/travel/${id}`), [router]);
 

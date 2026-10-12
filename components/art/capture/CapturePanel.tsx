@@ -4,12 +4,12 @@
 
 import {useEffect, useRef, useState} from 'react';
 import {CAPTURE_DEFAULTS} from '@/lib/art/capture';
-import {useArtScene} from '../ArtSceneContext';
+import {useArtCapture} from '../ArtSceneContext';
 
 const base = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
 
 export function CapturePanel() {
-  const {capture, setCapture, exportCapture} = useArtScene();
+  const {capture, setCapture, exportCapture} = useArtCapture();
   const [hidden, setHidden] = useState(false);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('');

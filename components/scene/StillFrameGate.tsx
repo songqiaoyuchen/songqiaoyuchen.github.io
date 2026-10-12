@@ -1,5 +1,6 @@
-// Skips the composer render while the frame would be identical to the last one (a still Art gallery),
-// so the GPU idles; the browser keeps showing the last drawn frame until something changes.
+// Skips the composer render while the frame would be identical to the last one (a still Art gallery, About
+// between checkpoints, a trip at rest), so the GPU idles; the browser keeps showing the last drawn frame until
+// something changes. Home always draws: its contours pulse and the glyph rain falls.
 'use client';
 
 import {useFrame, useThree} from '@react-three/fiber';
@@ -24,7 +25,7 @@ function gateFor(composer: EffectComposer) {
 }
 
 type StillFrameGateProps = {
-  /** Only where the scene is often still (Art); elsewhere every frame draws as before. */
+  /** Off while the scene assembles or a capture reads frames back; then every route. */
   enabled: boolean;
   composerRef: RefObject<EffectComposer | null>;
 };

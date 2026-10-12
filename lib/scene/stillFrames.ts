@@ -43,6 +43,10 @@ export class StillFrameDetector {
 
   /** Returns true when this frame would draw exactly what the last drawn frame did. */
   isStill(scene: Scene, camera: Camera, width: number, height: number, pixelRatio: number) {
+    // World matrices are refreshed by the render this may skip: bring them up to this frame's transforms first,
+    // or a turning globe or ring would read as still after the first skipped frame.
+    camera.updateMatrixWorld();
+    scene.updateMatrixWorld();
     const out = this.next;
     out.length = 0;
     out.push(width, height, pixelRatio);
@@ -51,8 +55,9 @@ export class StillFrameDetector {
     if (fog) pushValue(out, [fog.near, fog.far, fog.color]);
     pushValue(out, scene.background);
     scene.traverseVisible((object) => {
-      const mesh = object as Mesh;
-      if (!mesh.isMesh || isDissolved(mesh)) return;
+      // Everything drawn: meshes, and the lines and points of the globe's rings, trails, lights and stars.
+      const mesh = object as Mesh & {isLine?: boolean; isPoints?: boolean};
+      if (!(mesh.isMesh || mesh.isLine || mesh.isPoints) || isDissolved(mesh)) return;
       out.push(mesh.id, mesh.renderOrder, ...mesh.matrixWorld.elements);
       const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
       for (const material of materials) pushMaterial(out, material);

@@ -18,7 +18,10 @@ export function useSectionScope(activeId: SectionId | null) {
     [SECTION]: {value: section, render: () => false},
     [TRAVEL_TRIP]: {value: false, render: () => false},
   }));
-  useEffect(() => set({[SECTION]: section}), [section, set]);
+  // Production has no panel to scope; the store write would only re-render the canvas at every section change.
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') set({[SECTION]: section});
+  }, [section, set]);
 }
 
 /** Keeps the hidden trip input at whether a Travel trip is open. A leaf inside the canvas, so a hover or capture
