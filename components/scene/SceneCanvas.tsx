@@ -40,6 +40,7 @@ import {SceneReadySignal} from './SceneReadySignal';
 import {StillFrameGate} from './StillFrameGate';
 import {CachedTerrain} from './terrain/CachedTerrain';
 import { Contours } from './terrain/Contours';
+import {IntroReveal} from './terrain/IntroReveal';
 import {ABOUT_MAP_CONFIG} from '@/config/scene/aboutPath';
 
 // Memoized: a layer re-renders only when its own props change, not with every render of the canvas (a context
@@ -161,6 +162,9 @@ export const SceneCanvas = memo(function SceneCanvas({
   const isDevelopment = process.env.NODE_ENV === 'development';
   const settings = useSceneControls(activeId);
   const hideHomeScene = artActive || activeId === 'art';
+  // The intro reveal (the contour map spreading from the summit) plays once the preloader has gone, only when the
+  // page opened on the overview: a section route shows the lines whole under its own arrival.
+  const [revealWanted] = useState(activeId === null);
   const isAbout = activeId === 'about';
   const isTravel = activeId === 'travel';
   // Sections with their own journey (Art, About, Travel) clear the homepage text: glyph rain and scene links.
@@ -327,6 +331,9 @@ export const SceneCanvas = memo(function SceneCanvas({
             <Fog about={activeId === 'about'} settings={settings.fog} />
             <Suspense fallback={null}>
               {assemblyPhase >= 1 ? (
+                <IntroReveal play={revealWanted && introStarted} skip={!revealWanted} />
+              ) : null}
+              {assemblyPhase >= 1 ? (
                 <Terrain
                   contourSettings={settings.contours}
                   backdrop={backdrop}
@@ -342,6 +349,7 @@ export const SceneCanvas = memo(function SceneCanvas({
                 <ContourLines
                   hidden={hideHomeScene || isAbout || isTravel}
                   travelRide
+                  reveal
                   ref={setContourMesh}
                   contourSettings={settings.contours}
                   terrainDepthTexture={terrainDepthTexture}

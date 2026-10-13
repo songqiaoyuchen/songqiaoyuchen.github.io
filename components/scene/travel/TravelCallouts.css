@@ -17,10 +17,21 @@
   --callout-halo-wide: rgb(8 10 13 / 70%);
   --callout-line: rgb(232 199 122 / 30%);
   --callout-line-strong: rgb(232 199 122 / 80%);
+  /* Marks sit on dense, bright city lights: a dark knockout edge on every line keeps the thin signal lines
+     legible, as a map's labels. */
+  --callout-stroke: 1.5px; /* signal line weight: thin lines vanish into the lights */
+  --callout-knockout: drop-shadow(0 0 1px var(--callout-halo)) drop-shadow(0 0 2px var(--callout-halo-wide));
 
   position: absolute;
   inset: 0;
   pointer-events: none;
+}
+
+.travel-callout-anchor,
+.travel-cluster,
+.travel-stop,
+.travel-route > .travel-route-node {
+  filter: var(--callout-knockout);
 }
 
 .travel-callouts-leaders {
@@ -33,6 +44,7 @@
 
 .travel-callout-leader {
   fill: none;
+  filter: var(--callout-knockout);
   stroke: var(--callout-line);
   stroke-width: 1;
   transition: stroke 180ms ease-out;
@@ -61,7 +73,7 @@
 .travel-callout-anchor::before {
   width: calc(var(--marker-size) / 2);
   height: calc(var(--marker-size) / 2);
-  border: 1px solid var(--callout-signal);
+  border: var(--callout-stroke) solid var(--callout-signal);
   background: transparent;
   content: '';
   rotate: 45deg;
@@ -96,14 +108,14 @@
   height: calc(var(--marker-size) * 1.6);
   translate: -50% -50%;
   background:
-    linear-gradient(var(--callout-signal), var(--callout-signal)) top left / 6px 1px,
-    linear-gradient(var(--callout-signal), var(--callout-signal)) top left / 1px 6px,
-    linear-gradient(var(--callout-signal), var(--callout-signal)) top right / 6px 1px,
-    linear-gradient(var(--callout-signal), var(--callout-signal)) top right / 1px 6px,
-    linear-gradient(var(--callout-signal), var(--callout-signal)) bottom left / 6px 1px,
-    linear-gradient(var(--callout-signal), var(--callout-signal)) bottom left / 1px 6px,
-    linear-gradient(var(--callout-signal), var(--callout-signal)) bottom right / 6px 1px,
-    linear-gradient(var(--callout-signal), var(--callout-signal)) bottom right / 1px 6px;
+    linear-gradient(var(--callout-signal), var(--callout-signal)) top left / 7px var(--callout-stroke),
+    linear-gradient(var(--callout-signal), var(--callout-signal)) top left / var(--callout-stroke) 7px,
+    linear-gradient(var(--callout-signal), var(--callout-signal)) top right / 7px var(--callout-stroke),
+    linear-gradient(var(--callout-signal), var(--callout-signal)) top right / var(--callout-stroke) 7px,
+    linear-gradient(var(--callout-signal), var(--callout-signal)) bottom left / 7px var(--callout-stroke),
+    linear-gradient(var(--callout-signal), var(--callout-signal)) bottom left / var(--callout-stroke) 7px,
+    linear-gradient(var(--callout-signal), var(--callout-signal)) bottom right / 7px var(--callout-stroke),
+    linear-gradient(var(--callout-signal), var(--callout-signal)) bottom right / var(--callout-stroke) 7px;
   background-repeat: no-repeat;
   opacity: 0;
   rotate: 45deg;
@@ -142,7 +154,7 @@
   position: absolute;
   width: 8px;
   height: 8px;
-  border: 1px solid var(--callout-signal);
+  border: var(--callout-stroke) solid var(--callout-signal);
   content: '';
   rotate: 45deg;
   animation: travel-callout-ping 2.4s ease-out 400ms infinite;
@@ -176,15 +188,15 @@
 }
 
 .travel-trip-icon [data-detail='small'] {
-  stroke-width: 2.2;
+  stroke-width: 2.8;
 }
 
 .travel-trip-icon [data-detail='focus'] {
-  stroke-width: 1.7;
+  stroke-width: 1.9;
 }
 
 .travel-trip-icon [data-detail='open'] {
-  stroke-width: 1.05;
+  stroke-width: 1.5;
 }
 
 .travel-callout-anchor:not([data-state='focused'], [data-state='selected']) [data-detail='small'],
@@ -251,7 +263,7 @@
 .travel-route-hex polygon {
   fill: transparent;
   stroke: var(--callout-signal-soft);
-  stroke-width: 1;
+  stroke-width: 1.5;
   transition: fill 180ms ease-out, stroke 180ms ease-out;
   vector-effect: non-scaling-stroke;
 }
@@ -281,12 +293,13 @@
 }
 
 [data-state='selected'] .travel-route-hex polygon {
-  stroke-width: 1.25;
+  stroke-width: 1.75;
 }
 
 /* Clusters: nearby trips' shared marker, a diamond resting on another just below it, the count beside; a click fans
    it out into the trips' own markers, tied to its middle by fine lines (TravelCallouts.tsx places the fan every
-   frame). The front diamond's dark fill hides the back one's upper edges, so the two read as one stack. */
+   frame). The back diamond draws only its lower edges, the part showing below the front one, so both stay clear
+   in the centre, as every marker, and read as one stack. */
 .travel-cluster {
   position: absolute;
   top: 0;
@@ -306,13 +319,15 @@
   position: absolute;
   width: calc(var(--marker-size) / 2);
   height: calc(var(--marker-size) / 2);
-  border: 1px solid var(--callout-signal);
+  border: var(--callout-stroke) solid var(--callout-signal);
   content: '';
   rotate: 45deg;
   transition: background-color 180ms ease-out, translate 260ms var(--ease-settle), box-shadow 260ms ease-out;
 }
 
 .travel-cluster::after {
+  border-top-color: transparent;
+  border-left-color: transparent;
   translate: 0 3px;
   opacity: 0.55;
 }
@@ -320,7 +335,6 @@
 .travel-cluster::before {
   z-index: 1;
   translate: 0 -1px;
-  background: rgb(8 10 13);
 }
 
 .travel-cluster:hover::before,
@@ -375,8 +389,7 @@
 .travel-stop::before {
   width: calc(var(--marker-size-open) / 3);
   height: calc(var(--marker-size-open) / 3);
-  border: 1px solid var(--callout-signal);
-  background: rgb(8 10 13 / 60%);
+  border: var(--callout-stroke) solid var(--callout-signal);
   content: '';
   rotate: 45deg;
   transition: background-color 180ms ease-out;
@@ -403,7 +416,7 @@
 .travel-callout-title[data-tag]::before {
   position: absolute;
   inset: -2px -14px -2px -10px;
-  border: 1px solid var(--callout-signal);
+  border: var(--callout-stroke) solid var(--callout-signal);
   content: '';
   opacity: 0.8;
   transform: skewX(-20deg);

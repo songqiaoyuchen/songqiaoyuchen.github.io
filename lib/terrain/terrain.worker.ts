@@ -1,4 +1,5 @@
-// Terrain web worker: downloads and decompresses baked artifacts, rebuilds contours on request.
+// Terrain web worker: downloads and decompresses baked artifacts, rebuilds contours and the intro reveal's reach
+// field on request.
 import {loadTerrainManifest, type TerrainArtifact} from './manifest';
 import {extractIsolines} from './isolines';
 import {unpackContourTubeBuffers} from './contourArtifact';
@@ -6,6 +7,7 @@ import {
   buildContourTubeBuffers,
   getContourTubeTransferables,
 } from './lineTubeBuffers';
+import {buildReachField} from './reach';
 import {bakeShellGrid} from './shell';
 import type {
   ContourBuildOptions,
@@ -149,6 +151,21 @@ port.onmessage = (event) => {
         type: 'error',
       });
     });
+    return;
+  }
+
+  if (request.type === 'reach') {
+    try {
+      if (!shellBase) throw new Error('Terrain shell is not ready.');
+      const field = buildReachField(shellBase, request.reachOptions);
+      port.postMessage({field, requestId: request.requestId, type: 'reach-ready'}, [field.data.buffer]);
+    } catch (error) {
+      port.postMessage({
+        message: error instanceof Error ? error.message : 'Reach field failed.',
+        requestId: request.requestId,
+        type: 'error',
+      });
+    }
     return;
   }
 

@@ -15,3 +15,4 @@
 | `frameBudget.ts` | Waits for idle time and healthy frames before the next startup stage |
 | `screenPass.ts` | Full-screen quad pass into an offscreen target |
 | `stillFrames.ts` | Frame signature for skipping identical frames; `markFrameChanged` for offscreen renders |
+| `introReveal.ts` | The homepage intro reveal's skipped-state constant and the dev Replay request |

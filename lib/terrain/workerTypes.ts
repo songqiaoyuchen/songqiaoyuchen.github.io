@@ -3,6 +3,7 @@ import type {HeightGrid} from './bake';
 import type {IsolineOptions} from './isolines';
 import type {ContourTubeBuffers} from './lineTubeBuffers';
 import type {TerrainArtifact} from './manifest';
+import type {ReachField, ReachOptions} from './reach';
 
 export type ContourBuildOptions = IsolineOptions & {
   smoothFactor: number;
@@ -25,6 +26,7 @@ export type TerrainWorkerRequest =
     type: 'contours';
   }
   | {requestId: number; type: 'gradient'}
+  | {reachOptions: ReachOptions; requestId: number; type: 'reach'}
   | {type: 'cancel'};
 
 export type TerrainWorkerResponse =
@@ -41,4 +43,5 @@ export type TerrainWorkerResponse =
     requestId: number;
     type: 'gradient-ready';
   }
+  | {field: ReachField; requestId: number; type: 'reach-ready'}
   | {message: string; requestId?: number; type: 'error'};

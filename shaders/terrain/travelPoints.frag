@@ -3,6 +3,7 @@
 // terrain is nearer (terrain depth).
 uniform vec3 uColor;
 uniform float uVisibility;
+uniform float uIntensity; // brightness gain (Leva light intensity; stars 1)
 uniform float uTint; // how far the seed shifts the colour between warm and cool (stars)
 uniform sampler2D uTerrainDepth;
 uniform float uUseTerrainDepth;
@@ -23,5 +24,5 @@ void main() {
   vec3 color = mix(uColor, tint, uTint);
   color = mix(color, vec3(1.0), 0.35 * vIntensity * vIntensity);
   // Additive: the colour carries the disc and the fade, alpha stays 1 so nothing is applied twice.
-  gl_FragColor = vec4(color * disc * vIntensity * uVisibility, 1.0);
+  gl_FragColor = vec4(color * disc * vIntensity * uVisibility * uIntensity, 1.0);
 }

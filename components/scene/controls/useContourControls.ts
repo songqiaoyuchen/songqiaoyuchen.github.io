@@ -1,7 +1,8 @@
 // Leva "Contour Lines" folder (dev only, hidden on About); Save Config writes every key to config/scene/contours.ts.
 // Geometry keys rebuild the lines in the terrain worker; the rest are live shader uniforms.
-import { folder, useControls } from 'leva';
+import { button, folder, useControls } from 'leva';
 import {CONTOUR_CONFIG} from '@/config/scene';
+import {requestRevealReplay} from '@/lib/scene/introReveal';
 import {HOME_SCENE_FOLDER} from './sectionScope';
 
 const CONTOURS = CONTOUR_CONFIG;
@@ -159,6 +160,69 @@ export function useContourControls() {
         min: 0, max: 1, step: 0.01,
         label: 'Sharpness',
       },
+    }, { collapsed: false }),
+
+    Reveal: folder({
+      // Contours.tsx (rebuilds the reach field): the wave starts at the highest point within the radius of this
+      // plan point.
+      revealOriginX: {
+        value: CONTOURS.revealOriginX,
+        min: -11, max: 11, step: 0.1,
+        label: 'Origin X',
+      },
+      revealOriginZ: {
+        value: CONTOURS.revealOriginZ,
+        min: -11, max: 11, step: 0.1,
+        label: 'Origin Z',
+      },
+      revealOriginRadius: {
+        value: CONTOURS.revealOriginRadius,
+        min: 0, max: 10, step: 0.1,
+        label: 'Origin Radius',
+      },
+      // IntroReveal: seconds after the intro starts before the wave sets off from the summit.
+      revealDelay: {
+        value: CONTOURS.revealDelay,
+        min: 0, max: 3, step: 0.05,
+        label: 'Delay',
+      },
+      // contours.vert: the wave's speed over the ground, world units per second.
+      revealSpeed: {
+        value: CONTOURS.revealSpeed,
+        min: 0.5, max: 20, step: 0.1,
+        label: 'Speed',
+      },
+      // contours.frag: brightness of a line ahead of the wave.
+      revealGhost: {
+        value: CONTOURS.revealGhost,
+        min: 0, max: 1, step: 0.01,
+        label: 'Ghost',
+      },
+      // contours.frag: from how far ahead the ghost fades in, world units.
+      revealGhostUnits: {
+        value: CONTOURS.revealGhostUnits,
+        min: 0, max: 8, step: 0.1,
+        label: 'Ghost Reach',
+      },
+      // contours.frag: brightness the flash behind the front adds.
+      revealFlash: {
+        value: CONTOURS.revealFlash,
+        min: 0, max: 4, step: 0.05,
+        label: 'Flash',
+      },
+      // contours.frag (+ .vert): over what distance behind the front the flash decays, world units.
+      revealFlashUnits: {
+        value: CONTOURS.revealFlashUnits,
+        min: 0.1, max: 8, step: 0.1,
+        label: 'Flash Reach',
+      },
+      // contours.vert: how much wider the tube is at the flash's peak.
+      revealFlashRadius: {
+        value: CONTOURS.revealFlashRadius,
+        min: 0, max: 3, step: 0.05,
+        label: 'Flash Width',
+      },
+      Replay: button(() => requestRevealReplay()),
     }, { collapsed: false }),
 
   }, HOME_SCENE_FOLDER);

@@ -1,11 +1,15 @@
-// Contour colour: minor/major/shadow lines, the travelling pulse, the intro sweep and terrain-depth occlusion.
+// Contour colour: minor/major/shadow lines, the travelling pulse, the intro reveal and terrain-depth occlusion.
 // About's map options: lines keep full brightness near the route; away from it they darken to a floor,
 // lower still on unlit ground (the terrain's baked lighting), instead of vanishing.
 #include <fog_pars_fragment>
 
-uniform float uIntroTime;
 uniform float uVisibility;
-uniform float uIntroTravelSpeed;
+// The intro reveal: how faintly lines show ahead of the wave's front and from how far ahead (world units); how
+// much the flash behind the front adds and over what distance it decays.
+uniform float uRevealGhost;
+uniform float uRevealGhostUnits;
+uniform float uRevealFlash;
+uniform float uRevealFlashUnits;
 // Plan distance from the centre where lines start to fade with the ground, and where they are gone.
 uniform vec2 uEdgeFade;
 uniform sampler2D uTerrainDepth;
@@ -31,10 +35,8 @@ uniform vec3 uPulseColor;
 uniform float uPulseTint;
 uniform float uPulseSharpness;
 
-varying float vT;
-varying float vTotalLength;
+varying float vRevealBehind;
 varying float vMajor;
-varying float vTravelDirection;
 varying float vShadow;
 varying vec2 vTerrainUv;
 varying float vNoise;
@@ -47,19 +49,18 @@ void main() {
     if (gl_FragCoord.z > terrainDepth) discard;
   }
 
-  float totalLength = max(vTotalLength, 0.0001);
   float n = vNoise;
   float hardWidth = max(fwidth(n), 0.015);
   float hard = 1.0 - smoothstep(-hardWidth, 0.0, n);
   float soft = 1.0 - smoothstep(-0.45, 0.45, n);
   float pulse = mix(soft, hard, uPulseSharpness);
 
-  // Elevation levels trace in alternating groups of 2-3 (direction decided
-  // at extraction). Arc length keeps the front's world-space speed identical
-  // on every contour.
-  float pathDistance = vTravelDirection > 0.0 ? vT : totalLength - vT;
-  float travelled = uIntroTime * uIntroTravelSpeed;
-  float reveal = step(pathDistance, travelled);
+  // The intro reveal: ahead of the wave a line is a faint ghost; where the front has passed it is lit, with a
+  // flash just behind the front that decays to its resting light. The front's edge is a quarter unit wide.
+  float behind = vRevealBehind;
+  float ghost = uRevealGhost * (1.0 - smoothstep(0.0, max(uRevealGhostUnits, 0.0001), -behind));
+  float flash = behind >= 0.0 ? exp(-behind / max(uRevealFlashUnits, 0.0001)) : 0.0;
+  float reveal = mix(ghost, 1.0 + uRevealFlash * flash, smoothstep(-0.25, 0.0, behind));
 
   vec3 minorColor = mix(uMinorColor, uPulseColor, pulse * uPulseTint);
   float minorBrightness = uMinorBase + (1.0 - uMinorBase) * pulse;

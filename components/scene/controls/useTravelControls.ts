@@ -27,6 +27,9 @@ function useTravelGlobeControls() {
       // TravelLights.tsx / TravelStars.tsx / TravelTrails.tsx: the night lights, the sky and the trails.
       lightDensity: {value: TRAVEL_CONFIG.lightDensity, min: 0, max: 1, step: 0.01, label: 'Light density'},
       lightSize: {value: TRAVEL_CONFIG.lightSize, min: 0.5, max: 8, step: 0.1, label: 'Light size (px)'},
+      lightIntensity: {
+        value: TRAVEL_CONFIG.lightIntensity, min: 0, max: 2, step: 0.01, label: 'Light intensity',
+      },
       starSize: {value: TRAVEL_CONFIG.starSize, min: 0.5, max: 8, step: 0.1, label: 'Star size (px)'},
       trailColor: {value: TRAVEL_CONFIG.trailColor, label: 'Trail colour'},
     }, {collapsed: false}),

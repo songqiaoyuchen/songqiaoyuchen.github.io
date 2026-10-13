@@ -89,7 +89,8 @@ export const PROJECTS = [
     id: 'medic-handbook',
     image: medicHandbookImage,
     imageAlt: 'Medic Handbook interface with training materials and resources',
-    subtitle: 'My first ever coding project. A web doc that provides training notes for emergency medical technicians at Yishun Fire Station.',
+    subtitle: 'My first ever coding project. A web doc that provides training notes for emergency medical technicians '
+      + 'at Yishun Fire Station.',
     technologies: [
       {icon: 'html', label: 'HTML'},
       {icon: 'css', label: 'CSS'},

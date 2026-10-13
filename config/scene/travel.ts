@@ -21,6 +21,7 @@ export const TRAVEL_CONFIG = {
   // Land lights (TravelLights.tsx), denser in lowlands; half strength over lightsIn, full with the lines.
   lightDensity: 0.5, // share of candidate land points kept
   lightSize: 4, // CSS pixels at full brightness
+  lightIntensity: 1, // brightness gain, bloom included
   phoneLightScale: 0.5, // phones draw the globe smaller: the same points would merge into one glow
   lightsIn: [0.15, 0.55] as readonly [number, number], // share of the zoom-out
 

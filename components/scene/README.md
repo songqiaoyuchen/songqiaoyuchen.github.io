@@ -11,7 +11,7 @@ Everything inside the React Three Fiber canvas behind Home and Art.
 | `StillFrameGate.tsx` | Skips drawing frames identical to the last one, so a still gallery, About or trip idles |
 | `PrecompileHidden.tsx` | Compiles the shaders of layers that mount hidden (globe, About map) while the scene is quiet |
 | `camera/` | Section poses, camera journeys, per-frame camera state |
-| `terrain/` | Cached terrain, its compositor, contour lines and fog |
+| `terrain/` | Cached terrain, its compositor, contour lines, fog and the intro reveal's clock (`IntroReveal`) |
 | `backdrop/` | Art backdrops: images, projection, wipe decisions, cursor, Screenshot export |
 | `text/` | WebGL text: scene links, hero name, glyph rain |
 | `about/` | About experience path: ridge route tube, checkpoint markers, titles and altitude figures; dev route editor |
@@ -20,7 +20,7 @@ Everything inside the React Three Fiber canvas behind Home and Art.
 | `controls/` | Leva tuning panels (development only) |
 
 `useFrame` callbacks run by priority, then mount order: dev OrbitControls (-1), CameraRig (-0.75),
-SceneFog (-0.7), CameraFrameState (-0.5), default (0), TravelGlobe (0.1), TerrainMesh, Contours and AboutPath
+SceneFog (-0.7), IntroReveal (-0.6), CameraFrameState (-0.5), default (0), TravelGlobe (0.1), TerrainMesh, Contours and AboutPath
 (0.2, after the globe has placed the patch they ride), SceneLinks (0.25), TravelCallouts and AboutCallouts (0.3),
 CachedTerrain (0.5), StillFrameGate (0.9), EffectComposer render (1), CaptureExport (2). Keep the JSX order in `SceneCanvas`
 when adding layers. Anything that renders into a texture the visible scene samples must call

@@ -1,4 +1,5 @@
-// Contour tubes: lifts each line onto the displaced terrain and carries arc length for the pulse and intro sweep.
+// Contour tubes: lifts each line onto the displaced terrain and carries arc length for the pulse; on the intro,
+// reads how far the reveal's wave is past each point.
 // With uMinPixels set (About's map), distant tubes keep a minimum on-screen radius and dim instead of breaking up.
 // On the way to Travel (uMorph) the homepage lines ride onto the globe with the terrain (the same wrap as
 // terrain.vert, about the same pivot), their tubes shrinking with it down to a minimum on-screen radius.
@@ -8,7 +9,6 @@ attribute float t;
 attribute float totalLength;
 attribute float lineId;
 attribute float major;
-attribute float travelDirection;
 attribute float shadow;
 
 uniform float uElevation;
@@ -34,11 +34,20 @@ uniform float uPatchScale; // world units of arc on the planet per landscape uni
 uniform float uPatchRelief; // height factor on the planet, this frame
 uniform float uSeaUnits; // the landing place's elevation, landscape units
 uniform float uDatumY; // the terrain surface's world y at the pivot
+// The intro reveal (IntroReveal): a wave spreads from the summit over the ground at uRevealSpeed, and each line
+// shows where the wave has passed, flashing just behind its front. The reach field (lib/terrain/reach.ts, built
+// by the terrain worker) holds every point's distance from the summit over the surface, as a share of uReachMax.
+uniform float uRevealTime; // seconds into the intro
+uniform float uRevealDelay; // seconds before the wave sets off
+uniform float uRevealSpeed; // world units of surface per second
+uniform float uRevealFlashUnits; // the flash's decay behind the front, world units
+uniform float uRevealFlashRadius; // how much wider the tube is at the flash's peak
+uniform sampler2D uReach;
+uniform float uReachMax;
+uniform float uReachReady; // 0 until the field has arrived: the lines show whole
 
-varying float vT;
-varying float vTotalLength;
+varying float vRevealBehind; // world units the wave's front is past this point (negative: not yet there)
 varying float vMajor;
-varying float vTravelDirection;
 varying float vShadow;
 varying vec2 vTerrainUv;
 varying float vNoise;
@@ -90,12 +99,17 @@ float pnoise(vec2 point, vec2 repetition) {
   return 2.3 * mix(nx.x, nx.y, fadeXY.y);
 }
 
+// The plane's uv at a plan position (as the terrain's maps are laid out: v runs opposite to z).
+vec2 planUv(vec2 plan) {
+  return vec2(plan.x / uPlaneSize + 0.5, 0.5 - plan.y / uPlaneSize);
+}
+
 void main() {
-  vT = t;
-  vTotalLength = totalLength;
+  // How far the wave's front is past this point along the ground.
+  float front = uRevealSpeed * (uRevealTime - uRevealDelay);
+  vRevealBehind = uReachReady > 0.5 ? front - texture2D(uReach, planUv(position.xz)).r * uReachMax : 1.0e4;
   // Major placement is decided at extraction (every-Nth, min-height gated).
   vMajor = major;
-  vTravelDirection = travelDirection;
   vShadow = shadow;
   float safeLength = max(totalLength, 0.0001);
   float noisePosition = mod(t - uTime * uPulseSpeed, safeLength);
@@ -109,7 +123,8 @@ void main() {
     position.y * uElevation + uLift + uMeshY,
     position.z
   );
-  float radius = mix(uMinorRadius, uMajorRadius, vMajor);
+  float flash = vRevealBehind >= 0.0 ? exp(-vRevealBehind / max(uRevealFlashUnits, 0.0001)) : 0.0;
+  float radius = mix(uMinorRadius, uMajorRadius, vMajor) * (1.0 + uRevealFlashRadius * flash);
   vec3 tubeNormal = normal;
   vTerrainUv = (center + normal * radius).xz / uPlaneSize + 0.5;
   if (uMorph > 0.0) {

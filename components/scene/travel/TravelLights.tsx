@@ -23,6 +23,8 @@ type TravelLightsProps = {
   color: string;
   /** Point size in CSS pixels at full brightness. */
   size: number;
+  /** Brightness gain. */
+  intensity: number;
   /** The globe's relief this frame, as a share of its radius at the map's top. */
   reliefRef: MutableRefObject<number>;
   /** How far the globe has taken the elevation summary (a trip open), 0 to 1, read every frame. */
@@ -36,7 +38,8 @@ type TravelLightsProps = {
 };
 
 export function TravelLights({
-  elevation, radius, lift, color, size, reliefRef, focusRef, visibilityRef, shownRef, terrainDepthTexture, onPoints,
+  elevation, radius, lift, color, size, intensity, reliefRef, focusRef, visibilityRef, shownRef, terrainDepthTexture,
+  onPoints,
 }: TravelLightsProps) {
   const materialRef = useRef<ShaderMaterial>(null);
   const dpr = useThree((state) => state.viewport.dpr);
@@ -66,6 +69,7 @@ export function TravelLights({
     uTwinkle: {value: 0},
     uColor: {value: new Color(TRAVEL_CONFIG.lineColor)},
     uVisibility: {value: 0},
+    uIntensity: {value: TRAVEL_CONFIG.lightIntensity},
     uTint: {value: 0},
     uTerrainDepth: {value: null as DepthTexture | null},
     uUseTerrainDepth: {value: 0},
@@ -77,11 +81,12 @@ export function TravelLights({
     material.uniforms.uRadius.value = radius;
     material.uniforms.uLift.value = lift;
     material.uniforms.uSize.value = size;
+    material.uniforms.uIntensity.value = intensity;
     material.uniforms.uColor.value.set(color);
     material.uniforms.uScale.value = dpr;
     material.uniforms.uTerrainDepth.value = terrainDepthTexture;
     material.uniforms.uUseTerrainDepth.value = terrainDepthTexture ? 1 : 0;
-  }, [color, dpr, lift, radius, size, terrainDepthTexture]);
+  }, [color, dpr, intensity, lift, radius, size, terrainDepthTexture]);
 
   useFrame(() => {
     if (!shownRef.current) return;

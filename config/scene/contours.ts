@@ -40,6 +40,19 @@ export const CONTOUR_CONFIG = {
   pulseScale: 1, // noise frequency along arc length
   pulseSharpness: 0.25, // 1 = distinct borders, 0 = smooth gradient
 
-  // All contours start together and alternate path direction by elevation.
-  introTravelSpeed: 6, // world units per second
+  // The intro reveal: a wave spreads from the summit over the ground (by surface distance, over the hills) and
+  // each line shows where it has passed, a faint ghost ahead of it and a flash just behind its front (IntroReveal,
+  // lib/terrain/reach.ts, contours.vert/.frag).
+  // The wave starts at the highest point within revealOriginRadius of this plan point (world x, z): the ridge the
+  // overview camera looks at (CAMERA_CONFIG.overviewLookAt), not the terrain's far-off true summit.
+  revealOriginX: 3.4,
+  revealOriginZ: 3,
+  revealOriginRadius: 3,
+  revealDelay: 0.2, // seconds after the intro starts before the wave sets off
+  revealSpeed: 4, // world units of surface per second
+  revealGhost: 0.25, // brightness of a line ahead of the wave
+  revealGhostUnits: 2, // from how far ahead the ghost fades in, world units
+  revealFlash: 0.9, // brightness the flash behind the front adds
+  revealFlashUnits: 1.5, // over what distance behind the front it decays, world units
+  revealFlashRadius: 0.45, // how much wider the tube is at the flash's peak
 } as const;

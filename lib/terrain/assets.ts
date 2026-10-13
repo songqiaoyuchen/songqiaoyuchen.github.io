@@ -5,6 +5,7 @@ import {use} from 'react';
 import {
   ClampToEdgeWrapping,
   DataTexture,
+  DataUtils,
   HalfFloatType,
   LinearFilter,
   RedFormat,
@@ -16,6 +17,7 @@ import {
   getContourBuildOptions,
 } from './contourOptions';
 import type {ContourTubeBuffers} from './lineTubeBuffers';
+import type {ReachOptions} from './reach';
 import type {
   ContourBuildOptions,
   TerrainWorkerResponse,
@@ -38,6 +40,18 @@ type GradientRequest = {
   resolve: (texture: DataTexture) => void;
 };
 
+/** The intro reveal's reach field (lib/terrain/reach.ts) as a texture of distances over `max`, plus the summit. */
+export type TerrainReach = {
+  texture: DataTexture;
+  max: number;
+  origin: [number, number];
+};
+
+type ReachRequest = {
+  reject: (error: Error) => void;
+  resolve: (reach: TerrainReach) => void;
+};
+
 let assetsPromise: Promise<TerrainAssets> | null = null;
 let initialContoursPromise: Promise<ContourTubeBuffers> | null = null;
 let initialContoursReject: ((error: Error) => void) | null = null;
@@ -49,6 +63,8 @@ let nextRequestId = 1;
 const contourRequests = new Map<number, ContourRequest>();
 let gradientPromise: Promise<DataTexture> | null = null;
 const gradientRequests = new Map<number, GradientRequest>();
+const reachRequests = new Map<number, ReachRequest>();
+const reachPromises = new Map<string, Promise<TerrainReach>>();
 
 function configureTexture(texture: DataTexture) {
   texture.minFilter = LinearFilter;
@@ -79,6 +95,9 @@ function rejectAll(error: Error) {
   contourRequests.clear();
   for (const request of gradientRequests.values()) request.reject(error);
   gradientRequests.clear();
+  for (const request of reachRequests.values()) request.reject(error);
+  reachRequests.clear();
+  reachPromises.clear();
 }
 
 function loadTerrainAssets() {
@@ -104,7 +123,23 @@ function loadTerrainAssets() {
           if (gradientRequests.has(response.requestId)) gradientPromise = null;
           gradientRequests.get(response.requestId)?.reject(error);
           gradientRequests.delete(response.requestId);
+          reachRequests.get(response.requestId)?.reject(error);
+          reachRequests.delete(response.requestId);
         }
+        return;
+      }
+      if (response.type === 'reach-ready') {
+        const {field} = response;
+        // Distances as a share of the largest, in half floats (filterable, like the other terrain maps).
+        const halves = new Uint16Array(field.data.length);
+        const scale = field.max > 0 ? 1 / field.max : 0;
+        for (let index = 0; index < halves.length; index++) {
+          halves[index] = DataUtils.toHalfFloat(Math.min(1, field.data[index] * scale));
+        }
+        const texture = configureTexture(new DataTexture(halves, field.width, field.height, RedFormat, HalfFloatType));
+        texture.name = 'Terrain.Reach';
+        reachRequests.get(response.requestId)?.resolve({texture, max: field.max, origin: field.origin});
+        reachRequests.delete(response.requestId);
         return;
       }
       if (response.type === 'contours-ready') {
@@ -194,6 +229,21 @@ export function requestTerrainGradient() {
     worker.postMessage({requestId, type: 'gradient'});
   });
   return gradientPromise;
+}
+
+/** The reach field for these options, built once by the worker (the shell must have loaded). */
+export function requestTerrainReach(reachOptions: ReachOptions) {
+  const key = JSON.stringify(reachOptions);
+  const cached = reachPromises.get(key);
+  if (cached) return cached;
+  const worker = makeWorker();
+  const requestId = nextRequestId++;
+  const promise = new Promise<TerrainReach>((resolve, reject) => {
+    reachRequests.set(requestId, {reject, resolve});
+    worker.postMessage({reachOptions, requestId, type: 'reach'});
+  });
+  reachPromises.set(key, promise);
+  return promise;
 }
 
 export function disposeTerrainPipeline() {

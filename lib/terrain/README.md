@@ -6,7 +6,7 @@ compressed artifacts offline; at runtime a worker downloads them and builds cont
 | File | Purpose |
 | --- | --- |
 | `assets.ts` | Main-thread side: owns the worker, exposes textures and contour buffers as hooks |
-| `terrain.worker.ts` | Worker: fetches/decompresses artifacts, rebuilds contours |
+| `terrain.worker.ts` | Worker: fetches/decompresses artifacts, rebuilds contours, builds the reach field |
 | `workerTypes.ts` | Messages between `assets.ts` and the worker |
 | `manifest.ts` | Baked manifest types and cached fetch |
 | `bake.ts` | Height grid types; baked data to Three.js textures |
@@ -21,3 +21,4 @@ compressed artifacts offline; at runtime a worker downloads them and builds cont
 | `lineTube.ts` | Buffers to a Three.js geometry |
 | `contourArtifact.ts` | Pack/unpack contour buffers in the baked artifact |
 | `contourOptions.ts` | Contour build options and their cache key |
+| `reach.ts` | Surface distance from the summit over the terrain (Dijkstra, sixteen neighbours) for the intro reveal (node-tested) |

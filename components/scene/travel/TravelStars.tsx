@@ -75,6 +75,7 @@ export function TravelStars({count, radius, size, color, visibilityRef, shownRef
     uTwinkle: {value: 1},
     uColor: {value: new Color(TRAVEL_CONFIG.lineColor)},
     uVisibility: {value: 0},
+    uIntensity: {value: 1},
     uTint: {value: 0.7},
     uTerrainDepth: {value: null},
     uUseTerrainDepth: {value: 0},

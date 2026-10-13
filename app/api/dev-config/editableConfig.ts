@@ -22,7 +22,7 @@ export const EDITABLE_CONFIG = {
     file: 'scene/travel.ts',
     object: 'TRAVEL_CONFIG',
     keys: ['baseColor', 'rimColor', 'rimIntensity', 'lineColor', 'graticuleIntensity', 'coastIntensity',
-      'lightDensity', 'lightSize', 'starSize', 'trailColor',
+      'lightDensity', 'lightSize', 'lightIntensity', 'starSize', 'trailColor',
       'landscapeKm', 'linesIn', 'journeySeconds'],
   },
   travelOverview: {

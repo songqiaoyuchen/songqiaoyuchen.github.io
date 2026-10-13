@@ -200,7 +200,7 @@ export function TravelGlobe({
   const center = useMemo(() => new Vector3(...centerTuple), [centerTuple]);
   const {
     baseColor, rimColor, rimIntensity, lineColor, graticuleIntensity, coastIntensity, trailColor,
-    lightSize, starSize, landscapeKm, linesIn,
+    lightSize, lightIntensity, starSize, landscapeKm, linesIn,
   } = settings;
   const {
     relief, landTint, trailRadius, markerSize, clusterWithin, phoneClusterWithin, friction, snapBelow, capture,
@@ -878,6 +878,7 @@ export function TravelGlobe({
         color={lineColor}
         elevation={elevation}
         focusRef={focusAmount}
+        intensity={lightIntensity}
         lift={trailLift}
         onPoints={setLightPoints}
         radius={radius}

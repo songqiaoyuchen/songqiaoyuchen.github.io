@@ -10,6 +10,7 @@ import {
 } from 'react';
 import {useFrame} from '@react-three/fiber';
 import {Vector3, type Camera} from 'three';
+import {REVEAL_DONE_SECONDS} from '@/lib/scene/introReveal';
 
 const CAMERA_MATRIX_VALUE_COUNT = 32;
 const CAMERA_FRAME_PRIORITY = -0.5;
@@ -34,6 +35,9 @@ type CameraFrameState = {
     radius: number; scale: number; relief: number; lift: number;
     seaUnits: number; datumY: number; metresPerUnit: number;
   };
+  // The homepage intro reveal's clock (written by IntroReveal every frame): seconds into the intro. Skipped, it
+  // is REVEAL_DONE_SECONDS: the wave counts as long past everything.
+  revealTime: number;
   setArtFog: (weight: number) => void;
   setTravelMorph: (morph: number) => void;
   setTravelFocus: (progress: number) => void;
@@ -42,6 +46,7 @@ type CameraFrameState = {
     metresPerUnit: number;
   }) => void;
   setTransitioning: (transitioning: boolean) => void;
+  setRevealTime: (time: number) => void;
 };
 
 const CameraFrameContext = createContext<MutableRefObject<CameraFrameState> | null>(null);
@@ -83,6 +88,7 @@ export function CameraFrameProvider({children}: {children: ReactNode}) {
       center: new Vector3(), pivot: new Vector3(), radius: 1, scale: 1, relief: 1, lift: 0,
       seaUnits: 0, datumY: 0, metresPerUnit: 1000,
     },
+    revealTime: REVEAL_DONE_SECONDS,
     setArtFog: (weight) => { frameState.current.artFog = weight; },
     setTravelMorph: (morph) => { frameState.current.travelMorph = morph; },
     setTravelFocus: (progress) => { frameState.current.travelFocus = progress; },
@@ -90,6 +96,7 @@ export function CameraFrameProvider({children}: {children: ReactNode}) {
       Object.assign(frameState.current.travelPatch, metrics);
     },
     setTransitioning: (transitioning) => { frameState.current.transitioning = transitioning; },
+    setRevealTime: (time) => { frameState.current.revealTime = time; },
   });
   const previousCamera = useRef(
     new Float64Array(CAMERA_MATRIX_VALUE_COUNT).fill(Number.NaN),

@@ -36,6 +36,13 @@ Art entry exposes content while the terrain prepares, and a warm return Home ret
 the canvas. Other sections retain their existing lifecycles.
 Scene text dissolves into pixels on section changes. Scene link layouts change only
 while fully hidden; scene links and the hero name reveal after camera arrival.
+Once the preloader has gone, the contour map draws itself over the landscape from the summit outward: a wave
+spreads over the ground by surface distance, so it takes longer to come over a hill than along the plain
+(`IntroReveal` runs the clock; the terrain worker builds the reach field, `lib/terrain/reach.ts`, distances over the
+terrain from the highest point near the overview's point of regard, `revealOrigin*`); each line shows where the wave has passed, a faint ghost ahead of it and a flash just
+behind its front (`contours.vert`/`.frag`). The geometry never moves, so lines never cross. Settings live in
+`CONTOUR_CONFIG.reveal*` (Leva's Contour Lines › Reveal, with a Replay button). The terrain itself is untouched.
+Entry on a section route and reduced motion skip it.
 Art hides all scene text from navigation start, independently of backdrop loading.
 
 ## About
@@ -342,7 +349,7 @@ are named at the top of the stylesheet that uses them.
 | `npm run bake:terrain` / `npm run check:terrain-bake` | Generate / validate terrain artifacts |
 | `npm run bake:oil` | Legacy: rebuild oil pigment and relief maps (unused by the live site) |
 | `npm run sync:artwork-dimensions` | Update artwork dimensions |
-| `node scripts/test/<file>.mjs` | Unit checks: About path, Travel globe, dev config writer, backdrop wipe, camera transition, carousel layout, text transition |
+| `node scripts/test/<file>.mjs` | Unit checks: About path, Travel globe, dev config writer, backdrop wipe, camera transition, carousel layout, text transition, reach field |
 | `node scripts/assets/build-travel-geo.mjs coast <geojson>` / `track <id> <gpx…>` | Bake coastlines to `public/travel/coast.bin`; simplify GPX recordings to track JSON |
 | `node scripts/verify/verify-art.mjs` | Opt-in browser journey checks and screenshots; requires externally available Playwright |
 | `node scripts/verify/verify-pencil-overlay.mjs` | Opt-in backdrop wipe, image resize, and reduced-motion checks |

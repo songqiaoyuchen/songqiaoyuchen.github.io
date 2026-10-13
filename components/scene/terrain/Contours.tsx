@@ -1,4 +1,6 @@
-// Glowing contour lines over the homepage terrain: tube geometry from the worker, pulse and intro sweep in shaders.
+// Glowing contour lines over the homepage terrain: tube geometry from the worker, pulse and intro reveal in shaders
+// (with reveal, a wave spreads from the summit over the ground on IntroReveal's clock, by the reach field the
+// worker builds; each line shows where the wave has passed and flashes just behind its front).
 // A second instance draws About's map contours: its own settings, lit like the terrain beneath, dimmed away
 // from the route. With travelRide, the lines ride onto the globe with the terrain on the way to Travel
 // (contours.vert, from the patch frame TravelGlobe publishes), so the home map flows into the globe's.
@@ -24,8 +26,10 @@ import type {
 } from '@/components/scene/controls/useSceneControls';
 import {
   requestContourBuffers,
+  requestTerrainReach,
   useTerrainAssets,
   useTerrainContourBuffers,
+  type TerrainReach,
 } from '@/lib/terrain/assets';
 import {
   getContourBuildKey,
@@ -35,11 +39,14 @@ import {createContourTubeGeometry} from '@/lib/terrain/lineTube';
 import vertexShader from '@/shaders/terrain/contours.vert';
 import fragmentShader from '@/shaders/terrain/contours.frag';
 import {useReducedMotion} from '@/hooks/useReducedMotion';
+import {REVEAL_DONE_SECONDS} from '@/lib/scene/introReveal';
 import {rideDissolve} from '@/lib/scene/travel';
 import {useCameraFrameState} from '../camera/CameraFrameState';
 
 // While riding to Travel, shrinking tubes keep this on-screen radius (device pixels) and dim instead.
 const RIDE_MIN_PIXELS = 0.75;
+// The reach field is this many times coarser than the shell grid (a few hundred cells a side).
+const REACH_DOWNSAMPLE = 4;
 
 const CONTOURS = CONTOUR_CONFIG;
 const TERRAIN_MESH = TERRAIN_MESH_CONFIG;
@@ -55,6 +62,8 @@ type ContoursProps = {
   hidden?: boolean;
   /** Ride onto the globe with the terrain while the Travel morph runs (the homepage lines). */
   travelRide?: boolean;
+  /** Draw in behind the intro reveal's wave (the homepage lines); otherwise shown whole. */
+  reveal?: boolean;
   focus?: ContourFocus | null;
   lighting?: ContourLighting | null;
   /** Minimum on-screen tube radius in device pixels, so distant lines dim rather than break up. */
@@ -66,7 +75,7 @@ type ContoursProps = {
 
 export const Contours = forwardRef<Mesh, ContoursProps>(function Contours(
   {
-    hidden = false, travelRide = false, focus = null, lighting = null, minPixels = 0,
+    hidden = false, travelRide = false, reveal = false, focus = null, lighting = null, minPixels = 0,
     contourSettings: lines, terrainDepthTexture, terrainSettings,
   },
   forwardedRef,
@@ -74,7 +83,6 @@ export const Contours = forwardRef<Mesh, ContoursProps>(function Contours(
   const matRef = useRef<ShaderMaterial>(null);
   const cameraFrameState = useCameraFrameState();
   const layerRef = useRef<Group>(null);
-  const introStart = useRef<number | null>(null);
   const wasRiding = useRef(false);
   const rideShown = useRef(false);
   const reducedMotion = useReducedMotion();
@@ -117,8 +125,18 @@ export const Contours = forwardRef<Mesh, ContoursProps>(function Contours(
     ...UniformsUtils.clone(UniformsLib.fog),
     uTime:            { value: 0 },
     uVisibility:      { value: 1 },
-    uIntroTime:       { value: 0 },
-    uIntroTravelSpeed: { value: CONTOURS.introTravelSpeed },
+    // Shown whole until the reveal says otherwise (About's map never takes part).
+    uRevealTime:        { value: REVEAL_DONE_SECONDS },
+    uRevealDelay:       { value: CONTOURS.revealDelay },
+    uRevealSpeed:       { value: CONTOURS.revealSpeed },
+    uRevealGhost:       { value: CONTOURS.revealGhost },
+    uRevealGhostUnits:  { value: CONTOURS.revealGhostUnits },
+    uRevealFlash:       { value: CONTOURS.revealFlash },
+    uRevealFlashUnits:  { value: CONTOURS.revealFlashUnits },
+    uRevealFlashRadius: { value: CONTOURS.revealFlashRadius },
+    uReach:      { value: null as DataTexture | null },
+    uReachMax:   { value: 1 },
+    uReachReady: { value: 0 },
 
     uElevation:  { value: TERRAIN_MATERIAL_CONFIG.elevation },
     uLift:       { value: CONTOURS.lift },
@@ -185,7 +203,46 @@ export const Contours = forwardRef<Mesh, ContoursProps>(function Contours(
     uniforms.uPulseSpeed.value = lines.pulseSpeed;
     uniforms.uPulseScale.value = lines.pulseScale;
     uniforms.uPulseSharpness.value = lines.pulseSharpness;
+    uniforms.uRevealDelay.value = lines.revealDelay;
+    uniforms.uRevealSpeed.value = lines.revealSpeed;
+    uniforms.uRevealGhost.value = lines.revealGhost;
+    uniforms.uRevealGhostUnits.value = lines.revealGhostUnits;
+    uniforms.uRevealFlash.value = lines.revealFlash;
+    uniforms.uRevealFlashUnits.value = lines.revealFlashUnits;
+    uniforms.uRevealFlashRadius.value = lines.revealFlashRadius;
   }, [elevation, fadeEnd, fadeStart, lines]);
+
+  // The reveal's reach field: distances from the summit over the ground, built by the worker for the terrain as
+  // set (elevation and sea level shape the climbs). Until it arrives the lines show whole.
+  const [reach, setReach] = useState<TerrainReach | null>(null);
+  const {revealOriginX, revealOriginZ, revealOriginRadius} = lines;
+  useEffect(() => {
+    if (!reveal) return;
+    let cancelled = false;
+    void requestTerrainReach({
+      planeSize: TERRAIN_MESH.planeSize,
+      elevation,
+      seaLevel,
+      contrast: TERRAIN_MATERIAL_CONFIG.contrast,
+      downsample: REACH_DOWNSAMPLE,
+      origin: [revealOriginX, revealOriginZ],
+      originRadius: revealOriginRadius,
+    }).then((field) => {
+      if (!cancelled) setReach(field);
+    }).catch((error: unknown) => {
+      if (!cancelled) console.error('Unable to build the terrain reach field.', error);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [elevation, reveal, revealOriginRadius, revealOriginX, revealOriginZ, seaLevel]);
+  useEffect(() => {
+    const material = matRef.current;
+    if (!material) return;
+    material.uniforms.uReach.value = reach?.texture ?? null;
+    material.uniforms.uReachMax.value = reach?.max ?? 1;
+    material.uniforms.uReachReady.value = reach ? 1 : 0;
+  }, [reach]);
 
   useEffect(() => {
     const material = matRef.current;
@@ -220,17 +277,13 @@ export const Contours = forwardRef<Mesh, ContoursProps>(function Contours(
     material.uniforms.uUseLit.value = lighting ? 1 : 0;
   }, [lighting, litFloor, litFull, staticLightingMap]);
 
-  useEffect(() => {
-    introStart.current = null;
-    if (matRef.current) matRef.current.uniforms.uIntroTime.value = 0;
-  }, [geometry]);
-
-  // After TravelGlobe (0.1) has placed the patch for the frame.
-  useFrame((state, delta) => {
+  // After TravelGlobe (0.1) has placed the patch for the frame, and IntroReveal has set the clock.
+  useFrame((_, delta) => {
     const material = matRef.current;
     if (!material) return;
     material.uniforms.uTime.value += delta;
-    const {travelMorph, travelPatch: patch} = cameraFrameState.current;
+    const {travelMorph, travelPatch: patch, revealTime} = cameraFrameState.current;
+    if (reveal) material.uniforms.uRevealTime.value = revealTime;
     const riding = travelRide && travelMorph > 0 && travelMorph < 1;
     material.uniforms.uMorph.value = riding ? travelMorph : 0;
     if (riding) {
@@ -262,8 +315,6 @@ export const Contours = forwardRef<Mesh, ContoursProps>(function Contours(
       ? target
       : visibility.value + (target - visibility.value) * (1 - Math.exp(-4 * Math.min(delta, 1 / 30)));
     if (layerRef.current) layerRef.current.visible = visibility.value > 0;
-    if (introStart.current === null) introStart.current = state.clock.elapsedTime;
-    material.uniforms.uIntroTime.value = state.clock.elapsedTime - introStart.current;
   }, 0.2);
 
   return (

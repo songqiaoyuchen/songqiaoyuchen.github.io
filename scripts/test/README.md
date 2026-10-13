@@ -13,3 +13,4 @@ Run with `node scripts/test/<file>`; each exits non-zero on failure.
 | `test-camera-transition.mjs` | `lib/scene/cameraTransition.ts`: rotation, arrival, retargeting, reduced motion |
 | `test-carousel-layout.mjs` | `lib/art/carouselLayout.ts`: settled poses, wrapping, continuous rotation |
 | `test-text-transition.mjs` | `lib/scene/textTransition.ts`: visibility, layout swaps, reduced motion |
+| `test-reach.mjs` | `lib/terrain/reach.ts`: the summit as origin, plain distances near Euclidean, a ridge in the way counted as a climb |
