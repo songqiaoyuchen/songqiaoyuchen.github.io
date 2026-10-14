@@ -372,7 +372,7 @@
   stroke-width: 1;
 }
 
-/* Stops: an open trip's places of note, smaller diamonds than a trip's, named on hover. */
+/* Stops: an open trip's places of note, smaller diamonds than a trip's, each named beside it. */
 .travel-stop {
   position: absolute;
   top: 0;
@@ -397,6 +397,29 @@
 
 .travel-stop[data-hovered]::before {
   background: var(--callout-signal-soft);
+}
+
+/* A stop on the route's start or end hex draws nothing of its own: hovered, that hex fills as a diamond would. */
+.travel-stop[data-on-hex]::before {
+  content: none;
+}
+
+.travel-route-node[data-stop-hovered] .travel-route-hex polygon {
+  fill: var(--callout-signal-soft);
+  stroke: var(--callout-signal);
+}
+
+/* A stop's name, always shown with its trip open, on a heavier halo to stand off the city lights; gold while its
+   stop is hovered. */
+.travel-stop-name .travel-callout-title {
+  font-size: 0.9rem;
+  text-shadow:
+    0 0 2px var(--callout-halo), 0 0 4px var(--callout-halo), 0 0 14px var(--callout-halo-wide);
+  transition: color 180ms ease-out;
+}
+
+.travel-stop-name[data-hovered] .travel-callout-title {
+  color: var(--callout-ink);
 }
 
 /* A hovered trip's or stop's name, on one row; a trip's sits in the slanted tag. */
@@ -453,7 +476,8 @@
   .travel-trip-icon svg,
   .travel-cluster::before,
   .travel-cluster::after,
-  .travel-stop::before {
+  .travel-stop::before,
+  .travel-stop-name .travel-callout-title {
     transition: none;
   }
 }

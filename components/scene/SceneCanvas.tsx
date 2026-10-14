@@ -8,7 +8,7 @@ import {Canvas, type RootState} from '@react-three/fiber';
 import { OrbitControls, StatsGl } from '@react-three/drei';
 import { EffectComposer } from '@react-three/postprocessing';
 import {SMAAPreset, type EffectComposer as EffectComposerImpl} from 'postprocessing';
-import type {DepthTexture, Mesh, Object3D, Texture} from 'three';
+import type {DepthTexture, Mesh, Object3D, Texture, Vector3Tuple} from 'three';
 import type { OrbitControls as OrbitControlsInstance } from 'three-stdlib';
 import type {useCreateStore} from 'leva';
 import {CAMERA_CONFIG, FOG_CONFIG} from '@/config/scene';
@@ -111,6 +111,9 @@ type SceneCanvasProps = {
   /** Receives the place at the globe's centre every frame (the trip index's meridian strip). */
   travelGlobeFrontRef: MutableRefObject<GlobeFront | null>;
   onPoseSettled?: (pose: SectionId | null | undefined) => void;
+  /** The preloader's cover has lifted: the intro reveal's clock runs (on the overview, the camera descends). */
+  revealStarted: boolean;
+  /** The preloader has gone: the hero name may enter and the quiet prefetches start. */
   introStarted: boolean;
   onSceneError: (error: Error) => void;
   onSceneProgress: (progress: number) => void;
@@ -136,6 +139,7 @@ export const SceneCanvas = memo(function SceneCanvas({
   travelGlobeOutlineRef,
   travelGlobeFrontRef,
   onPoseSettled,
+  revealStarted,
   introStarted,
   onSceneError,
   onSceneProgress,
@@ -162,9 +166,13 @@ export const SceneCanvas = memo(function SceneCanvas({
   const isDevelopment = process.env.NODE_ENV === 'development';
   const settings = useSceneControls(activeId);
   const hideHomeScene = artActive || activeId === 'art';
-  // The intro reveal (the contour map spreading from the summit) plays once the preloader has gone, only when the
-  // page opened on the overview: a section route shows the lines whole under its own arrival.
+  // The intro (the camera above the summit, the contour map spreading from it, the descent to the overview) plays
+  // once the preloader's cover lifts, only when the page opened on the overview: a section route shows the lines
+  // whole under its own arrival. The summit is named by the contours' reach field for the camera's map pose.
   const [revealWanted] = useState(activeId === null);
+  const summitRef = useRef<Vector3Tuple | null>(null);
+  const intro = useMemo(
+    () => ({active: revealWanted, summitRef, settings: settings.intro}), [revealWanted, settings.intro]);
   const isAbout = activeId === 'about';
   const isTravel = activeId === 'travel';
   // Sections with their own journey (Art, About, Travel) clear the homepage text: glyph rain and scene links.
@@ -309,6 +317,7 @@ export const SceneCanvas = memo(function SceneCanvas({
               aboutFramingRef={aboutFramingRef}
               aboutSeconds={settings.aboutPath}
               travelSeconds={travelSeconds}
+              intro={intro}
               onPoseSettled={onPoseSettled}
               controlsRef={isDevelopment ? orbitcontrolsRef : undefined}
             />
@@ -328,10 +337,10 @@ export const SceneCanvas = memo(function SceneCanvas({
                 <ArtCursorControls store={artCameraStore} />
               </>
             ) : null}
-            <Fog about={activeId === 'about'} settings={settings.fog} />
+            <Fog about={activeId === 'about'} intro={settings.intro} settings={settings.fog} />
             <Suspense fallback={null}>
               {assemblyPhase >= 1 ? (
-                <IntroReveal play={revealWanted && introStarted} skip={!revealWanted} />
+                <IntroReveal play={revealWanted && revealStarted} skip={!revealWanted} />
               ) : null}
               {assemblyPhase >= 1 ? (
                 <Terrain
@@ -339,6 +348,7 @@ export const SceneCanvas = memo(function SceneCanvas({
                   backdrop={backdrop}
                   preloadBackdrops={hideHomeScene || backdropsWanted}
                   fogSettings={settings.fog}
+                  introSettings={settings.intro}
                   onDepthTextureChange={setTerrainDepthTexture}
                   onColorTextureChange={setTerrainColorTexture}
                   terrainSettings={settings.terrain}
@@ -350,6 +360,8 @@ export const SceneCanvas = memo(function SceneCanvas({
                   hidden={hideHomeScene || isAbout || isTravel}
                   travelRide
                   reveal
+                  summitRef={summitRef}
+                  intro={settings.intro}
                   ref={setContourMesh}
                   contourSettings={settings.contours}
                   terrainDepthTexture={terrainDepthTexture}

@@ -17,7 +17,7 @@ Drei, post-processing, and GLSL for terrain. Motion supports interactions.
 | `components/travel/` | Travel section: trip index, trip panel, photo viewer, shared scene state |
 | `components/scene/`, `shaders/` | WebGL: camera, terrain, backdrops, scene text, effects, Leva controls |
 | `components/site/`, `components/projects/`, `components/blog/` | Nav, project cards, editorial UI |
-| `config/` | Tunable numbers (scene, art, hero, preloader, breakpoints) |
+| `config/` | Tunable numbers (scene, art, travel, hero, preloader, breakpoints) |
 | `data/` | Copy and content: sections, hero, About, projects, blog drawer, artworks |
 | `styles/` | Global CSS entry, design tokens, base and shared utilities |
 | `lib/` | Framework-free logic: terrain pipeline, text geometry, art and scene maths, MDX loading |
@@ -36,13 +36,22 @@ Art entry exposes content while the terrain prepares, and a warm return Home ret
 the canvas. Other sections retain their existing lifecycles.
 Scene text dissolves into pixels on section changes. Scene link layouts change only
 while fully hidden; scene links and the hero name reveal after camera arrival.
-Once the preloader has gone, the contour map draws itself over the landscape from the summit outward: a wave
-spreads over the ground by surface distance, so it takes longer to come over a hill than along the plain
-(`IntroReveal` runs the clock; the terrain worker builds the reach field, `lib/terrain/reach.ts`, distances over the
-terrain from the highest point near the overview's point of regard, `revealOrigin*`); each line shows where the wave has passed, a faint ghost ahead of it and a flash just
-behind its front (`contours.vert`/`.frag`). The geometry never moves, so lines never cross. Settings live in
-`CONTOUR_CONFIG.reveal*` (Leva's Contour Lines › Reveal, with a Replay button). The terrain itself is untouched.
-Entry on a section route and reduced motion skip it.
+First arrival is one sequence from the preloader's mark to the landscape. Under the preloader the scene opens at a
+map pose straight above the summit (`CameraRig` snaps to it; `lib/scene/introDescent.ts` places it from the
+overview's heading so the descent is a pitch, never a roll), the ground unlit (`terrain.frag` `uLightsIn`) and the
+fog pushed out for the height (`SceneFog`), so only the contour lines can show. When the scene is ready the
+preloader's cover lifts in one step (the same black) and the mark fades into the summit's rings as the contour map
+draws itself from the summit outward: a wave spreads over the ground by surface distance, so it takes longer to
+come over a hill than along the plain (`IntroReveal` runs the clock; the terrain worker builds the reach field,
+`lib/terrain/reach.ts`, distances over the terrain from the highest point near the overview's point of regard,
+`revealOriginX/Z`, and names that summit for the map pose); each line shows where the wave has passed, a faint
+ghost ahead of it and a flash just behind its front (`contours.vert`/`.frag`). The geometry never moves, so lines
+never cross. Once the wave has had its head start (`descentDelay`) the camera descends to the overview in one
+journey (`descentSeconds`), publishing its progress as `introDescent`, on which the ground's light comes on and the
+fog eases back; the preloader goes when the camera lands, and the hero and scene links enter then as after any
+journey. Settings: the wave in `CONTOUR_CONFIG.reveal*` (Leva's Contour Lines › Reveal, whose Replay button
+replays the whole intro), the map pose and descent in `INTRO_CONFIG` (Leva's Intro). Entry on a section route and
+reduced motion skip it: the preloader then fades over the scene at its own pose.
 Art hides all scene text from navigation start, independently of backdrop loading.
 
 ## About
@@ -91,10 +100,12 @@ closing (×, Escape, SQYC) returns to `/`, and Back/Forward follow. The settled 
 ## Travel
 
 Travel routes are `/travel` (globe overview) and `/travel/[trip]` (selected trip), with `?gallery=&photo=`
-opening the photo viewer; both live in the `(scene)` layout like Art, and `TravelSection` (mounted by the travel
+opening the photo viewer (a full-page sliding row after Art's carousel, `lib/travel/photoTrack.ts`); both live in the `(scene)` layout like Art, and `TravelSection` (mounted by the travel
 layout) derives its view from the URL. Trips are `data/travel.ts`: real places, oldest first, each with an
-introduction and optionally recorded tracks (`segments`), stops (named markers), dated galleries (photos with
-text, one folder each under `public/travel/photos/<trip>/<gallery>/`, read by `npm run sync:travel-photos`) and stories; a city visit has no mode and shows no dates of its own. The globe
+introduction and optionally recorded tracks (`segments`), stops (named markers), titled galleries (originals in the
+git-ignored `photos-src/<trip>/<gallery>/`, converted by `npm run import:travel-photos` to metadata-free WebP and
+thumbnails under `public/travel/photos/<trip>/<gallery>/`, whose `photos.json` gives every photo a date, location
+and optional description, read by `npm run sync:travel-photos`) and stories; a city visit has no mode and shows no dates of its own. The globe
 (`components/scene/travel/`) hangs above the terrain's centre (`TRAVEL_CONFIG`), drawn as a night globe in the
 terrain's language: `globe.frag` reads the baked elevation map (`public/travel/elevation.png`, NASA topography
 resized by `scripts/assets/build-travel-geo.mjs`) for a small relief and a faint land tint
@@ -106,7 +117,7 @@ Natural Earth 110m) as line segments; trail tubes along each trip's tracks ridin
 gaps between recordings, thinner with a trip open) and HTML markers without titles (`TravelCallouts`): trips
 within `clusterWithin` degrees (chained; `phoneClusterWithin` on phones, whose globe is smaller) share a stacked marker that fans out on a click and holds the globe
 still; a trip may draw its own icon in place of the diamond (`TripIcon`, more detail in focus and open); and an
-open trip's stops are small diamonds named on hover, fading in only as the camera settles on the trip
+open trip's stops are small diamonds, each named beside it where there is room (the hovered one always), fading in only as the camera settles on the trip
 (`stopsFrom`) and out as it leaves, laid out like About's. About the resting globe,
 outside its turn, two tilted orbit rings with tick marks turn slowly (`TravelRings`) and a sparse sky of stars
 stands far behind (`TravelStars`, the same point shader); lights, rings and stars join the isolated bloom. The camera parks at the Travel

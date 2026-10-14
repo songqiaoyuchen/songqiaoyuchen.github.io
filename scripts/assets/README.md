@@ -3,7 +3,8 @@
 | File | Purpose |
 | --- | --- |
 | `sync-artwork-dimensions.mjs` | `npm run sync:artwork-dimensions`: writes image sizes into `data/artworks.ts` |
-| `sync-travel-photos.mjs` | `npm run sync:travel-photos` (also before `dev` and `build`): reads the gallery folders under `public/travel/photos/<trip>/<gallery>/` (images in file-name order, a same-named `.txt` as each photo's text) into `data/travelPhotos.json` |
+| `import-travel-photos.mjs` | `npm run import:travel-photos [-- --force]`: converts originals (HEIC, JPEG, PNG…) in the git-ignored `photos-src/<trip>/<gallery>/` to WebP in `public/travel/photos/<trip>/<gallery>/`, named for when each was taken (`2026-05-14_164438.webp`, from the camera or a date leading the original's name; undated originals are skipped) (2400px long edge, plus a 480px copy in `thumbs/`), sRGB with all metadata (GPS included) stripped; adds each new photo to the gallery's `photos.json` with its camera date, then runs the sync. Skips photos already imported |
+| `sync-travel-photos.mjs` | `npm run sync:travel-photos` (also before `dev`; `--strict` before `build`): reads the gallery folders under `public/travel/photos/<trip>/<gallery>/` (WebP photos, `thumbs/`, and a `photos.json` giving each one's date, location and optional description; ordered by date, then file name) into `data/travelPhotos.json`. A photo without a date or location is left out with a warning; `--strict` fails instead |
 | `imageDimensions.mjs` | Image size from the file header (PNG, JPEG with EXIF orientation, GIF, WebP), shared by the sync scripts |
 | `generate_font_atlas.py` | Builds the SDF glyph atlas for scene text (`stream-atlas.png`) |
 | `generate_glyph_rain_atlas.py` | Builds the bitmap glyph atlas for the glyph rain (`decorative-atlas.png`) |

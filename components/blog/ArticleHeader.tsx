@@ -1,6 +1,5 @@
 // Article page header: back link, serif title and deck, publish date and reading time, tags.
-import Link from 'next/link';
-import {pageStyles} from '@/components/site/page.styles';
+import {BackLink} from '@/components/site/BackLink';
 import type {ArticleMetadata} from '@/lib/content/types';
 
 function formatDate(date: string) {
@@ -15,9 +14,7 @@ function formatDate(date: string) {
 export function ArticleHeader({article}: {article: ArticleMetadata}) {
   return (
     <header className="border-b border-line pb-8 sm:pb-12">
-      <Link className={`${pageStyles.textLink} text-muted hover:text-accent`} href="/blog/all">
-        <span aria-hidden="true">←&nbsp;</span> All writing
-      </Link>
+      <BackLink href="/blog/all">All writing</BackLink>
 
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_15rem] lg:items-end">
         <div>

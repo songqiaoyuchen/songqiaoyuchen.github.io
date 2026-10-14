@@ -1,8 +1,9 @@
 // Travel content: real trips in real places, oldest first. Every trip has an introduction; recorded tracks, stops,
 // galleries and stories are each optional. A trip's stops are its places of note, each a named marker with the trip
-// open. Galleries and stories carry their own dates. Facts marked
+// open. Stories and each gallery photo carry their own dates. Facts marked
 // placeholder are invented until the real data arrives. A gallery's photos are a folder,
-// public/travel/photos/<trip>/<gallery>/, read into travelPhotos.json by `npm run sync:travel-photos`.
+// public/travel/photos/<trip>/<gallery>/, made from photos-src/ by `npm run import:travel-photos`, with a
+// photos.json giving each photo's date, location and optional description; the sync reads it into travelPhotos.json.
 import {formatEntryStart} from './about';
 import TRAVEL_PHOTOS from './travelPhotos.json';
 
@@ -14,17 +15,22 @@ export type TravelMode = 'bicycle' | 'hike' | 'train' | 'flight';
 /** A trip's own marker on the globe in place of the diamond (components/scene/travel/TripIcon.tsx). */
 export type TripIcon = 'ventoux' | 'hairpins';
 
-/** A gallery's photo and its text, from its folder (galleryPhotos). */
-export type GalleryPhoto = {src: string; width: number; height: number; text: string};
-
-/** A dated set of photos, each with its text; its photos are the folder named by its id under the trip's. */
-export type Gallery = {
-  id: string;
-  title: string;
-  /** First day as YYYY-MM-DD. */
-  start: string;
-  days?: number;
+/** A gallery's photo, from its folder and the folder's photos.json (galleryPhotos). */
+export type GalleryPhoto = {
+  src: string;
+  /** A small copy for the trip panel; the site serves images unresized. */
+  thumb: string;
+  width: number;
+  height: number;
+  /** The day it was taken, as YYYY-MM-DD; a gallery's photos are in date order. */
+  date: string;
+  location: string;
+  /** Empty when the photo has none. */
+  description: string;
 };
+
+/** A titled set of photos, each with its own date and place; its photos are the folder named by its id. */
+export type Gallery = {id: string; title: string};
 
 /** A written account: a Blog article once `slug` names one, a placeholder until then. */
 export type Story = {title: string; date: string; slug?: string};
@@ -46,7 +52,10 @@ export type Trip = {
   /** Its own marker in place of the diamond. */
   icon?: TripIcon;
   summary: string;
+  /** In English, shown first. */
   description: string;
+  /** The description in Chinese */
+  descriptionZh?: string;
   /**
    * Recorded tracks, each a run of places in order. Recordings break, so one trip may hold several;
    * the straight gap from one track's end to the next one's start is drawn dotted.
@@ -56,21 +65,30 @@ export type Trip = {
   stops?: readonly TripStop[];
   galleries?: readonly Gallery[];
   stories?: readonly Story[];
+  /** Left off the site (list, globe and route) until its details are filled in. */
+  draft?: true;
 };
 
-export const TRIPS: readonly Trip[] = [
+const ALL_TRIPS: readonly Trip[] = [
   {
     id: 'g318',
-    title: 'G318, Chengdu to Lhasa',
+    title: 'G318: Chengdu to Lhasa',
     start: '2026-05-14',
     days: 30,
-    distanceKm: 2150, // placeholder
+    distanceKm: 1800, // placeholder
     mode: 'bicycle',
     place: {name: 'Chengdu, Sichuan', lonLat: [104.07, 30.67]},
-    summary: 'The Sichuan–Tibet highway over the Hengduan ranges, by bicycle.',
-    description: 'Placeholder. Two recordings that do not meet: the first from Chengdu over the first passes, the '
-      + 'second from the Nyingchi side into Lhasa. The gap between them is drawn dotted until the missing days are '
-      + 'recovered. Distance is a placeholder.',
+    summary: 'Solo bikepacking through the Hengduan Mountains and the Tibetan Plateau.',
+    description: 'China\'s National Highway 318 is the country\'s most iconic long-distance cycling route.'
+     + ' Crossing fourteen mountain passes alone,'
+     + ' riding across a plateau averaging 4,000 metres above sea level, was more than a test of willpower.'
+     + ' it was a solitary spiritual pilgrimage inward.'
+     + ' I once naively believed that the wind rushing past me would carry the answers to life.'
+     + ' I am still searching for them today.'
+     + ' For mountains and rivers are easy to cross; harder to overcome is the weight we give our own hearts.',
+    descriptionZh: 'G318国道是中国最经典的长途骑行路线，更是诸多骑行者的朝圣之路'
+    + ' 单人翻越14座大山，在平均4000米的高原上骑行，不仅是对意志力的考验，更像是一场孤独的自我修行。'
+    + ' 不成熟的我曾以为，驰骋的风会告诉我生活的答案，如今我仍在追寻它的路上。山川易渡，唯心自负。',
     // Placeholder tracks traced from town to town; the real GPX recordings replace them.
     segments: [
       [[104.07, 30.67], [102.99, 29.98], [101.96, 30.05], [101.49, 30.05], [100.27, 30.0]],
@@ -78,7 +96,6 @@ export const TRIPS: readonly Trip[] = [
     ],
     stops: [
       {id: 'chengdu', name: 'Chengdu', lonLat: [104.07, 30.67]},
-      {id: 'xinduqiao', name: 'Xinduqiao', lonLat: [101.49, 30.05]},
       {id: 'litang', name: 'Litang', lonLat: [100.27, 30.0]},
       {id: 'markam', name: 'Markam', lonLat: [98.59, 29.68]},
       {id: 'rawu', name: 'Rawu', lonLat: [96.77, 29.5]},
@@ -86,21 +103,22 @@ export const TRIPS: readonly Trip[] = [
       {id: 'lhasa', name: 'Lhasa', lonLat: [91.13, 29.65]},
     ],
     galleries: [
-      {id: 'sichuan', title: 'Placeholder: Sichuan', start: '2026-05-14', days: 12},
-      {id: 'tibet', title: 'Placeholder: Tibet', start: '2026-05-26', days: 18},
+      {id: 'sichuan', title: 'Sichuan'},
+      {id: 'tibet', title: 'Tibet'},
     ],
     stories: [{title: 'Placeholder: the road to Lhasa', date: '2026-06-12'}],
   },
   {
     id: 'triple-crown',
-    title: 'The Triple Crown',
+    title: 'Norway: Triple Crown',
     start: '2026-08-21',
     days: 6,
     mode: 'hike',
     place: {name: 'Rogaland and Vestland, Norway', lonLat: [6.19, 58.99]},
-    summary: 'Three of western Norway’s classic hikes, between Stavanger and Bergen.',
-    description: 'Placeholder. Preikestolen, Kjeragbolten and Trolltunga, each its own hike, with Stavanger and '
-      + 'Bergen on either side.',
+    summary: 'Three of Norway\'s most iconic and dramatic rock formations and summits.',
+    description: 'Impromptu hikes to Preikestolen, Kjeragbolten and Trolltunga packed into four days.'
+      + ' A challenging but rewarding experience with two friends. It has some of the most breathtaking'
+      + ' and photogenic views over the fjords in Norway.',
     stops: [
       {id: 'stavanger', name: 'Stavanger', lonLat: [5.73, 58.97]},
       {id: 'preikestolen', name: 'Preikestolen', lonLat: [6.19, 58.99]},
@@ -111,6 +129,7 @@ export const TRIPS: readonly Trip[] = [
   },
   {
     id: 'london',
+    draft: true,
     title: 'London',
     start: '2026-09-20',
     place: {name: 'London, England', lonLat: [-0.13, 51.51]},
@@ -119,17 +138,19 @@ export const TRIPS: readonly Trip[] = [
   },
   {
     id: 'marseille',
+    draft: true,
     title: 'Marseille',
     start: '2026-09-22',
     place: {name: 'Marseille, Provence', lonLat: [5.37, 43.3]},
     summary: 'Placeholder. The old port and the calanques.',
     description: 'Placeholder.',
     galleries: [
-      {id: 'city', title: 'Placeholder: Marseille', start: '2026-09-22', days: 2},
+      {id: 'city', title: 'Placeholder: Marseille'},
     ],
   },
   {
     id: 'mont-ventoux',
+    draft: true,
     title: 'Mont Ventoux',
     start: '2026-09-24',
     days: 1,
@@ -143,6 +164,7 @@ export const TRIPS: readonly Trip[] = [
   },
   {
     id: 'alpe-dhuez',
+    draft: true,
     title: 'Alpe d’Huez',
     start: '2026-09-26',
     days: 1,
@@ -155,6 +177,7 @@ export const TRIPS: readonly Trip[] = [
   },
   {
     id: 'zurich',
+    draft: true,
     title: 'Zurich',
     start: '2026-09-27',
     place: {name: 'Zurich, Switzerland', lonLat: [8.54, 47.37]},
@@ -162,6 +185,9 @@ export const TRIPS: readonly Trip[] = [
     description: 'Placeholder.',
   },
 ];
+
+/** The published trips; mark a trip `draft: true` to hide it. */
+export const TRIPS = ALL_TRIPS.filter((trip) => !trip.draft);
 
 export function getTrip(id: string | undefined) {
   return TRIPS.find((trip) => trip.id === id);
@@ -191,19 +217,16 @@ export function formatTripMeta(trip: Trip) {
   return parts.join(' · ');
 }
 
-const DAY_MS = 86_400_000;
+/** A photo's alt text: its description, else the gallery, place and date. */
+export function photoAlt(gallery: Gallery, photo: GalleryPhoto) {
+  return photo.description || `${gallery.title}: ${photo.location}, ${formatDay(photo.date)}`;
+}
 
-/** "22 – 23 Sep 2026", "14 May – 12 Jun 2026" or "24 Sep 2026" for a gallery or story. */
-export function formatDays(start: string, days = 1) {
-  const first = new Date(`${start}T00:00:00Z`);
-  const last = new Date(first.getTime() + (days - 1) * DAY_MS);
-  const day = (date: Date, options: Intl.DateTimeFormatOptions) =>
-    date.toLocaleDateString('en-GB', {timeZone: 'UTC', ...options});
-  const full = {day: 'numeric', month: 'short', year: 'numeric'} as const;
-  if (days <= 1) return day(first, full);
-  const sameMonth = first.getUTCMonth() === last.getUTCMonth() && first.getUTCFullYear() === last.getUTCFullYear();
-  const from = sameMonth ? day(first, {day: 'numeric'}) : day(first, {day: 'numeric', month: 'short'});
-  return `${from} – ${day(last, full)}`;
+/** "24 Sep 2026" for a story or photo. */
+export function formatDay(date: string) {
+  return new Date(`${date}T00:00:00Z`).toLocaleDateString('en-GB', {
+    timeZone: 'UTC', day: 'numeric', month: 'short', year: 'numeric',
+  });
 }
 
 /** "2024 – 2025" for the trip index heading, or the single year. */

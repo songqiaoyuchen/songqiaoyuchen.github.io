@@ -1,5 +1,7 @@
 /* Homepage preloader (Preloader.tsx): full-screen cover, contour mark, progress readout, bypass offer,
-   and the exit (pixel dissolve, or a short fade with reduced motion). */
+   and the exit: on the intro's descent the cover lifts at once and the mark swells and fades into the summit's
+   rings lighting up beneath it; opening on a section the whole cover fades (PRELOADER_CONFIG.exitDurationMs);
+   with reduced motion a short fade. */
 html[data-home-loading="true"] {
   overflow: hidden;
 }
@@ -22,27 +24,26 @@ html[data-home-loading="true"] {
   font-family: var(--font-krypton), monospace;
 }
 
-.preloader-pixel-dissolve {
-  position: absolute;
-  z-index: 0;
-  inset: 0;
-  display: block;
-  width: 100%;
-  height: 100%;
-  opacity: 0;
+.homepage-preloader[data-state="exiting"] {
   pointer-events: none;
 }
 
-.homepage-preloader[data-state="exiting"] {
+/* The descent: the scene beneath opened unlit, the same black, so the cover can lift in one step. */
+.homepage-preloader[data-state="exiting"][data-descent="true"] {
   background: transparent;
 }
 
-.homepage-preloader[data-state="exiting"] .preloader-pixel-dissolve {
-  opacity: 1;
+.homepage-preloader[data-state="exiting"][data-descent="true"] .preloader-mountain-icon {
+  animation: preloader-mark-exit 700ms cubic-bezier(0.2, 0.6, 0.2, 1) forwards;
 }
 
-.homepage-preloader[data-reduced-motion="true"] .preloader-pixel-dissolve {
-  display: none;
+.homepage-preloader[data-state="exiting"][data-descent="true"] .preloader-progress-readout {
+  animation: preloader-content-exit 250ms ease-out forwards;
+}
+
+/* Opening on a section: the camera is already there, so the cover fades (the figure matches exitDurationMs). */
+.homepage-preloader[data-state="exiting"]:not([data-descent="true"]) {
+  animation: preloader-content-exit 500ms ease-out forwards;
 }
 
 .homepage-preloader[data-reduced-motion="true"][data-state="exiting"] {
@@ -65,10 +66,6 @@ html[data-home-loading="true"] {
   opacity: 1;
 }
 
-.homepage-preloader[data-state="exiting"] .preloader-mountain-variant {
-  animation: preloader-content-exit 220ms steps(4, end) forwards;
-}
-
 .preloader-mountain-lockup {
   display: grid;
   justify-items: center;
@@ -79,6 +76,7 @@ html[data-home-loading="true"] {
   width: clamp(10rem, 18vw, 13.5rem);
   overflow: visible;
   filter: drop-shadow(0 0 12px var(--preloader-mark-glow));
+  transform-origin: 50% 50%;
 }
 
 .preloader-mountain-icon path {
@@ -177,6 +175,13 @@ html[data-home-loading="true"] {
   to { opacity: 0; }
 }
 
+@keyframes preloader-mark-exit {
+  to {
+    opacity: 0;
+    transform: scale(1.35);
+  }
+}
+
 @media (max-width: 40rem) {
   .preloader-mountain-icon {
     width: clamp(9rem, 48vw, 11rem);
@@ -203,12 +208,9 @@ html[data-home-loading="true"] {
     animation: none;
   }
 
-  .homepage-preloader[data-state="exiting"] .preloader-mountain-variant {
+  .homepage-preloader[data-state="exiting"] .preloader-mountain-icon,
+  .homepage-preloader[data-state="exiting"] .preloader-progress-readout {
     animation: none;
-  }
-
-  .preloader-pixel-dissolve {
-    display: none;
   }
 
   .preloader-mountain-spiral {

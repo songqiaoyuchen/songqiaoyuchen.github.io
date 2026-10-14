@@ -63,6 +63,11 @@ export const EDITABLE_CONFIG = {
       'pulseSharpness',
     ],
   },
+  intro: {
+    file: 'scene/intro.ts',
+    keys: ['mapHeight', 'phoneMapHeight', 'mapTilt', 'descentDelay', 'descentSeconds', 'mapFogScale', 'lightsIn',
+      'mapMinPixels'],
+  },
   fog: {
     file: 'scene/fog.ts',
     keys: ['near', 'far', 'flightNear', 'flightFar'],

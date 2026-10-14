@@ -91,17 +91,25 @@ export function SceneShell({articles, children}: SceneShellProps) {
   const [settledPose, setSettledPose] = useState<SectionId | null | undefined>(
     isArt ? 'art' : isTravel ? 'travel' : null,
   );
+  // First arrival on the overview: the preloader exits by the intro's descent, which the shell completes once the
+  // camera has landed (a direct section entry or a drawer route opens at its own pose and the cover fades).
+  const [descentWanted] = useState(activeId === null);
   const {
     sceneState,
     sceneStarted,
     sceneProgress,
     showBypass,
     isReducedMotion,
+    descent,
+    completeExit,
     handleSceneReady,
     handleSceneProgress,
     handleSceneError,
     enterTerrainFallback,
-  } = useSceneLoading(isArt || isTravel);
+  } = useSceneLoading(isArt || isTravel, descentWanted);
+  useEffect(() => {
+    if (sceneState === 'exiting' && descent && settledPose === null) completeExit();
+  }, [completeExit, descent, sceneState, settledPose]);
 
   // A routed section dismisses the old homepage preview, including entry via Nav.
   // Adjust before rendering so Home always returns to the landscape overview.
@@ -255,6 +263,7 @@ export function SceneShell({articles, children}: SceneShellProps) {
               artCameraStore={artCameraStore}
               onArtCameraEditingChange={setArtCameraEditing}
               onPoseSettled={setSettledPose}
+              revealStarted={sceneState === 'exiting' || sceneState === 'ready'}
               introStarted={sceneState === 'ready'}
               onSceneError={handleSceneError}
               onSceneProgress={handleSceneProgress}
@@ -297,6 +306,7 @@ export function SceneShell({articles, children}: SceneShellProps) {
       ) : null}
       {isBlocking ? (
         <Preloader
+          descent={descent}
           onContinueWithoutTerrain={enterTerrainFallback}
           progress={sceneProgress}
           reducedMotion={isReducedMotion}

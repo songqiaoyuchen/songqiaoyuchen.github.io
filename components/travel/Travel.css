@@ -1,6 +1,6 @@
-/* Travel section (TravelSection.tsx): arrival gating, the trip index drawer on the overview, the selected trip's panel,
-   the phone peek sheet and the photo viewer. The globe behind is the scene; this layer takes pointer events only on
-   its own text, so the globe stays draggable everywhere else. */
+/* Travel section (TravelSection.tsx): arrival gating, the trip index drawer on the overview, the selected trip's panel
+   and the phone peek sheet; the photo viewer has PhotoViewer.css. The globe behind is the scene; this layer takes
+   pointer events only on its own text, so the globe stays draggable everywhere else. */
 
 /* SceneShell wrapper on Travel routes: content stays hidden until the camera has arrived. */
 .travel-environment .travel-content {
@@ -94,8 +94,7 @@
 .travel-section[data-view='trip'] :is(.travel-eyebrow, .travel-trip-title) {
   padding-right: 3rem;
 }
-.travel-section :is(a, button):focus-visible,
-.travel-viewer :is(a, button):focus-visible {
+.travel-section :is(a, button):focus-visible {
   outline: var(--focus-ring);
   outline-offset: 4px;
 }
@@ -234,18 +233,69 @@
   font-size: 0.74rem;
   line-height: 1.8;
 }
+.travel-trip-description > p {
+  margin: 0;
+}
+/* The swap between a description's English and Chinese versions (TripDescription.tsx). */
+.travel-trip-description > .travel-language {
+  margin-top: 4px;
+}
+.travel-language button {
+  min-height: var(--size-hit-target);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-accent);
+  font: inherit;
+  cursor: pointer;
+  transition: color var(--duration-ui);
+}
+.travel-language button:hover {
+  color: var(--color-text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+/* A gallery: its title and photo count over a strip of its photos at their own shapes, scrolled sideways, with a
+   wider gap where a new day starts; its end fades out while more lie beyond. */
+.travel-gallery-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 4px;
+}
+.travel-gallery-head p {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
 .travel-photos {
-  display: grid;
+  display: flex;
+  height: 5.5rem;
   margin: 0 0 20px;
   padding: 0;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
+  gap: 6px;
   list-style: none;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 2.5rem), transparent);
+  mask-image: linear-gradient(90deg, #000 calc(100% - 2.5rem), transparent);
+}
+.travel-photos li {
+  flex: 0 0 auto;
+  height: 100%;
+  scroll-snap-align: start;
+}
+.travel-photos li[data-new-day] {
+  margin-left: 10px;
 }
 .travel-photos a {
   display: block;
-  overflow: hidden;
-  aspect-ratio: 4 / 3;
+  height: 100%;
   border: 1px solid var(--color-line);
   transition: border-color var(--duration-ui);
 }
@@ -254,24 +304,8 @@
 }
 .travel-photos img {
   display: block;
-  width: 100%;
+  width: auto;
   height: 100%;
-  object-fit: cover;
-}
-/* A gallery: its title and dates over its row of photos, or a note while its folder is empty. */
-.travel-gallery-head {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  margin: 0 0 8px;
-  color: var(--color-muted);
-  font-size: var(--text-label);
-  letter-spacing: var(--tracking-label);
-  text-transform: uppercase;
-}
-.travel-gallery-date {
-  color: var(--color-dim);
-  font-variant-numeric: tabular-nums;
 }
 .travel-gallery-empty {
   margin: 0 0 20px;
@@ -287,8 +321,7 @@
   color: var(--color-muted);
 }
 
-.travel-link,
-.travel-back {
+.travel-link {
   display: inline-flex;
   min-height: var(--size-hit-target);
   align-items: center;
@@ -300,13 +333,12 @@
   text-transform: uppercase;
   transition: color var(--duration-ui);
 }
-.travel-link:hover,
-.travel-back:hover {
+.travel-link:hover {
   color: var(--color-text);
 }
+/* All trips (BackLink.tsx) above the meta line; its look is the shared back link's. */
 .travel-back {
-  margin-top: 28px;
-  color: var(--color-muted);
+  margin-bottom: 8px;
 }
 
 /* While the terrain prepares on direct entry (SceneShell). */
@@ -320,67 +352,6 @@
   font-size: var(--text-label);
   letter-spacing: var(--tracking-label);
   text-transform: uppercase;
-}
-
-/* Photo viewer: full-screen dark ground, a toolbar, the photo, previous/next and its caption. */
-.travel-viewer {
-  --travel-viewer-ground: rgb(8 9 9 / 97%);
-  position: fixed;
-  z-index: var(--z-travel-overlay);
-  inset: 0;
-  width: 100%;
-  max-width: none;
-  height: 100svh;
-  max-height: none;
-  margin: 0;
-  padding: 24px 5vw 32px;
-  border: 0;
-  background: var(--travel-viewer-ground);
-  color: var(--color-text);
-  font-family: var(--font-krypton), ui-monospace, monospace;
-  overflow-y: auto;
-}
-.travel-viewer::backdrop {
-  background: rgb(0 0 0 / 85%);
-}
-.travel-viewer[open] {
-  display: flex;
-  flex-direction: column;
-  animation: travel-rise 240ms ease both;
-}
-.travel-viewer-toolbar,
-.travel-viewer-nav {
-  display: flex;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-}
-.travel-viewer-count,
-.travel-viewer-caption {
-  margin: 0;
-  color: var(--color-muted);
-  font-size: var(--text-meta);
-  letter-spacing: var(--tracking-meta);
-}
-.travel-viewer-caption {
-  text-align: center;
-}
-.travel-viewer-image {
-  display: flex;
-  min-height: 0;
-  flex: 1;
-  align-items: center;
-  justify-content: center;
-  padding: 24px 0;
-}
-.travel-viewer-image img {
-  display: block;
-  width: auto;
-  max-width: 100%;
-  height: auto;
-  max-height: 72svh;
-  object-fit: contain;
 }
 
 @keyframes travel-fade {
@@ -589,12 +560,6 @@
   .travel-trip-title {
     font-size: 1.5rem;
   }
-  .travel-photos {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-  .travel-back {
-    margin-top: 16px;
-  }
   .travel-globe-shape,
   .travel-index-backdrop {
     display: none;
@@ -604,8 +569,7 @@
 @media (prefers-reduced-motion: reduce) {
   .travel-trip > *,
   .travel-index-backdrop,
-  .travel-index-entry,
-  .travel-viewer[open] {
+  .travel-index-entry {
     animation: none;
   }
   .travel-environment .travel-content,

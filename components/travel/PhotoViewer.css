@@ -1,0 +1,216 @@
+/* Photo viewer (PhotoViewer.tsx): a full-page dialog over the trip. The toolbar, the row of photos sliding across the
+   whole width with arrows at its sides, the caption and the day ruler. usePhotoTrack writes each slide's size,
+   transform and opacity; slides stay hidden until it has. */
+.travel-viewer {
+  --travel-viewer-ground: rgb(8 9 9 / 97%);
+  --travel-viewer-gutter: 5vw;
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  max-width: none;
+  height: 100svh;
+  max-height: none;
+  margin: 0;
+  padding: 24px 0 calc(20px + env(safe-area-inset-bottom, 0px));
+  border: 0;
+  background: var(--travel-viewer-ground);
+  color: var(--color-text);
+  font-family: var(--font-krypton), ui-monospace, monospace;
+  overflow: hidden;
+}
+.travel-viewer::backdrop {
+  background: rgb(0 0 0 / 85%);
+}
+.travel-viewer[open] {
+  display: flex;
+  flex-direction: column;
+  animation: travel-rise 240ms ease both;
+}
+.travel-viewer :is(a, button):focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 4px;
+}
+.travel-viewer-toolbar {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 0 var(--travel-viewer-gutter);
+}
+.travel-viewer-count,
+.travel-viewer-meta {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: var(--text-label);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+/* The row: edge to edge, fading out at the sides. */
+.travel-viewer-track {
+  position: relative;
+  min-height: 0;
+  flex: 1;
+  margin: 16px 0;
+}
+.travel-viewer-stage {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  cursor: grab;
+  touch-action: pan-y pinch-zoom;
+  user-select: none;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
+}
+.travel-viewer-stage:active {
+  cursor: grabbing;
+}
+.travel-viewer-slide {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  opacity: 0;
+  will-change: transform, opacity;
+}
+.travel-viewer-slide:not([data-current]) {
+  cursor: pointer;
+}
+.travel-viewer-slide img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  -webkit-user-drag: none;
+}
+.travel-viewer-step {
+  position: absolute;
+  top: 50%;
+  z-index: 1;
+  width: 48px;
+  height: 72px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-muted);
+  font-family: inherit;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: color var(--duration-ui), opacity var(--duration-ui);
+  translate: 0 -50%;
+}
+.travel-viewer-step:hover {
+  color: var(--color-text);
+}
+.travel-viewer-step:disabled {
+  opacity: 0;
+  pointer-events: none;
+}
+.travel-viewer-step[data-step='previous'] {
+  left: 1.5vw;
+}
+.travel-viewer-step[data-step='next'] {
+  right: 1.5vw;
+}
+
+/* The caption: date and place, then the description; it fades in as each photo arrives. It keeps room for the
+   description's lines (PHOTO_VIEWER_CONFIG.description), so the row does not jump between photos with and without
+   one. */
+.travel-viewer-caption {
+  --travel-viewer-description-line: calc(0.74rem * 1.7);
+  min-height: calc(var(--text-label) * 1.5 + 8px
+    + var(--travel-viewer-description-lines, 4) * var(--travel-viewer-description-line));
+  flex-shrink: 0;
+  padding: 0 var(--travel-viewer-gutter);
+  text-align: center;
+}
+.travel-viewer-caption > div {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  animation: travel-fade 240ms ease both;
+}
+.travel-viewer-meta {
+  line-height: 1.5;
+}
+.travel-viewer-meta span {
+  color: var(--color-text);
+}
+/* Its usual measure, or wider for a description too long for the caption's lines (PhotoViewer.tsx), never past the
+   gutters; wrapped lines are evened out. */
+.travel-viewer-description {
+  max-width: min(var(--travel-viewer-description-measure, 60ch), 100%);
+  margin: 0;
+  text-wrap: balance;
+  color: var(--color-muted);
+  font-size: 0.74rem;
+  line-height: var(--travel-viewer-description-line);
+}
+
+/* The ruler: a tick per photo, days divided by a rule; the current tick stands tall in the accent. */
+.travel-viewer-ruler {
+  display: flex;
+  height: 28px;
+  flex-shrink: 0;
+  align-items: flex-end;
+  justify-content: safe center;
+  margin-top: 8px;
+  padding: 0 var(--travel-viewer-gutter);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.travel-viewer-day {
+  display: flex;
+  flex-shrink: 0;
+  padding: 0 5px;
+}
+.travel-viewer-day + .travel-viewer-day {
+  border-left: 1px solid var(--color-line);
+}
+.travel-viewer-ruler button {
+  position: relative;
+  width: 11px;
+  height: 24px;
+  flex-shrink: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+.travel-viewer-ruler button::after {
+  position: absolute;
+  bottom: 0;
+  left: 5px;
+  width: 1px;
+  height: 8px;
+  background: var(--color-dim);
+  content: '';
+  transition: height var(--duration-ui), background-color var(--duration-ui);
+}
+.travel-viewer-ruler button:hover::after {
+  background: var(--color-text);
+}
+.travel-viewer-ruler button[aria-current]::after {
+  height: 20px;
+  background: var(--color-accent);
+}
+
+/* Phones and touch: swipe, no arrows; the photo takes more of the width (PHOTO_VIEWER_CONFIG.frame.narrow). */
+@media (max-width: 767px), (pointer: coarse) {
+  .travel-viewer {
+    --travel-viewer-gutter: var(--spacing-page-gutter);
+    padding-top: 16px;
+  }
+  .travel-viewer-step {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .travel-viewer[open],
+  .travel-viewer-caption > div {
+    animation: none;
+  }
+}

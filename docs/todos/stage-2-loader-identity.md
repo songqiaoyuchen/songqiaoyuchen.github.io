@@ -64,9 +64,20 @@ waiting honestly, and releases visitors promptly when the experience is ready.
   into that greeting; no separate personal introduction is required.
 - 2026-09-29: User requested a dedicated document to track this design process.
   Contour-to-landscape choreography is a proposal; timing and progress display remain open.
+- 2026-10-13: Descent chosen and implemented. The pixel dissolve is gone: the scene opens as a contour map from
+  straight above the summit, the mark fades into the summit's rings as the wave draws the map, and the camera
+  lowers to the overview while the ground lights up (`config/scene/intro.ts`, Leva's Intro folder). Opening on a
+  section or with reduced motion the preloader fades instead. The bleed was kept only as an idea for a richer
+  reduced-motion exit. Timing (delay, descent length, map height, fog, light-in) is tuned live, not yet settled.
 
 Append dated decisions with rationale, alternatives considered, and evidence.
 
 ## Experiments and review notes
 
-No prototype selected yet. Record artifacts, observations, and next actions here.
+- 2026-10-13: Two exits from the full-page contour map were mocked side by side
+  (animated canvas stand-in, scrubbable): https://claude.ai/artifact/LtBCrdUC4T9iYmYvd3BMMF
+  Both share the mark, the count and the summit wave drawing the map outward.
+  1. Bleed: the lines widen until the landscape shows through the ink; a 2D curtain, a cut to the scene.
+  2. Descent: the map is the real contour lines seen from straight above the summit; the camera lowers to the
+     overview pose while the ground lights up. One sequence, reuses `IntroReveal` instead of repeating it.
+  Recommended: descent; chosen and built the same day (see the decision log).

@@ -7,6 +7,8 @@
 // gradient from the lit centre), so its edge matches the planet before the centre lets go; its edge fade, which
 // falls to the background at home, turns opaque with it so the landscape meets the planet's ground (the same
 // colour, the same heights) instead of showing the background through.
+// On the homepage intro the ground opens unlit (uLightsIn 0: the fog's colour, so only the contour lines show
+// from the map pose) and its light comes on as the camera descends.
 #include <fog_pars_fragment>
 #include <land_shading>
 
@@ -18,6 +20,7 @@ uniform vec3  light2Color;
 uniform vec2 edgeFade;
 uniform float uMorph;
 uniform float uRideBlend;
+uniform float uLightsIn;
 uniform sampler2D heightmap;
 uniform float elevation;
 uniform float contrast;
@@ -81,6 +84,7 @@ void main() {
   vec3 color = mix(baseColor, ridgeColor, heightBlend);
   vec2 staticLighting = texture2D(staticLightingMap, vUv).rg;
   color *= lightColor * staticLighting.r + light2Color * staticLighting.g;
+  color = mix(fogColor, color, uLightsIn);
   float settle = max(uRideBlend, smoothstep(0.0, edgeFade.x, vPlan) * smoothstep(0.0, 0.04, uMorph));
   if (settle > 0.0) color = mix(color, rideColor(edge), settle);
 

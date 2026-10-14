@@ -7,6 +7,7 @@ import {useAboutPathControls} from './useAboutPathControls';
 import {useContourControls} from './useContourControls';
 import {useFogControls} from './useFogControls';
 import {useGlyphRainControls} from './useGlyphRainControls';
+import {useIntroControls} from './useIntroControls';
 import {usePostControls} from './usePostControls';
 import {useSceneLinkControls} from './useSceneLinkControls';
 import {useTerrainControls} from './useTerrainControls';
@@ -17,19 +18,23 @@ export function useSceneControls(activeId: SectionId | null) {
   const terrain = useTerrainControls();
   const contours = useContourControls();
   const fog = useFogControls();
+  const intro = useIntroControls();
   const postProcessing = usePostControls();
   const sceneLinks = useSceneLinkControls();
   const glyphRain = useGlyphRainControls();
   const aboutPath = useAboutPathControls();
   const {travel, travelOverview, travelTrip} = useTravelControls();
 
-  return {terrain, contours, fog, postProcessing, sceneLinks, glyphRain, aboutPath, travel, travelOverview, travelTrip};
+  return {
+    terrain, contours, fog, intro, postProcessing, sceneLinks, glyphRain, aboutPath, travel, travelOverview, travelTrip,
+  };
 }
 
 export type SceneControlValues = ReturnType<typeof useSceneControls>;
 export type TerrainControlValues = SceneControlValues['terrain'];
 export type ContourControlValues = SceneControlValues['contours'];
 export type FogControlValues = SceneControlValues['fog'];
+export type IntroControlValues = SceneControlValues['intro'];
 export type SceneLinkControlValues = SceneControlValues['sceneLinks'];
 export type GlyphRainControlValues = SceneControlValues['glyphRain'];
 export type AboutPathControlValues = SceneControlValues['aboutPath'];

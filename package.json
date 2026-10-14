@@ -9,12 +9,13 @@
     "dev": "next dev",
     "build": "next build",
     "check:terrain-bake": "node scripts/bake/bake-terrain.mjs --check",
-    "prebuild": "npm run check:terrain-bake && npm run sync:travel-photos",
+    "prebuild": "npm run check:terrain-bake && npm run sync:travel-photos -- --strict",
     "postbuild": "node scripts/build/fix-windows-export.mjs",
     "start": "next start",
     "lint": "eslint",
     "sync:artwork-dimensions": "node scripts/assets/sync-artwork-dimensions.mjs",
-    "sync:travel-photos": "node scripts/assets/sync-travel-photos.mjs"
+    "sync:travel-photos": "node scripts/assets/sync-travel-photos.mjs",
+    "import:travel-photos": "node scripts/assets/import-travel-photos.mjs"
   },
   "dependencies": {
     "@mdx-js/loader": "^3.1.1",
@@ -45,6 +46,7 @@
     "@types/three": "^0.183.1",
     "eslint": "^9",
     "eslint-config-next": "16.2.11",
+    "heic-decode": "^2.1.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

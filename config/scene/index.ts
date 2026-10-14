@@ -3,6 +3,7 @@ export {CAMERA_CONFIG, getCameraPose, getTravelIndexPose, getTravelTripPose, typ
 export {CONTOUR_CONFIG} from './contours';
 export {GLYPH_RAIN_CONFIG} from './glyphRain';
 export {FOG_CONFIG} from './fog';
+export {INTRO_CONFIG} from './intro';
 export {SCENE_LAYOUT_CONFIG} from './layout';
 export {POST_PROCESSING_CONFIG} from './postProcessing';
 export {

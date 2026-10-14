@@ -4,7 +4,7 @@
 // clusterWithin share one stacked marker at their middle; a click fans it out into a ring of the trips' own markers,
 // each tied to the middle by a fine line, all alike (no focus among them), while every other marker fades back and
 // the globe holds still; a click elsewhere, Escape, or the cluster turning away folds it. With a
-// trip open its stops stand on it as small diamonds, each named while hovered. A trip with stops and no tracks gives
+// trip open its stops stand on it as small diamonds, each named beside it. A trip with stops and no tracks gives
 // its own marker over to its stops. Markers stand on the relief but, like the trails, hide
 // only behind the globe's body, never behind its relief; near the edge they fade. Sizes come from Leva (markerSize
 // per view). The trip near the globe's centre is in focus (TravelGlobe, by where the globe stands, not by its
@@ -24,8 +24,13 @@ import {TripIcon} from './TripIcon';
 
 export type MarkerState = 'idle' | 'focused' | 'selected';
 
-// Offsets from a stop's marker to its name, on a 4px grid (TravelCallouts.css draws the label 20px tall).
+// Offsets from a hovered trip's marker to its name, on a 4px grid (TravelCallouts.css draws the label 20px tall).
 const LABEL_OFFSET_X = 28;
+// A stop's name, always shown, stands just right or left of its diamond, clear of the other names and diamonds by
+// NAME_GAP; one with no room fades out (NAME_RATE) until there is, or its stop is hovered.
+const STOP_NAME_X = 12;
+const NAME_GAP = 4;
+const NAME_RATE = 10;
 const LABEL_RISE = 22;
 const ELBOW = 10;
 const LEADER_GAP = 6;
@@ -39,6 +44,7 @@ const FAN_RATE = 12;
 const FAN_QUIET = 0.85; // how far the other markers fade back while a fan is open
 
 const DEG = Math.PI / 180;
+const END_WITHIN = 0.05 * DEG; // a stop this near a route's start or end stands on its hex
 
 type TravelCalloutsProps = {
   trips: readonly Trip[];
@@ -74,6 +80,13 @@ type Route = {start: Vector3; end: Vector3};
 type Cluster = {members: number[]; unit: Vector3; place: LonLat};
 
 type ScreenPoint = {x: number; y: number; facing: number; front: boolean};
+
+/** A stop name's width (measured once per viewport size), the side it stands on, and how far it is shown, 0 to 1. */
+type NameLayout = {width: number; side: 1 | -1; shown: number};
+
+type Box = {left: number; right: number; top: number; bottom: number};
+
+const overlaps = (a: Box, b: Box) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
 
 function stateOf(index: number, selected: number, focused: number): MarkerState {
   if (index === selected) return 'selected';
@@ -153,7 +166,6 @@ export function TravelCallouts({
   const fanLinesRef = useRef<Array<SVGLineElement | null>>([]);
   const stopsRef = useRef<Array<Array<HTMLDivElement | null>>>([]);
   const stopLabelsRef = useRef<Array<Array<HTMLDivElement | null>>>([]);
-  const stopLeadersRef = useRef<Array<Array<SVGPolylineElement | null>>>([]);
   const labelsRef = useRef<Array<HTMLDivElement | null>>([]);
   const leadersRef = useRef<Array<SVGPolylineElement | null>>([]);
   const layerRef = useRef<HTMLDivElement>(null);
@@ -162,6 +174,13 @@ export function TravelCallouts({
   const routes = useMemo(() => trips.map(routeOf), [trips]);
   const stopUnits = useMemo(
     () => trips.map((trip) => (trip.stops ?? []).map((stop) => lonLatToUnit(stop.lonLat))), [trips]);
+  // Stops on a route's start or end: that hex marks them, so they draw no diamond; hovered, the hex lights instead.
+  const stopsAtEnds = useMemo(() => stopUnits.map((units, index) => units.map((unit) => {
+    const route = routes[index];
+    if (!route) return null;
+    if (unit.angleTo(route.start) < END_WITHIN) return 'start';
+    return unit.angleTo(route.end) < END_WITHIN ? 'end' : null;
+  })), [routes, stopUnits]);
   const clusters = useMemo<Cluster[]>(() => clusterPlaces(trips.map((trip) => trip.place.lonLat), clusterWithin)
     .filter((members) => members.length > 1)
     .map((members) => {
@@ -183,6 +202,10 @@ export function TravelCallouts({
   // The cluster the fan belongs to, kept while it folds.
   const fanCluster = useRef(-1);
   const [hoveredStop, setHoveredStop] = useState<string | null>(null);
+  // The hex the hovered stop of the open trip stands on, if any.
+  const hoveredStopIndex = selectedIndex >= 0
+    ? (trips[selectedIndex].stops ?? []).findIndex((stop) => stop.id === hoveredStop) : -1;
+  const hoveredEnd = hoveredStopIndex >= 0 ? stopsAtEnds[selectedIndex][hoveredStopIndex] : null;
   const world = useRef(new Vector3());
   const center = useRef(new Vector3());
   const toCamera = useRef(new Vector3());
@@ -196,6 +219,8 @@ export function TravelCallouts({
   const written = useRef(new WeakMap<Element, Written>());
   const layerHidden = useRef(false);
   const stopsHidden = useRef<boolean[]>([]);
+  const nameLayouts = useRef(new WeakMap<Element, NameLayout>());
+  const stopPoints = useRef<ScreenPoint[]>([]);
 
   // The fan holds the globe; a click outside it or Escape folds it, and so does opening a trip.
   useEffect(() => {
@@ -220,6 +245,10 @@ export function TravelCallouts({
   useEffect(() => {
     stopsHidden.current = [];
   }, [trips]);
+  // Names are measured again at a new size: phones hide them, so they measured nothing there.
+  useEffect(() => {
+    nameLayouts.current = new WeakMap();
+  }, [size.width]);
   if (selectedIndex >= 0 && expanded >= 0) setExpanded(-1);
   if (expanded >= clusters.length) setExpanded(-1);
 
@@ -302,10 +331,11 @@ export function TravelCallouts({
     const hideStop = (tripIndex: number, stopIndex: number) => {
       const stop = stopsRef.current[tripIndex]?.[stopIndex];
       const label = stopLabelsRef.current[tripIndex]?.[stopIndex];
-      const leader = stopLeadersRef.current[tripIndex]?.[stopIndex];
       if (stop) show(stop, writtenOf(cache, stop), false);
-      if (label) show(label, writtenOf(cache, label), false);
-      if (leader) show(leader, writtenOf(cache, leader), false);
+      if (!label) return;
+      show(label, writtenOf(cache, label), false);
+      const layout = nameLayouts.current.get(label);
+      if (layout) layout.shown = 0;
     };
 
     // Clusters over all trips: the stacked marker, or its fan once open. A fan turned away folds.
@@ -385,7 +415,7 @@ export function TravelCallouts({
       const titled = index === hoveredIndex && selectedIndex < 0 && at.front && markShown > 0.01;
       name(labelsRef.current[index], leadersRef.current[index], at.x, at.y, titled, fadeOf(at.facing) * markShown);
 
-      // The open trip's stops, in as the camera settles on it and out as it leaves; the hovered stop is named.
+      // The open trip's stops and their names, in as the camera settles on it and out as it leaves.
       // Another trip's stops, or the open trip's before they come in, are hidden once and left there.
       const stops = trip.stops ?? [];
       const stopShown = own ? stopsShownRef.current : 0;
@@ -397,14 +427,53 @@ export function TravelCallouts({
         return;
       }
       stopsHidden.current[index] = false;
-      stops.forEach((stop, stopIndex) => {
-        const point = project(stopUnits[index][stopIndex], camera, middle.current);
-        place(stopsRef.current[index]?.[stopIndex], point, stopShown);
-        const titled = stop.id === hoveredStop && index === selectedIndex && point.front && stopShown > 0.01;
-        name(
-          stopLabelsRef.current[index]?.[stopIndex], stopLeadersRef.current[index]?.[stopIndex],
-          point.x, point.y, titled, fadeOf(point.facing) * stopShown,
-        );
+      const points = stops.map((_, stopIndex) => project(
+        stopUnits[index][stopIndex], camera, stopPoints.current[stopIndex] ??= {x: 0, y: 0, facing: 0, front: false}));
+      const atEnds = stopsAtEnds[index];
+      points.forEach((point, stopIndex) => place(stopsRef.current[index]?.[stopIndex], point, stopShown));
+
+      // Names, the hovered stop's first, then in the order visited: each keeps its side while it has room there.
+      const hovered = stops.findIndex((stop) => stop.id === hoveredStop);
+      const order = points.map((_, stopIndex) => stopIndex);
+      if (hovered > 0) order.unshift(...order.splice(hovered, 1));
+      // A stop's mark, its diamond or the route's hex standing in for it, and how far out its name starts.
+      const markOf = (stopIndex: number) => tripMarkerSize / (atEnds[stopIndex] ? 2 : 4);
+      const nameX = (stopIndex: number) => (atEnds[stopIndex] ? markOf(stopIndex) + NAME_GAP : STOP_NAME_X);
+      const diamonds = points.map((point, stopIndex) => {
+        const mark = markOf(stopIndex) + NAME_GAP;
+        return {left: point.x - mark, right: point.x + mark, top: point.y - mark, bottom: point.y + mark};
+      });
+      const taken: Box[] = [];
+      const step = 1 - Math.exp(-NAME_RATE * Math.min(delta, 1 / 30));
+      order.forEach((stopIndex) => {
+        const label = stopLabelsRef.current[index]?.[stopIndex];
+        if (!label) return;
+        const point = points[stopIndex];
+        let layout = nameLayouts.current.get(label);
+        if (!layout) nameLayouts.current.set(label, layout = {width: NaN, side: 1, shown: 0});
+        let fits = false;
+        if (point.front && fadeOf(point.facing) * stopShown > 0.01) {
+          if (Number.isNaN(layout.width)) layout.width = label.offsetWidth;
+          const boxOf = (side: 1 | -1): Box => {
+            const left = side > 0 ? point.x + nameX(stopIndex) : point.x - nameX(stopIndex) - layout.width;
+            return {
+              left: left - NAME_GAP, right: left + layout.width + NAME_GAP,
+              top: point.y - TITLE_ROW / 2 - NAME_GAP, bottom: point.y + TITLE_ROW / 2 + NAME_GAP,
+            };
+          };
+          const free = (box: Box) => !taken.some((other) => overlaps(box, other))
+            && !diamonds.some((diamond, at) => at !== stopIndex && points[at].front && overlaps(box, diamond));
+          const side = ([layout.side, layout.side > 0 ? -1 : 1] as const).find((candidate) => free(boxOf(candidate)));
+          // The hovered stop is always named, on its side, over whatever it covers.
+          if (side || stopIndex === hovered) {
+            layout.side = side ?? layout.side;
+            taken.push(boxOf(layout.side));
+            fits = true;
+          }
+        }
+        layout.shown += ((fits ? 1 : 0) - layout.shown) * step;
+        const dx = layout.side > 0 ? nameX(stopIndex) : -nameX(stopIndex) - layout.width;
+        place(label, point, stopShown * layout.shown, dx, -TITLE_ROW / 2);
       });
     });
   }, 0.3);
@@ -452,15 +521,6 @@ export function TravelCallouts({
               }}
             />
           )))}
-          {trips.map((trip, index) => (trip.stops ?? []).map((stop, stopIndex) => (
-            <polyline
-              className="travel-callout-leader"
-              key={`${trip.id}/${stop.id}`}
-              ref={(node) => {
-                (stopLeadersRef.current[index] ??= [])[stopIndex] = node;
-              }}
-            />
-          )))}
         </svg>
         {clusters.map(({members}, index) => (
           <div
@@ -490,6 +550,7 @@ export function TravelCallouts({
                 <div aria-hidden="true" className="travel-route" data-hovered={hovered || undefined} data-state={state}>
                   <div
                     className="travel-route-node"
+                    data-stop-hovered={(index === selectedIndex && hoveredEnd === 'end') || undefined}
                     ref={(node) => {
                       endsRef.current[index] = node;
                     }}
@@ -514,7 +575,10 @@ export function TravelCallouts({
                 }}
               >
                 {route ? (
-                  <div className="travel-route-node">
+                  <div
+                    className="travel-route-node"
+                    data-stop-hovered={(index === selectedIndex && hoveredEnd === 'start') || undefined}
+                  >
                     <Hex dot />
                   </div>
                 ) : (
@@ -539,6 +603,7 @@ export function TravelCallouts({
                     aria-hidden="true"
                     className="travel-stop"
                     data-hovered={hoveredStop === stop.id || undefined}
+                    data-on-hex={stopsAtEnds[index][stopIndex] ? true : undefined}
                     onPointerEnter={() => setHoveredStop(stop.id)}
                     onPointerLeave={() => setHoveredStop(null)}
                     ref={(node) => {
@@ -547,7 +612,8 @@ export function TravelCallouts({
                   />
                   <div
                     aria-hidden="true"
-                    className="travel-callout"
+                    className="travel-callout travel-stop-name"
+                    data-hovered={hoveredStop === stop.id || undefined}
                     ref={(node) => {
                       (stopLabelsRef.current[index] ??= [])[stopIndex] = node;
                     }}

@@ -1,8 +1,12 @@
 // Reads the travel photo folders and writes data/travelPhotos.json (--check only reports). A gallery is a folder,
-// public/travel/photos/<trip>/<gallery>/, its images in file-name order; a photo's text is the .txt file of the same
-// name beside it, if any. The gallery's title and dates live in data/travel.ts under the folder's name.
+// public/travel/photos/<trip>/<gallery>/, written by import-travel-photos.mjs: WebP photos, their thumbnails in
+// thumbs/, and a photos.json giving each photo's date (YYYY-MM-DD), location and optional description:
+// {"2026-05-14_164438.webp": {"date", "location", "description"?}}. Photos are ordered by date, then by name (the
+// time taken), so a corrected date moves a photo to its day. A photo missing its date or location is left out with
+// a warning, so galleries can be filled in gradually; --strict (the build) fails instead. The gallery's title lives in data/travel.ts under the folder's name.
 // npm.cmd run sync:travel-photos
 
+import {existsSync} from 'node:fs';
 import {readdir, readFile, writeFile} from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
@@ -13,6 +17,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '.
 const PHOTOS_DIR = path.join(ROOT, 'public', 'travel', 'photos');
 const OUTPUT_FILE = path.join(ROOT, 'data', 'travelPhotos.json');
 const CHECK_ONLY = process.argv.includes('--check');
+const STRICT = process.argv.includes('--strict');
 const IMAGE = /\.(jpe?g|png|webp|gif)$/i;
 
 async function folders(dir) {
@@ -34,19 +39,59 @@ async function readText(file) {
   }
 }
 
+const DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** What a photo's photos.json entry lacks, if anything. */
+function missing(entry) {
+  if (!entry) return ['no entry in photos.json'];
+  const {date, location, description = ''} = entry;
+  const gaps = [];
+  if (typeof date !== 'string' || !DATE.test(date) || Number.isNaN(Date.parse(date))) gaps.push('date (YYYY-MM-DD)');
+  if (typeof location !== 'string' || !location.trim()) gaps.push('location');
+  if (typeof description !== 'string') gaps.push('description as text');
+  return gaps;
+}
+
 async function main() {
   const galleries = {};
+  const problems = [];
   for (const trip of await folders(PHOTOS_DIR)) {
     for (const gallery of await folders(path.join(PHOTOS_DIR, trip))) {
       const dir = path.join(PHOTOS_DIR, trip, gallery);
       const files = (await readdir(dir))
         .filter((file) => IMAGE.test(file))
         .sort((a, b) => a.localeCompare(b, 'en', {numeric: true}));
-      galleries[`${trip}/${gallery}`] = await Promise.all(files.map(async (file) => {
+      const key = `${trip}/${gallery}`;
+      const manifest = await readText(path.join(dir, 'photos.json'));
+      const details = manifest ? JSON.parse(manifest) : {};
+      for (const name of Object.keys(details)) {
+        if (!files.includes(name)) problems.push(`${key}/${name}: in photos.json but no such image`);
+      }
+      const photos = [];
+      for (const file of files) {
+        const gaps = missing(details[file]);
+        if (!existsSync(path.join(dir, 'thumbs', file))) gaps.push('thumbnail (run import:travel-photos)');
+        if (gaps.length) {
+          problems.push(`${key}/${file}: needs ${gaps.join(', ')}`);
+          continue;
+        }
+        const {date, location, description = ''} = details[file];
         const {width, height} = getDimensions(await readFile(path.join(dir, file)));
-        const text = await readText(path.join(dir, `${path.parse(file).name}.txt`));
-        return {src: `/travel/photos/${trip}/${gallery}/${file}`, width, height, text};
-      }));
+        const src = `/travel/photos/${key}/${file}`;
+        const thumb = `/travel/photos/${key}/thumbs/${file}`;
+        photos.push({src, thumb, width, height, date, location: location.trim(), description: description.trim()});
+      }
+      // Files are already in name order, and the sort is stable, so a day's photos keep it.
+      galleries[key] = photos.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+    }
+  }
+
+  if (problems.length) {
+    const action = STRICT ? 'Travel photos are missing details' : 'Travel photos left out until they have details';
+    console.warn(`${action}:\n  ${problems.join('\n  ')}`);
+    if (STRICT) {
+      process.exitCode = 1;
+      return;
     }
   }
 

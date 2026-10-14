@@ -12,16 +12,16 @@ export const TRAVEL_CONFIG = {
   // The globe's look, the same in both views (TravelGlobe.tsx -> globe.frag).
   baseColor: '#0b0d14', // dark ground; also what the landscape fades to on the way in
   rimColor: '#e8c77a',
-  rimIntensity: 0.45, // fresnel rim of the resting globe, off on the way
+  rimIntensity: 0.2, // fresnel rim of the resting globe, off on the way
   lineColor: '#e8c77a', // graticule, coastlines, lights, rings and stars
   graticuleStep: 15, // degrees between meridians and parallels
-  graticuleIntensity: 0.08, // graticule opacity
-  coastIntensity: 0.3, // coastline and lake opacity
+  graticuleIntensity: 0.11, // graticule opacity
+  coastIntensity: 0.51, // coastline and lake opacity
 
   // Land lights (TravelLights.tsx), denser in lowlands; half strength over lightsIn, full with the lines.
-  lightDensity: 0.5, // share of candidate land points kept
-  lightSize: 4, // CSS pixels at full brightness
-  lightIntensity: 1, // brightness gain, bloom included
+  lightDensity: 0.19, // share of candidate land points kept
+  lightSize: 2.4, // CSS pixels at full brightness
+  lightIntensity: 1.29, // brightness gain, bloom included
   phoneLightScale: 0.5, // phones draw the globe smaller: the same points would merge into one glow
   lightsIn: [0.15, 0.55] as readonly [number, number], // share of the zoom-out
 

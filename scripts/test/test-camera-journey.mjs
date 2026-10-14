@@ -19,6 +19,9 @@ assert.equal(route('about:2', 'about:0'), 'about:2>about:0:aboutFocus');
 assert.equal(route('about:2', 'about'), 'about:2>about:aboutFocus');
 assert.equal(route('about', 'overview'), 'about>home:aboutEntry');
 assert.equal(route('projects', 'blog'), 'projects>blog:default');
+// The intro: one descent from the map pose to the overview.
+assert.equal(route('map', 'overview'), 'map>home:descent');
+assert.equal(route('map', 'mobile-overview'), 'map>home:descent');
 
 // One zoom or one shrink, never a stop on the way: a trip leaves straight to Art, Art goes straight to Travel,
 // a direct entry to a trip lands there in the one zoom-out.

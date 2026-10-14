@@ -5,14 +5,16 @@
 //
 // Pose keys as CameraRig names them: 'overview' or 'mobile-overview' (both the root, 'home' here), 'projects',
 // 'blog', 'about', 'about:<stop>', 'art', 'travel', 'travel:index' (phones, the trip list pulled up) and
-// 'travel:trip'.
+// 'travel:trip'. 'map' is the homepage intro's pose straight above the summit, left only for the overview.
 
 export type LegKind =
-  | 'default' | 'art' | 'aboutFocus' | 'aboutEntry' | 'travelFocus' | 'travelIndex' | 'travelEntry';
+  | 'default' | 'descent' | 'art' | 'aboutFocus' | 'aboutEntry' | 'travelFocus' | 'travelIndex' | 'travelEntry';
 
 export type JourneyLeg = Readonly<{from: string; to: string; kind: LegKind}>;
 
 export const HOME = 'home';
+/** The intro's map pose (CameraRig snaps up to it; the only journey from it is the descent home). */
+export const MAP = 'map';
 
 export function isHomeKey(key: string) {
   return key === 'overview' || key === 'mobile-overview' || key === HOME;
@@ -22,12 +24,14 @@ export const isAboutKey = (key: string) => key === 'about' || key.startsWith('ab
 export const isTravelKey = (key: string) => key === 'travel' || key === 'travel:index' || key === 'travel:trip';
 
 /**
- * What a journey between two poses is, for its timing: Travel's moves first (into or out of Travel the terrain
+ * What a journey between two poses is, for its timing: the intro's descent from the map first, then Travel's
+ * moves (into or out of Travel the terrain
  * morphs, which sets the pace whatever the other end; between its overview and a trip the globe turns; the phone
  * list pulled up or let down is a quick step back with no turn), then
  * Art's flight, then About's.
  */
 export function legKind(from: string, to: string): LegKind {
+  if (from === MAP) return 'descent';
   const ends = `${from}>${to}`;
   if (ends === 'travel>travel:index' || ends === 'travel:index>travel') return 'travelIndex';
   if (isTravelKey(from) && isTravelKey(to)) return 'travelFocus';

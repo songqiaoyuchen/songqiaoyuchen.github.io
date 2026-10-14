@@ -45,7 +45,7 @@ export const CAMERA_CONFIG = {
   fov: 38,
   transitionSeconds: 1.8,
   // Journeys into and out of Art.
-  artTransitionSeconds: 1,
+  artTransitionSeconds: 1.5,
 } as const;
 
 const CAMERA_POSES: Record<'overview' | SectionId, CameraPose> = {

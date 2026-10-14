@@ -38,6 +38,9 @@ type CameraFrameState = {
   // The homepage intro reveal's clock (written by IntroReveal every frame): seconds into the intro. Skipped, it
   // is REVEAL_DONE_SECONDS: the wave counts as long past everything.
   revealTime: number;
+  // The intro's descent (written by CameraRig every frame): 0 with the camera at the map pose above the summit,
+  // rising to 1 as it lands on the overview; 1 whenever there is no intro. The ground's light and the fog follow it.
+  introDescent: number;
   setArtFog: (weight: number) => void;
   setTravelMorph: (morph: number) => void;
   setTravelFocus: (progress: number) => void;
@@ -47,6 +50,7 @@ type CameraFrameState = {
   }) => void;
   setTransitioning: (transitioning: boolean) => void;
   setRevealTime: (time: number) => void;
+  setIntroDescent: (descent: number) => void;
 };
 
 const CameraFrameContext = createContext<MutableRefObject<CameraFrameState> | null>(null);
@@ -89,6 +93,7 @@ export function CameraFrameProvider({children}: {children: ReactNode}) {
       seaUnits: 0, datumY: 0, metresPerUnit: 1000,
     },
     revealTime: REVEAL_DONE_SECONDS,
+    introDescent: 1,
     setArtFog: (weight) => { frameState.current.artFog = weight; },
     setTravelMorph: (morph) => { frameState.current.travelMorph = morph; },
     setTravelFocus: (progress) => { frameState.current.travelFocus = progress; },
@@ -97,6 +102,7 @@ export function CameraFrameProvider({children}: {children: ReactNode}) {
     },
     setTransitioning: (transitioning) => { frameState.current.transitioning = transitioning; },
     setRevealTime: (time) => { frameState.current.revealTime = time; },
+    setIntroDescent: (descent) => { frameState.current.introDescent = descent; },
   });
   const previousCamera = useRef(
     new Float64Array(CAMERA_MATRIX_VALUE_COUNT).fill(Number.NaN),

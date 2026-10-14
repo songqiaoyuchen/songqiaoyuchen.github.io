@@ -107,6 +107,10 @@ through baked regional ground; frame-checked in the browser, awaiting the user's
 - [ ] Populate representative real trips, including a photo-only trip.
 - [ ] Verify selection, readable details, rotation and local return across input modes.
 - [ ] Verify direct entry and history with the shared navigation work.
+- [ ] Desktop trip panel is clipped at the window's bottom with no scroll (`.travel-sheet` in trip view:
+  fixed height from `useTripSheetPlacement.ts`, `overflow: hidden`), so a long trip's later galleries and
+  stories cannot be reached. Scrolling the sheet would scroll the globe-shaped float with it; it needs the
+  shape to stay pinned to the globe while the text scrolls. Revisit when real trips fill in.
 
 ## Reference
 

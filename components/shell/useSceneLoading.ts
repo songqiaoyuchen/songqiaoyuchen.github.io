@@ -1,5 +1,7 @@
-// Scene loading state machine for SceneShell: loading -> exiting (preloader dissolve) -> ready, or fallback.
-// Also owns the preloader progress, the "enter without terrain" bypass and dev #preview/#stall options.
+// Scene loading state machine for SceneShell: loading -> exiting -> ready, or fallback. Exiting is the
+// preloader's way out: on first arrival at the overview the intro's descent (the cover lifts, the camera lowers
+// from the map pose and the shell completes the exit when it lands), elsewhere a fade. Also owns the preloader
+// progress, the "enter without terrain" bypass and dev #preview/#stall options.
 'use client';
 
 import {startTransition, useCallback, useEffect, useLayoutEffect, useRef, useState} from 'react';
@@ -14,8 +16,9 @@ const readDevelopmentOption = (name: 'preview' | 'stall') =>
     typeof window !== 'undefined' &&
     new URLSearchParams(window.location.hash.slice(1)).get(name) === '1';
 
-/** On Art the scene settles straight to ready; Home plays the preloader exit first. */
-export function useSceneLoading(isArt: boolean) {
+/** On Art and Travel the scene settles straight to ready; Home plays the preloader exit first, the descent when
+ *  the page opened on the overview (`descentWanted`) and motion is allowed. */
+export function useSceneLoading(isArt: boolean, descentWanted: boolean) {
   const [sceneProgress, setSceneProgress] = useState(0);
   const [sceneStarted, setSceneStarted] = useState(false);
   const [sceneState, setSceneState] = useState<SceneState>('loading');
@@ -30,6 +33,7 @@ export function useSceneLoading(isArt: boolean) {
   const readyTimerRef = useRef<number | null>(null);
   const exitTimerRef = useRef<number | null>(null);
   const isReducedMotion = useReducedMotion();
+  const descent = descentWanted && !isReducedMotion;
 
   useLayoutEffect(() => {
     previewStartedAtRef.current = window.performance.now();
@@ -79,13 +83,21 @@ export function useSceneLoading(isArt: boolean) {
       return;
     }
     setSceneState('exiting');
+    // The descent ends when the camera lands (completeExit); the timer is only its backstop.
     const duration = isReducedMotion
       ? PRELOADER_CONFIG.reducedMotionExitDurationMs
-      : PRELOADER_CONFIG.exitDurationMs;
+      : descent ? PRELOADER_CONFIG.descentTimeoutMs : PRELOADER_CONFIG.exitDurationMs;
     exitTimerRef.current = window.setTimeout(() => {
       setSceneState('ready');
     }, duration);
-  }, [isArt, isReducedMotion]);
+  }, [descent, isArt, isReducedMotion]);
+
+  /** The descent has landed: the preloader may go. */
+  const completeExit = useCallback(() => {
+    if (exitTimerRef.current !== null) window.clearTimeout(exitTimerRef.current);
+    exitTimerRef.current = null;
+    setSceneState((state) => (state === 'exiting' ? 'ready' : state));
+  }, []);
 
   const handleSceneReady = useCallback(() => {
     if (sceneResolvedRef.current) return;
@@ -133,6 +145,8 @@ export function useSceneLoading(isArt: boolean) {
     sceneProgress,
     showBypass,
     isReducedMotion,
+    descent,
+    completeExit,
     handleSceneReady,
     handleSceneProgress,
     handleSceneError,
