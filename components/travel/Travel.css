@@ -94,7 +94,7 @@
 .travel-section[data-view='trip'] :is(.travel-eyebrow, .travel-trip-title) {
   padding-right: 3rem;
 }
-.travel-section :is(a, button):focus-visible {
+.travel-section :is(a, button):not(.travel-link, .travel-back, .travel-close):focus-visible {
   outline: var(--focus-ring);
   outline-offset: 4px;
 }
@@ -333,8 +333,10 @@
   text-transform: uppercase;
   transition: color var(--duration-ui);
 }
-.travel-link:hover {
+/* Focus shows as colour, not a ring (as Art's .art-text-link). */
+.travel-link:is(:hover, :focus-visible) {
   color: var(--color-text);
+  outline: none;
 }
 /* All trips (BackLink.tsx) above the meta line; its look is the shared back link's. */
 .travel-back {

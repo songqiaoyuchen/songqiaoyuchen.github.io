@@ -51,7 +51,7 @@ export default async function ArticlePage({params}: ArticlePageProps) {
         </div>
 
         <footer className="mx-auto max-w-190 border-t border-line pt-8">
-          <Link className={`${pageStyles.textLink} text-accent hover:text-text`} href="/blog/all">
+          <Link className={`${pageStyles.textLink} text-accent hover:text-text focus-visible:text-text`} href="/blog/all">
             Return to the writing archive <span aria-hidden="true">&nbsp;→</span>
           </Link>
         </footer>

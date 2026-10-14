@@ -1,8 +1,9 @@
-// The WebGL hero name ("SQYC", swapping to "NIRO" on hover) on desktop; Hero renders the HTML fallback.
+// The WebGL hero name ("SQYC", swapping to "NIRO" on hover); on mobile it covers the HTML name's box, whose text
+// Hero keeps for screen readers and the terrain fallback.
 // Fades in after the preloader and dissolves whenever a section opens.
 'use client';
 
-import {forwardRef, useEffect, useMemo, useRef} from 'react';
+import {forwardRef, useEffect, useMemo, useRef, useState} from 'react';
 import {Html} from '@react-three/drei';
 import {useFrame, useLoader, useThree} from '@react-three/fiber';
 import {
@@ -29,9 +30,10 @@ import {buildHorizontalTextGeometry} from '@/lib/text/sceneLinkGeometry';
 import {
   getSceneLinkLayouts,
   projectOverviewSlotAtDistance,
+  projectOverviewSlotAtScreenWidth,
 } from '@/lib/text/sceneLinkLayout';
 import {useCameraFrameState} from '../camera/CameraFrameState';
-import {linksMedianDepth} from './heroNameLayout';
+import {linksMedianDepth, measureHeroNameSlot} from './heroNameLayout';
 import {SETTLE_EPSILON} from './sceneLinkMotion';
 import {
   createSceneTextUniforms,
@@ -39,6 +41,9 @@ import {
   sceneTextVertexShader,
   useSceneTextSettings,
 } from './sceneTextMaterial';
+
+const GLYPH_WIDTH = HERO_SCENE_CONFIG.size * HERO_SCENE_CONFIG.glyphWidthToHeightRatio;
+const NAME_WORLD_WIDTH = (HERO_CONTENT.name.length - 1) * (GLYPH_WIDTH + HERO_SCENE_CONFIG.spacing) + GLYPH_WIDTH;
 
 interface SceneHeroNameProps {
   contourSettings: ContourControlValues;
@@ -59,6 +64,10 @@ export const SceneHeroName = forwardRef<Mesh, SceneHeroNameProps>(function Scene
   const viewportWidth = useThree((state) => state.size.width);
   const viewportHeight = useThree((state) => state.size.height);
   const isReducedMotion = useReducedMotion();
+  const isDesktop = viewportWidth >= HERO_SCENE_CONFIG.desktopMinWidth;
+  const [mobileSlot, setMobileSlot] = useState<ReturnType<typeof measureHeroNameSlot>>(null);
+  const needsMobileSlot = useRef(true);
+  const isPlaced = isDesktop || mobileSlot !== null;
   const {elevation, seaLevel} = terrainSettings;
   const {displacementMap, shellBase} = useTerrainAssets();
   const geometry = useMemo(() => buildHorizontalTextGeometry({
@@ -88,15 +97,27 @@ export const SceneHeroName = forwardRef<Mesh, SceneHeroNameProps>(function Scene
     () => linksMedianDepth(linkLayouts.overview, viewportWidth, {shellBase, elevation, seaLevel}),
     [elevation, linkLayouts.overview, seaLevel, shellBase, viewportWidth],
   );
-  const scenePoint = useMemo(
-    () => projectOverviewSlotAtDistance(
-      HERO_SCENE_CONFIG.screenPosition,
+  const scenePoint = useMemo(() => {
+    if (isDesktop || !mobileSlot) {
+      return projectOverviewSlotAtDistance(
+        HERO_SCENE_CONFIG.screenPosition,
+        viewportWidth,
+        viewportHeight,
+        referenceDepth * HERO_SCENE_CONFIG.depthMultiplier,
+      );
+    }
+    const center = [
+      ((mobileSlot.left + mobileSlot.width * 0.5) / viewportWidth) * 2 - 1,
+      1 - ((mobileSlot.top + mobileSlot.height * 0.5) / viewportHeight) * 2,
+    ] as const;
+    return projectOverviewSlotAtScreenWidth(
+      center,
       viewportWidth,
       viewportHeight,
-      referenceDepth * HERO_SCENE_CONFIG.depthMultiplier,
-    ),
-    [referenceDepth, viewportHeight, viewportWidth],
-  );
+      NAME_WORLD_WIDTH,
+      mobileSlot.width * HERO_SCENE_CONFIG.mobileWidthScale,
+    );
+  }, [isDesktop, mobileSlot, referenceDepth, viewportHeight, viewportWidth]);
   const layoutPosition = useMemo(
     () => [scenePoint[0], scenePoint[2]] as const,
     [scenePoint],
@@ -105,8 +126,8 @@ export const SceneHeroName = forwardRef<Mesh, SceneHeroNameProps>(function Scene
     () => scenePoint[1]
       - sampleHeight(shellBase, layoutPosition[0], layoutPosition[1], elevation, seaLevel)
       - centerOffset
-      + HERO_SCENE_CONFIG.bottomOffset,
-    [centerOffset, elevation, layoutPosition, scenePoint, seaLevel, shellBase],
+      + (isDesktop ? HERO_SCENE_CONFIG.bottomOffset : 0),
+    [centerOffset, elevation, isDesktop, layoutPosition, scenePoint, seaLevel, shellBase],
   );
   const compiledVertexShader = useMemo(
     () => sceneTextVertexShader(1),
@@ -128,6 +149,9 @@ export const SceneHeroName = forwardRef<Mesh, SceneHeroNameProps>(function Scene
     sequencedLetterSwap: 0,
   }), [atlas, displacementMap]);
 
+  useEffect(() => {
+    needsMobileSlot.current = true;
+  }, [viewportHeight, viewportWidth]);
   useEffect(() => configureSdfAtlas(atlas), [atlas]);
   useEffect(() => () => geometry.dispose(), [geometry]);
   useSceneTextSettings(materialRef, contourSettings, elevation, seaLevel);
@@ -157,6 +181,14 @@ export const SceneHeroName = forwardRef<Mesh, SceneHeroNameProps>(function Scene
         * Math.exp(-delta * SCENE_LINK_EFFECT_CONFIG.glitchDecay);
       glitchValues[0] = nextGlitch < SETTLE_EPSILON ? 0 : nextGlitch;
     }
+    // The HTML hero mounts after the preloader, so look for its name box until it is laid out.
+    if (!isDesktop && needsMobileSlot.current) {
+      const slot = measureHeroNameSlot();
+      if (slot) {
+        needsMobileSlot.current = false;
+        setMobileSlot(slot);
+      }
+    }
     if (!introStarted) {
       elapsed.current = 0;
       dissolve.current = 0;
@@ -165,10 +197,9 @@ export const SceneHeroName = forwardRef<Mesh, SceneHeroNameProps>(function Scene
     }
 
     elapsed.current += delta;
-    const isDesktop = viewportWidth >= HERO_SCENE_CONFIG.desktopMinWidth;
     const entranceComplete = isReducedMotion
       || elapsed.current >= HERO_SCENE_CONFIG.entranceDelay;
-    const visible = !isHidden && isDesktop && entranceComplete && !cameraFrameState.current.transitioning;
+    const visible = !isHidden && isPlaced && entranceComplete && !cameraFrameState.current.transitioning;
     dissolve.current = advanceTextVisibility(dissolve.current, visible, delta, isReducedMotion,
       HERO_SCENE_CONFIG.revealSpeed, HERO_SCENE_CONFIG.hideSpeed);
 
@@ -182,7 +213,6 @@ export const SceneHeroName = forwardRef<Mesh, SceneHeroNameProps>(function Scene
       + sceneLift,
     layoutPosition[1],
   ] as const;
-  const isDesktop = viewportWidth >= HERO_SCENE_CONFIG.desktopMinWidth;
   // Hovering swaps the name to its alternate spelling with a glitch.
   const setHeroTextTarget = (target: number) => {
     if (isHidden || cameraFrameState.current.transitioning || dissolve.current < 1) return;
@@ -199,7 +229,7 @@ export const SceneHeroName = forwardRef<Mesh, SceneHeroNameProps>(function Scene
         frustumCulled={false}
         geometry={geometry}
         renderOrder={5}
-        visible={isDesktop}
+        visible={isPlaced}
       >
         <shaderMaterial
           ref={materialRef}

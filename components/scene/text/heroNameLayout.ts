@@ -1,4 +1,5 @@
-// Placement maths for SceneHeroName: puts the name at a screen position, at the scene links' median depth.
+// Placement maths for SceneHeroName: desktop puts the name at a screen position at the scene links' median depth;
+// mobile lays it over the HTML name.
 import {Vector3} from 'three';
 import {SCENE_LINK_EFFECT_CONFIG, SCENE_LINKS, getCameraPose, SCENE_LAYOUT_CONFIG} from '@/config/scene';
 import type {HeightGrid} from '@/lib/terrain/bake';
@@ -27,4 +28,21 @@ export function linksMedianDepth(
     return cameraPosition.distanceTo(new Vector3(x, y, z));
   }).sort((a, b) => a - b);
   return distances[Math.floor((distances.length - 1) * 0.5)];
+}
+
+/** Screen box of the mobile HTML name, which the WebGL name covers; null until the hero is laid out. */
+export function measureHeroNameSlot() {
+  const slot = [...document.querySelectorAll<HTMLElement>('[data-hero-name-slot]')]
+    .find((element) => element.offsetWidth > 0);
+  const section = slot?.offsetParent;
+  const placement = section instanceof HTMLElement ? section.offsetParent : null;
+  if (!slot || !(section instanceof HTMLElement) || !placement) return null;
+  // Offsets skip the hero's entrance and hide transforms, so the box is where the name settles.
+  const origin = placement.getBoundingClientRect();
+  return {
+    left: origin.left + section.offsetLeft + slot.offsetLeft,
+    top: origin.top + section.offsetTop + slot.offsetTop,
+    width: slot.offsetWidth,
+    height: slot.offsetHeight,
+  };
 }

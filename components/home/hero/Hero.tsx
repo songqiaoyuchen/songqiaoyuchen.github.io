@@ -9,8 +9,8 @@ import {TypeReveal} from './TypeReveal';
 
 interface HeroProps {
   isHidden: boolean;
-  /** Show the HTML name on desktop too (the WebGL name is unavailable in the terrain fallback). */
-  useHtmlDesktopName?: boolean;
+  /** Show the HTML name instead of the WebGL one (unavailable in the terrain fallback). */
+  useHtmlName?: boolean;
 }
 
 const annotationStyle = {
@@ -19,7 +19,7 @@ const annotationStyle = {
   '--hero-supporting-top': HERO_ANNOTATION_LAYOUT.supportingTop,
 } as CSSProperties;
 
-export function Hero({isHidden, useHtmlDesktopName = false}: HeroProps) {
+export function Hero({isHidden, useHtmlName = false}: HeroProps) {
   return (
     <section
       aria-hidden={isHidden}
@@ -39,10 +39,11 @@ export function Hero({isHidden, useHtmlDesktopName = false}: HeroProps) {
 
       <h1
         className={`${heroStyles.name}
-          ${useHtmlDesktopName ? heroStyles.nameHtmlDesktop : heroStyles.nameScreenReaderDesktop}`}
+          ${useHtmlName ? heroStyles.nameHtml : heroStyles.nameWebGl}`}
         id="home-hero-title"
       >
-        {HERO_CONTENT.name}
+        {/* SceneHeroName measures this box on mobile. */}
+        <span data-hero-name-slot>{HERO_CONTENT.name}</span>
       </h1>
 
       <p className={heroStyles.supporting}>

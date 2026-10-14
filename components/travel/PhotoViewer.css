@@ -26,7 +26,7 @@
   flex-direction: column;
   animation: travel-rise 240ms ease both;
 }
-.travel-viewer :is(a, button):focus-visible {
+.travel-viewer :is(a, button):not(.travel-link):focus-visible {
   outline: var(--focus-ring);
   outline-offset: 4px;
 }

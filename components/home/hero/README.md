@@ -1,7 +1,8 @@
 # components/home/hero
 
-Homepage introduction. On desktop the name itself is drawn in WebGL (`scene/text/SceneHeroName`);
-the HTML `h1` stays for screen readers, and becomes visible in the terrain fallback.
+Homepage introduction. The name itself is drawn in WebGL (`scene/text/SceneHeroName`); the HTML `h1` stays
+for screen readers and becomes visible in the terrain fallback. On mobile its box stays in flow (transparent)
+and the WebGL name is laid over it (`data-hero-name-slot`).
 
 | File | Purpose |
 | --- | --- |

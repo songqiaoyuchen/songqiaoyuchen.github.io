@@ -360,6 +360,19 @@ export function TravelGlobe({
       domElement.style.cursor = '';
     };
   }, [dragging, getState, hovering, interactive, visible]);
+  // While the globe turns by hand, a one-finger swipe over the scene (the canvas and the markers above it) is the
+  // globe's: left to the browser it pans, rubber-banding the page, and cancels the drag. Pinch zoom stays the
+  // browser's. Only the development orbit camera set this before, so the built site never had it.
+  useEffect(() => {
+    if (!visible || !interactive) return;
+    const {events, gl} = getState();
+    const source = (events.connected as HTMLElement | undefined) ?? gl.domElement;
+    const previous = source.style.touchAction;
+    source.style.touchAction = 'pinch-zoom';
+    return () => {
+      source.style.touchAction = previous;
+    };
+  }, [getState, interactive, visible]);
 
   // Geometry.
   const sphereGeometry = useMemo(() => new SphereGeometry(radius, 256, 128), [radius]);
@@ -521,10 +534,9 @@ export function TravelGlobe({
     current.y = event.clientY;
     current.time = now;
   }
-  function endDrag(event: ThreeEvent<PointerEvent>) {
+  const endDrag = useCallback((event: PointerEvent) => {
     const current = drag.current;
     if (!current || current.pointerId !== event.pointerId) return;
-    event.stopPropagation();
     drag.current = null;
     setDragging(false);
     if (reducedMotion || !current.samples.length) {
@@ -534,7 +546,18 @@ export function TravelGlobe({
     const vYaw = current.samples.reduce((sum, sample) => sum + sample.vYaw, 0) / current.samples.length;
     const vPitch = current.samples.reduce((sum, sample) => sum + sample.vPitch, 0) / current.samples.length;
     releaseGlobe(state.current, vYaw, vPitch);
-  }
+  }, [reducedMotion]);
+  // The drag ends wherever the pointer is let go or the browser cancels it, read from the window: R3F never passes
+  // pointercancel on to the mesh, and a drag left open would hold the globe, and the turn to a trip opened next.
+  useEffect(() => {
+    if (!dragging) return;
+    window.addEventListener('pointerup', endDrag);
+    window.addEventListener('pointercancel', endDrag);
+    return () => {
+      window.removeEventListener('pointerup', endDrag);
+      window.removeEventListener('pointercancel', endDrag);
+    };
+  }, [dragging, endDrag]);
 
   useFrame(({camera, gl}, delta) => {
     const group = groupRef.current;
@@ -843,12 +866,10 @@ export function TravelGlobe({
     <group position={centerTuple} ref={groupRef} visible={false}>
       <mesh
         geometry={sphereGeometry}
-        onPointerCancel={endDrag}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerOut={() => setHovering(false)}
         onPointerOver={() => setHovering(true)}
-        onPointerUp={endDrag}
         raycast={raycastGlobe}
         ref={sphereRef}
         renderOrder={0}

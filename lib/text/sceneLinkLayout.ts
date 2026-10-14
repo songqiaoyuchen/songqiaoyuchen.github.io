@@ -1,5 +1,5 @@
 // Scene link placement: projects screen-space slots onto the terrain for overview, focused and mobile layouts.
-import {PerspectiveCamera, Ray, Vector2, Vector3} from 'three';
+import {MathUtils, PerspectiveCamera, Ray, Vector2, Vector3} from 'three';
 import {
   SCENE_LINK_LAYOUT,
   MOBILE_SCENE_LINK_CONFIG,
@@ -197,6 +197,22 @@ export function projectOverviewSlotAtDistance(
   const rayEnd = new Vector3(...screenPosition, 0.5).unproject(camera);
   const ray = new Ray(camera.position, rayEnd.sub(camera.position).normalize());
   return ray.at(distance, new Vector3()).toArray();
+}
+
+/** Like projectOverviewSlotAtDistance, at the depth where `worldWidth` spans `pixelWidth` on screen. */
+export function projectOverviewSlotAtScreenWidth(
+  screenPosition: readonly [number, number],
+  width: number,
+  height: number,
+  worldWidth: number,
+  pixelWidth: number,
+) {
+  const camera = makeCamera(width, height, 'overview');
+  const depth = worldWidth * height
+    / (2 * Math.tan(MathUtils.degToRad(camera.fov) * 0.5) * Math.max(pixelWidth, 1));
+  const direction = new Vector3(...screenPosition, 0.5).unproject(camera).sub(camera.position).normalize();
+  const cosine = direction.dot(camera.getWorldDirection(new Vector3()));
+  return projectOverviewSlotAtDistance(screenPosition, width, height, depth / cosine);
 }
 
 function normalizeDepth(

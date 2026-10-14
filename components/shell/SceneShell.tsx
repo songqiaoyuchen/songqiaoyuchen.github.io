@@ -278,7 +278,7 @@ export function SceneShell({articles, children}: SceneShellProps) {
           // Like the WebGL name and glyph rain, the HTML hero returns only once the camera is home.
           <HeroLayer
             isHidden={activeId !== null || settledPose !== null}
-            useHtmlDesktopName={sceneState === 'fallback'}
+            useHtmlName={sceneState === 'fallback'}
           />
         ) : null}
         <Drawer

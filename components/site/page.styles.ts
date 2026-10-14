@@ -6,7 +6,7 @@ export const pageStyles = {
   archiveTitle: `m-0 flex items-baseline gap-2.5 whitespace-nowrap text-(length:--font-size-ui) font-normal
     leading-[1.2] uppercase tracking-label text-text`,
   archiveTotal: 'text-(length:--font-size-ui) tabular-nums tracking-[0.04em] text-accent',
-  // Small uppercase text link (article back/forward links).
+  // Small uppercase text link (article back/forward links). Focus shows as the hover colour, not a ring.
   textLink: `inline-flex min-h-11 items-center font-mono text-label uppercase tracking-label
-    transition-colors focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-accent`,
+    transition-colors focus-visible:outline-none`,
 } as const;

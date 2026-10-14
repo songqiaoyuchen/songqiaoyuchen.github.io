@@ -8,7 +8,7 @@ type BackLinkProps = {href: string; children: ReactNode; className?: string; sty
 
 export function BackLink({href, children, className = '', style}: BackLinkProps) {
   return (
-    <Link className={`${pageStyles.textLink} gap-2 text-accent hover:text-text ${className}`} href={href} style={style}>
+    <Link className={`${pageStyles.textLink} gap-2 text-accent hover:text-text focus-visible:text-text ${className}`} href={href} style={style}>
       <span aria-hidden="true">←</span> {children}
     </Link>
   );

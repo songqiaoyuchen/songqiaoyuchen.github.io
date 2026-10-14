@@ -24,6 +24,8 @@ export const HERO_SCENE_CONFIG = {
     height: '6rem',
   },
   desktopMinWidth: VIEWPORT_BREAKPOINTS.md,
+  /** Mobile: the name's width as a share of the HTML name it covers (glyph quads carry SDF padding). */
+  mobileWidthScale: 1.15,
 } as const;
 
 export const HERO_ANNOTATION_LAYOUT = {

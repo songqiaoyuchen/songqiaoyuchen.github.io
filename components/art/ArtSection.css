@@ -84,11 +84,14 @@
   cursor: pointer;
   transition: color var(--duration-ui);
 }
-.art-text-link:hover {
+/* Focus shows as colour, not a ring: the dialogs focus their back link on open, and browsers decide
+   unpredictably whether that programmatic focus is :focus-visible. */
+.art-text-link:is(:hover, :focus-visible) {
   color: var(--color-accent);
+  outline: none;
 }
-.art-section :is(a, button, [tabindex]):focus-visible,
-.art-inspection :is(a, button):focus-visible {
+.art-section :is(a, button, [tabindex]):not(.art-text-link, .art-close):focus-visible,
+.art-inspection :is(a, button):not(.art-text-link):focus-visible {
   outline: var(--focus-ring);
   outline-offset: 4px;
 }
