@@ -61,7 +61,8 @@ const DRAWER_ROUTES: Record<string, SectionId> = {
 const SECTION_LEAVE_MS = 400;
 
 export function SceneShell({articles, children}: SceneShellProps) {
-  const pathname = usePathname();
+  // The static export (trailingSlash) reports `/blog/`; route tables are keyed without it.
+  const pathname = usePathname().replace(/(.)\/+$/, '$1');
   const router = useRouter();
   const isArt = pathname.startsWith('/artworks');
   const drawerRoute: SectionId | null = DRAWER_ROUTES[pathname] ?? null;
