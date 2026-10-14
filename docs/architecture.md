@@ -168,8 +168,9 @@ frame already holds the route's view: a refresh on a trip opens at its framing w
 Phones have their own poses: the whole globe and its rings above a cardless peek sheet (the trip in focus, or the
 last one, and a bar that pulls the list up); the list pulled up (`indexOpen` in the context) steps the camera back
 to a third pose, `getTravelIndexPose` (a quick `travelIndex` journey, no turn); a trip frames the globe close at the
-top with the trip turned just above its sheet (`phoneMarkerOffset`). Phones hide the meridian strip, the index
-heading and the stops' names, and draw the land lights smaller (`phoneLightScale`).
+top with the trip turned just above its sheet (`phoneMarkerOffset`). Phones hide the meridian strip and the index
+heading, keep the stops' names above the sheet with smaller stop markers, and draw the land lights smaller
+(`phoneLightScale`).
 `config/scene/travel.ts` holds three groups that never stand in for each other: `TRAVEL_CONFIG` (the globe as
 both views draw it, and the zoom-out), `TRAVEL_OVERVIEW_CONFIG` (all trips: ground, rings, feel by hand) and
 `TRAVEL_TRIP_CONFIG` (a trip: framing, its own servo hold rate, the focus journey and the raised-relief ground,

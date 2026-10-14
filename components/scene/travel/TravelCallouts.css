@@ -372,7 +372,7 @@
   stroke-width: 1;
 }
 
-/* Stops: an open trip's places of note, smaller diamonds than a trip's, each named beside it. */
+/* Stops: an open trip's places of note, smaller diamonds than a trip's, each named beside it or, crowded, out on a leader line. */
 .travel-stop {
   position: absolute;
   top: 0;
@@ -407,6 +407,13 @@
 .travel-route-node[data-stop-hovered] .travel-route-hex polygon {
   fill: var(--callout-signal-soft);
   stroke: var(--callout-signal);
+}
+
+/* A stop name's leader, fainter than a hovered trip's so the names lead. */
+.travel-stop-leader {
+  stroke: var(--callout-line);
+  stroke-width: 1;
+  filter: var(--callout-knockout);
 }
 
 /* A stop's name, always shown with its trip open, on a heavier halo to stand off the city lights; gold while its
@@ -455,11 +462,26 @@
   70%, 100% { opacity: 0; scale: 3.4; }
 }
 
-/* Phones: the whole globe is small, so it keeps its markers only; a stop's name lives in the sheet (Travel.css). */
+/* Phones: the whole globe is small, so it keeps no trip titles, and its markers are smaller with a trip open; an
+   open trip's stops keep their names, smaller, in the globe's window above the sheet (TravelCallouts.tsx). */
 @media (width < 48rem) {
-  .travel-callout,
+  .travel-callout:not(.travel-stop-name),
   .travel-callout-leader {
     display: none;
+  }
+
+  .travel-stop-name .travel-callout-title {
+    font-size: 0.8rem;
+  }
+
+  .travel-callout-anchor[data-state='selected']::before {
+    width: calc(var(--marker-size-open) / 3);
+    height: calc(var(--marker-size-open) / 3);
+  }
+
+  .travel-stop::before {
+    width: calc(var(--marker-size-open) / 5);
+    height: calc(var(--marker-size-open) / 5);
   }
 }
 

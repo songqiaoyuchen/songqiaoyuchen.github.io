@@ -26,11 +26,27 @@ export type MarkerState = 'idle' | 'focused' | 'selected';
 
 // Offsets from a hovered trip's marker to its name, on a 4px grid (TravelCallouts.css draws the label 20px tall).
 const LABEL_OFFSET_X = 28;
-// A stop's name, always shown, stands just right or left of its diamond, clear of the other names and diamonds by
-// NAME_GAP; one with no room fades out (NAME_RATE) until there is, or its stop is hovered.
+// A stop's name, always shown, stands just right or left of its diamond where it has room; crowded, it moves out on
+// a leader line, on rings NAME_REACH pixels further out, preferring the side away from the other stops (NAME_TURN
+// weighs a turn against distance). Names never overlap each other (kept NAME_GAP apart) and stay on screen, clear of
+// the nav (NAME_TOP) and, on phones, the trip sheet; where they can, they keep off the other diamonds and, within
+// NAME_NEAR of another mark, nearer their own stop, and their leaders cross other diamonds only at a cost
+// (NAME_CROSS). A name keeps its spot while it has room there and nothing much nearer has opened, and moves at once
+// (gliding, it would pass over others); it fades in and out (NAME_RATE).
 const STOP_NAME_X = 12;
 const NAME_GAP = 4;
 const NAME_RATE = 10;
+const NAME_REACH = [0, 20, 40, 64, 92, 124, 160, 200, 248, 300];
+const NAME_TURN = 28;
+const NAME_CROSS = 40;
+const NAME_NEAR = 24;
+const NAME_TOP = 64;
+const NAME_EDGE = 8;
+const NAME_DIRECTIONS = Array.from({length: 16}, (_, at) => ({
+  x: Math.cos((at * Math.PI) / 8), y: Math.sin((at * Math.PI) / 8),
+}));
+// Phones (the CSS breakpoint, 48rem): the trip's sheet covers the lower screen, so names stay above it.
+const PHONE_WIDTH = 768;
 const LABEL_RISE = 22;
 const ELBOW = 10;
 const LEADER_GAP = 6;
@@ -81,12 +97,56 @@ type Cluster = {members: number[]; unit: Vector3; place: LonLat};
 
 type ScreenPoint = {x: number; y: number; facing: number; front: boolean};
 
-/** A stop name's width (measured once per viewport size), the side it stands on, and how far it is shown, 0 to 1. */
-type NameLayout = {width: number; side: 1 | -1; shown: number};
+/**
+ * A stop name's width (measured once per viewport size), its spot (an index into its candidates, -1 for none),
+ * where its box's top left and its leader's end stand from the stop, and how far it is shown, 0 to 1.
+ */
+type NameLayout = {width: number; spot: number; dx: number; dy: number; ax: number; ay: number; shown: number};
 
 type Box = {left: number; right: number; top: number; bottom: number};
 
+/** A place a stop's name may stand: its box, its leader's end beside the box, and its cost. */
+type NameSpot = {box: Box; ax: number; ay: number; cost: number};
+
+const pad = (box: Box): Box => ({
+  left: box.left - NAME_GAP, right: box.right + NAME_GAP, top: box.top - NAME_GAP, bottom: box.bottom + NAME_GAP,
+});
+
 const overlaps = (a: Box, b: Box) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+
+/** How far a point stands from a box, 0 inside it. */
+const distanceTo = (box: Box, x: number, y: number) => Math.hypot(
+  Math.max(box.left - x, 0, x - box.right), Math.max(box.top - y, 0, y - box.bottom));
+
+/** Whether the segment from (x1, y1) to (x2, y2) passes through a box (sampled every twentieth of its length). */
+function crosses(box: Box, x1: number, y1: number, x2: number, y2: number) {
+  for (let t = 0.05; t < 1; t += 0.05) {
+    const x = x1 + (x2 - x1) * t;
+    const y = y1 + (y2 - y1) * t;
+    if (x > box.left && x < box.right && y > box.top && y < box.bottom) return true;
+  }
+  return false;
+}
+
+/**
+ * Every place a stop's name may stand: beside its mark (out `clear` pixels), then on a ring of leader lines.
+ * `toward` is the way it would rather go, a unit vector.
+ */
+function nameSpots(x: number, y: number, clear: number, width: number, toward: {x: number; y: number}) {
+  const spots: NameSpot[] = [];
+  NAME_REACH.forEach((reach) => NAME_DIRECTIONS.forEach((direction) => {
+    // Right beside the mark, only to its left or right.
+    if (reach === 0 && Math.abs(direction.y) > 0.01) return;
+    const ax = x + direction.x * (clear + reach);
+    const ay = y + direction.y * (clear + reach);
+    const left = direction.x > 0.3 ? ax : direction.x < -0.3 ? ax - width : ax - width / 2;
+    const top = direction.y > 0.3 ? ay : direction.y < -0.3 ? ay - TITLE_ROW : ay - TITLE_ROW / 2;
+    const turn = 1 - (direction.x * toward.x + direction.y * toward.y);
+    const box = {left, right: left + width, top, bottom: top + TITLE_ROW};
+    spots.push({box, ax, ay, cost: reach + NAME_TURN * turn});
+  }));
+  return spots;
+}
 
 function stateOf(index: number, selected: number, focused: number): MarkerState {
   if (index === selected) return 'selected';
@@ -166,6 +226,7 @@ export function TravelCallouts({
   const fanLinesRef = useRef<Array<SVGLineElement | null>>([]);
   const stopsRef = useRef<Array<Array<HTMLDivElement | null>>>([]);
   const stopLabelsRef = useRef<Array<Array<HTMLDivElement | null>>>([]);
+  const stopLeadersRef = useRef<Array<Array<SVGLineElement | null>>>([]);
   const labelsRef = useRef<Array<HTMLDivElement | null>>([]);
   const leadersRef = useRef<Array<SVGPolylineElement | null>>([]);
   const layerRef = useRef<HTMLDivElement>(null);
@@ -331,11 +392,16 @@ export function TravelCallouts({
     const hideStop = (tripIndex: number, stopIndex: number) => {
       const stop = stopsRef.current[tripIndex]?.[stopIndex];
       const label = stopLabelsRef.current[tripIndex]?.[stopIndex];
+      const leader = stopLeadersRef.current[tripIndex]?.[stopIndex];
       if (stop) show(stop, writtenOf(cache, stop), false);
+      if (leader) show(leader, writtenOf(cache, leader), false);
       if (!label) return;
       show(label, writtenOf(cache, label), false);
       const layout = nameLayouts.current.get(label);
-      if (layout) layout.shown = 0;
+      if (layout) {
+        layout.shown = 0;
+        layout.spot = -1;
+      }
     };
 
     // Clusters over all trips: the stacked marker, or its fan once open. A fan turned away folds.
@@ -432,48 +498,153 @@ export function TravelCallouts({
       const atEnds = stopsAtEnds[index];
       points.forEach((point, stopIndex) => place(stopsRef.current[index]?.[stopIndex], point, stopShown));
 
-      // Names, the hovered stop's first, then in the order visited: each keeps its side while it has room there.
-      const hovered = stops.findIndex((stop) => stop.id === hoveredStop);
-      const order = points.map((_, stopIndex) => stopIndex);
-      if (hovered > 0) order.unshift(...order.splice(hovered, 1));
-      // A stop's mark, its diamond or the route's hex standing in for it, and how far out its name starts.
+      // Names, in the order visited. A stop's mark, its diamond or the route's hex standing in for it, and how far
+      // out its name starts.
       const markOf = (stopIndex: number) => tripMarkerSize / (atEnds[stopIndex] ? 2 : 4);
       const nameX = (stopIndex: number) => (atEnds[stopIndex] ? markOf(stopIndex) + NAME_GAP : STOP_NAME_X);
       const diamonds = points.map((point, stopIndex) => {
         const mark = markOf(stopIndex) + NAME_GAP;
         return {left: point.x - mark, right: point.x + mark, top: point.y - mark, bottom: point.y + mark};
       });
-      const taken: Box[] = [];
+      // The way the stops run on screen (their main axis) and its normal, upward: a crowded name goes out across
+      // the line, on the side its stop already stands, else alternately, and out along it as far as the stop stands
+      // toward an end (the ends' names go out past them).
+      const front = points.filter((point) => point.front);
+      const cx = front.reduce((sum, point) => sum + point.x, 0) / Math.max(front.length, 1);
+      const cy = front.reduce((sum, point) => sum + point.y, 0) / Math.max(front.length, 1);
+      let sxx = 0;
+      let syy = 0;
+      let sxy = 0;
+      front.forEach((point) => {
+        sxx += (point.x - cx) ** 2;
+        syy += (point.y - cy) ** 2;
+        sxy += (point.x - cx) * (point.y - cy);
+      });
+      const angle = 0.5 * Math.atan2(2 * sxy, sxx - syy);
+      const axis = {x: Math.cos(angle), y: Math.sin(angle)};
+      const normal = axis.x >= 0 ? {x: axis.y, y: -axis.x} : {x: -axis.y, y: axis.x};
+      const reachOf = (point: ScreenPoint) => (point.x - cx) * axis.x + (point.y - cy) * axis.y;
+      const span = Math.max(...front.map((point) => Math.abs(reachOf(point))), 1);
+      const sheetTop = size.width < PHONE_WIDTH
+        ? document.querySelector('.travel-sheet')?.getBoundingClientRect().top : undefined;
+      const bounds: Box = {
+        left: NAME_EDGE, right: size.width - NAME_EDGE, top: NAME_TOP, bottom: (sheetTop ?? size.height) - NAME_EDGE,
+      };
       const step = 1 - Math.exp(-NAME_RATE * Math.min(delta, 1 / 30));
-      order.forEach((stopIndex) => {
+      // Each shown name's candidate spots, cost and how readable each is: 2 off the other diamonds and nearer its own
+      // stop than any other, 1 only off the other diamonds, 0 neither.
+      const candidates = points.map((point, stopIndex) => {
+        const label = stopLabelsRef.current[index]?.[stopIndex];
+        if (!label || !point.front || fadeOf(point.facing) * stopShown <= 0.01) return null;
+        let layout = nameLayouts.current.get(label);
+        if (!layout) {
+          nameLayouts.current.set(label, layout = {width: NaN, spot: -1, dx: 0, dy: 0, ax: 0, ay: 0, shown: 0});
+        }
+        if (Number.isNaN(layout.width)) layout.width = label.offsetWidth;
+        const across = (point.x - cx) * normal.x + (point.y - cy) * normal.y;
+        const along = reachOf(point) / span;
+        const side = Math.abs(across) > 8 ? Math.sign(across) : stopIndex % 2 ? -1 : 1;
+        const tx = normal.x * side + axis.x * along;
+        const ty = normal.y * side + axis.y * along;
+        const length = Math.hypot(tx, ty);
+        const spots = nameSpots(point.x, point.y, nameX(stopIndex), layout.width, {x: tx / length, y: ty / length});
+        const inside = spots.map(({box}) => box.left >= bounds.left && box.right <= bounds.right
+          && box.top >= bounds.top && box.bottom <= bounds.bottom);
+        const others = (at: number) => at !== stopIndex && points[at].front;
+        const costs = spots.map(({ax, ay, cost}) => cost + (diamonds.some(
+          (diamond, at) => others(at) && crosses(diamond, point.x, point.y, ax, ay)) ? NAME_CROSS : 0));
+        const readable = spots.map(({box}) => {
+          const padded = pad(box);
+          if (diamonds.some((diamond, at) => others(at) && overlaps(padded, diamond))) return 0;
+          // Near another mark a name must be nearer its own; further off, its leader says whose it is.
+          const own = distanceTo(box, point.x, point.y);
+          return diamonds.some((_, at) => {
+            const other = distanceTo(box, points[at].x, points[at].y);
+            return others(at) && other < own + NAME_GAP && other < markOf(at) + NAME_NEAR;
+          }) ? 1 : 2;
+        });
+        return {point, spots, inside, costs, readable, held: layout.spot};
+      });
+      // Every name in the order visited takes the cheapest spot with room (on screen, off the names and leaders
+      // placed so far, its leader clear of those names), the most readable kind there is down to `least`; it keeps
+      // its spot while that is as readable and not much dearer. Returns the spots, -1 where a name found no room.
+      const arrange = (least: number) => {
+        const taken: Box[] = [];
+        const leaders: Array<[number, number, number, number]> = [];
+        return candidates.map((candidate) => {
+          if (!candidate) return -1;
+          const {point, spots, inside, costs, readable, held} = candidate;
+          const roomy = ({box, ax, ay}: NameSpot, at: number) => {
+            const padded = pad(box);
+            return inside[at]
+              && !taken.some((other) => overlaps(padded, other) || crosses(other, point.x, point.y, ax, ay))
+              && !leaders.some(([x1, y1, x2, y2]) => crosses(padded, x1, y1, x2, y2));
+          };
+          let best = -1;
+          for (let level = 2; level >= least && best < 0; level--) {
+            spots.forEach((spot, at) => {
+              if (readable[at] >= level && (best < 0 || costs[at] < costs[best]) && roomy(spot, at)) best = at;
+            });
+          }
+          if (best >= 0 && held >= 0 && readable[held] >= readable[best] && costs[held] <= costs[best] + NAME_TURN
+            && roomy(spots[held], held)) best = held;
+          if (best >= 0) {
+            taken.push(pad(spots[best].box));
+            leaders.push([point.x, point.y, spots[best].ax, spots[best].ay]);
+          }
+          return best;
+        });
+      };
+      // Readable names if they all fit so, else plainer ones: every name shown comes first.
+      const fits = (chosen: number[]) => chosen.every((spot, at) => spot >= 0 || !candidates[at]);
+      let chosen = arrange(2);
+      if (!fits(chosen)) chosen = arrange(1);
+      if (!fits(chosen)) chosen = arrange(0);
+      points.forEach((point, stopIndex) => {
         const label = stopLabelsRef.current[index]?.[stopIndex];
         if (!label) return;
-        const point = points[stopIndex];
+        const candidate = candidates[stopIndex];
+        const visible = Boolean(candidate);
         let layout = nameLayouts.current.get(label);
-        if (!layout) nameLayouts.current.set(label, layout = {width: NaN, side: 1, shown: 0});
-        let fits = false;
-        if (point.front && fadeOf(point.facing) * stopShown > 0.01) {
-          if (Number.isNaN(layout.width)) layout.width = label.offsetWidth;
-          const boxOf = (side: 1 | -1): Box => {
-            const left = side > 0 ? point.x + nameX(stopIndex) : point.x - nameX(stopIndex) - layout.width;
-            return {
-              left: left - NAME_GAP, right: left + layout.width + NAME_GAP,
-              top: point.y - TITLE_ROW / 2 - NAME_GAP, bottom: point.y + TITLE_ROW / 2 + NAME_GAP,
-            };
-          };
-          const free = (box: Box) => !taken.some((other) => overlaps(box, other))
-            && !diamonds.some((diamond, at) => at !== stopIndex && points[at].front && overlaps(box, diamond));
-          const side = ([layout.side, layout.side > 0 ? -1 : 1] as const).find((candidate) => free(boxOf(candidate)));
-          // The hovered stop is always named, on its side, over whatever it covers.
-          if (side || stopIndex === hovered) {
-            layout.side = side ?? layout.side;
-            taken.push(boxOf(layout.side));
-            fits = true;
+        if (!layout) {
+          nameLayouts.current.set(label, layout = {width: NaN, spot: -1, dx: 0, dy: 0, ax: 0, ay: 0, shown: 0});
+        }
+        if (candidate) {
+          layout.spot = chosen[stopIndex];
+          if (layout.spot >= 0) {
+            const spot = candidate.spots[layout.spot];
+            layout.dx = spot.box.left - point.x;
+            layout.dy = spot.box.top - point.y;
+            layout.ax = spot.ax - point.x;
+            layout.ay = spot.ay - point.y;
           }
         }
-        layout.shown += ((fits ? 1 : 0) - layout.shown) * step;
-        const dx = layout.side > 0 ? nameX(stopIndex) : -nameX(stopIndex) - layout.width;
-        place(label, point, stopShown * layout.shown, dx, -TITLE_ROW / 2);
+        const placed = visible && layout.spot >= 0;
+        layout.shown += ((placed ? 1 : 0) - layout.shown) * step;
+        const shown = stopShown * layout.shown;
+        place(label, point, shown, layout.dx, layout.dy);
+
+        // Its leader, from just off the mark to the name, once the name stands out from it.
+        const leader = stopLeadersRef.current[index]?.[stopIndex];
+        if (!leader) return;
+        const last = writtenOf(cache, leader);
+        const reach = Math.hypot(layout.ax, layout.ay);
+        const clear = markOf(stopIndex) + 2;
+        const lit = placed && reach > nameX(stopIndex) + 6 ? fadeOf(point.facing) * shown : 0;
+        show(leader, last, lit > 0.01);
+        if (lit <= 0.01) return;
+        const x1 = round2(point.x + (layout.ax / reach) * clear);
+        const y1 = round2(point.y + (layout.ay / reach) * clear);
+        const x2 = round2(point.x + layout.ax);
+        const y2 = round2(point.y + layout.ay);
+        if (last.x !== x1 || last.y !== y1 || last.x2 !== x2 || last.y2 !== y2) {
+          leader.setAttribute('x1', String(x1));
+          leader.setAttribute('y1', String(y1));
+          leader.setAttribute('x2', String(x2));
+          leader.setAttribute('y2', String(y2));
+          Object.assign(last, {x: x1, y: y1, x2, y2});
+        }
+        fade(leader, last, round3(lit));
       });
     });
   }, 0.3);
@@ -518,6 +689,15 @@ export function TravelCallouts({
               key={trips[member].id}
               ref={(node) => {
                 fanLinesRef.current[member] = node;
+              }}
+            />
+          )))}
+          {trips.flatMap((trip, index) => (trip.stops ?? []).map((stop, stopIndex) => (
+            <line
+              className="travel-stop-leader"
+              key={`${trip.id}/${stop.id}`}
+              ref={(node) => {
+                (stopLeadersRef.current[index] ??= [])[stopIndex] = node;
               }}
             />
           )))}

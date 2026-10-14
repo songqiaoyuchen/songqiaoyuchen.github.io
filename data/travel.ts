@@ -105,8 +105,7 @@ const ALL_TRIPS: readonly Trip[] = [
     galleries: [
       {id: 'sichuan', title: 'Sichuan'},
       {id: 'tibet', title: 'Tibet'},
-    ],
-    stories: [{title: 'Placeholder: the road to Lhasa', date: '2026-06-12'}],
+    ]
   },
   {
     id: 'triple-crown',
@@ -126,6 +125,9 @@ const ALL_TRIPS: readonly Trip[] = [
       {id: 'trolltunga', name: 'Trolltunga', lonLat: [6.74, 60.12]},
       {id: 'bergen', name: 'Bergen', lonLat: [5.32, 60.39]},
     ],
+    galleries: [
+      {id: 'hikes-city', title: 'Hikes and City'},
+    ]
   },
   {
     id: 'london',

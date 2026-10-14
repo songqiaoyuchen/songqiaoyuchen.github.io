@@ -97,7 +97,7 @@
       "height": 2400,
       "date": "2026-05-21",
       "location": "Tagong Monastery",
-      "description": "Local legend says that when Princess Wencheng was traveling to Tibet, the life-sized statue of a 12-year-old Sakyamuni Buddha she was carrying miraculously became immovable here until a replica was left behind in this temple. Tibetans believe that if you cannot make the pilgrimage all the way to Lhasa, worshipping at Tagong Monastery yields the exact same spiritual merit."
+      "description": "Local legend says that when Princess Wencheng was traveling to Tibet, the life-sized statue of a 12-year-old Sakyamuni Buddha she was carrying miraculously became immovable here until a replica was left behind. Tibetans believe that if you cannot make the pilgrimage all the way to Lhasa, worshipping at Tagong Monastery yields the exact same spiritual merit."
     },
     {
       "src": "/travel/photos/g318/sichuan/2026-05-21_155929.webp",
@@ -124,7 +124,7 @@
       "height": 2400,
       "date": "2026-05-23",
       "location": "Yajiang",
-      "description": "3000km road sign of G318, filled with messages from cyclists. This stretch is the most steep 10km of the journey, averaging more 9-10% gradient."
+      "description": "3000km road sign of G318, filled with messages from cyclists. This stretch is the most steep 10km of the journey, averaging about 9-10% gradient."
     },
     {
       "src": "/travel/photos/g318/sichuan/2026-05-23_205337.webp",
@@ -151,7 +151,7 @@
       "height": 2400,
       "date": "2026-05-25",
       "location": "Honglongxiang",
-      "description": "Yak sign on the way to Litang Tunnel."
+      "description": "Yak sign on the way to Litang."
     },
     {
       "src": "/travel/photos/g318/sichuan/2026-05-25_192000.webp",
@@ -200,5 +200,133 @@
     }
   ],
   "g318/tibet": [],
-  "marseille/city": []
+  "marseille/city": [],
+  "triple-crown/hikes-city": [
+    {
+      "src": "/travel/photos/triple-crown/hikes-city/2026-08-21_185852.webp",
+      "thumb": "/travel/photos/triple-crown/hikes-city/thumbs/2026-08-21_185852.webp",
+      "width": 1800,
+      "height": 2400,
+      "date": "2026-08-21",
+      "location": "Trondheim",
+      "description": "Rainbow on the way to the airport."
+    },
+    {
+      "src": "/travel/photos/triple-crown/hikes-city/2026-08-22_113500.webp",
+      "thumb": "/travel/photos/triple-crown/hikes-city/thumbs/2026-08-22_113500.webp",
+      "width": 1280,
+      "height": 1707,
+      "date": "2026-08-22",
+      "location": "Strand",
+      "description": "Me at Preikestolen."
+    },
+    {
+      "src": "/travel/photos/triple-crown/hikes-city/2026-08-22_120152.webp",
+      "thumb": "/travel/photos/triple-crown/hikes-city/thumbs/2026-08-22_120152.webp",
+      "width": 1830,
+      "height": 2400,
+      "date": "2026-08-22",
+      "location": "Strand",
+      "description": "Looking out over Lysefjord on Preikestolen."
+    },
+    {
+      "src": "/travel/photos/triple-crown/hikes-city/2026-08-22_170409.webp",
+      "thumb": "/travel/photos/triple-crown/hikes-city/thumbs/2026-08-22_170409.webp",
+      "width": 2400,
+      "height": 1800,
+      "date": "2026-08-22",
+      "location": "Stavanger",
+      "description": ""
+    },
+    {
+      "src": "/travel/photos/triple-crown/hikes-city/2026-08-22_173115.webp",
+      "thumb": "/travel/photos/triple-crown/hikes-city/thumbs/2026-08-22_173115.webp",
+      "width": 1800,
+      "height": 2400,
+      "date": "2026-08-22",
+      "location": "Stavanger",
+      "description": "St. Petri Church."
+    },
+    {
+      "src": "/travel/photos/triple-crown/hikes-city/2026-08-23_103644.webp",
+      "thumb": "/travel/photos/triple-crown/hikes-city/thumbs/2026-08-23_103644.webp",
+      "width": 1800,
+      "height": 2400,
+      "date": "2026-08-23",
+      "location": "Kjerag",
+      "description": "Hiking to Kjeragbolten."
+    },
+    {
+      "src": "/travel/photos/triple-crown/hikes-city/2026-08-23_123031.webp",
+      "thumb": "/travel/photos/triple-crown/hikes-city/thumbs/2026-08-23_123031.webp",
+      "width": 1357,
+      "height": 2400,
+      "date": "2026-08-23",
+      "location": "Kjerag",
+      "description": "At Kjeragbolten."
+    },
+    {
+      "src": "/travel/photos/triple-crown/hikes-city/2026-08-23_141836.webp",
+      "thumb": "/travel/photos/triple-crown/hikes-city/thumbs/2026-08-23_141836.webp",
+      "width": 1769,
+      "height": 2400,
+      "date": "2026-08-23",
+      "location": "Kjerag",
+      "description": "Sheep on the way down from Kjerag."
+    },
+    {
+      "src": "/travel/photos/triple-crown/hikes-city/2026-08-24_113205.webp",
+      "thumb": "/travel/photos/triple-crown/hikes-city/thumbs/2026-08-24_113205.webp",
+      "width": 2400,
+      "height": 1800,
+      "date": "2026-08-24",
+      "location": "Bokn",
+      "description": "Ferry transfer to Odda."
+    },
+    {
+      "src": "/travel/photos/triple-crown/hikes-city/2026-08-25_053530.webp",
+      "thumb": "/travel/photos/triple-crown/hikes-city/thumbs/2026-08-25_053530.webp",
+      "width": 1800,
+      "height": 2400,
+      "date": "2026-08-25",
+      "location": "Odda",
+      "description": "Early morning in Odda."
+    },
+    {
+      "src": "/travel/photos/triple-crown/hikes-city/2026-08-25_121041.webp",
+      "thumb": "/travel/photos/triple-crown/hikes-city/thumbs/2026-08-25_121041.webp",
+      "width": 2400,
+      "height": 1800,
+      "date": "2026-08-25",
+      "location": "Ullensvang",
+      "description": "Me at Trolltunga."
+    },
+    {
+      "src": "/travel/photos/triple-crown/hikes-city/2026-08-25_150505.webp",
+      "thumb": "/travel/photos/triple-crown/hikes-city/thumbs/2026-08-25_150505.webp",
+      "width": 1800,
+      "height": 2400,
+      "date": "2026-08-25",
+      "location": "Ullensvang",
+      "description": "Cute dog on the way down from Trolltunga."
+    },
+    {
+      "src": "/travel/photos/triple-crown/hikes-city/2026-08-26_143457.webp",
+      "thumb": "/travel/photos/triple-crown/hikes-city/thumbs/2026-08-26_143457.webp",
+      "width": 2400,
+      "height": 1800,
+      "date": "2026-08-26",
+      "location": "Bergen",
+      "description": "The iconic wooden buildings are packed tightly at Bryggen."
+    },
+    {
+      "src": "/travel/photos/triple-crown/hikes-city/2026-08-26_155224.webp",
+      "thumb": "/travel/photos/triple-crown/hikes-city/thumbs/2026-08-26_155224.webp",
+      "width": 2400,
+      "height": 1800,
+      "date": "2026-08-26",
+      "location": "Bergen",
+      "description": "Souvenir shop at Bryggen."
+    }
+  ]
 }
