@@ -1,5 +1,7 @@
 // Barrel for the WebGL scene configs; prefer importing a single file when only one is needed.
-export {CAMERA_CONFIG, getCameraPose, getTravelIndexPose, getTravelTripPose, type CameraPose} from './camera';
+export {
+  CAMERA_CONFIG, CAMERA_JOURNEY_CONFIG, getCameraPose, getPlacesIndexPose, getPlacesLocationPose, type CameraPose,
+} from './camera';
 export {CONTOUR_CONFIG} from './contours';
 export {GLYPH_RAIN_CONFIG} from './glyphRain';
 export {FOG_CONFIG} from './fog';

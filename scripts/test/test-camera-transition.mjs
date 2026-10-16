@@ -1,10 +1,10 @@
 // Checks camera journey rotation, arrival, retargeting and reduced motion (lib/scene/cameraTransition.ts).
 import assert from 'node:assert/strict';
 import {PerspectiveCamera, Vector3} from 'three';
-import {CAMERA_CONFIG, getCameraPose} from '../../config/scene/camera.ts';
+import {CAMERA_JOURNEY_CONFIG, getCameraPose} from '../../config/scene/camera.ts';
 import {CameraTransition} from '../../lib/scene/cameraTransition.ts';
 
-const seconds = CAMERA_CONFIG.transitionSeconds;
+const seconds = CAMERA_JOURNEY_CONFIG.default;
 const pose = (id, mobile = false) => {
   const value = getCameraPose(id, mobile);
   return {position: new Vector3(...value.position), lookAt: new Vector3(...value.lookAt)};

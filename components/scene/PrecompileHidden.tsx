@@ -1,4 +1,4 @@
-// Compiles the shaders of layers that mount hidden (the Travel globe and its lights, trails, rings and stars;
+// Compiles the shaders of layers that mount hidden (the Places globe and its lights, trails, rings and stars;
 // the About map) while the scene is quiet, so their first visible frame does not link programs on the main
 // thread in the middle of a camera journey. The intro's compile (SceneReadySignal) only reaches what is visible.
 'use client';

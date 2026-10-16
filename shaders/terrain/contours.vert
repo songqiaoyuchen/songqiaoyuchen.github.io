@@ -1,7 +1,7 @@
 // Contour tubes: lifts each line onto the displaced terrain and carries arc length for the pulse; on the intro,
 // reads how far the reveal's wave is past each point.
 // With uMinPixels set (About's map), distant tubes keep a minimum on-screen radius and dim instead of breaking up.
-// On the way to Travel (uMorph) the homepage lines ride onto the globe with the terrain (the same wrap as
+// On the way to Places (uMorph) the homepage lines ride onto the globe with the terrain (the same wrap as
 // terrain.vert, about the same pivot), their tubes shrinking with it down to a minimum on-screen radius.
 #include <fog_pars_vertex>
 

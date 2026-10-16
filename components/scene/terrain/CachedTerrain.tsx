@@ -59,8 +59,8 @@ type CachedTerrainProps = {
   /** The cache itself: the fogged terrain with its edge fade as alpha (the globe composites it over its ground). */
   onColorTextureChange: (texture: Texture | null) => void;
   terrainSettings: TerrainControlValues;
-  /** The globe's colours, for the terrain riding to Travel. */
-  travelLook: {baseColor: string; lineColor: string; landTint: number; shade: number};
+  /** The globe's colours, for the terrain riding to Places. */
+  placesLook: {baseColor: string; lineColor: string; landTint: number; shade: number};
 };
 
 /**
@@ -78,7 +78,7 @@ export function CachedTerrain({
   onDepthTextureChange,
   onColorTextureChange,
   terrainSettings,
-  travelLook,
+  placesLook,
 }: CachedTerrainProps) {
   const scene = useMemo(() => new Scene(), []);
   const {capture} = useArtCapture();
@@ -183,18 +183,18 @@ export function CachedTerrain({
       if (!values.uRevealFog.value.equals(fogDistance.set(near, far))) dirty.current = true;
       values.uRevealFog.value.copy(fogDistance);
     }
-    // The Travel morph reshapes the terrain every frame it runs, and the patch turns with the globe.
-    const {travelMorph} = frameState;
-    if (travelMorph !== renderedMorph.current || (travelMorph > 0 && travelMorph < 1)) dirty.current = true;
-    renderedMorph.current = travelMorph;
+    // The Places morph reshapes the terrain every frame it runs, and the patch turns with the globe.
+    const {placesMorph} = frameState;
+    if (placesMorph !== renderedMorph.current || (placesMorph > 0 && placesMorph < 1)) dirty.current = true;
+    renderedMorph.current = placesMorph;
     // The intro's descent lights the ground up frame by frame.
     const {introDescent} = frameState;
     if (introDescent !== renderedDescent.current) dirty.current = true;
     renderedDescent.current = introDescent;
     // On the globe (morph 1) the terrain has shrunk away: the cache holds only its clear, the same from any
-    // camera, so Travel's camera journeys need not redraw it.
+    // camera, so Places's camera journeys need not redraw it.
     const cameraRevision = frameState.revision;
-    const cameraMoved = renderedCameraRevision.current !== cameraRevision && travelMorph < 1;
+    const cameraMoved = renderedCameraRevision.current !== cameraRevision && placesMorph < 1;
     if (!dirty.current && !cameraMoved) return;
 
     renderTerrain(gl, scene, camera, target);
@@ -216,7 +216,7 @@ export function CachedTerrain({
         <>
           <color attach="background" args={[FOG_CONFIG.color]} />
           <SceneFog intro={introSettings} settings={fogSettings} />
-          <TerrainMesh intro={introSettings} look={travelLook} settings={terrainSettings} />
+          <TerrainMesh intro={introSettings} look={placesLook} settings={terrainSettings} />
         </>,
         scene,
       )}

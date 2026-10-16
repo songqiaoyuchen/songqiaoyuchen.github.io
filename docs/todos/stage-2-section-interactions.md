@@ -18,7 +18,7 @@ the atmospheric terrain and the navigation's connection to the scene.
 - Apply the accepted [navigation model](stage-2-navigation.md): shared destinations,
   top-nav handover, addressable views, local return, and optional Home navigation.
 - Four distinct experiences share the landscape: [lake exploration](stage-2-lake-exploration.md)
-  reveals a personal letter, [Travel](stage-2-travel.md) explores real geography,
+  reveals a personal letter, [Places](stage-2-places.md) explores real geography,
   [Art](stage-2-art-journey.md) changes the terrain's medium, and
   [About](stage-2-about-path.md) uses a metaphorical experience path.
 - Blog remains unchanged. Projects is limited to the existing navigation work;

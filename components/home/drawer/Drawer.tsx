@@ -30,7 +30,7 @@ export function preloadDrawerPanels() {
   void loadProjectsPanel();
 }
 
-type PreviewSectionId = Exclude<SectionId, 'art' | 'travel'>;
+type PreviewSectionId = Exclude<SectionId, 'art' | 'places'>;
 
 interface DrawerProps {
   activeId: PreviewSectionId | null;

@@ -1,0 +1,313 @@
+// Checks the Places globe maths (lib/scene/places.ts): places on the sphere, turning a place to the camera,
+// the snap servo against a real camera projection, coasting and capture, and track densifying.
+import assert from 'node:assert/strict';
+import {PerspectiveCamera, Vector3} from 'three';
+import {getCameraPose} from '../../config/scene/camera.ts';
+import {PLACES_CONFIG, PLACES_OVERVIEW_CONFIG} from '../../config/scene/places.ts';
+import {
+  advanceGlobe, aimForOffset, aimFromScreen, anglesToward, angularDistance, clusterPlaces, createGlobeState, decodeLines,
+  densifyTrack, encodeLines, facingAngles, focusedLocation, frontPlace, globeQuaternion, graticulePositions,
+  lonLatToUnit, markerScreenFor, nearestPlace, offsetForMarker, planetScale, polylineLength, regionSpread, rideDistance,
+  rideDissolve, rideOntoPlanet, rideShare, releaseGlobe,
+  toGlobeSettings, trackGaps, viewFromCamera,
+} from '../../lib/scene/places.ts';
+import {placeLocationSheet} from '../../components/places/useLocationSheetPlacement.ts';
+import {
+  geoJsonLines, gpxTrack, mercatorTile, sampleRegion, simplifyLine, zoomForResolution,
+} from '../assets/build-places-geo.mjs';
+
+const DEG = Math.PI / 180;
+const center = new Vector3(...PLACES_CONFIG.center);
+const radius = PLACES_CONFIG.radius;
+const places = [[5.279, 44.174], [104.07, 30.67], [-21.9, 64.15], [151.2, -33.87], [-0.13, 51.5]];
+
+// Places sit on the unit sphere; north is up, longitude 0 faces +Z, east is +X.
+assert.ok(Math.abs(lonLatToUnit([0, 0]).distanceTo(new Vector3(0, 0, 1))) < 1e-12);
+assert.ok(Math.abs(lonLatToUnit([90, 0]).distanceTo(new Vector3(1, 0, 0))) < 1e-12);
+assert.ok(Math.abs(lonLatToUnit([0, 90]).distanceTo(new Vector3(0, 1, 0))) < 1e-12);
+assert.ok(Math.abs(angularDistance([0, 0], [90, 0]) - 90) < 1e-9);
+assert.ok(Math.abs(angularDistance([0, 0], [0, 45]) - 45) < 1e-9);
+
+// Clusters chain near places: Marseille, Ventoux and Alpe d'Huez share one marker (Marseille to Alpe d'Huez is
+// over the threshold but both are near Ventoux); Zurich and London stand alone.
+const marseille = [5.37, 43.3];
+const ventoux = [5.279, 44.174];
+const huez = [6.07, 45.09];
+const zurich = [8.54, 47.37];
+const london = [-0.13, 51.51];
+assert.deepEqual(clusterPlaces([london, marseille, ventoux, huez, zurich], 1.5), [[0], [1, 2, 3], [4]]);
+assert.deepEqual(clusterPlaces([huez, london, marseille], 1.5), [[0], [1], [2]]);
+assert.deepEqual(clusterPlaces([marseille, ventoux], 0), [[0], [1]]);
+
+function cameraAt(pose, aspect = 1.6) {
+  const camera = new PerspectiveCamera(38, aspect, 0.1, 100);
+  camera.position.fromArray(pose.position);
+  camera.lookAt(new Vector3(...pose.lookAt));
+  camera.updateMatrixWorld(true);
+  return camera;
+}
+
+// A camera looking straight at the globe's centre: facingAngles turns any place to the screen's centre.
+const straight = cameraAt({position: [-4, 19, -9], lookAt: PLACES_CONFIG.center});
+const view = viewFromCamera(center, straight.position);
+for (const place of places) {
+  const {yaw, pitch} = facingAngles(place, view);
+  const world = lonLatToUnit(place).multiplyScalar(radius).applyQuaternion(globeQuaternion(yaw, pitch, view))
+    .add(center);
+  const seen = world.clone().project(straight);
+  assert.ok(Math.abs(seen.x) < 1e-6 && Math.abs(seen.y) < 1e-6, `faces the camera: ${place}`);
+  // ...and reads back as the place in front.
+  const front = frontPlace(yaw, pitch, view);
+  assert.ok(angularDistance(front, place) < 1e-6, `front place: ${place}`);
+}
+
+// nearestPlace honours the capture angle.
+assert.equal(nearestPlace(places, [4, 45], 35), 0);
+assert.equal(nearestPlace(places, [60, 10], 35), -1);
+assert.equal(nearestPlace(places, [60, 10], 360), 1);
+
+// The servo lands a place on an off-centre screen point from the real Places pose, from either side of the globe,
+// high latitudes included.
+const placesCamera = cameraAt(getCameraPose('places'));
+const placesView = viewFromCamera(center, placesCamera.position);
+const settings = toGlobeSettings({...PLACES_OVERVIEW_CONFIG, maxPitch: PLACES_CONFIG.maxPitch});
+// A fixed offset well inside the globe's outline: the configured one is tuned by hand and may sit near its limb.
+const MARKER_OFFSET = [0.25, 0.15];
+const markerScreen = markerScreenFor(placesCamera, center, radius, MARKER_OFFSET);
+const aim = aimForOffset(placesCamera, center, radius, MARKER_OFFSET);
+assert.ok(Math.abs(aim.length() - 1) < 1e-9);
+// The aim is where that screen point meets the sphere, right and up of the globe's centre.
+{
+  const seen = aim.clone().multiplyScalar(radius).add(center).project(placesCamera);
+  assert.ok(Math.abs(seen.x - markerScreen[0]) < 1e-6 && Math.abs(seen.y - markerScreen[1]) < 1e-6);
+  const globe = center.clone().project(placesCamera);
+  assert.ok(seen.x > globe.x && seen.y > globe.y);
+  // A point off the globe aims at its outline.
+  const edge = aimFromScreen(placesCamera, center, radius, [globe.x + 2, globe.y]);
+  assert.ok(Math.abs(edge.length() - 1) < 1e-9);
+}
+const seenAt = (state, index) => lonLatToUnit(places[index]).multiplyScalar(radius)
+  .applyQuaternion(globeQuaternion(state.yaw, state.pitch, placesView)).add(center).project(placesCamera);
+for (const place of places) {
+  const {yaw, pitch} = anglesToward(place, aim, placesView, settings.maxPitch);
+  const world = lonLatToUnit(place).multiplyScalar(radius).applyQuaternion(globeQuaternion(yaw, pitch, placesView))
+    .add(center);
+  assert.ok(world.clone().sub(center).normalize().distanceTo(aim) < 1e-6, `anglesToward reaches the aim: ${place}`);
+}
+for (const [index, startYaw] of [[0, 0], [1, Math.PI], [2, 2.5], [3, -1]]) {
+  const state = createGlobeState(startYaw, 0.3);
+  const input = {dragging: false, locked: index, aim, reducedMotion: false};
+  let frames = 0;
+  while (frames++ < 600 && advanceGlobe(state, 1 / 60, settings, places, placesView, input) !== 'resting');
+  assert.ok(frames < 600, `servo settles on place ${index}`);
+  const seen = seenAt(state, index);
+  assert.ok(Math.abs(seen.x - markerScreen[0]) < 0.01 && Math.abs(seen.y - markerScreen[1]) < 0.01,
+    `place ${index} at the marker point: ${seen.x}, ${seen.y}`);
+  assert.equal(state.active, index);
+  assert.ok(Math.abs(state.pitch) <= settings.maxPitch + 1e-9);
+}
+
+// Reduced motion lands in a few frames.
+{
+  const state = createGlobeState(1, 0);
+  const input = {dragging: false, locked: 4, aim, reducedMotion: true};
+  let frames = 0;
+  while (frames++ < 10 && advanceGlobe(state, 1 / 60, settings, places, placesView, input) !== 'resting');
+  assert.ok(frames <= 10, 'reduced motion settles at once');
+}
+
+// A fast flick coasts past nearby places; a slow one is captured by the nearest within reach.
+{
+  const free = {dragging: false, locked: -1, aim, reducedMotion: false};
+  const fast = createGlobeState(facingAngles(places[0], placesView).yaw, 0);
+  releaseGlobe(fast, 6, 0);
+  let phase = advanceGlobe(fast, 1 / 60, settings, places, placesView, free);
+  assert.equal(phase, 'coasting');
+  const startYaw = fast.yaw;
+  for (let frame = 0; frame < 120 && (phase === 'coasting'); frame++) {
+    phase = advanceGlobe(fast, 1 / 60, settings, places, placesView, free);
+  }
+  assert.ok(Math.abs(fast.yaw - startYaw) > 0.5, 'a flick travels well past the first place');
+
+  const slowFacing = facingAngles(places[1], placesView);
+  const slow = createGlobeState(slowFacing.yaw + 0.25, slowFacing.pitch);
+  releaseGlobe(slow, -0.5, 0);
+  phase = 'coasting';
+  for (let frame = 0; frame < 600 && phase !== 'resting'; frame++) {
+    phase = advanceGlobe(slow, 1 / 60, settings, places, placesView, free);
+  }
+  assert.equal(phase, 'resting');
+  assert.equal(slow.active, 1, 'a slow release lands on the nearest place');
+}
+
+// With nothing in reach the globe comes to rest free, then drifts after the idle time; a drag clears everything.
+{
+  const free = {dragging: false, locked: -1, aim, reducedMotion: false};
+  const state = createGlobeState(facingAngles([60, 10], placesView).yaw, 0);
+  releaseGlobe(state, 0.05, 0);
+  let phase = 'coasting';
+  for (let frame = 0; frame < 600 && phase !== 'resting'; frame++) {
+    phase = advanceGlobe(state, 1 / 60, settings, places, placesView, free);
+  }
+  assert.equal(state.active, -1);
+  const yawBefore = state.yaw;
+  for (let frame = 0; frame < 60 * 4; frame++) {
+    phase = advanceGlobe(state, 1 / 60, settings, places, placesView, free);
+  }
+  assert.equal(phase, 'drifting');
+  assert.ok(state.yaw > yawBefore);
+  const drag = {...free, dragging: true};
+  assert.equal(advanceGlobe(state, 1 / 60, settings, places, placesView, drag), 'dragging');
+  assert.equal(state.target, -1);
+}
+
+// Pitch never exceeds the limit, from a drag or from coasting.
+{
+  const free = {dragging: false, locked: -1, aim, reducedMotion: false};
+  const state = createGlobeState(0, 0);
+  releaseGlobe(state, 0, 8);
+  for (let frame = 0; frame < 120; frame++) {
+    advanceGlobe(state, 1 / 60, settings, places, placesView, free);
+  }
+  assert.ok(state.pitch <= settings.maxPitch + 1e-9);
+}
+
+// Tracks densify along great circles and stay on the sphere; gaps join consecutive recordings end to start.
+{
+  const track = [[104.07, 30.67], [91.13, 29.65]];
+  const points = densifyTrack(track, 0.5);
+  assert.ok(points.length > 20);
+  points.forEach((point) => assert.ok(Math.abs(point.length() - 1) < 1e-9));
+  assert.ok(Math.abs(polylineLength(points) - angularDistance(track[0], track[1]) * DEG) < 1e-3,
+    'about the central angle');
+  const gaps = trackGaps([[[1, 1], [2, 2]], [[5, 5], [6, 6]], [[9, 9]]]);
+  assert.deepEqual(gaps, [[[2, 2], [5, 5]], [[6, 6], [9, 9]]]);
+  assert.deepEqual(trackGaps([[[1, 1]]]), []);
+}
+
+// Coastline files round-location (to a hundredth of a degree) and come back as line segments; the bake script
+// simplifies on the sphere and reads GPX recordings in order.
+{
+  const lines = [[[0, 0], [1, 0.5], [2, 1]], [[100.123456, -20.5]], [[-179.99, 89.9], [179.99, 89.9]]];
+  const encoded = encodeLines(lines);
+  assert.equal(encoded.length, (3 + 1 + 2 + 3) * 2);
+  const segments = decodeLines(encoded);
+  // Two segments from the first line, none from the single point, one from the last: 3 segments * 6 values.
+  assert.equal(segments.length, 3 * 6);
+  const expected = lonLatToUnit([1, 0.5]);
+  assert.ok(Math.abs(segments[3] - expected.x) < 1e-3 && Math.abs(segments[4] - expected.y) < 1e-3);
+  assert.ok(graticulePositions(15).length > 0);
+
+  const wiggle = [[0, 0], [0.5, 0.001], [1, 0], [1.5, 0.3], [2, 0]];
+  assert.deepEqual(simplifyLine(wiggle, 1), [[0, 0], [1, 0], [1.5, 0.3], [2, 0]]);
+  assert.equal(simplifyLine(wiggle, 1000).length, 2);
+  assert.deepEqual(geoJsonLines({type: 'FeatureCollection', features: [
+    {type: 'Feature', geometry: {type: 'LineString', coordinates: [[1, 2], [3, 4]]}},
+    {type: 'Feature', geometry: {type: 'Polygon', coordinates: [[[0, 0], [1, 0], [1, 1], [0, 0]]]}},
+  ]}), [[[1, 2], [3, 4]], [[0, 0], [1, 0], [1, 1], [0, 0]]]);
+  const gpx = '<gpx><trk><trkseg><trkpt lat="30.67" lon="104.07"><ele>500</ele></trkpt>'
+    + '<trkpt lon="103.5" lat="30.2"/></trkseg></trk></gpx>';
+  assert.deepEqual(gpxTrack(gpx), [[104.07, 30.67], [103.5, 30.2]]);
+}
+
+// The zoom-out's planet: Earth-sized for the landscape's claimed width, shrinking geometrically to the globe.
+{
+  const start = planetScale(20, 22, 3, 0);
+  assert.ok(Math.abs(start.metresPerUnit - 909.09) < 0.01);
+  assert.ok(Math.abs(start.startRadius - 7008.1) < 0.1);
+  assert.equal(start.scale, 1);
+  const end = planetScale(20, 22, 3, 1);
+  assert.ok(Math.abs(end.radius - 3) < 1e-9);
+  assert.ok(Math.abs(end.scale - 3 / start.startRadius) < 1e-12);
+  const half = planetScale(20, 22, 3, 0.5);
+  assert.ok(Math.abs(half.radius - Math.sqrt(3 * start.startRadius)) < 1e-6, 'geometric midpoint');
+  assert.ok(planetScale(60, 22, 3, 0).startRadius < start.startRadius, 'a wider landscape means a smaller planet');
+  // The landing point along a ray: the camera stands exactly the asked height above the planet placed through it.
+  for (const [radius, cosine, height] of [[7008, -0.4, 30], [3, -0.02, 1.7], [50, 0.1, 2], [600, -0.9, 0.5]]) {
+    const along = rideDistance(radius, cosine, height);
+    assert.ok(along > 0);
+    // Camera at the origin looking along +z, the surface normal at the given cosine to the ray, in the x-z plane.
+    const normal = [Math.sqrt(1 - cosine * cosine), 0, cosine];
+    const centre = [-normal[0] * radius, 0, along - normal[2] * radius];
+    const distance = Math.hypot(centre[0], centre[1], centre[2]);
+    assert.ok(Math.abs(distance - (radius + height)) < 1e-6 * (radius + height), `outside at ${radius}`);
+  }
+  assert.ok(Math.abs(rideDistance(7008, -1, 30) - 30) < 1e-9, 'straight down, the ground is the height away');
+  // The 600 km tile at 1024 px is read 33 texels wide by its edge, one global-map texel (2048 px round the equator).
+  assert.ok(Math.abs(regionSpread(600, 1024, 1 / 2048) - 33.36) < 0.01);
+  // Terrarium tiles: Web Mercator and the zoom for a wanted resolution.
+  const tile = mercatorTile(0, 0, 1);
+  assert.ok(Math.abs(tile.x - 1) < 1e-12 && Math.abs(tile.y - 1) < 1e-12);
+  assert.equal(zoomForResolution(600_000 / 1024, 30), 8);
+  const flat = sampleRegion(() => 42, 102, 30, 600, 4);
+  assert.equal(flat.length, 16);
+  assert.ok(flat.every((value) => value === 42));
+}
+
+// A marker offset measured back from the point the aim lands on is the offset asked for.
+{
+  const camera = cameraAt(getCameraPose('places'));
+  const offset = [0.25, 0.15];
+  const marker = center.clone().addScaledVector(aimForOffset(camera, center, radius, offset), radius);
+  const measured = offsetForMarker(camera, center, radius, marker);
+  assert.ok(Math.abs(measured[0] - offset[0]) < 1e-6 && Math.abs(measured[1] - offset[1]) < 1e-6);
+}
+
+// The location panel spans from the globe's centre column to the gutter, never nearer it than the preferred column,
+// with the float's box bounding the globe's outline (a little grown for the glow) and its polygon inside that box.
+{
+  const page = {width: 1280, height: 704, padTop: 96, gutter: 40};
+  const ring = (x, y, r) => ({x, y, points: Array.from({length: 24}, (_, i) =>
+    [x + r * Math.cos(i / 24 * Math.PI * 2), y + r * Math.sin(i / 24 * Math.PI * 2)]).flat()});
+  const placed = placeLocationSheet(ring(300, 900, 950), page, 512);
+  assert.equal(placed.left, 300);
+  assert.equal(placed.width, 1280 - 40 - 300);
+  assert.equal(placed.top, 96);
+  assert.ok(Math.abs(placed.shape.left + placed.shape.width / 2 - (300 - 300)) < 1e-6, 'box centred on the globe');
+  assert.ok(Math.abs(placed.shape.top + placed.shape.height / 2 - (900 - 96)) < 1e-6);
+  assert.ok(placed.shape.width > 1900 && placed.shape.width < 2000, 'grown a little for the glow');
+  assert.equal(placed.shape.polygon.length, 48);
+  assert.ok(placed.shape.polygon.every((value) => value >= -1e-6 && value <= placed.shape.width + 1e-6));
+  const far = placeLocationSheet(ring(1100, 352, 200), page, 512);
+  assert.equal(far.left, 1280 - 40 - 512, 'no nearer the gutter than the column');
+  const offLeft = placeLocationSheet(ring(-100, 352, 200), page, 512);
+  assert.equal(offLeft.left, 40, 'never left of the gutter');
+}
+
+// Focus is where the globe stands alone: the nearest location point within the zone, kept a little past its edge.
+{
+  const locations = [[lonLatToUnit([0, 0])], [lonLatToUnit([40, 0]), lonLatToUnit([30, 0])]];
+  assert.equal(focusedLocation(locations, lonLatToUnit([5, 0]), 22, 5, -1), 0);
+  assert.equal(focusedLocation(locations, lonLatToUnit([20, 0]), 22, 5, -1), 1, 'any point along a route counts');
+  assert.equal(focusedLocation(locations, lonLatToUnit([0, 40]), 22, 5, -1), -1, 'nothing near the centre');
+  assert.equal(focusedLocation(locations, lonLatToUnit([0, 25]), 22, 5, 0), 0, 'kept past the edge');
+  assert.equal(focusedLocation(locations, lonLatToUnit([0, 25]), 22, 5, -1), -1, 'but not taken there');
+  assert.equal(focusedLocation(locations, lonLatToUnit([0, 28]), 22, 5, 0), -1, 'released beyond the margin');
+}
+
+console.log('places globe checks passed');
+
+// The ride wrap: at morph 0 a point stands where it is; wrapped, the pivot lands on the anchor at its own height
+// over the datum (plus the landing elevation) above the planet, east offsets fall to -east and north to -north at
+// the arc scale, and the drawing dissolves between 0.04 and 0.25 of the morph.
+{
+  const patch = {
+    anchor: new Vector3(0, 1, 0), east: new Vector3(1, 0, 0), north: new Vector3(0, 0, -1),
+    center: new Vector3(0, -100, 0), pivot: new Vector3(2, -0.5, -3),
+    radius: 100, scale: 0.5, relief: 0.5, seaUnits: 0.2, datumY: 0.1,
+  };
+  const point = new Vector3(2, 0.6, -3);
+  assert.deepEqual(rideOntoPlanet(point, patch, 0).toArray(), point.toArray());
+  const landed = rideOntoPlanet(point, patch, 0.05);
+  assert.ok(landed.distanceTo(new Vector3(0, 100 + 0.5 * 0.5 + 0.2 * 0.5 - 100, 0)) < 1e-9, String(landed));
+  const eastward = rideOntoPlanet(new Vector3(2 + 10, 0.1, -3), patch, 1);
+  assert.ok(eastward.x < -4 && Math.abs(eastward.z) < 1e-9 && eastward.y < 100 - 100, String(eastward));
+  const northward = rideOntoPlanet(new Vector3(2, 0.1, -3 - 10), patch, 1);
+  assert.ok(Math.abs(northward.x) < 1e-9 && northward.z > 4, String(northward));
+  const halfway = rideOntoPlanet(point, patch, 0.025, point.clone());
+  assert.ok(Math.abs(halfway.y - (point.y + (landed.y - point.y) * rideShare(0.025))) < 1e-9);
+  assert.ok(rideShare(0.025) > 0 && rideShare(0.025) < 1 && rideShare(0.05) === 1);
+  assert.equal(rideDissolve(0), 1);
+  assert.equal(rideDissolve(0.25), 0);
+  assert.ok(rideDissolve(0.1) > 0 && rideDissolve(0.1) < 1);
+}

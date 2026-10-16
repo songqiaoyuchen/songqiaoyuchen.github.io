@@ -16,7 +16,7 @@ const readDevelopmentOption = (name: 'preview' | 'stall') =>
     typeof window !== 'undefined' &&
     new URLSearchParams(window.location.hash.slice(1)).get(name) === '1';
 
-/** On Art and Travel the scene settles straight to ready; Home plays the preloader exit first, the descent when
+/** On Art and Places the scene settles straight to ready; Home plays the preloader exit first, the descent when
  *  the page opened on the overview (`descentWanted`) and motion is allowed. */
 export function useSceneLoading(isArt: boolean, descentWanted: boolean) {
   const [sceneProgress, setSceneProgress] = useState(0);

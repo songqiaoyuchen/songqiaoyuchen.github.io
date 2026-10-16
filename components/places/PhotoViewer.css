@@ -1,0 +1,216 @@
+/* Photo viewer (PhotoViewer.tsx): a full-page dialog over the location. The toolbar, the row of photos sliding across the
+   whole width with arrows at its sides, the caption and the day ruler. usePhotoTrack writes each slide's size,
+   transform and opacity; slides stay hidden until it has. */
+.places-viewer {
+  --places-viewer-ground: rgb(8 9 9 / 97%);
+  --places-viewer-gutter: 5vw;
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  max-width: none;
+  height: 100svh;
+  max-height: none;
+  margin: 0;
+  padding: 24px 0 calc(20px + env(safe-area-inset-bottom, 0px));
+  border: 0;
+  background: var(--places-viewer-ground);
+  color: var(--color-text);
+  font-family: var(--font-krypton), ui-monospace, monospace;
+  overflow: hidden;
+}
+.places-viewer::backdrop {
+  background: rgb(0 0 0 / 85%);
+}
+.places-viewer[open] {
+  display: flex;
+  flex-direction: column;
+  animation: places-rise 240ms ease both;
+}
+.places-viewer :is(a, button):not(.places-link):focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 4px;
+}
+.places-viewer-toolbar {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 0 var(--places-viewer-gutter);
+}
+.places-viewer-count,
+.places-viewer-meta {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: var(--text-label);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+/* The row: edge to edge, fading out at the sides. */
+.places-viewer-track {
+  position: relative;
+  min-height: 0;
+  flex: 1;
+  margin: 16px 0;
+}
+.places-viewer-stage {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  cursor: grab;
+  touch-action: pan-y pinch-zoom;
+  user-select: none;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
+}
+.places-viewer-stage:active {
+  cursor: grabbing;
+}
+.places-viewer-slide {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  opacity: 0;
+  will-change: transform, opacity;
+}
+.places-viewer-slide:not([data-current]) {
+  cursor: pointer;
+}
+.places-viewer-slide img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  -webkit-user-drag: none;
+}
+.places-viewer-step {
+  position: absolute;
+  top: 50%;
+  z-index: 1;
+  width: 48px;
+  height: 72px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-muted);
+  font-family: inherit;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: color var(--duration-ui), opacity var(--duration-ui);
+  translate: 0 -50%;
+}
+.places-viewer-step:hover {
+  color: var(--color-text);
+}
+.places-viewer-step:disabled {
+  opacity: 0;
+  pointer-events: none;
+}
+.places-viewer-step[data-step='previous'] {
+  left: 1.5vw;
+}
+.places-viewer-step[data-step='next'] {
+  right: 1.5vw;
+}
+
+/* The caption: date and place, then the description; it fades in as each photo arrives. It keeps room for the
+   description's lines (PHOTO_VIEWER_CONFIG.description), so the row does not jump between photos with and without
+   one. */
+.places-viewer-caption {
+  --places-viewer-description-line: calc(0.74rem * 1.7);
+  min-height: calc(var(--text-label) * 1.5 + 8px
+    + var(--places-viewer-description-lines, 4) * var(--places-viewer-description-line));
+  flex-shrink: 0;
+  padding: 0 var(--places-viewer-gutter);
+  text-align: center;
+}
+.places-viewer-caption > div {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  animation: places-fade 240ms ease both;
+}
+.places-viewer-meta {
+  line-height: 1.5;
+}
+.places-viewer-meta span {
+  color: var(--color-text);
+}
+/* Its usual measure, or wider for a description too long for the caption's lines (PhotoViewer.tsx), never past the
+   gutters; wrapped lines are evened out. */
+.places-viewer-description {
+  max-width: min(var(--places-viewer-description-measure, 60ch), 100%);
+  margin: 0;
+  text-wrap: balance;
+  color: var(--color-muted);
+  font-size: 0.74rem;
+  line-height: var(--places-viewer-description-line);
+}
+
+/* The ruler: a tick per photo, days divided by a rule; the current tick stands tall in the accent. */
+.places-viewer-ruler {
+  display: flex;
+  height: 28px;
+  flex-shrink: 0;
+  align-items: flex-end;
+  justify-content: safe center;
+  margin-top: 8px;
+  padding: 0 var(--places-viewer-gutter);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.places-viewer-day {
+  display: flex;
+  flex-shrink: 0;
+  padding: 0 5px;
+}
+.places-viewer-day + .places-viewer-day {
+  border-left: 1px solid var(--color-line);
+}
+.places-viewer-ruler button {
+  position: relative;
+  width: 11px;
+  height: 24px;
+  flex-shrink: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+.places-viewer-ruler button::after {
+  position: absolute;
+  bottom: 0;
+  left: 5px;
+  width: 1px;
+  height: 8px;
+  background: var(--color-dim);
+  content: '';
+  transition: height var(--duration-ui), background-color var(--duration-ui);
+}
+.places-viewer-ruler button:hover::after {
+  background: var(--color-text);
+}
+.places-viewer-ruler button[aria-current]::after {
+  height: 20px;
+  background: var(--color-accent);
+}
+
+/* Phones and touch: swipe, no arrows; the photo takes more of the width (PHOTO_VIEWER_CONFIG.frame.narrow). */
+@media (max-width: 767px), (pointer: coarse) {
+  .places-viewer {
+    --places-viewer-gutter: var(--spacing-page-gutter);
+    padding-top: 16px;
+  }
+  .places-viewer-step {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .places-viewer[open],
+  .places-viewer-caption > div {
+    animation: none;
+  }
+}

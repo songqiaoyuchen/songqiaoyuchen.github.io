@@ -1,7 +1,7 @@
-// Land colour shared by the terrain on its way to Travel (terrain.frag), the regional ground (region.frag) and the
+// Land colour shared by the terrain on its way to Places (terrain.frag), the regional ground (region.frag) and the
 // globe (globe.frag), so the three surfaces are one: the dark ground; land a shade lighter and warmer with
 // height; hillshade lit from the map's north-west. Heights are in the elevation map's units (1 at its top,
-// TRAVEL_CONFIG.elevationTopMetres); slopes are the map's (east - west, north - south) over a texel pair, scaled.
+// PLACES_CONFIG.elevationTopMetres); slopes are the map's (east - west, north - south) over a texel pair, scaled.
 // Registered as <land_shading> by lib/scene/landShading.ts.
 const float LAND_SEA = 0.002;
 const float LAND_SLOPE_GAIN = 48.0;

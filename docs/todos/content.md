@@ -21,8 +21,8 @@ Noted 2026-09-29; revisit when relevant material or a design prompt is available
   About/contact navigation coverage is owned by [Navigation](stage-2-navigation.md),
   with the existing fallback access finding in [Accessibility](accessibility.md).
 - [ ] **Blog/Writing naming:** revisit only with a separate content request;
-  Blog remains unchanged in the current experience plans. Travel's placement as
-  a separate section is settled in [Travel](stage-2-travel.md).
+  Blog remains unchanged in the current experience plans. Places's placement as
+  a separate section is settled in [Places](stage-2-places.md).
 - [ ] **Typography:** compare archive/drawer reading hierarchy with representative
   copy. In `styles/tokens.css`, `font-serif` maps to Krypton while article classes
   use a system serif; choose changes through design work.

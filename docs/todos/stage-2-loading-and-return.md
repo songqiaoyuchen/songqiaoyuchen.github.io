@@ -21,7 +21,7 @@ ordinary navigation, and actual waiting without hiding unfinished scene setup.
 
 - Support the accepted [navigation and history behavior](stage-2-navigation.md).
   This tracker owns scene readiness and restoration mechanics, not URL design.
-- Restore the selected trip and globe pose after leaving its media/reading view,
+- Restore the selected location and globe pose after leaving its media/reading view,
   alongside Art's collection/filter/position restoration. Return must not replay
   the section entrance. Transition lengths by origin are owned by Navigation.
 

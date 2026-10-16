@@ -25,27 +25,38 @@ export const CAMERA_CONFIG = {
   // entry is framed from here (ABOUT_PATH_CONFIG phoneFocus*).
   mobileAboutPosition: [8.781, 14.14, -13.918] as Vector3Tuple,
   mobileAboutLookAt: [0.142, 4.762, -1.8] as Vector3Tuple,
-  // Travel looks level at the globe (TRAVEL_CONFIG.center) from the overview's side of the terrain; the
+  // Places looks level at the globe (PLACES_CONFIG.center) from the overview's side of the terrain; the
   // globe sits left of centre on desktop, above centre on phones.
-  travelPosition: [-5.334, 16.786, -14.985] as Vector3Tuple,
-  travelLookAt: [-3.107, 17.258, 0.441] as Vector3Tuple,
-  // A selected trip (desktop): the globe lower left, the trip's text to its right; the globe itself turns the
-  // trip to its marker point (TRAVEL_TRIP_CONFIG.markerOffset).
-  travelTripPosition: [-0.821, 16.188, -4.573] as Vector3Tuple,
-  travelTripLookAt: [-3.736, 24.568, 5.012] as Vector3Tuple,
+  placesPosition: [-5.334, 16.786, -14.985] as Vector3Tuple,
+  placesLookAt: [-3.107, 17.258, 0.441] as Vector3Tuple,
+  // A selected location (desktop): the globe lower left, the location's text to its right; the globe itself turns the
+  // location to its marker point (PLACES_LOCATION_CONFIG.markerOffset).
+  placesLocationPosition: [-0.821, 16.188, -4.573] as Vector3Tuple,
+  placesLocationLookAt: [-3.736, 24.568, 5.012] as Vector3Tuple,
   // Phones (375 × 812 reference): the whole globe and its rings in the upper half, above the peek sheet; with the
-  // trip list pulled up, stepped back and higher, above the open sheet; a trip, close in at the top of the screen,
-  // the trip turned to just above the sheet (TRAVEL_TRIP_CONFIG.phoneMarkerOffset).
-  mobileTravelPosition: [0, 17, -29.5] as Vector3Tuple,
-  mobileTravelLookAt: [0, 15.17, 0] as Vector3Tuple,
-  mobileTravelIndexPosition: [0, 17, -44.4] as Vector3Tuple,
-  mobileTravelIndexLookAt: [0, 9.12, 0] as Vector3Tuple,
-  mobileTravelTripPosition: [0, 17, -12.1] as Vector3Tuple,
-  mobileTravelTripLookAt: [0, 14.27, 0] as Vector3Tuple,
+  // location list pulled up, stepped back and higher, above the open sheet; a location, close in at the top of the
+  // screen, the location turned to just above the sheet (PLACES_LOCATION_CONFIG.phoneMarkerOffset).
+  mobilePlacesPosition: [0, 17, -29.5] as Vector3Tuple,
+  mobilePlacesLookAt: [0, 15.17, 0] as Vector3Tuple,
+  mobilePlacesIndexPosition: [0, 17, -44.4] as Vector3Tuple,
+  mobilePlacesIndexLookAt: [0, 9.12, 0] as Vector3Tuple,
+  mobilePlacesLocationPosition: [0, 17, -12.1] as Vector3Tuple,
+  mobilePlacesLocationLookAt: [0, 14.27, 0] as Vector3Tuple,
   fov: 38,
-  transitionSeconds: 1.8,
-  // Journeys into and out of Art.
-  artTransitionSeconds: 1.5,
+} as const;
+
+// Camera journey durations in seconds, one per journey kind (lib/scene/cameraJourney.ts legKind; CameraRig). The
+// effects riding a journey (the Places morph, Art's flight fog, the globe's turn, the intro's lights) run over it,
+// so they follow. Leva "Camera Journeys" (Art's in "Art Transition") writes them here.
+export const CAMERA_JOURNEY_CONFIG = {
+  default: 1.2, // between the overview, Projects and Blog
+  descent: 1.2, // the homepage intro, from the map pose above the summit down to the overview
+  art: 1.5, // into or out of Art
+  aboutEntry: 1, // between the landscape and the About pose
+  aboutFocus: 0.7, // between entries on the About path
+  placesEntry: 2, // into or out of Places, the landscape shrinking to the globe
+  placesFocus: 1.2, // between Places's overview and a location, either way
+  placesIndex: 0.55, // phones: the location list pulled up or let down (sets Places.css --places-sheet-move)
 } as const;
 
 const CAMERA_POSES: Record<'overview' | SectionId, CameraPose> = {
@@ -69,9 +80,9 @@ const CAMERA_POSES: Record<'overview' | SectionId, CameraPose> = {
     position: CAMERA_CONFIG.aboutPosition,
     lookAt: CAMERA_CONFIG.aboutLookAt,
   },
-  travel: {
-    position: CAMERA_CONFIG.travelPosition,
-    lookAt: CAMERA_CONFIG.travelLookAt,
+  places: {
+    position: CAMERA_CONFIG.placesPosition,
+    lookAt: CAMERA_CONFIG.placesLookAt,
   },
 };
 
@@ -85,20 +96,22 @@ const MOBILE_ABOUT_POSE: CameraPose = {
   lookAt: CAMERA_CONFIG.mobileAboutLookAt,
 };
 
-const MOBILE_TRAVEL_POSE: CameraPose = {
-  position: CAMERA_CONFIG.mobileTravelPosition,
-  lookAt: CAMERA_CONFIG.mobileTravelLookAt,
+const MOBILE_PLACES_POSE: CameraPose = {
+  position: CAMERA_CONFIG.mobilePlacesPosition,
+  lookAt: CAMERA_CONFIG.mobilePlacesLookAt,
 };
 
-/** The camera framing a selected trip. */
-export function getTravelTripPose(isMobile = false): CameraPose {
-  if (isMobile) return {position: CAMERA_CONFIG.mobileTravelTripPosition, lookAt: CAMERA_CONFIG.mobileTravelTripLookAt};
-  return {position: CAMERA_CONFIG.travelTripPosition, lookAt: CAMERA_CONFIG.travelTripLookAt};
+/** The camera framing a selected location. */
+export function getPlacesLocationPose(isMobile = false): CameraPose {
+  if (isMobile) {
+    return {position: CAMERA_CONFIG.mobilePlacesLocationPosition, lookAt: CAMERA_CONFIG.mobilePlacesLocationLookAt};
+  }
+  return {position: CAMERA_CONFIG.placesLocationPosition, lookAt: CAMERA_CONFIG.placesLocationLookAt};
 }
 
-/** Phones only: all trips with the trip list pulled up, the globe stepped back above it. */
-export function getTravelIndexPose(): CameraPose {
-  return {position: CAMERA_CONFIG.mobileTravelIndexPosition, lookAt: CAMERA_CONFIG.mobileTravelIndexLookAt};
+/** Phones only: all locations with the location list pulled up, the globe stepped back above it. */
+export function getPlacesIndexPose(): CameraPose {
+  return {position: CAMERA_CONFIG.mobilePlacesIndexPosition, lookAt: CAMERA_CONFIG.mobilePlacesIndexLookAt};
 }
 
 export function getCameraPose(
@@ -107,6 +120,6 @@ export function getCameraPose(
 ): CameraPose {
   if (sectionId === null && isMobile) return MOBILE_OVERVIEW_POSE;
   if (sectionId === 'about' && isMobile) return MOBILE_ABOUT_POSE;
-  if (sectionId === 'travel' && isMobile) return MOBILE_TRAVEL_POSE;
+  if (sectionId === 'places' && isMobile) return MOBILE_PLACES_POSE;
   return CAMERA_POSES[sectionId ?? 'overview'];
 }

@@ -1,9 +1,9 @@
 // About experience path: a route draped over the ridge through one checkpoint per timeline entry, ending at "Next?".
 // The whole route shows faintly; the part up to the drawer's reading head is drawn bright and blooms like the
 // major contours. Also publishes how to frame each checkpoint from an About pose, for CameraRig (the configured
-// pose, phones having their own, or the one composed with Edit camera). While the Travel morph runs, the route
-// rides onto the globe with the terrain (aboutPath.vert, from the patch frame TravelGlobe publishes) and
-// dissolves as the landscape recedes, so a journey between About and Travel keeps it on the ground. In
+// pose, phones having their own, or the one composed with Edit camera). While the Places morph runs, the route
+// rides onto the globe with the terrain (aboutPath.vert, from the patch frame PlacesGlobe publishes) and
+// dissolves as the landscape recedes, so a journey between About and Places keeps it on the ground. In
 // development, Edit route (AboutPathEditor) reshapes the route and slides the checkpoints along it.
 'use client';
 
@@ -26,7 +26,7 @@ import {ABOUT_STOP_IDS, ABOUT_TIMELINE, formatEntryStart} from '@/data/about';
 import {useReducedMotion} from '@/hooks/useReducedMotion';
 import {getHomeFov} from '@/lib/scene/camera';
 import {buildAboutRoute, getAboutFocusPose, placeAltitudeMarks, type AboutFraming} from '@/lib/scene/aboutPath';
-import {rideDissolve} from '@/lib/scene/travel';
+import {rideDissolve} from '@/lib/scene/places';
 import {useTerrainAssets} from '@/lib/terrain/assets';
 import {
   normalizeRawHeight, sampleHeight, sampleNormalizedHeight, sampleSurfaceHeight,
@@ -207,15 +207,15 @@ export function AboutPath({
     material.uniforms.uUseTerrainDepth.value = terrainDepthTexture ? 1 : 0;
   }, [terrainDepthTexture]);
 
-  // After TravelGlobe (0.1) has placed the patch for the frame, with the terrain and contours (0.2).
+  // After PlacesGlobe (0.1) has placed the patch for the frame, with the terrain and contours (0.2).
   useFrame((_, delta) => {
     const material = materialRef.current;
     if (!material) return;
     const {uDrawn, uVisibility, uMorph} = material.uniforms;
     fade.current = ease(fade.current, visible ? 1 : 0, FADE_RATE, delta, reducedMotion);
-    const {travelMorph, travelPatch: patch} = cameraFrameState.current;
-    const riding = travelMorph > 0 && travelMorph < 1;
-    uMorph.value = riding ? travelMorph : 0;
+    const {placesMorph, placesPatch: patch} = cameraFrameState.current;
+    const riding = placesMorph > 0 && placesMorph < 1;
+    uMorph.value = riding ? placesMorph : 0;
     if (riding) {
       const {uGlobeCenter, uGlobeRadius, uPatchAnchor, uPatchEast, uPatchNorth, uPatchPivot, uPatchScale,
         uPatchRelief, uSeaUnits, uDatumY} = material.uniforms;
@@ -230,7 +230,7 @@ export function AboutPath({
       uSeaUnits.value = patch.seaUnits;
       uDatumY.value = patch.datumY;
     }
-    uVisibility.value = fade.current * (riding ? rideDissolve(travelMorph) : 1);
+    uVisibility.value = fade.current * (riding ? rideDissolve(placesMorph) : 1);
     const progress = Math.min(Math.max(progressRef.current, 0), NEXT_INDEX);
     const segment = Math.min(Math.floor(progress), NEXT_INDEX - 1);
     const {stopFractions} = route;

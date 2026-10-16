@@ -1,5 +1,5 @@
 // Skips the composer render while the frame would be identical to the last one (a still Art gallery, About
-// between checkpoints, a trip at rest), so the GPU idles; the browser keeps showing the last drawn frame until
+// between checkpoints, a location at rest), so the GPU idles; the browser keeps showing the last drawn frame until
 // something changes. Home always draws: its contours pulse and the glyph rain falls.
 'use client';
 

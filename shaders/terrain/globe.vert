@@ -1,9 +1,12 @@
-// Travel globe shell: stands the surface off the sphere by the elevation map (relief) and passes what the
+// Places globe shell: stands the surface off the sphere by the elevation map (relief) and passes what the
 // fragment shader needs: the map coordinate, height, world normal and position. SphereGeometry's u runs from longitude -90° eastward, the equirectangular map from
 // -180°, hence the quarter turn; the map texture repeats horizontally. Inside the regional ground's footprint
 // the finer regional tile supplies the height instead (its colour weight is globe.frag's own, per fragment: this
-// sphere's vertices are too sparse across the tile to carry it). With a trip open (uFocus) the height eases to the
-// elevation summary, the map's broad forms, and the regional tile gives way to it.
+// sphere's vertices are too sparse across the tile to carry it). With a location open (uFocus) the height eases to the
+// elevation summary, the map's broad forms, and the regional tile gives way to it. The open location's lens
+// (placesLens.glsl) moves the map under the sphere: each vertex reads the place it draws, its heights raised there.
+#include <places_lens>
+
 uniform sampler2D uElevation;
 uniform float uHasElevation;
 uniform float uRelief;
@@ -31,8 +34,9 @@ void main() {
   vec3 outward = normalize(position);
   vLocal = outward;
   vMapUv = vec2(uv.x + 0.25, uv.y);
+  vec2 mapUv = vMapUv + lensMapShift(outward);
   float height = uHasElevation > 0.5
-    ? mix(texture2D(uElevation, vMapUv).r, texture2D(uSummary, vMapUv).r, uFocus) : 0.0;
+    ? mix(texture2D(uElevation, mapUv).r, texture2D(uSummary, mapUv).r, uFocus) : 0.0;
   // The regional tile: angular offsets from its centre along its east and north, as a share of its half-width.
   vec2 offset = vec2(dot(outward, uRegionEast), dot(outward, uRegionNorth)) / uRegionHalfAngle;
   vRegionUv = 0.5 + offset * 0.5;
@@ -43,7 +47,7 @@ void main() {
     height = mix(height, texture2D(uRegion, vRegionUv).r * uRegionScale, vRegionWeight);
   }
   vHeight = height;
-  vec3 displaced = position + outward * (height * uRelief * uRadius);
+  vec3 displaced = position + outward * (height * uRelief * uRadius * lensRelief(outward));
   vNormal = normalize(mat3(modelMatrix) * outward);
   vec4 world = modelMatrix * vec4(displaced, 1.0);
   vWorldPosition = world.xyz;

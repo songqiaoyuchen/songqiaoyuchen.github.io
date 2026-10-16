@@ -1,7 +1,7 @@
 // The displaced terrain surface; rendered only into CachedTerrain's offscreen cache.
 // Uses the baked lighting map unless development controls change the lights (then relit live).
-// On the way to Travel it rides onto the globe (terrain.vert), following the camera rig's morph and the patch
-// frame TravelGlobe publishes each frame, and takes the globe's land shading in the globe's colours (terrain.frag).
+// On the way to Places it rides onto the globe (terrain.vert), following the camera rig's morph and the patch
+// frame PlacesGlobe publishes each frame, and takes the globe's land shading in the globe's colours (terrain.frag).
 // On the homepage intro it opens unlit under the contour map and its light comes on as the camera descends.
 'use client';
 
@@ -11,9 +11,9 @@ import {
   Color, MathUtils, PlaneGeometry, ShaderMaterial, UniformsLib, UniformsUtils, Vector2, Vector3, type Texture,
 } from 'three';
 import type {IntroControlValues, TerrainControlValues} from '@/components/scene/controls/useSceneControls';
-import {useRegion} from '@/components/scene/travel/useRegion';
+import {useRegion} from '@/components/scene/places/useRegion';
 import {TERRAIN_MATERIAL_CONFIG, TERRAIN_MESH_CONFIG} from '@/config/scene';
-import {TRAVEL_CONFIG, TRAVEL_OVERVIEW_CONFIG} from '@/config/scene/travel';
+import {PLACES_CONFIG, PLACES_OVERVIEW_CONFIG} from '@/config/scene/places';
 import {
   requestTerrainGradient,
   useTerrainAssets,
@@ -29,7 +29,7 @@ type TerrainMeshProps = {
   settings: TerrainControlValues;
   /** The intro's descent: over which span of it the light comes on. */
   intro: IntroControlValues;
-  /** The globe's colours, which the terrain takes on the way to Travel. */
+  /** The globe's colours, which the terrain takes on the way to Places. */
   look: {baseColor: string; lineColor: string; landTint: number; shade: number};
 };
 
@@ -185,25 +185,25 @@ export function TerrainMesh({settings, intro, look}: TerrainMeshProps) {
     uRegionTexel:   { value: new Vector2(1 / 1024, 1 / 1024) },
     uRegionMaxMetres: { value: 8000 },
     uRegionScale:   { value: 1 },
-    uRegionSlope:   { value: TRAVEL_CONFIG.regionSlopeGain },
+    uRegionSlope:   { value: PLACES_CONFIG.regionSlopeGain },
     uMetresPerUnit: { value: 1000 },
-    uLandBase:      { value: new Color(TRAVEL_CONFIG.baseColor) },
-    uLandLine:      { value: new Color(TRAVEL_CONFIG.lineColor) },
-    uLandTint:      { value: TRAVEL_OVERVIEW_CONFIG.landTint },
-    uLandShade:     { value: TRAVEL_OVERVIEW_CONFIG.shade },
+    uLandBase:      { value: new Color(PLACES_CONFIG.baseColor) },
+    uLandLine:      { value: new Color(PLACES_CONFIG.lineColor) },
+    uLandTint:      { value: PLACES_OVERVIEW_CONFIG.landTint },
+    uLandShade:     { value: PLACES_OVERVIEW_CONFIG.shade },
     uRideBlend:     { value: 0 },
     uLightsIn:      { value: 1 },
   }), [displacementMap, staticLightingMap]);
 
   // The regional tile the landscape's edge hands its heights to (the globe draws that ground); bound per frame, since
   // this mesh lives in the cache's own scene.
-  const region = useRegion(TRAVEL_CONFIG.regionSrc, TRAVEL_CONFIG.regionMetaSrc);
+  const region = useRegion(PLACES_CONFIG.regionSrc, PLACES_CONFIG.regionMetaSrc);
 
-  // After TravelGlobe (0.1) has placed the patch, before CachedTerrain (0.5) draws the cache.
+  // After PlacesGlobe (0.1) has placed the patch, before CachedTerrain (0.5) draws the cache.
   useFrame(() => {
     const material = surfaceMatRef.current;
     if (!material) return;
-    const {travelMorph, travelPatch: patch, introDescent} = cameraFrameState.current;
+    const {placesMorph, placesPatch: patch, introDescent} = cameraFrameState.current;
     const {
       uMorph, uGlobeCenter, uGlobeRadius, uPatchAnchor, uPatchEast, uPatchNorth, uPatchPivot, uPatchScale,
       uPatchRelief, uSeaUnits, uDatumY, uRegion, uHasRegion, uRegionMaxMetres, uRegionTexel, uRegionScale,
@@ -215,13 +215,13 @@ export function TerrainMesh({settings, intro, look}: TerrainMeshProps) {
     if (region) {
       uRegionMaxMetres.value = region.meta.maxMetres;
       uRegionTexel.value.set(1 / region.meta.size, 1 / region.meta.size);
-      uRegionScale.value = region.meta.maxMetres / TRAVEL_CONFIG.elevationTopMetres;
+      uRegionScale.value = region.meta.maxMetres / PLACES_CONFIG.elevationTopMetres;
     }
-    uMorph.value = travelMorph;
+    uMorph.value = placesMorph;
     // As the map lifts off, its pool of light gives way to the globe's land shading; its contour lines carry the
     // drawing meanwhile.
-    uRideBlend.value = MathUtils.smoothstep(travelMorph, ...TRAVEL_CONFIG.landIn);
-    if (travelMorph <= 0) return;
+    uRideBlend.value = MathUtils.smoothstep(placesMorph, ...PLACES_CONFIG.landIn);
+    if (placesMorph <= 0) return;
     uGlobeCenter.value.copy(patch.center);
     uGlobeRadius.value = patch.radius;
     uPatchAnchor.value.copy(patch.anchor);

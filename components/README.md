@@ -5,10 +5,10 @@ React UI, grouped by the part of the site it belongs to.
 | Folder | Purpose |
 | --- | --- |
 | `site/` | Chrome on every page: the nav and shared content-page classes |
-| `shell/` | Persistent shell for Home, About, Art and Travel: one WebGL scene, loading state, fallback |
+| `shell/` | Persistent shell for Home, About, Art and Places: one WebGL scene, loading state, fallback |
 | `home/` | Homepage overlays: hero, preloader, preview drawer |
 | `art/` | Art section: Selected works carousel, All works, inspection, Screenshot mode |
-| `travel/` | Travel section: trip index, trip panel, photo viewer, state shared with the globe |
+| `places/` | Places section: location index, location panel, photo viewer, state shared with the globe |
 | `projects/` | Project cards (drawer and `/projects/all`) |
 | `blog/` | Article list, article header and MDX components |
 | `scene/` | Everything inside the React Three Fiber canvas |
@@ -25,8 +25,8 @@ React UI, grouped by the part of the site it belongs to.
   crowd the markup; hand-written CSS in `Component.css` beside it; behaviour and animation in `useX.ts`
   hooks or pure modules; copy in `data/`; tunable numbers in `config/`.
 - **CSS loading**: component CSS files are not imported by their components. Global ones are listed in
-  `styles/globals.css`, Art ones in `app/(scene)/artworks/layout.tsx`, Travel's in
-  `app/(scene)/travel/layout.tsx` — those lists are the cascade order. The route lists stay as plain imports
+  `styles/globals.css`, Art ones in `app/(scene)/artworks/layout.tsx`, Places's in
+  `app/(scene)/places/layout.tsx` — those lists are the cascade order. The route lists stay as plain imports
   (no CSS `@import`) so Tailwind leaves them unprocessed.
 - **Hook order**: `ArtSection`, `SceneShell` and the scene components call their hooks in a fixed order
   because effect and `useFrame` order matter. Add new hooks after the existing ones.

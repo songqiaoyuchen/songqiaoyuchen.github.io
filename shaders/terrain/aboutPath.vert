@@ -1,5 +1,5 @@
 // About path tube: passes the share of the route travelled and the screen position for depth occlusion.
-// On the way to Travel (uMorph) the route rides onto the globe with the terrain (the same wrap as terrain.vert
+// On the way to Places (uMorph) the route rides onto the globe with the terrain (the same wrap as terrain.vert
 // and contours.vert, about the same pivot), its tube turning with the surface and shrinking with the landscape.
 #include <fog_pars_vertex>
 

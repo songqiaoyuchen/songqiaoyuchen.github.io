@@ -1,0 +1,588 @@
+/* Places section (PlacesSection.tsx): arrival gating, the location index drawer on the overview, the selected location's panel
+   and the phone peek sheet; the photo viewer has PhotoViewer.css. The globe behind is the scene; this layer takes
+   pointer events only on its own text, so the globe stays draggable everywhere else. */
+
+/* SceneShell wrapper on Places routes: content stays hidden until the camera has arrived. */
+.places-environment .places-content {
+  opacity: 1;
+  transition: opacity 600ms ease;
+}
+.places-environment[data-places-arriving='true'] .places-content {
+  opacity: 0;
+  pointer-events: none;
+  transition: none;
+}
+/* Leaving for another section: the content fades before the route changes (SceneShell SECTION_LEAVE_MS). */
+.places-environment[data-leaving='true'] .places-content {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 400ms ease;
+}
+
+.places-section {
+  --places-signal: #8fe3d6; /* the trail colour (PLACES_CONFIG.trailColor) */
+  --places-pad-top: 96px;
+  --places-index-drawer: clamp(24rem, 46vw, 42rem);
+  --places-index-pad-start: clamp(2.5rem, 5vw, 4.5rem);
+  --places-index-pad-end: clamp(2rem, 5vw, 5rem); /* as About's column */
+  --places-location-column: clamp(20rem, 40vw, 34rem);
+  --places-rise: 520ms;
+  /* Between the views (PlacesSection.tsx): the old content fades out over --places-exit (VIEW_EXIT_MS), then the
+     location panel rises as the camera lands (CAMERA_JOURNEY_CONFIG.placesFocus, 1.2 s) and the index as the globe settles back (revealAt). */
+  --places-exit: 240ms;
+  --places-panel-delay: 460ms;
+  --places-index-delay: 760ms;
+  --z-places-section: 2;
+  --z-places-overlay: 60;
+
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-places-section);
+  padding: var(--places-pad-top) var(--spacing-page-gutter) 28px;
+  font-family: var(--font-krypton), ui-monospace, monospace;
+  pointer-events: none;
+}
+/* Changing view: the old content fades out before the new one replaces it. */
+.places-section[data-exiting] .places-sheet {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--places-exit) ease;
+}
+
+/* A selected location: the panel spans from the globe's centre column to the right gutter, and its text flows
+   around a float shaped like the globe as drawn (useLocationSheetPlacement.ts sets both, inline), so no line sits
+   over the globe; until then it takes the right-hand column. */
+.places-section[data-view='location'] {
+  display: block;
+}
+/* Moved into place with margins (useLocationSheetPlacement.ts): a float's exclusion follows its margins, not relative
+   offsets; the shape is the circle in its border box, whatever the margins. */
+/* The panel's column is the measure; a block of its own width would start under the float and drop below it. */
+.places-section[data-view='location'] :is(.places-location-summary, .places-location-description) {
+  max-width: none;
+}
+.places-globe-shape {
+  float: left;
+  border-radius: 50%;
+  shape-outside: none; /* the outline polygon, set inline */
+  shape-margin: 4rem;
+  pointer-events: none;
+}
+.places-section[data-view='location'] .places-sheet {
+  position: absolute;
+  top: var(--places-pad-top);
+  right: var(--spacing-page-gutter);
+  display: block;
+  width: var(--places-location-column);
+  overflow: hidden;
+}
+.places-sheet :is(a, button) {
+  pointer-events: auto;
+}
+/* The × back to Home (SectionClose.tsx): where About's sits, at the index column's right edge. */
+.places-close {
+  position: absolute;
+  top: 6rem;
+  right: var(--places-index-pad-end);
+  z-index: 1;
+  pointer-events: auto;
+}
+/* A location: in its panel, at the right end of the All locations row (the link's line is the mark's height); the meta
+   line and title kept clear of it. */
+.places-section[data-view='location'] .places-close {
+  top: 0;
+  right: 0;
+}
+.places-section[data-view='location'] :is(.places-eyebrow, .places-location-title) {
+  padding-right: 3rem;
+}
+.places-section :is(a, button):not(.places-link, .places-back, .places-close):focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 4px;
+}
+
+/* Small caps line above the location: dates, days, distance, mode. */
+.places-eyebrow {
+  margin: 0 0 12px;
+  color: var(--color-dim);
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+/* Location index (desktop): a right-hand drawer like About's. The sheet is its frame, the about-backdrop utility
+   (Drawer.css) fades it in from over the globe, and the column scrolls with the drawer panels' padding. */
+@media (width >= 48rem) {
+  .places-section[data-view='overview'] .places-sheet {
+    position: fixed;
+    inset: 0 0 0 auto;
+    width: var(--places-index-drawer);
+  }
+  /* Its left edge is the utility's: the fade reaches out past the drawer. */
+  .places-index-backdrop {
+    position: absolute;
+    inset-block: 0;
+    right: 0;
+    pointer-events: none;
+  }
+  .places-index {
+    position: relative;
+    height: 100%;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 7rem var(--places-index-pad-end) 2.5rem var(--places-index-pad-start);
+    scrollbar-width: none;
+  }
+}
+
+/* Selected location: eyebrow, italic title, place, introduction, description, then photos and links. Each block
+   rises in turn once the camera has settled (--rise is its order). */
+/* A block, not a grid: its lines must flow around the globe's float (places-globe-shape). */
+.places-location {
+  display: block;
+}
+.places-location > * {
+  animation: places-rise var(--places-rise) var(--ease-settle)
+    calc(var(--places-panel-delay) + var(--rise, 0) * 60ms) both;
+}
+/* Index rows: the coordinates in a column; the locations the globe faces away from dim, the one in focus lights. */
+.places-index-coord {
+  display: grid;
+  color: var(--color-muted);
+  font-size: var(--text-label);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+  line-height: 1.5;
+  transition: color var(--duration-ui);
+}
+.places-index-row[data-captured] .places-index-coord {
+  color: var(--places-signal);
+}
+.places-index-row[data-far]:not([data-hovered], :hover, :focus-visible) {
+  opacity: 0.55;
+}
+
+/* Meridian strip (MeridianStrip.tsx): the map canvas, N and S at its poles, over its longitude scale. The pole
+   labels sit at the map's top and bottom (MeridianStrip PAD_TOP, TICKS_HEIGHT + TICKS_GAP). */
+.places-strip-map {
+  position: relative;
+}
+.places-strip canvas {
+  display: block;
+  width: 100%;
+  height: 104px;
+  border-block: 1px solid var(--color-line);
+}
+.places-strip-pole {
+  position: absolute;
+  left: -1.25rem;
+  color: var(--color-dim);
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  line-height: 1;
+}
+.places-strip-pole[data-pole='north'] {
+  top: 4px;
+}
+.places-strip-pole[data-pole='south'] {
+  bottom: 21px;
+}
+.places-strip-scale {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  color: var(--color-dim);
+  font-size: var(--text-label);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--tracking-label);
+}
+
+/* The index rises row by row as the globe settles, its backdrop fading in first. */
+.places-index-backdrop {
+  animation: places-fade 600ms ease var(--places-index-delay) both;
+}
+.places-index-entry {
+  animation: places-rise var(--places-rise) var(--ease-settle)
+    calc(var(--places-index-delay) + 120ms + var(--rise, 0) * 60ms) both;
+}
+.places-location-title {
+  margin: 0 0 8px;
+  color: var(--color-text);
+  font-size: clamp(1.6rem, 2.6vw, 2.2rem);
+  font-style: italic;
+  font-weight: 400;
+  line-height: 1.1;
+  text-wrap: balance;
+}
+.places-location-place {
+  margin: 0 0 20px;
+  color: var(--color-accent-soft);
+  font-size: var(--text-meta);
+  letter-spacing: var(--tracking-meta);
+  text-transform: uppercase;
+}
+.places-location-summary {
+  max-width: 44ch;
+  margin: 0 0 12px;
+  color: var(--color-text);
+  font-size: 0.82rem;
+  line-height: 1.7;
+}
+.places-location-description {
+  max-width: 52ch;
+  margin: 0 0 20px;
+  color: var(--color-muted);
+  font-size: 0.74rem;
+  line-height: 1.8;
+}
+.places-location-description > p {
+  margin: 0;
+}
+/* The swap between a description's English and Chinese versions (LocationDescription.tsx). */
+.places-location-description > .places-language {
+  margin-top: 4px;
+}
+.places-language button {
+  min-height: var(--size-hit-target);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-accent);
+  font: inherit;
+  cursor: pointer;
+  transition: color var(--duration-ui);
+}
+.places-language button:hover {
+  color: var(--color-text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+/* A gallery: its title and photo count over a strip of its photos at their own shapes, scrolled sideways, with a
+   wider gap where a new day starts; its end fades out while more lie beyond. */
+.places-gallery-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 4px;
+}
+.places-gallery-head p {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+.places-photos {
+  display: flex;
+  height: 5.5rem;
+  margin: 0 0 20px;
+  padding: 0;
+  gap: 6px;
+  list-style: none;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 2.5rem), transparent);
+  mask-image: linear-gradient(90deg, #000 calc(100% - 2.5rem), transparent);
+}
+.places-photos li {
+  flex: 0 0 auto;
+  height: 100%;
+  scroll-snap-align: start;
+}
+.places-photos li[data-new-day] {
+  margin-left: 10px;
+}
+.places-photos a {
+  display: block;
+  height: 100%;
+  border: 1px solid var(--color-line);
+  transition: border-color var(--duration-ui);
+}
+.places-photos a:hover {
+  border-color: var(--color-line-hover);
+}
+.places-photos img {
+  display: block;
+  width: auto;
+  height: 100%;
+}
+.places-gallery-empty {
+  margin: 0 0 20px;
+  color: var(--color-dim);
+  font-size: var(--text-label);
+}
+/* Stories: a row each. */
+.places-story {
+  display: flex;
+  margin: 0;
+}
+.places-story[data-pending] {
+  color: var(--color-muted);
+}
+
+.places-link {
+  display: inline-flex;
+  min-height: var(--size-hit-target);
+  align-items: center;
+  gap: 8px;
+  color: var(--color-accent);
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  text-decoration: none;
+  text-transform: uppercase;
+  transition: color var(--duration-ui);
+}
+/* Focus shows as colour, not a ring (as Art's .art-text-link). */
+.places-link:is(:hover, :focus-visible) {
+  color: var(--color-text);
+  outline: none;
+}
+/* All locations (BackLink.tsx) above the meta line; its look is the shared back link's. */
+.places-back {
+  margin-bottom: 8px;
+}
+
+/* While the terrain prepares on direct entry (SceneShell). */
+.places-scene-status {
+  position: fixed;
+  bottom: 16px;
+  left: var(--spacing-page-gutter);
+  z-index: var(--z-places-section);
+  margin: 0;
+  color: var(--color-muted);
+  font-size: var(--text-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+@keyframes places-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes places-rise {
+  from {
+    opacity: 0;
+    translate: 0 6px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+/* Phones: the whole globe above, the content in a sheet below with no card: the night fades into it. Over all locations
+   it peeks with the location in the globe's focus and a bar that pulls the list up (the camera steps back, CameraRig
+   'places:index', over --places-sheet-move); a location fills it with the panel under the globe framed close. A drag
+   on the globe turns it; the list and the location scroll inside the sheet. */
+.places-peek-bar,
+.places-peek-location {
+  display: none;
+}
+@media (width < 48rem) {
+  /* Under the nav, clear of the globe's window. */
+  .places-close {
+    top: 4.5rem;
+    right: 1.5rem;
+  }
+  /* In the sheet, past its fade, at the gutter (the mark's glyph is narrower than its box). */
+  .places-section[data-view='location'] .places-close {
+    top: var(--places-sheet-fade);
+    right: calc(var(--spacing-page-gutter) - 0.75rem);
+  }
+  .places-section[data-view='location'] :is(.places-eyebrow, .places-location-title) {
+    padding-right: 0;
+  }
+  .places-section {
+    --places-peek: 12.5rem;
+    --places-sheet-open: 60svh;
+    --places-sheet-fade: 2.5rem;
+    /* --places-sheet-move: set inline by PlacesSection.tsx from CAMERA_JOURNEY_CONFIG.placesIndex */
+    display: block;
+    padding: 0;
+  }
+  .places-sheet,
+  .places-section[data-view='location'] .places-sheet {
+    position: fixed;
+    top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    display: flex;
+    width: auto;
+    height: calc(var(--places-peek) + env(safe-area-inset-bottom, 0px));
+    flex-direction: column;
+    padding-top: var(--places-sheet-fade);
+    background: linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--color-panel) 0%, transparent),
+      color-mix(in srgb, var(--color-panel) 88%, transparent) var(--places-sheet-fade),
+      color-mix(in srgb, var(--color-panel) 96%, transparent)
+    );
+    overflow: hidden;
+    pointer-events: auto;
+    transition: height var(--places-sheet-move) var(--ease-settle);
+  }
+  .places-section[data-index-open] .places-sheet,
+  .places-section[data-view='location'] .places-sheet {
+    height: var(--places-sheet-open);
+  }
+
+  /* All locations: the bar, then the location in focus, or the list when pulled up; only the list scrolls. */
+  .places-index,
+  .places-index-body {
+    display: flex;
+    min-height: 0;
+    flex: 1;
+    flex-direction: column;
+  }
+  .places-index-head,
+  .places-index-strip {
+    display: none;
+  }
+  .places-peek-bar {
+    position: relative;
+    display: flex;
+    min-height: var(--size-hit-target);
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 0 var(--spacing-page-gutter);
+    touch-action: none;
+  }
+  .places-peek-handle {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    display: grid;
+    width: 64px;
+    height: 28px;
+    padding: 0;
+    border: 0;
+    background: none;
+    place-items: center;
+    translate: -50% 0;
+  }
+  .places-peek-handle::before {
+    width: 28px;
+    height: 2px;
+    border-radius: 1px;
+    background: var(--color-line-hover);
+    content: '';
+  }
+  .places-peek-summary,
+  .places-peek-toggle {
+    margin: 0;
+    color: var(--color-dim);
+    font-size: var(--text-label);
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+  }
+  .places-peek-toggle {
+    display: inline-flex;
+    min-height: var(--size-hit-target);
+    align-items: center;
+    gap: 8px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--color-muted);
+    font-family: inherit;
+    transition: color var(--duration-ui);
+  }
+  .places-peek-toggle:hover {
+    color: var(--color-text);
+  }
+  .places-peek-location {
+    display: grid;
+    margin: 4px var(--spacing-page-gutter) 0;
+    padding: 12px 0 calc(16px + env(safe-area-inset-bottom, 0px));
+    grid-template-columns: 5.5rem minmax(0, 1fr) auto;
+    align-items: baseline;
+    gap: 0 20px;
+    border-top: 1px solid var(--color-line);
+    color: inherit;
+    text-decoration: none;
+    opacity: 0.5;
+    transition: opacity var(--duration-ui);
+  }
+  .places-peek-location[data-captured] {
+    opacity: 1;
+  }
+  .places-peek-location[data-captured] .places-index-coord {
+    color: var(--places-signal);
+  }
+  .places-peek-title {
+    display: -webkit-box;
+    overflow: hidden;
+    color: var(--color-text);
+    font-size: var(--text-card);
+    font-style: italic;
+    line-height: 1.25;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+  .places-peek-cue {
+    align-self: center;
+    color: var(--color-accent);
+  }
+  .places-index-list {
+    display: none;
+    min-height: 0;
+    flex: 1;
+    margin: 4px var(--spacing-page-gutter) 0;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: none;
+  }
+  .places-index[data-open] .places-index-list {
+    display: block;
+  }
+  .places-index[data-open] .places-peek-location {
+    display: none;
+  }
+  .places-index-row {
+    padding-inline: 0;
+  }
+  /* Pulled up, the rows rise in turn as the sheet does, without the overview's wait for the globe. */
+  .places-index-list .places-index-entry {
+    animation-delay: calc(80ms + var(--rise, 0) * 40ms);
+  }
+
+  /* A location: the panel scrolls in the sheet. */
+  .places-section[data-view='location'] .places-sheet {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-inline: var(--spacing-page-gutter);
+    padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+    scrollbar-width: none;
+  }
+  .places-section[data-view='location'] .places-location {
+    flex-shrink: 0;
+  }
+  .places-location-title {
+    font-size: 1.5rem;
+  }
+  .places-globe-shape,
+  .places-index-backdrop {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .places-location > *,
+  .places-index-backdrop,
+  .places-index-entry {
+    animation: none;
+  }
+  .places-environment .places-content,
+  .places-section[data-exiting] .places-sheet,
+  .places-sheet {
+    transition: none;
+  }
+}

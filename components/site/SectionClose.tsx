@@ -1,4 +1,4 @@
-// The × that closes a routed section (Art, Travel) back to Home, like the About drawer's close.
+// The × that closes a routed section (Art, Places) back to Home, like the About drawer's close.
 'use client';
 
 import Link from 'next/link';

@@ -1,7 +1,7 @@
 // Terrain surface: displaces the plane by the baked heightmap (rendered only into the CachedTerrain cache).
-// On the way to Travel (uMorph 0 -> 1) the plane rides on the planet: each vertex is wrapped onto the sphere about
+// On the way to Places (uMorph 0 -> 1) the plane rides on the planet: each vertex is wrapped onto the sphere about
 // the pivot (the terrain point that lands on the planet's anchor), standing above sea level by its own height plus
-// the landing place's elevation, at the arc scale TravelGlobe publishes for the frame. Toward its edge the
+// the landing place's elevation, at the arc scale PlacesGlobe publishes for the frame. Toward its edge the
 // landscape takes the regional tile's heights (the globe draws that ground beneath), so the two meet; its
 // place on that tile and its height above sea go to terrain.frag for the ride's land shading.
 #include <fog_pars_vertex>

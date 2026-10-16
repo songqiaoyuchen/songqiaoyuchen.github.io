@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   description: 'SQYC\'s Site.',
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'),
   openGraph: {
-    description: 'A calm, atmospheric space for work, writing, art, and travel.',
+    description: 'A calm, atmospheric space for work, writing, art, and places.',
     images: [
       {
         alt: 'SQYC Journal over a warm-gold topographic map',
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
   title: 'SQYC\'s Site',
   twitter: {
     card: 'summary_large_image',
-    description: 'A calm, atmospheric space for work, writing, art, and travel.',
+    description: 'A calm, atmospheric space for work, writing, art, and places.',
     images: ['/og.png'],
     title: 'SQYC\'s Site',
   },

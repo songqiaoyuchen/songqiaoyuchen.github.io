@@ -16,9 +16,10 @@ values through a ref (`latest.current`), never from its closure.
 | `useSceneLinkControls.ts` | Mobile Scene Links (not on About) | `config/scene/sceneLinks.ts` |
 | `useGlyphRainControls.ts` | Glyph Rain (not on About) | `config/scene/glyphRain.ts` |
 | `useAboutPathControls.ts` | About Path (About only; checkpoints are hidden, edited in the scene); `about/AboutPathEditor.tsx` adds Edit route, Remove anchor, Reset and Save route | `config/scene/aboutPath.ts` |
+| `useCameraJourneyControls.ts` | Camera Journeys (every section): each camera journey's duration but Art's | `config/scene/camera.ts` (`CAMERA_JOURNEY_CONFIG`) |
 | `SaveConfigButton.tsx` | Config › Save Config | all of the above |
 | `SaveCameraButton.tsx` | Config › Save Camera | `config/scene/camera.ts` |
 | `ArtCameraControls.tsx` | Art Camera (Art only) | `config/scene/camera.ts` |
-| `ArtTransitionControls.tsx` | Art Transition | `camera.ts`, `config/art/backdrop.ts`, `fog.ts` |
+| `ArtTransitionControls.tsx` | Art Transition (Art's camera journey, wipe, flight fog) | `camera.ts`, `config/art/backdrop.ts`, `fog.ts` |
 | `ArtCursorControls.tsx` | Art Cursor | `config/art/cursor.ts` |
 | `saveConfig.ts` | — | POST helper |

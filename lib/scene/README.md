@@ -6,10 +6,12 @@
 | `cameraJourney.ts` | Journey planning: the one motion between two poses and its kind, which sets its pace (node-tested) |
 | `cameraTransition.ts` | Camera journey: eased position, slerped orientation (node-tested) |
 | `aboutPath.ts` | About route through the checkpoints and each checkpoint's camera framing (node-tested) |
-| `travel.ts` | Travel globe: places on the sphere, yaw/pitch toward the camera, drag release, coast, capture and snap, track densifying, coastline file format, trip framing, the zoom-out's planet scale and ride wrap for CPU-laid-out layers (node-tested) |
-| `travelWorker.ts` | Pure maths the travel worker runs: elevation map blur/summary, bilinear sampler, light point sampling (node-tested) |
-| `travel.worker.ts`, `travelWorkerTypes.ts` | The travel worker: decodes the elevation map off the main thread and builds the summary and light points; its messages |
-| `travelElevation.ts` | Main-thread client of the travel worker with a same-thread fallback |
+| `places.ts` | Places globe: places on the sphere, yaw/pitch toward the camera, drag release, coast, capture and snap, track densifying, coastline file format, location framing, the zoom-out's planet scale and ride wrap for CPU-laid-out layers (node-tested) |
+| `placesWorker.ts` | Pure maths the places worker runs: elevation map blur/summary, bilinear sampler, light point sampling (node-tested) |
+| `places.worker.ts`, `placesWorkerTypes.ts` | The places worker: decodes the elevation map off the main thread and builds the summary and light points; its messages |
+| `placesElevation.ts` | Main-thread client of the places worker with a same-thread fallback |
+| `placesLens.ts` | The open location's conformal zoom: each location's centre and zoom from its places, the warp and relief gain (the same maths as `placesLens.glsl`) for markers, the shared uniforms |
+| `placesLensChunk.ts` | Registers `shaders/terrain/placesLens.glsl` as the `<places_lens>` chunk |
 | `landShading.ts` | Registers `shaders/terrain/landShading.glsl` as the `<land_shading>` chunk for the terrain, regional ground and globe shaders |
 | `textTransition.ts` | Scene text dissolve stepping; layouts swap only while hidden (node-tested) |
 | `frameBudget.ts` | Waits for idle time and healthy frames before the next startup stage |

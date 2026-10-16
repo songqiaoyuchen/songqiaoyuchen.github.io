@@ -8,20 +8,20 @@ Everything inside the React Three Fiber canvas behind Home and Art.
 | `useSceneAssembly.ts` | Staged startup (terrain → contours → text → composer → bloom → ready) and progress |
 | `SceneErrorBoundary.tsx` | Switches to the static fallback when WebGL fails |
 | `SceneReadySignal.tsx` | Reports ready after shaders compile and two frames render |
-| `StillFrameGate.tsx` | Skips drawing frames identical to the last one, so a still gallery, About or trip idles |
+| `StillFrameGate.tsx` | Skips drawing frames identical to the last one, so a still gallery, About or location idles |
 | `PrecompileHidden.tsx` | Compiles the shaders of layers that mount hidden (globe, About map) while the scene is quiet |
 | `camera/` | Section poses, camera journeys (the intro's map pose and descent among them), per-frame camera state |
 | `terrain/` | Cached terrain, its compositor, contour lines, fog and the intro reveal's clock (`IntroReveal`); the ground's light and the fog follow the intro's descent |
 | `backdrop/` | Art backdrops: images, projection, wipe decisions, cursor, Screenshot export |
 | `text/` | WebGL text: scene links, hero name, glyph rain |
 | `about/` | About experience path: ridge route tube, checkpoint markers, titles and altitude figures; dev route editor |
-| `travel/` | Travel globe: shell, graticule and coastlines, trail tubes, markers and titles, drag/coast/snap |
+| `places/` | Places globe: shell, graticule and coastlines, trail tubes, markers and titles, drag/coast/snap |
 | `effects/` | Post-processing passes (SMAA, isolated bloom) |
 | `controls/` | Leva tuning panels (development only) |
 
 `useFrame` callbacks run by priority, then mount order: dev OrbitControls (-1), CameraRig (-0.75),
-SceneFog (-0.7), IntroReveal (-0.6), CameraFrameState (-0.5), default (0), TravelGlobe (0.1), TerrainMesh, Contours and AboutPath
-(0.2, after the globe has placed the patch they ride), SceneLinks (0.25), TravelCallouts and AboutCallouts (0.3),
+SceneFog (-0.7), IntroReveal (-0.6), CameraFrameState (-0.5), default (0), PlacesGlobe (0.1), TerrainMesh, Contours and AboutPath
+(0.2, after the globe has placed the patch they ride), SceneLinks (0.25), PlacesCallouts and AboutCallouts (0.3),
 CachedTerrain (0.5), StillFrameGate (0.9), EffectComposer render (1), CaptureExport (2). Keep the JSX order in `SceneCanvas`
 when adding layers. Anything that renders into a texture the visible scene samples must call
 `markFrameChanged()` (`lib/scene/stillFrames.ts`), or Art may keep showing the previous frame.

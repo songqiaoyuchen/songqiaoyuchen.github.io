@@ -15,7 +15,7 @@ frame), yet Home runs at 18 fps. The frame is GPU-bound. Steady state, productio
 | --- | --- | --- | --- |
 | Home, Blog, Projects | 17–20 | 42–48 | glyph rain 16 (10 full-size passes + 3 half-size), SMAA 15 (weights alone 10), scene 6.6 (drawn twice), bloom chain 7, final blend 2.3 |
 | About | 22 | 35 | scene 8.3, SMAA 15, bloom 8 |
-| Travel overview / trip | 30 / 58 | 24 / 13 | SMAA 11 / 5, scene 5 / 3.5 |
+| Places overview / location | 30 / 58 | 24 / 13 | SMAA 11 / 5, scene 5 / 3.5 |
 | Art (still) | 60 | 0 | `StillFrameGate` works |
 
 A/B in the same page: pixel ratio 1 halved the GPU time on Home (48 → 20 ms, 42 fps); removing every
@@ -26,8 +26,8 @@ On top of the steady cost, single-frame stalls land during transitions:
 
 | Stall | Where | Cause |
 | --- | --- | --- |
-| 250–330 ms, mid-journey into Travel | `getProgramInfoLog`/`getShaderInfoLog` | globe materials link synchronously on their first visible frame; `SceneReadySignal` only `compileAsync`es what is mounted at intro |
-| 250 ms (prod), 1.2–1.8 s (dev), 2.5 s after the intro | `TravelGlobe` mount (`TRAVEL_PREFETCH_MS`) | `TravelLights` samples 140k points, `useElevation` reads a 2048×1024 `getImageData`, 256×128 sphere, all inside render-phase `useMemo`; lands on the first drawer open |
+| 250–330 ms, mid-journey into Places | `getProgramInfoLog`/`getShaderInfoLog` | globe materials link synchronously on their first visible frame; `SceneReadySignal` only `compileAsync`es what is mounted at intro |
+| 250 ms (prod), 1.2–1.8 s (dev), 2.5 s after the intro | `PlacesGlobe` mount (`PLACES_PREFETCH_MS`) | `PlacesLights` samples 140k points, `useElevation` reads a 2048×1024 `getImageData`, 256×128 sphere, all inside render-phase `useMemo`; lands on the first drawer open |
 | 3.9 s blank, then 14 fps for 2 s | Back from `/projects/all` (same for `/blog/all`, `/blog/[slug]`) | these routes sit outside `(scene)`: `SceneShell` unmounts, the GL context is lost, the preloader replays, every shader recompiles and every texture re-uploads |
 | 180–450 ms React commit, with forced layout | Projects drawer, `/projects/all` | `PixelCard` builds ~10k `Pixel` objects per card and reads colours back through `getImageData`, twice (mount plus the ResizeObserver's first callback) |
 | 2 × 100–150 ms `IMG.onload` + 184 ms `texSubImage2D` | Art arrival | both backdrop paintings decode and upload on the main thread while the camera flies |
@@ -39,9 +39,9 @@ Opaque canvas (`alpha: false`); `StillFrameGate` on every route (its signature n
 covers lines and points, or a turning ring read as still); glyph rain stepping at 30 Hz
 (`GLYPH_RAIN_CONFIG.compositor.stepsPerSecond`); `PrecompileHidden` links the globe's and About map's programs at
 idle against the composer's buffer; backdrops decoded as ImageBitmaps and uploaded at idle; the globe's map
-decode, summary and light sampling in `lib/scene/travel.worker.ts`; About map built at idle; the composer's
+decode, summary and light sampling in `lib/scene/places.worker.ts`; About map built at idle; the composer's
 children, the scene layers and the shell callbacks memoized; the Art context split; drawer chunks prefetched at
-idle; hidden Travel layers, callouts, the sphere raycast, SceneLinks, MeridianStrip, the trip sheet, PixelCard and
+idle; hidden Places layers, callouts, the sphere raycast, SceneLinks, MeridianStrip, the location sheet, PixelCard and
 the scroll handlers gated or de-allocated. Same machine, same method, quiet GPU:
 
 | Transition | fps before → after | frames over 50 ms | worst main-thread frame |
@@ -49,9 +49,9 @@ the scroll handlers gated or de-allocated. Same machine, same method, quiet GPU:
 | Home → Blog / Projects drawer | 42 / 41 → 48 / 52 | 7 / 5 → 7 / 3 | 11 → 13 ms |
 | Drawer → Home | 26 / 43 → 33 / 59 | 16 / 3 → 8 / 1 | |
 | Home → About / About → Home | 49 / 56 → 54 / 59 | 4 / 1 → 3 / 1 | 27 → 22 ms |
-| Home → Travel | 41 → 58 | 8 → 1 | 327 → 26 ms (shader link gone) |
+| Home → Places | 41 → 58 | 8 → 1 | 327 → 26 ms (shader link gone) |
 | Home → Art / All works → Home | 46 / 45 → 52 / 39 | 9 / 7 → 3 / 15 | |
-| Travel overview at rest | 30 fps, 24 ms GPU → draws only while the rings turn | | |
+| Places overview at rest | 30 fps, 24 ms GPU → draws only while the rings turn | | |
 
 Steady-state GPU on Home is unchanged in substance (43–48 ms at 2400×1350: glyph rain, SMAA, bloom) because the
 rain only halves its passes once frames are faster than 33 ms. Another application on the GPU (Firefox during one
@@ -68,33 +68,33 @@ Ranked by expected effect on dropped frames.
   `app/blog/[slug]` into `(scene)` as routed content over a paused canvas (as `/artworks/all` already is), or
   keep the renderer and terrain pipeline warm and skip the preloader on a warm return.
   `components/shell/SceneShell.tsx`, `components/scene/SceneCanvas.tsx:193` (disposal scheduling).
-- [x] **Precompile Travel's materials.** After the quiet globe mount, run `gl.compileAsync` on the globe
+- [x] **Precompile Places's materials.** After the quiet globe mount, run `gl.compileAsync` on the globe
   group (or render it once at 1×1) so the entry journey never links shaders. `components/scene/SceneReadySignal.tsx:27`,
-  `components/scene/travel/TravelGlobe.tsx`.
+  `components/scene/places/PlacesGlobe.tsx`.
 - [x] **Move the globe's build off the render phase.** Bake the land light points to a binary (deterministic from
   `elevation.png` and density), or sample them and decode the elevation in a worker with `createImageBitmap`;
-  stage the rest across idle callbacks. `components/scene/travel/TravelLights.tsx:54-98`, `components/scene/travel/useElevation.ts`.
+  stage the rest across idle callbacks. `components/scene/places/PlacesLights.tsx:54-98`, `components/scene/places/useElevation.ts`.
 - [x] **Stop the composer rebuild on every canvas render.** `<EffectComposer>` children are new JSX each render,
   so `@react-three/postprocessing` rebuilds the pass (and leaks the old one). Memoize the composer subtree,
-  `React.memo` the heavy layers (`TravelGlobe`, `CachedTerrain`, `Contours`, `SceneLinks`), keep
+  `React.memo` the heavy layers (`PlacesGlobe`, `CachedTerrain`, `Contours`, `SceneLinks`), keep
   `toggleSection`/`closeSection` stable (they change with `drawerRoute`), and split `ArtSceneContext` so a
   backdrop change does not re-render the canvas. `SceneCanvas.tsx:372-386`, `SceneShell.tsx:169-193`,
   `components/art/ArtSceneContext.tsx:22`.
-- [x] **Gate work by visibility.** `TravelCallouts` writes ~200 styles and attributes per frame from the start of
-  the entry zoom while its layer is at opacity 0 (`components/scene/travel/TravelCallouts.tsx:182-312`);
-  `TravelLights`, `TravelTrails`, `TravelRings`, `TravelStars` keep their `useFrame` work with the globe hidden;
-  the hidden globe's 65k-triangle sphere still answers every pointer move on Home (`TravelGlobe.tsx:345, 788-797`;
+- [x] **Gate work by visibility.** `PlacesCallouts` writes ~200 styles and attributes per frame from the start of
+  the entry zoom while its layer is at opacity 0 (`components/scene/places/PlacesCallouts.tsx:182-312`);
+  `PlacesLights`, `PlacesTrails`, `PlacesRings`, `PlacesStars` keep their `useFrame` work with the globe hidden;
+  the hidden globe's 65k-triangle sphere still answers every pointer move on Home (`PlacesGlobe.tsx:345, 788-797`;
   give it an analytic sphere `raycast`); `SceneLinks` writes five `disabled` flags and remeasures hit targets every
   frame (`components/scene/text/SceneLinks.tsx:239-259`); `MeridianStrip` redraws its canvas every frame under
-  idle drift (`components/travel/MeridianStrip.tsx:68-142`); `useTripSheetPlacement` rewrites a 36-point
-  `shape-outside` and calls `getComputedStyle` twice per frame (`components/travel/useTripSheetPlacement.ts:85-121`).
+  idle drift (`components/places/MeridianStrip.tsx:68-142`); `useLocationSheetPlacement` rewrites a 36-point
+  `shape-outside` and calls `getComputedStyle` twice per frame (`components/places/useLocationSheetPlacement.ts:85-121`).
   Early-out, write only on change, and quantize.
 - [x] **PixelCard.** Build pixels on first hover/focus, ignore the ResizeObserver's first callback, skip the
   mount-time disappear pass, and resolve colours once per variant instead of through canvas readback.
   `components/projects/PixelCard.tsx:91-137, 187-190`, `components/projects/pixelCardPixels.ts:99`.
 - [x] **Art arrival uploads.** Decode the backdrops with `ImageBitmapLoader` and upload one per idle frame after
   arrival. `components/scene/backdrop/useBackdropImage.ts:17-25`.
-- [x] **Allocation hygiene in `lib/scene/travel.ts` and `TravelGlobe`'s frame** (15–25 short-lived objects per
+- [x] **Allocation hygiene in `lib/scene/places.ts` and `PlacesGlobe`'s frame** (15–25 short-lived objects per
   frame; `aimForOffset`, `globeQuaternion`, `anglesToward`, `projectGlobe`): add scratch objects and `out`
   parameters. Low urgency; not visible in the profiles.
 - [ ] **Development only:** render Leva's controls lazily (`SceneShell.tsx:16`, `components/shell/DevPanels.tsx`),
@@ -138,10 +138,10 @@ Static delivery (GitHub Pages, every public asset is served with a 10-minute cac
   (~20–40 KB). `app/layout.tsx:7-11`. WebGL text uses a baked atlas, not this file.
 - [ ] **Startup waterfall.** Start `loadTerrainAssets()` from `SceneShell` alongside the lazy canvas import, and
   emit preload links for the hashed artifacts from the layout; the worker shares the HTTP cache.
-- [ ] **Unhashed public assets** (`travel/elevation.png`, `region.png`, `coast.bin`, artworks, text atlas) revalidate
-  every 10 minutes; hash them in `scripts/assets/build-travel-geo.mjs` and the image step, or add a small
-  cache-first service worker for `/textures`, `/travel`, `/images`.
-- [ ] **Bundle:** `/travel` first load pulls three.js through `MeridianStrip` → `lib/scene/travel.ts` (move
+- [ ] **Unhashed public assets** (`places/elevation.png`, `region.png`, `coast.bin`, artworks, text atlas) revalidate
+  every 10 minutes; hash them in `scripts/assets/build-places-geo.mjs` and the image step, or add a small
+  cache-first service worker for `/textures`, `/places`, `/images`.
+- [ ] **Bundle:** `/places` first load pulls three.js through `MeridianStrip` → `lib/scene/places.ts` (move
   `angularDistance` to a three-free module); 139 MB of bake sources (`diffuse_map.png`, `heightmap.exr`,
   `gradient.*.bin.gz`) are deployed but never fetched; `og.png` is 1.8 MB.
 
@@ -151,10 +151,10 @@ Web workers cannot drive the WebGL context that R3F owns, and the GPU is a singl
 do not add GPU throughput. What they can do is keep the main thread free so the frame the GPU is already busy
 with is not also waiting on JavaScript:
 
-- [ ] **Terrain worker as the home for every deterministic build:** About contours (above), Travel light points,
+- [ ] **Terrain worker as the home for every deterministic build:** About contours (above), Places light points,
   elevation decode (`createImageBitmap` + `OffscreenCanvas` in the worker), coastline tube buffers. Transfer
   typed arrays; build `BufferGeometry` on the main thread from them (cheap).
-- [ ] **Image decode off the main thread:** `ImageBitmapLoader` for backdrops and the Travel region tile;
+- [ ] **Image decode off the main thread:** `ImageBitmapLoader` for backdrops and the Places region tile;
   `decoding="async"` is already the default for `<img>`, so artworks only need the size pipeline above.
 - [x] **Shader compilation in parallel:** `KHR_parallel_shader_compile` is what `compileAsync` uses; extend it to
   every material mounted after the intro (globe, About path, backdrops) so links never block a frame.

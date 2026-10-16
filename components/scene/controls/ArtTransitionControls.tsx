@@ -10,7 +10,7 @@ import {postConfigValues} from './saveConfig';
 export function ArtTransitionControls({store}: {store: ReturnType<typeof useCreateStore>}) {
   const [status, setStatus] = useState('Not saved');
   const [, set] = useControls('Art Transition', () => ({
-    // CameraRig.tsx: duration of camera journeys to and from Art (camera.ts artTransitionSeconds).
+    // CameraRig.tsx: duration of camera journeys to and from Art (camera.ts CAMERA_JOURNEY_CONFIG.art).
     camera: {
       value: artTransitionSettings.cameraSeconds, min: 0.2, max: 12, step: 0.1, label: 'Camera (s)',
       onChange: (value: number) => {
@@ -49,7 +49,7 @@ export function ArtTransitionControls({store}: {store: ReturnType<typeof useCrea
     'Save transition': button(async () => {
       setStatus('Saving...');
       const saved = await postConfigValues('Save Art transition', {
-        'camera.artTransitionSeconds': artTransitionSettings.cameraSeconds,
+        'cameraJourney.art': artTransitionSettings.cameraSeconds,
         'backdrop.revealSeconds': artTransitionSettings.revealSeconds,
         'backdrop.fogReleaseSeconds': artTransitionSettings.fogReleaseSeconds,
         'fog.flightNear': artTransitionSettings.flightFogNear,

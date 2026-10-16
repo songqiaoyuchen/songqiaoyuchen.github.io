@@ -1,12 +1,11 @@
-// Moves the camera between section poses (overview, projects, art, blog, about, travel) and drives Art flight fog.
-// A journey is one motion straight from pose to pose (lib/scene/cameraJourney.ts), its effects running over the
-// whole of it. On About, an entry being read gets its own framing of that checkpoint (AboutPath publishes the
-// poses); on Travel, all trips and a selected trip are two poses, the trip's its quarter-sphere framing (phones add
-// a third, all trips stepped back while the trip list is pulled up). The
-// first frame lands on the view the route opens (a refresh on a trip stays on the trip). The homepage intro opens
-// at a map pose straight above the summit (snapped to under the preloader) and, once the reveal's wave has had
-// its head start, descends to the overview in one journey, publishing its progress as the frame state's
-// introDescent (the ground's light and the fog follow it).
+// Moves the camera between section poses (overview, projects, art, blog, about, places) and drives Art flight fog. A
+// journey is one motion straight from pose to pose (lib/scene/cameraJourney.ts), its effects running over the whole of
+// it. On About, an entry being read gets its own framing of that checkpoint (AboutPath publishes the poses); on Places,
+// all locations and a selected location are two poses, the location's its quarter-sphere framing (phones add a third,
+// all locations stepped back while the location list is pulled up). The first frame lands on the view the route opens
+// (a refresh on a location stays on the location). The homepage intro opens at a map pose straight above the summit
+// (snapped to under the preloader) and, once the reveal's wave has had its head start, descends to the overview in one
+// journey, publishing its progress as the frame state's introDescent (the ground's light and the fog follow it).
 'use client';
 
 import { useEffect, useMemo, useRef, type MutableRefObject } from 'react';
@@ -15,31 +14,26 @@ import {MathUtils, PerspectiveCamera, Vector3, type Vector3Tuple} from 'three';
 import type { OrbitControls as OrbitControlsInstance } from 'three-stdlib';
 import {
   CAMERA_CONFIG,
+  CAMERA_JOURNEY_CONFIG,
   CONTOUR_CONFIG,
   getCameraPose,
-  getTravelIndexPose,
-  getTravelTripPose,
+  getPlacesIndexPose,
+  getPlacesLocationPose,
   SCENE_LAYOUT_CONFIG,
   type CameraPose,
 } from '@/config/scene';
-import {ABOUT_MAP_CONFIG, ABOUT_PATH_CONFIG} from '@/config/scene/aboutPath';
-import {TRAVEL_CONFIG, TRAVEL_OVERVIEW_CONFIG, TRAVEL_TRIP_CONFIG} from '@/config/scene/travel';
+import {ABOUT_MAP_CONFIG} from '@/config/scene/aboutPath';
 import type {SectionId} from '@/data/sections';
-import {useTravelScene} from '@/components/travel/TravelSceneContext';
+import {usePlacesScene} from '@/components/places/PlacesSceneContext';
 import {useReducedMotion} from '@/hooks/useReducedMotion';
 import {artTransitionSettings} from '@/lib/art/transitionSettings';
 import {getHomeFov} from '@/lib/scene/camera';
 import type {AboutFraming} from '@/lib/scene/aboutPath';
-import {HOME, isTravelKey, MAP, planJourney, type JourneyLeg, type LegKind} from '@/lib/scene/cameraJourney';
+import {HOME, isPlacesKey, MAP, planJourney, type JourneyLeg, type LegKind} from '@/lib/scene/cameraJourney';
 import {CameraTransition} from '@/lib/scene/cameraTransition';
 import {mapPose} from '@/lib/scene/introDescent';
 import type {IntroControlValues} from '../controls/useSceneControls';
 import {useCameraFrameState} from './CameraFrameState';
-
-// Into or out of Travel (either view) and between its overview and a trip.
-const TRAVEL_SECONDS = {
-  journeySeconds: TRAVEL_CONFIG.journeySeconds, focusSeconds: TRAVEL_TRIP_CONFIG.focusSeconds,
-};
 
 type CameraRigProps = {
   activeId: SectionId | null;
@@ -47,11 +41,9 @@ type CameraRigProps = {
   aboutStop?: number;
   /** Frames an About checkpoint from an About pose (AboutPath publishes it). */
   aboutFramingRef?: MutableRefObject<AboutFraming | null>;
-  /** Journey times into/out of About and between its entries (Leva About Path; config defaults). */
-  aboutSeconds?: {journeySeconds: number; focusSeconds: number};
-  /** Journey times into/out of Travel and between its overview and a trip (Leva Travel: Journey; Travel Trip:
-   * Focus; config defaults). */
-  travelSeconds?: {journeySeconds: number; focusSeconds: number};
+  /** Journey times per kind (Leva Camera Journeys; CAMERA_JOURNEY_CONFIG). Art's is read live from
+   * artTransitionSettings, which Leva Art Transition retunes. */
+  journeySeconds?: Readonly<Record<Exclude<LegKind, 'art'>, number>>;
   /** The homepage intro: hold the map pose above the summit while the reveal's wave spreads (IntroReveal's
    * clock, read from the frame state), then descend to the overview. The summit (world point) is filled in by
    * Contours once the reach field names it; until then the configured origin stands in. */
@@ -61,12 +53,12 @@ type CameraRigProps = {
 };
 
 export function CameraRig({
-  activeId, aboutStop = -1, aboutFramingRef, aboutSeconds = ABOUT_PATH_CONFIG,
-  travelSeconds = TRAVEL_SECONDS, intro, controlsRef, onPoseSettled,
+  activeId, aboutStop = -1, aboutFramingRef, journeySeconds: journeyTimes = CAMERA_JOURNEY_CONFIG, intro, controlsRef,
+  onPoseSettled,
 }: CameraRigProps) {
   const cameraFrameState = useCameraFrameState();
-  const {selectedId: travelSelectedId, indexOpen: travelIndexOpen} = useTravelScene();
-  const travelSelected = travelSelectedId !== null;
+  const {selectedId: placesSelectedId, indexOpen: placesIndexOpen} = usePlacesScene();
+  const placesSelected = placesSelectedId !== null;
   const isReducedMotion = useReducedMotion();
   const viewportWidth = useThree((state) => state.size.width);
   const viewportHeight = useThree((state) => state.size.height);
@@ -80,21 +72,21 @@ export function CameraRig({
     ),
     [viewportHeight, viewportWidth],
   );
-  // Phones keep the overview camera for Blog and Projects; Art, About and Travel have their own phone poses.
-  const poseId = activeId && (!isMobile || activeId === 'art' || activeId === 'about' || activeId === 'travel')
+  // Phones keep the overview camera for Blog and Projects; Art, About and Places have their own phone poses.
+  const poseId = activeId && (!isMobile || activeId === 'art' || activeId === 'about' || activeId === 'places')
     ? activeId
     : null;
   const focusStop = poseId === 'about' ? aboutStop : -1;
   const poseKey = focusStop >= 0
     ? `about:${focusStop}`
-    : poseId === 'travel' && travelSelected
-      ? 'travel:trip'
-      : poseId === 'travel' && isMobile && travelIndexOpen
-        ? 'travel:index'
+    : poseId === 'places' && placesSelected
+      ? 'places:location'
+      : poseId === 'places' && isMobile && placesIndexOpen
+        ? 'places:index'
         : poseId ?? (isMobile ? 'mobile-overview' : 'overview');
-  const configuredPose = poseKey === 'travel:trip'
-    ? getTravelTripPose(isMobile)
-    : poseKey === 'travel:index' ? getTravelIndexPose() : getCameraPose(poseId, isMobile);
+  const configuredPose = poseKey === 'places:location'
+    ? getPlacesLocationPose(isMobile)
+    : poseKey === 'places:index' ? getPlacesIndexPose() : getCameraPose(poseId, isMobile);
   const configuredPosition = useMemo(
     () => new Vector3(...configuredPose.position),
     [configuredPose.position],
@@ -118,7 +110,7 @@ export function CameraRig({
   const isAnimating = useRef(false);
   // The journey under way (one motion from pose to pose) and its time.
   const leg = useRef<JourneyLeg | null>(null);
-  const journeySeconds = useRef(CAMERA_CONFIG.transitionSeconds as number);
+  const journeySeconds = useRef<number>(CAMERA_JOURNEY_CONFIG.default);
   // Where the effects start, so an interrupted journey carries on from the live values.
   const artFogStart = useRef(0);
   const morphStart = useRef(0);
@@ -176,18 +168,7 @@ export function CameraRig({
     const key = atMap ? MAP : poseKey;
     const summitKey = intro?.summitRef.current?.join() ?? '';
 
-    const secondsFor = (kind: LegKind) => {
-      switch (kind) {
-        case 'descent': return intro?.settings.descentSeconds ?? CAMERA_CONFIG.transitionSeconds;
-        case 'art': return artTransitionSettings.cameraSeconds;
-        case 'aboutFocus': return aboutSeconds.focusSeconds;
-        case 'aboutEntry': return aboutSeconds.journeySeconds;
-        case 'travelFocus': return travelSeconds.focusSeconds;
-        case 'travelIndex': return TRAVEL_OVERVIEW_CONFIG.indexSeconds;
-        case 'travelEntry': return travelSeconds.journeySeconds;
-        default: return CAMERA_CONFIG.transitionSeconds;
-      }
-    };
+    const secondsFor = (kind: LegKind) => kind === 'art' ? artTransitionSettings.cameraSeconds : journeyTimes[kind];
 
     // The pose a key stands for; a destination's own framing where it has one.
     const resolvePose = (key: string): {position: Vector3; lookAt: Vector3} => {
@@ -205,10 +186,10 @@ export function CameraRig({
         pose = aboutFramingRef?.current?.(aboutBase.current, Number(key.slice('about:'.length))) ?? aboutBase.current;
       } else if (key === 'about') {
         pose = aboutBase.current;
-      } else if (key === 'travel:trip') {
-        pose = getTravelTripPose(isMobile);
-      } else if (key === 'travel:index') {
-        pose = getTravelIndexPose();
+      } else if (key === 'places:location') {
+        pose = getPlacesLocationPose(isMobile);
+      } else if (key === 'places:index') {
+        pose = getPlacesIndexPose();
       } else {
         pose = getCameraPose(key as SectionId, isMobile);
       }
@@ -254,7 +235,7 @@ export function CameraRig({
       leg.current = planJourney(origin, key);
       journeySeconds.current = secondsFor(leg.current.kind);
       artFogStart.current = cameraFrameState.current.artFog;
-      morphStart.current = cameraFrameState.current.travelMorph;
+      morphStart.current = cameraFrameState.current.placesMorph;
       const destination = resolvePose(leg.current.to);
       transition.begin(camera, currentLookAt.current, destination.position, destination.lookAt);
       isAnimating.current = true;
@@ -268,7 +249,7 @@ export function CameraRig({
         camera, currentLookAt.current, delta, journeySeconds.current, isReducedMotion,
       );
       controls?.target.copy(currentLookAt.current);
-      // The effects go by the journey's two ends and run over its whole length (a journey from Art to Travel
+      // The effects go by the journey's two ends and run over its whole length (a journey from Art to Places
       // releases the fog and morphs the terrain at once); the last frame lands exactly on their end values.
       const {progress} = transition;
       const {from, to, kind} = leg.current;
@@ -284,14 +265,14 @@ export function CameraRig({
           cameraFrameState.current.setArtFog(rise * (1 - MathUtils.smootherstep(progress, .45, 1)));
         }
       }
-      if (isTravelKey(from) !== isTravelKey(to)) {
-        // Into Travel the terrain shrinks onto the globe over the journey, from wherever the camera set off; out
-        // of it, it grows back, from the overview's or a trip's framing alike.
-        cameraFrameState.current.setTravelMorph(
-          MathUtils.lerp(morphStart.current, isTravelKey(to) ? 1 : 0, MathUtils.smootherstep(progress, 0, 1)));
+      if (isPlacesKey(from) !== isPlacesKey(to)) {
+        // Into Places the terrain shrinks onto the globe over the journey, from wherever the camera set off; out
+        // of it, it grows back, from the overview's or a location's framing alike.
+        cameraFrameState.current.setPlacesMorph(
+          MathUtils.lerp(morphStart.current, isPlacesKey(to) ? 1 : 0, MathUtils.smootherstep(progress, 0, 1)));
       }
-      // Between Travel's overview and a trip the globe turns the trip into frame on the camera's clock.
-      cameraFrameState.current.setTravelFocus(kind === 'travelFocus' ? progress : -1);
+      // Between Places's overview and a location the globe turns the location into frame on the camera's clock.
+      cameraFrameState.current.setPlacesFocus(kind === 'placesFocus' ? progress : -1);
       if (kind === 'descent') descent = MathUtils.smootherstep(progress, 0, 1);
       if (settled) {
         isAnimating.current = false;
@@ -299,8 +280,8 @@ export function CameraRig({
       }
     }
     if (!isAnimating.current) {
-      cameraFrameState.current.setTravelMorph(poseId === 'travel' ? 1 : 0);
-      cameraFrameState.current.setTravelFocus(-1);
+      cameraFrameState.current.setPlacesMorph(poseId === 'places' ? 1 : 0);
+      cameraFrameState.current.setPlacesFocus(-1);
     }
     cameraFrameState.current.setIntroDescent(descent);
     // The map pose is no resting place: the scene text waits for the camera to land on the overview.

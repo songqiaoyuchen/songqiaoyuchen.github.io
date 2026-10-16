@@ -2,8 +2,8 @@
 // (with reveal, a wave spreads from the summit over the ground on IntroReveal's clock, by the reach field the
 // worker builds; each line shows where the wave has passed and flashes just behind its front).
 // A second instance draws About's map contours: its own settings, lit like the terrain beneath, dimmed away
-// from the route. With travelRide, the lines ride onto the globe with the terrain on the way to Travel
-// (contours.vert, from the patch frame TravelGlobe publishes), so the home map flows into the globe's.
+// from the route. With placesRide, the lines ride onto the globe with the terrain on the way to Places
+// (contours.vert, from the patch frame PlacesGlobe publishes), so the home map flows into the globe's.
 'use client';
 
 import {forwardRef, useEffect, useMemo, useRef, useState, type MutableRefObject} from 'react';
@@ -42,10 +42,10 @@ import vertexShader from '@/shaders/terrain/contours.vert';
 import fragmentShader from '@/shaders/terrain/contours.frag';
 import {useReducedMotion} from '@/hooks/useReducedMotion';
 import {REVEAL_DONE_SECONDS} from '@/lib/scene/introReveal';
-import {rideDissolve} from '@/lib/scene/travel';
+import {rideDissolve} from '@/lib/scene/places';
 import {useCameraFrameState} from '../camera/CameraFrameState';
 
-// While riding to Travel, shrinking tubes keep this on-screen radius (device pixels) and dim instead.
+// While riding to Places, shrinking tubes keep this on-screen radius (device pixels) and dim instead.
 const RIDE_MIN_PIXELS = 0.75;
 // The reach field is this many times coarser than the shell grid (a few hundred cells a side).
 const REACH_DOWNSAMPLE = 4;
@@ -62,8 +62,8 @@ export type ContourLighting = readonly [number, number];
 
 type ContoursProps = {
   hidden?: boolean;
-  /** Ride onto the globe with the terrain while the Travel morph runs (the homepage lines). */
-  travelRide?: boolean;
+  /** Ride onto the globe with the terrain while the Places morph runs (the homepage lines). */
+  placesRide?: boolean;
   /** Draw in behind the intro reveal's wave (the homepage lines); otherwise shown whole. */
   reveal?: boolean;
   /** With reveal: receives the summit the wave starts from (world point) once the reach field names it, for the
@@ -81,7 +81,7 @@ type ContoursProps = {
 
 export const Contours = forwardRef<Mesh, ContoursProps>(function Contours(
   {
-    hidden = false, travelRide = false, reveal = false, summitRef, intro, focus = null, lighting = null,
+    hidden = false, placesRide = false, reveal = false, summitRef, intro, focus = null, lighting = null,
     minPixels = 0, contourSettings: lines, terrainDepthTexture, terrainSettings,
   },
   forwardedRef,
@@ -288,15 +288,15 @@ export const Contours = forwardRef<Mesh, ContoursProps>(function Contours(
     material.uniforms.uUseLit.value = lighting ? 1 : 0;
   }, [lighting, litFloor, litFull, staticLightingMap]);
 
-  // After TravelGlobe (0.1) has placed the patch for the frame, and IntroReveal has set the clock.
+  // After PlacesGlobe (0.1) has placed the patch for the frame, and IntroReveal has set the clock.
   useFrame((_, delta) => {
     const material = matRef.current;
     if (!material) return;
     material.uniforms.uTime.value += delta;
-    const {travelMorph, travelPatch: patch, revealTime, introDescent} = cameraFrameState.current;
+    const {placesMorph, placesPatch: patch, revealTime, introDescent} = cameraFrameState.current;
     if (reveal) material.uniforms.uRevealTime.value = revealTime;
-    const riding = travelRide && travelMorph > 0 && travelMorph < 1;
-    material.uniforms.uMorph.value = riding ? travelMorph : 0;
+    const riding = placesRide && placesMorph > 0 && placesMorph < 1;
+    material.uniforms.uMorph.value = riding ? placesMorph : 0;
     if (riding) {
       const {uGlobeCenter, uGlobeRadius, uPatchAnchor, uPatchEast, uPatchNorth, uPatchPivot, uPatchScale,
         uPatchRelief, uSeaUnits, uDatumY} = material.uniforms;
@@ -323,7 +323,7 @@ export const Contours = forwardRef<Mesh, ContoursProps>(function Contours(
     if (riding && !wasRiding.current) rideShown.current = visibility.value > 0.5;
     if (!hidden) rideShown.current = true;
     wasRiding.current = riding;
-    const target = pending ? 0 : riding ? (rideShown.current ? rideDissolve(travelMorph) : 0) : hidden ? 0 : 1;
+    const target = pending ? 0 : riding ? (rideShown.current ? rideDissolve(placesMorph) : 0) : hidden ? 0 : 1;
     visibility.value = reducedMotion || Math.abs(visibility.value - target) < 0.001
       ? target
       : visibility.value + (target - visibility.value) * (1 - Math.exp(-4 * Math.min(delta, 1 / 30)));

@@ -1,6 +1,6 @@
 // About path callouts: per checkpoint, a diamond marker that locks on when framed and a leader line to the entry's
 // title, laid out in screen space over the canvas. Titles stack upward so they never overlap (AboutCallouts.css).
-// The same layer sets the map's altitude figures along their contour lines. While the Travel morph runs, markers
+// The same layer sets the map's altitude figures along their contour lines. While the Places morph runs, markers
 // and figures follow their points onto the globe with the terrain (the route's own wrap) and the layer dissolves
 // with the route as the landscape recedes.
 'use client';
@@ -10,7 +10,7 @@ import {useFrame, useThree} from '@react-three/fiber';
 import {Fragment, useRef, useState, type CSSProperties, type MutableRefObject} from 'react';
 import {Vector3} from 'three';
 import type {AltitudeMark} from '@/lib/scene/aboutPath';
-import {rideDissolve, rideOntoPlanet} from '@/lib/scene/travel';
+import {rideDissolve, rideOntoPlanet} from '@/lib/scene/places';
 import {useCameraFrameState} from '../camera/CameraFrameState';
 
 export type CalloutItem = {
@@ -65,12 +65,12 @@ export function AboutCallouts({
   const projected = useRef(new Vector3());
   const along = useRef(new Vector3());
 
-  // After TravelGlobe (0.1) has placed the patch for the frame, with the route (0.2).
+  // After PlacesGlobe (0.1) has placed the patch for the frame, with the route (0.2).
   useFrame(({camera}) => {
     const last = laidOut.current;
-    const {revision, travelMorph, travelPatch} = cameraFrameState.current;
-    const riding = travelMorph > 0 && travelMorph < 1;
-    if (rootRef.current) rootRef.current.style.opacity = riding ? String(rideDissolve(travelMorph)) : '';
+    const {revision, placesMorph, placesPatch} = cameraFrameState.current;
+    const riding = placesMorph > 0 && placesMorph < 1;
+    if (rootRef.current) rootRef.current.style.opacity = riding ? String(rideDissolve(placesMorph)) : '';
     // Lay out again only when the view, the viewport or the framed checkpoint changes, or every frame of the ride.
     if (!riding && last.revision === revision && last.activeStop === activeStop && last.marks === marks
       && last.width === size.width && last.height === size.height) return;
@@ -79,7 +79,7 @@ export function AboutCallouts({
       || !leadersRef.current[index]) || marks.some((_, index) => !marksRef.current[index])) return;
     // On the ride a point stands where the terrain carries it (as aboutPath.vert draws the route).
     const toScreen = (point: Vector3) => {
-      if (riding) rideOntoPlanet(point, travelPatch, travelMorph, point);
+      if (riding) rideOntoPlanet(point, placesPatch, placesMorph, point);
       point.project(camera);
       return [(point.x + 1) * 0.5 * size.width, (1 - point.y) * 0.5 * size.height, point.z] as const;
     };

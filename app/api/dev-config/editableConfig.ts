@@ -4,6 +4,7 @@
 export const EDITABLE_CONFIG = {
   camera: {
     file: 'scene/camera.ts',
+    object: 'CAMERA_CONFIG',
     keys: [
       'overviewPosition', 'overviewLookAt',
       'mobileOverviewPosition', 'mobileOverviewLookAt',
@@ -11,38 +12,42 @@ export const EDITABLE_CONFIG = {
       'artPosition', 'artLookAt',
       'blogPosition', 'blogLookAt',
       'aboutPosition', 'aboutLookAt', 'mobileAboutPosition', 'mobileAboutLookAt',
-      'travelPosition', 'travelLookAt', 'travelTripPosition', 'travelTripLookAt',
-      'mobileTravelPosition', 'mobileTravelLookAt', 'mobileTravelIndexPosition', 'mobileTravelIndexLookAt',
-      'mobileTravelTripPosition', 'mobileTravelTripLookAt',
-      'fov', 'artTransitionSeconds',
+      'placesPosition', 'placesLookAt', 'placesLocationPosition', 'placesLocationLookAt',
+      'mobilePlacesPosition', 'mobilePlacesLookAt', 'mobilePlacesIndexPosition', 'mobilePlacesIndexLookAt',
+      'mobilePlacesLocationPosition', 'mobilePlacesLocationLookAt',
+      'fov',
     ],
   },
+  cameraJourney: {
+    file: 'scene/camera.ts',
+    object: 'CAMERA_JOURNEY_CONFIG',
+    keys: ['default', 'descent', 'art', 'aboutEntry', 'aboutFocus', 'placesEntry', 'placesFocus', 'placesIndex'],
+  },
   // Three groups in one file share key names (relief, landTint); `object` keeps each scope's writes to its own.
-  travel: {
-    file: 'scene/travel.ts',
-    object: 'TRAVEL_CONFIG',
+  places: {
+    file: 'scene/places.ts',
+    object: 'PLACES_CONFIG',
     keys: ['baseColor', 'rimColor', 'rimIntensity', 'lineColor', 'graticuleIntensity', 'coastIntensity',
       'lightDensity', 'lightSize', 'lightIntensity', 'starSize', 'trailColor',
-      'landscapeKm', 'linesIn', 'journeySeconds'],
+      'landscapeKm', 'linesIn'],
   },
-  travelOverview: {
-    file: 'scene/travel.ts',
-    object: 'TRAVEL_OVERVIEW_CONFIG',
+  placesOverview: {
+    file: 'scene/places.ts',
+    object: 'PLACES_OVERVIEW_CONFIG',
     keys: ['relief', 'landTint', 'trailRadius', 'markerSize', 'innerRingTilt', 'outerRingTilt',
       'friction', 'snapBelow', 'capture', 'snapRate', 'idleDrift', 'idleAfter', 'focusWithin'],
   },
-  travelTrip: {
-    file: 'scene/travel.ts',
-    object: 'TRAVEL_TRIP_CONFIG',
-    keys: ['markerOffset', 'phoneMarkerOffset', 'holdRate', 'focusSeconds', 'turnFrom', 'turnSettle', 'revealAt',
+  placesLocation: {
+    file: 'scene/places.ts',
+    object: 'PLACES_LOCATION_CONFIG',
+    keys: ['markerOffset', 'phoneMarkerOffset', 'holdRate', 'turnFrom', 'turnSettle', 'revealAt',
       'summaryBlur', 'relief', 'shade', 'landTint', 'trailRadius',
-      'markerSize'],
+      'markerSize', 'lensFill', 'lensMaxZoom', 'lensMinZoom', 'lensMargin', 'lensRelief'],
   },
   aboutPath: {
     file: 'scene/aboutPath.ts',
     keys: ['waypoints', 'medic', 'nus', 'greyhats', 'sonicboom', 'uniplans', 'next', 'focusScreen', 'focusFollow',
-      'focusZoom', 'phoneFocusScreen', 'phoneFocusFollow', 'phoneFocusZoom', 'trailColor', 'lift', 'journeySeconds',
-      'focusSeconds'],
+      'focusZoom', 'phoneFocusScreen', 'phoneFocusFollow', 'phoneFocusZoom', 'trailColor', 'lift'],
   },
   artCursor: {
     file: 'art/cursor.ts',
@@ -65,7 +70,7 @@ export const EDITABLE_CONFIG = {
   },
   intro: {
     file: 'scene/intro.ts',
-    keys: ['mapHeight', 'phoneMapHeight', 'mapTilt', 'descentDelay', 'descentSeconds', 'mapFogScale', 'lightsIn',
+    keys: ['mapHeight', 'phoneMapHeight', 'mapTilt', 'descentDelay', 'mapFogScale', 'lightsIn',
       'mapMinPixels'],
   },
   fog: {

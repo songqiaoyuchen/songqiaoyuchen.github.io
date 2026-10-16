@@ -10,4 +10,4 @@ relative imports with `.ts` extensions (see `scripts/README.md`).
 | `scene/` | Camera maths, text dissolves, startup pacing, full-screen passes |
 | `terrain/` | Baked terrain pipeline: worker, assets, contours |
 | `text/` | Glyph atlases and WebGL text geometry/layout |
-| `travel/` | Travel photo viewer layout |
+| `places/` | Places photo viewer layout |

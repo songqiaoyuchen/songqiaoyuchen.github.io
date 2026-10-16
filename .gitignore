@@ -45,5 +45,5 @@ next-env.d.ts
 .claude
 .agents
 
-# travel photo originals (scripts/assets/import-travel-photos.mjs); full size, with GPS
+# places photo originals (scripts/assets/import-places-photos.mjs); full size, with GPS
 /photos-src

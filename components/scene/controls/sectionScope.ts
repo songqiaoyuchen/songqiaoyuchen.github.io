@@ -1,13 +1,13 @@
-// Per-section Leva folders (dev only): hidden inputs mirror the open section (and on Travel, whether a trip is
+// Per-section Leva folders (dev only): hidden inputs mirror the open section (and on Places, whether a location is
 // open) and each folder's `render` reads them, so the panel lists only the layers the view shows. Folder settings
 // are taken from the first useControls call that names the folder; later calls into the same folder inherit them.
 import {levaStore, useControls} from 'leva';
 import {useEffect} from 'react';
-import {useTravelScene} from '@/components/travel/TravelSceneContext';
+import {usePlacesScene} from '@/components/places/PlacesSceneContext';
 import type {SectionId} from '@/data/sections';
 
 const SECTION = 'section';
-const TRAVEL_TRIP = 'travelTrip';
+const PLACES_LOCATION = 'placesLocation';
 
 type FolderScope = {render: (get: (path: string) => unknown) => boolean};
 
@@ -16,7 +16,7 @@ export function useSectionScope(activeId: SectionId | null) {
   const section = activeId ?? 'overview';
   const [, set] = useControls(() => ({
     [SECTION]: {value: section, render: () => false},
-    [TRAVEL_TRIP]: {value: false, render: () => false},
+    [PLACES_LOCATION]: {value: false, render: () => false},
   }));
   // Production has no panel to scope; the store write would only re-render the canvas at every section change.
   useEffect(() => {
@@ -24,31 +24,31 @@ export function useSectionScope(activeId: SectionId | null) {
   }, [section, set]);
 }
 
-/** Keeps the hidden trip input at whether a Travel trip is open. A leaf inside the canvas, so a hover or capture
- * re-renders only it. */
-export function TravelTripScope() {
-  const tripOpen = useTravelScene().selectedId !== null;
-  useEffect(() => levaStore.set({[TRAVEL_TRIP]: tripOpen}, false), [tripOpen]);
+/** Keeps the hidden location input at whether a Places location is open. A leaf inside the canvas, so a hover or
+ * capture re-renders only it. */
+export function PlacesLocationScope() {
+  const locationOpen = usePlacesScene().selectedId !== null;
+  useEffect(() => levaStore.set({[PLACES_LOCATION]: locationOpen}, false), [locationOpen]);
   return null;
 }
 
-/** Folders for the landscape and homepage layers; About and Travel show only their own folders and Config. */
+/** Folders for the landscape and homepage layers; About and Places show only their own folders and Config. */
 export const HOME_SCENE_FOLDER: FolderScope = {
-  render: (get) => get(SECTION) !== 'about' && get(SECTION) !== 'travel',
+  render: (get) => get(SECTION) !== 'about' && get(SECTION) !== 'places',
 };
 
 /** Folders for About's own layers. */
 export const ABOUT_FOLDER: FolderScope = {render: (get) => get(SECTION) === 'about'};
 
-/** Folders for Travel's globe as both views draw it. */
-export const TRAVEL_FOLDER: FolderScope = {render: (get) => get(SECTION) === 'travel'};
+/** Folders for Places's globe as both views draw it. */
+export const PLACES_FOLDER: FolderScope = {render: (get) => get(SECTION) === 'places'};
 
-/** Folders for Travel's all-trips view only. */
-export const TRAVEL_OVERVIEW_FOLDER: FolderScope = {
-  render: (get) => get(SECTION) === 'travel' && get(TRAVEL_TRIP) !== true,
+/** Folders for Places's all-locations view only. */
+export const PLACES_OVERVIEW_FOLDER: FolderScope = {
+  render: (get) => get(SECTION) === 'places' && get(PLACES_LOCATION) !== true,
 };
 
-/** Folders for a selected Travel trip only. */
-export const TRAVEL_TRIP_FOLDER: FolderScope = {
-  render: (get) => get(SECTION) === 'travel' && get(TRAVEL_TRIP) === true,
+/** Folders for a selected Places location only. */
+export const PLACES_LOCATION_FOLDER: FolderScope = {
+  render: (get) => get(SECTION) === 'places' && get(PLACES_LOCATION) === true,
 };

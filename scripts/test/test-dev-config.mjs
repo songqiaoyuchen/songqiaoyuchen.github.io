@@ -43,7 +43,7 @@ assert.ok(replaceKey(source, 'focusScreen', '[0, 0]').includes('focusScreen: [0,
 assert.ok(replaceKey(source, 'trailColor', "'#fff'").includes("trailColor: '#fff'}"));
 assert.equal(replaceKey(source, 'missing', '1'), null);
 
-// With an object, the key is looked up only within that export (config/scene/travel.ts groups share key names).
+// With an object, the key is looked up only within that export (config/scene/places.ts groups share key names).
 const groups = [
   'export const A = {',
   '  relief: 0.012,',

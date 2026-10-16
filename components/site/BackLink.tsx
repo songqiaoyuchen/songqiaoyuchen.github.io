@@ -1,4 +1,4 @@
-// "← All …": the link back to a section's overview, at the top of what it leaves (a trip, an article), so it is
+// "← All …": the link back to a section's overview, at the top of what it leaves (a location, an article), so it is
 // always in view however long the content runs.
 import Link from 'next/link';
 import type {CSSProperties, ReactNode} from 'react';

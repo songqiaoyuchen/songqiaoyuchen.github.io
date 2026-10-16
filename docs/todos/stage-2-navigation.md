@@ -29,7 +29,7 @@ view intact. Other section destinations keep their current behavior.
 - Full spatial transitions accompany entry from the landscape; section-to-section
   switching uses shorter transitions. Direct links expose usable content without
   requiring the homepage entrance sequence. Actual loading still needs feedback.
-- Travel is a separate section from Blog, with its own linkstream and matching
+- Places is a separate section from Blog, with its own linkstream and matching
   top-nav destination. Blog stays unchanged; Projects scope is navigation only.
 
 ## Current issue and ownership
@@ -48,7 +48,7 @@ archives; migrate those only within their own workstreams.
   collection history. Preserve browser history without creating navigation loops.
 - Extend route/layout/state architecture with the
   [loading workstream](stage-2-loading-and-return.md); Home/Art persistence is implemented.
-- Include the accepted [Travel](stage-2-travel.md), [About](stage-2-about-path.md),
+- Include the accepted [Places](stage-2-places.md), [About](stage-2-about-path.md),
   and [lake](stage-2-lake-exploration.md) directions in future route/view design.
   The lake's entry is the basin; its additional navigation representation is open.
   These are deferred plans, not authorization to implement in this documentation task.

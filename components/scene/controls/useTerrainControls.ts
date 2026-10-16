@@ -1,4 +1,4 @@
-// Leva "Terrain" folder (dev only, hidden on About and Travel) with its two point lights as groups.
+// Leva "Terrain" folder (dev only, hidden on About and Places) with its two point lights as groups.
 // Save Config writes every key below to config/scene/terrain.ts.
 import { folder, useControls } from 'leva';
 import {TERRAIN_MATERIAL_CONFIG, TERRAIN_MESH_CONFIG} from '@/config/scene';

@@ -103,7 +103,7 @@ async function verify(name, options, entry) {
       assert(distance(samples[index].position, destination)
         <= distance(samples[index - 1].position, destination) + 0.001, 'Camera reversed toward overview');
     }
-    assert(intermediates.every((sample) => sample.opacity === 0), 'Gallery obscured camera travel');
+    assert(intermediates.every((sample) => sample.opacity === 0), 'Gallery obscured camera places');
   }
   assert(last.opacity > 0.99, 'Gallery must become visible after arrival');
   const look = CAMERA_CONFIG.artLookAt.map((value, index) => value - last.position[index]);

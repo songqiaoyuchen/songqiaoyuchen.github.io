@@ -1,5 +1,5 @@
 // Terrain surface colour: base-to-ridge blend lit by the baked two-light lighting map, falling to the background
-// with plan distance from the centre (edgeFade) so no camera sees the plane's edge, plus fog. Riding to Travel it
+// with plan distance from the centre (edgeFade) so no camera sees the plane's edge, plus fog. Riding to Places it
 // takes the globe's land shading instead (landShading.glsl, uRideBlend): the same north-west hillshade on its own
 // relief, read from the heightmap at the regional tile's texel spacing in the tile's units, handing over to the
 // tile's slopes across the edge fade, so the landscape and the ground around it are lit as one. The settling

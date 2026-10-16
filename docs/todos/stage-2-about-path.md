@@ -14,7 +14,7 @@ Status: first prototype implemented (2026-10-06), route `/about?entry=` added 20
   and the text area shows that experience's details.
 - Keep other checkpoints visible and clickable where framing permits. A local back
   control restores the overview because a selected view may not show every checkpoint.
-- Keep the authored chronology and restrained camera framing distinct from Travel's
+- Keep the authored chronology and restrained camera framing distinct from Places's
   freely explored, geographically accurate globe.
 - Follow [shared navigation](stage-2-navigation.md), retaining direct access to About,
   resume/contact and readable content without depending on the terrain interaction.
@@ -46,7 +46,7 @@ Status: first prototype implemented (2026-10-06), route `/about?entry=` added 20
   the HUD feel.
 - One signal colour besides gold, for the route only (path, trail ahead, markers):
   default cyan, adjustable in Leva. Titles, links and focus stay gold.
-- Entering a journey section (Art, About, later Travel) clears the glyph rain, scene
+- Entering a journey section (Art, About, later Places) clears the glyph rain, scene
   links and hero text, which return only after the camera is home. SQYC returns to the
   landscape overview; the top of the drawer returns to the About pose (no separate control).
 - The About drawer gets breathing room: wider, with its column held off the right edge.

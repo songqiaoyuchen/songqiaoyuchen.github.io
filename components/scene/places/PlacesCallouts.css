@@ -1,0 +1,435 @@
+/* Places markers (PlacesCallouts.tsx): a diamond per location in the trail's signal colour. The location in focus (near
+   the globe's centre) or open gains the lock-on reticle; in focus, the reticle breathes and a ping leaves the
+   marker: it can be opened. A path (a location with recorded tracks) is marked by its route alone (see Routes).
+   Nearby locations share a stacked marker that fans out (see Clusters); an open location's stops are smaller diamonds,
+   a hovered stop's name in gold-lit text on a leader line, as About's checkpoints (see Stops). Label heights mirror
+   TITLE_ROW; offsets keep to a 4px grid. */
+.places-callouts {
+  --callout-ink: #e8c77a; /* --color-accent */
+  --callout-signal: #8fe3d6; /* overridden inline by PlacesCallouts.tsx */
+  --marker-size: 14px; /* overridden inline from Leva: markers over all locations (the diamond is half) */
+  --marker-size-open: 24px; /* and with a location open, up close */
+  --callout-signal-soft: color-mix(in srgb, var(--callout-signal) 70%, transparent);
+  --callout-signal-glow: color-mix(in srgb, var(--callout-signal) 35%, transparent);
+  --callout-text: #f2eee6; /* --color-text */
+  --callout-muted: #b8afa2; /* --color-muted */
+  --callout-halo: rgb(8 10 13 / 92%);
+  --callout-halo-wide: rgb(8 10 13 / 70%);
+  --callout-line: rgb(232 199 122 / 30%);
+  --callout-line-strong: rgb(232 199 122 / 80%);
+  /* Marks sit on dense, bright city lights: a dark knockout edge on every line keeps the thin signal lines
+     legible, as a map's labels. */
+  --callout-stroke: 1.5px; /* signal line weight: thin lines vanish into the lights */
+  --callout-knockout: drop-shadow(0 0 1px var(--callout-halo)) drop-shadow(0 0 2px var(--callout-halo-wide));
+
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.places-callout-anchor,
+.places-cluster,
+.places-stop {
+  filter: var(--callout-knockout);
+}
+
+.places-callouts-leaders {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.places-callout-leader {
+  fill: none;
+  filter: var(--callout-knockout);
+  stroke: var(--callout-line);
+  stroke-width: 1;
+  transition: stroke 180ms ease-out;
+}
+
+/* Positioners: PlacesCallouts.tsx moves these with transforms every frame. */
+.places-callout-anchor,
+.places-callout {
+  position: absolute;
+  top: 0;
+  left: 0;
+  will-change: transform, opacity;
+}
+
+/* Marker: a diamond inside a lock-on reticle. */
+.places-callout-anchor {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  margin: -16px 0 0 -16px;
+  place-items: center;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.places-callout-anchor::before {
+  width: calc(var(--marker-size) / 2);
+  height: calc(var(--marker-size) / 2);
+  border: var(--callout-stroke) solid var(--callout-signal);
+  background: transparent;
+  content: '';
+  rotate: 45deg;
+  transition:
+    background-color 180ms ease-out, scale 260ms var(--ease-settle), box-shadow 260ms ease-out,
+    width 320ms var(--ease-settle), height 320ms var(--ease-settle);
+}
+
+.places-callout-anchor[data-hovered]::before {
+  background: var(--callout-signal-soft);
+}
+
+.places-callout-anchor[data-state='focused']::before,
+.places-callout-anchor[data-state='selected']::before {
+  background: var(--callout-signal);
+  box-shadow: 0 0 10px var(--callout-signal-glow);
+  scale: 1.25;
+}
+
+/* With the location open, up close, the diamond and its reticle grow. */
+.places-callout-anchor[data-state='selected']::before {
+  width: calc(var(--marker-size-open) / 2);
+  height: calc(var(--marker-size-open) / 2);
+}
+
+/* Reticle: four corner brackets that close in on the framed location, about the diamond. */
+.places-callout-reticle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: calc(var(--marker-size) * 1.6);
+  height: calc(var(--marker-size) * 1.6);
+  translate: -50% -50%;
+  background:
+    linear-gradient(var(--callout-signal), var(--callout-signal)) top left / 7px var(--callout-stroke),
+    linear-gradient(var(--callout-signal), var(--callout-signal)) top left / var(--callout-stroke) 7px,
+    linear-gradient(var(--callout-signal), var(--callout-signal)) top right / 7px var(--callout-stroke),
+    linear-gradient(var(--callout-signal), var(--callout-signal)) top right / var(--callout-stroke) 7px,
+    linear-gradient(var(--callout-signal), var(--callout-signal)) bottom left / 7px var(--callout-stroke),
+    linear-gradient(var(--callout-signal), var(--callout-signal)) bottom left / var(--callout-stroke) 7px,
+    linear-gradient(var(--callout-signal), var(--callout-signal)) bottom right / 7px var(--callout-stroke),
+    linear-gradient(var(--callout-signal), var(--callout-signal)) bottom right / var(--callout-stroke) 7px;
+  background-repeat: no-repeat;
+  opacity: 0;
+  rotate: 45deg;
+  scale: 1.9;
+  transition:
+    opacity 220ms ease-out, scale 420ms var(--ease-settle), rotate 420ms var(--ease-settle),
+    width 320ms var(--ease-settle), height 320ms var(--ease-settle);
+}
+
+.places-callout-anchor[data-hovered] .places-callout-reticle {
+  opacity: 0.6;
+  rotate: 0deg;
+  scale: 1.35;
+}
+
+.places-callout-anchor[data-state='focused'] .places-callout-reticle,
+.places-callout-anchor[data-state='selected'] .places-callout-reticle {
+  opacity: 1;
+  rotate: 0deg;
+  scale: 1;
+}
+
+/* In focus, the reticle breathes once it has closed in. */
+.places-callout-anchor[data-state='focused'] .places-callout-reticle {
+  animation: places-callout-breathe 1.8s ease-in-out 420ms infinite;
+}
+
+.places-callout-anchor[data-state='selected'] .places-callout-reticle {
+  width: calc(var(--marker-size-open) * 1.6);
+  height: calc(var(--marker-size-open) * 1.6);
+}
+
+/* A slow ping from the location in focus or open. */
+.places-callout-anchor[data-state='focused']::after,
+.places-callout-anchor[data-state='selected']::after {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border: var(--callout-stroke) solid var(--callout-signal);
+  content: '';
+  rotate: 45deg;
+  animation: places-callout-ping 2.4s ease-out 400ms infinite;
+}
+
+/* A location's own icon (LocationIcon.tsx) in place of the diamond: the plain drawing over all locations, more detail in focus
+   (and larger, glowing) and the full drawing with the location open, up close. The lines keep one weight at each size. */
+/* No diamond, and no diamond's ping: the reticle and the glow carry focus. */
+.places-callout-anchor[data-icon]::before,
+.places-callout-anchor[data-icon]::after {
+  content: none;
+}
+
+.places-location-icon {
+  position: relative;
+  display: grid;
+  width: var(--marker-size);
+  height: var(--marker-size);
+  color: var(--callout-signal);
+  transition:
+    width 320ms var(--ease-settle), height 320ms var(--ease-settle), filter 260ms ease-out;
+}
+
+.places-location-icon svg {
+  grid-area: 1 / 1;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  opacity: 0;
+  transition: opacity 220ms ease-out;
+}
+
+.places-location-icon [data-detail='small'] {
+  stroke-width: 2.8;
+}
+
+.places-location-icon [data-detail='focus'] {
+  stroke-width: 1.9;
+}
+
+.places-location-icon [data-detail='open'] {
+  stroke-width: 1.5;
+}
+
+.places-callout-anchor:not([data-state='focused'], [data-state='selected']) [data-detail='small'],
+.places-callout-anchor[data-state='focused'] [data-detail='focus'],
+.places-callout-anchor[data-state='selected'] [data-detail='open'] {
+  opacity: 1;
+}
+
+.places-callout-anchor[data-state='focused'] .places-location-icon {
+  width: calc(var(--marker-size) * 1.43);
+  height: calc(var(--marker-size) * 1.43);
+}
+
+.places-callout-anchor[data-state='focused'] .places-location-icon,
+.places-callout-anchor[data-state='selected'] .places-location-icon,
+.places-callout-anchor[data-hovered] .places-location-icon {
+  filter: drop-shadow(0 0 4px var(--callout-signal-glow));
+}
+
+.places-callout-anchor[data-state='selected'] .places-location-icon {
+  width: var(--marker-size-open);
+  height: var(--marker-size-open);
+}
+
+/* Routes: the path is the mark; its anchor, half way along it, is an unseen pointer target. */
+.places-callout-anchor[data-route]::before,
+.places-callout-anchor[data-route]::after {
+  content: none;
+}
+
+/* Clusters: nearby locations' shared marker, a diamond resting on another just below it, the count beside; a click fans
+   it out into the locations' own markers, tied to its middle by fine lines (PlacesCallouts.tsx places the fan every
+   frame). The back diamond draws only its lower edges, the part showing below the front one, so both stay clear
+   in the centre, as every marker, and read as one stack. */
+.places-cluster {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: grid;
+  width: 32px;
+  height: 32px;
+  margin: -16px 0 0 -16px;
+  place-items: center;
+  cursor: pointer;
+  pointer-events: auto;
+  will-change: transform, opacity;
+}
+
+.places-cluster::before,
+.places-cluster::after {
+  position: absolute;
+  width: calc(var(--marker-size) / 2);
+  height: calc(var(--marker-size) / 2);
+  border: var(--callout-stroke) solid var(--callout-signal);
+  content: '';
+  rotate: 45deg;
+  transition: background-color 180ms ease-out, translate 260ms var(--ease-settle), box-shadow 260ms ease-out;
+}
+
+.places-cluster::after {
+  border-top-color: transparent;
+  border-left-color: transparent;
+  translate: 0 3px;
+  opacity: 0.55;
+}
+
+.places-cluster::before {
+  z-index: 1;
+  translate: 0 -1px;
+}
+
+.places-cluster:hover::before,
+.places-cluster[data-hovered]::before {
+  background: var(--callout-signal-soft);
+}
+
+.places-cluster:hover::before,
+.places-cluster[data-hovered]::before {
+  translate: 0 -3px;
+}
+
+.places-cluster[data-state='focused']::before {
+  background: var(--callout-signal);
+  box-shadow: 0 0 10px var(--callout-signal-glow);
+}
+
+.places-cluster[data-state='focused']::after {
+  opacity: 0.8;
+}
+
+.places-cluster-count {
+  position: absolute;
+  top: -4px;
+  left: 26px;
+  color: var(--callout-signal);
+  font-family: var(--font-krypton), ui-monospace, monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  text-shadow: 0 0 2px var(--callout-halo);
+}
+
+.places-fan-leader {
+  stroke: var(--callout-line-strong);
+  stroke-width: 1;
+}
+
+/* Stops: an open location's places of note, smaller diamonds than a location's, each named beside it or, crowded, out on a leader line. */
+.places-stop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: grid;
+  width: 28px;
+  height: 28px;
+  margin: -14px 0 0 -14px;
+  place-items: center;
+  pointer-events: auto;
+  will-change: transform, opacity;
+}
+
+.places-stop::before {
+  width: calc(var(--marker-size-open) / 3);
+  height: calc(var(--marker-size-open) / 3);
+  border: var(--callout-stroke) solid var(--callout-signal);
+  content: '';
+  rotate: 45deg;
+  transition: background-color 180ms ease-out;
+}
+
+.places-stop[data-hovered]::before {
+  background: var(--callout-signal-soft);
+}
+
+/* A stop on the route's start or end hex draws nothing of its own: hovered, that hex fills as a diamond would. */
+.places-stop[data-on-hex]::before {
+  content: none;
+}
+
+.places-route-node[data-stop-hovered] .places-route-hex polygon {
+  fill: var(--callout-signal-soft);
+  stroke: var(--callout-signal);
+}
+
+/* A stop name's leader, fainter than a hovered location's so the names lead. */
+.places-stop-leader {
+  stroke: var(--callout-line);
+  stroke-width: 1;
+  filter: var(--callout-knockout);
+}
+
+/* A stop's name, always shown with its location open, on a heavier halo to stand off the city lights; gold while its
+   stop is hovered. */
+.places-stop-name .places-callout-title {
+  font-size: 0.9rem;
+  text-shadow:
+    0 0 2px var(--callout-halo), 0 0 4px var(--callout-halo), 0 0 14px var(--callout-halo-wide);
+  transition: color 180ms ease-out;
+}
+
+.places-stop-name[data-hovered] .places-callout-title {
+  color: var(--callout-ink);
+}
+
+/* A hovered location's or stop's name, on one row; a location's sits in the slanted tag. */
+.places-callout-title {
+  position: relative;
+  display: block;
+  height: 20px;
+  color: var(--callout-text);
+  font-family: var(--font-krypton), ui-serif, serif;
+  font-size: 0.95rem;
+  font-style: italic;
+  line-height: 20px;
+  text-shadow: 0 0 2px var(--callout-halo), 0 0 14px var(--callout-halo-wide);
+  white-space: nowrap;
+}
+
+.places-callout-title[data-tag]::before {
+  position: absolute;
+  inset: -2px -14px -2px -10px;
+  border: var(--callout-stroke) solid var(--callout-signal);
+  content: '';
+  opacity: 0.8;
+  transform: skewX(-20deg);
+}
+
+@keyframes places-callout-breathe {
+  0%, 100% { scale: 1; }
+  50% { scale: 1.18; }
+}
+
+@keyframes places-callout-ping {
+  0% { opacity: 0.9; scale: 1; }
+  70%, 100% { opacity: 0; scale: 3.4; }
+}
+
+/* Phones: the whole globe is small, so it keeps no location titles, and its markers are smaller with a location open; an
+   open location's stops keep their names, smaller, in the globe's window above the sheet (PlacesCallouts.tsx). */
+@media (width < 48rem) {
+  .places-callout:not(.places-stop-name),
+  .places-callout-leader {
+    display: none;
+  }
+
+  .places-stop-name .places-callout-title {
+    font-size: 0.8rem;
+  }
+
+  .places-callout-anchor[data-state='selected']::before {
+    width: calc(var(--marker-size-open) / 3);
+    height: calc(var(--marker-size-open) / 3);
+  }
+
+  .places-stop::before {
+    width: calc(var(--marker-size-open) / 5);
+    height: calc(var(--marker-size-open) / 5);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .places-callout-anchor::after,
+  .places-callout-anchor[data-state='focused'] .places-callout-reticle {
+    animation: none;
+  }
+
+  .places-callout-reticle,
+  .places-route-hex,
+  .places-callout-anchor::before,
+  .places-location-icon,
+  .places-location-icon svg,
+  .places-cluster::before,
+  .places-cluster::after,
+  .places-stop::before,
+  .places-stop-name .places-callout-title {
+    transition: none;
+  }
+}

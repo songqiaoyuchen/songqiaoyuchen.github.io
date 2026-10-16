@@ -4,6 +4,7 @@
 import type {SectionId} from '@/data/sections';
 import {useSectionScope} from './sectionScope';
 import {useAboutPathControls} from './useAboutPathControls';
+import {useCameraJourneyControls} from './useCameraJourneyControls';
 import {useContourControls} from './useContourControls';
 import {useFogControls} from './useFogControls';
 import {useGlyphRainControls} from './useGlyphRainControls';
@@ -11,7 +12,7 @@ import {useIntroControls} from './useIntroControls';
 import {usePostControls} from './usePostControls';
 import {useSceneLinkControls} from './useSceneLinkControls';
 import {useTerrainControls} from './useTerrainControls';
-import {useTravelControls} from './useTravelControls';
+import {usePlacesControls} from './usePlacesControls';
 
 export function useSceneControls(activeId: SectionId | null) {
   useSectionScope(activeId);
@@ -23,10 +24,13 @@ export function useSceneControls(activeId: SectionId | null) {
   const sceneLinks = useSceneLinkControls();
   const glyphRain = useGlyphRainControls();
   const aboutPath = useAboutPathControls();
-  const {travel, travelOverview, travelTrip} = useTravelControls();
+  const {places, placesOverview, placesLocation} = usePlacesControls();
+  const cameraJourney = useCameraJourneyControls();
 
   return {
-    terrain, contours, fog, intro, postProcessing, sceneLinks, glyphRain, aboutPath, travel, travelOverview, travelTrip,
+    terrain, contours, fog, intro, postProcessing, sceneLinks, glyphRain, aboutPath,
+    places, placesOverview, placesLocation,
+    cameraJourney,
   };
 }
 
@@ -38,6 +42,6 @@ export type IntroControlValues = SceneControlValues['intro'];
 export type SceneLinkControlValues = SceneControlValues['sceneLinks'];
 export type GlyphRainControlValues = SceneControlValues['glyphRain'];
 export type AboutPathControlValues = SceneControlValues['aboutPath'];
-export type TravelControlValues = SceneControlValues['travel'];
-export type TravelOverviewControlValues = SceneControlValues['travelOverview'];
-export type TravelTripControlValues = SceneControlValues['travelTrip'];
+export type PlacesControlValues = SceneControlValues['places'];
+export type PlacesOverviewControlValues = SceneControlValues['placesOverview'];
+export type PlacesLocationControlValues = SceneControlValues['placesLocation'];

@@ -1,7 +1,7 @@
-// Checks the photo viewer's row (lib/travel/photoTrack.ts): settled poses, no overlaps, continuous motion, overscroll.
+// Checks the photo viewer's row (lib/places/photoTrack.ts): settled poses, no overlaps, continuous motion, overscroll.
 import assert from 'node:assert/strict';
-import {PHOTO_VIEWER_CONFIG} from '../../config/travel/photoViewer.ts';
-import {photoFrame, photoTrackLayout, stepDistance} from '../../lib/travel/photoTrack.ts';
+import {PHOTO_VIEWER_CONFIG} from '../../config/places/photoViewer.ts';
+import {photoFrame, photoTrackLayout, stepDistance} from '../../lib/places/photoTrack.ts';
 
 const {neighborScale: NEIGHBOR_SCALE, opacity: OPACITY, gap: GAP} = PHOTO_VIEWER_CONFIG;
 const stage = {width: 1200, height: 700};

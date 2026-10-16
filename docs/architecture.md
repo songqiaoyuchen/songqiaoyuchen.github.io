@@ -11,20 +11,20 @@ Drei, post-processing, and GLSL for terrain. Motion supports interactions.
 | Location | Responsibility |
 | --- | --- |
 | `app/` | Routes, layout, metadata, development API |
-| `components/shell/` | Persistent Home/About/Art/Travel shell: one scene, loading state, fallback, article summaries |
+| `components/shell/` | Persistent Home/About/Art/Places shell: one scene, loading state, fallback, article summaries |
 | `components/home/` | Homepage hero, preloader and preview drawer (About, Blog, Projects panels) |
 | `components/art/` | Art section: carousel, collection, inspection, gallery transition, Screenshot mode |
-| `components/travel/` | Travel section: trip index, trip panel, photo viewer, shared scene state |
+| `components/places/` | Places section: location index, location panel, photo viewer, shared scene state |
 | `components/scene/`, `shaders/` | WebGL: camera, terrain, backdrops, scene text, effects, Leva controls |
 | `components/site/`, `components/projects/`, `components/blog/` | Nav, project cards, editorial UI |
-| `config/` | Tunable numbers (scene, art, travel, hero, preloader, breakpoints) |
+| `config/` | Tunable numbers (scene, art, places, hero, preloader, breakpoints) |
 | `data/` | Copy and content: sections, hero, About, projects, blog drawer, artworks |
 | `styles/` | Global CSS entry, design tokens, base and shared utilities |
 | `lib/` | Framework-free logic: terrain pipeline, text geometry, art and scene maths, MDX loading |
 | `content/`, `mdx-components.tsx` | MDX articles and their registered components |
 | `public/`, `scripts/` | Fonts, media, baked assets; bake, asset, test and verify tools |
 
-Names used throughout: **scene links** are the WebGL ART / PROJECTS / BLOG / ABOUT / TRAVEL words that open
+Names used throughout: **scene links** are the WebGL ART / PROJECTS / BLOG / ABOUT / PLACES words that open
 sections; **glyph rain** is the faint falling letter columns behind them; a **backdrop** is the terrain
 re-rendered as oil, pencil or digital behind the Art gallery, swapped by a **backdrop wipe**.
 
@@ -47,7 +47,7 @@ come over a hill than along the plain (`IntroReveal` runs the clock; the terrain
 `revealOriginX/Z`, and names that summit for the map pose); each line shows where the wave has passed, a faint
 ghost ahead of it and a flash just behind its front (`contours.vert`/`.frag`). The geometry never moves, so lines
 never cross. Once the wave has had its head start (`descentDelay`) the camera descends to the overview in one
-journey (`descentSeconds`), publishing its progress as `introDescent`, on which the ground's light comes on and the
+journey (`CAMERA_JOURNEY_CONFIG.descent`), publishing its progress as `introDescent`, on which the ground's light comes on and the
 fog eases back; the preloader goes when the camera lands, and the hero and scene links enter then as after any
 journey. Settings: the wave in `CONTOUR_CONFIG.reveal*` (Leva's Contour Lines › Reveal, whose Replay button
 replays the whole intro), the map pose and descent in `INTRO_CONFIG` (Leva's Intro). Entry on a section route and
@@ -78,7 +78,7 @@ landscape. The route, checkpoints and map live in `config/scene/aboutPath.ts` (c
 framing in Leva's About Path folder, shown only on About; its Edit route mode drags the route's
 anchors over the terrain, adds or removes them, slides checkpoints along the route and saves both). The
 path rests on the rendered surface (`sampleSurfaceHeight`) plus a tuned lift, not the text sampler's clearance.
-A journey between About and Travel runs the Travel morph (below) under the open map: the map lines, the route
+A journey between About and Places runs the Places morph (below) under the open map: the map lines, the route
 (`aboutPath.vert`) and the callouts (`rideOntoPlanet`, the same wrap on the CPU) ride onto the planet with the
 terrain and dissolve with the home lines (`rideDissolve`), so nothing stands flat over a curling landscape.
 Phones fold this vertically: the drawer starts at 40% of the height, the path's window above fading into it. Phones
@@ -97,55 +97,63 @@ closing (×, Escape, SQYC) returns to `/`, and Back/Forward follow. The settled 
 `?entry=<id>`, replaced in place so scrolling adds no history; only the URL the page loaded with is applied
 (`AboutEntrySync`), so returning to About in the app always starts at the top of the drawer.
 
-## Travel
+## Places
 
-Travel routes are `/travel` (globe overview) and `/travel/[trip]` (selected trip), with `?gallery=&photo=`
-opening the photo viewer (a full-page sliding row after Art's carousel, `lib/travel/photoTrack.ts`); both live in the `(scene)` layout like Art, and `TravelSection` (mounted by the travel
-layout) derives its view from the URL. Trips are `data/travel.ts`: real places, oldest first, each with an
+Places routes are `/places` (globe overview) and `/places/[location]` (selected location), with `?gallery=&photo=`
+opening the photo viewer (a full-page sliding row after Art's carousel, `lib/places/photoTrack.ts`); both live in the `(scene)` layout like Art, and `PlacesSection` (mounted by the places
+layout) derives its view from the URL. Locations are `data/places.ts`: real places, oldest first, each with an
 introduction and optionally recorded tracks (`segments`), stops (named markers), titled galleries (originals in the
-git-ignored `photos-src/<trip>/<gallery>/`, converted by `npm run import:travel-photos` to metadata-free WebP and
-thumbnails under `public/travel/photos/<trip>/<gallery>/`, whose `photos.json` gives every photo a date, location
-and optional description, read by `npm run sync:travel-photos`) and stories; a city visit has no mode and shows no dates of its own. The globe
-(`components/scene/travel/`) hangs above the terrain's centre (`TRAVEL_CONFIG`), drawn as a night globe in the
-terrain's language: `globe.frag` reads the baked elevation map (`public/travel/elevation.png`, NASA topography
-resized by `scripts/assets/build-travel-geo.mjs`) for a small relief and a faint land tint
+git-ignored `photos-src/<location>/<gallery>/`, converted by `npm run import:places-photos` to metadata-free WebP and
+thumbnails under `public/places/photos/<location>/<gallery>/`, whose `photos.json` gives every photo a date, location
+and optional description, read by `npm run sync:places-photos`) and stories; a city visit has no mode and shows no dates of its own. The globe
+(`components/scene/places/`) hangs above the terrain's centre (`PLACES_CONFIG`), drawn as a night globe in the
+terrain's language: `globe.frag` reads the baked elevation map (`public/places/elevation.png`, NASA topography
+resized by `scripts/assets/build-places-geo.mjs`) for a small relief and a faint land tint
 (`shaders/terrain/landShading.glsl`, registered by `lib/scene/landShading.ts`; its hillshade is off) under a gold
-rim; land carries a field of gold light points sampled from the same map in a worker (`lib/scene/travel.worker.ts`, which
-also decodes the map and builds its summary off the main thread), denser in lowlands (`TravelLights`,
-`shaders/terrain/travelPoints.*`); a faint gold graticule and baked coastlines and lakes (`public/travel/coast.bin`,
-Natural Earth 110m) as line segments; trail tubes along each trip's tracks riding the relief (one line across
-gaps between recordings, thinner with a trip open) and HTML markers without titles (`TravelCallouts`): trips
+rim; land carries a field of gold light points sampled from the same map in a worker (`lib/scene/places.worker.ts`, which
+also decodes the map and builds its summary off the main thread), denser in lowlands (`PlacesLights`,
+`shaders/terrain/placesPoints.*`); a faint gold graticule and baked coastlines and lakes (`public/places/coast.bin`,
+Natural Earth 110m) as line segments; trail tubes along each location's tracks riding the relief (one line across
+gaps between recordings, thinner with a location open, the other locations' leaving with their markers) and HTML markers without titles (a location with tracks has none: its path is its mark) (`PlacesCallouts`): locations
 within `clusterWithin` degrees (chained; `phoneClusterWithin` on phones, whose globe is smaller) share a stacked marker that fans out on a click and holds the globe
-still; a trip may draw its own icon in place of the diamond (`TripIcon`, more detail in focus and open); and an
-open trip's stops are small diamonds, each named beside it where there is room (the hovered one always), fading in only as the camera settles on the trip
-(`stopsFrom`) and out as it leaves, laid out like About's. About the resting globe,
-outside its turn, two tilted orbit rings with tick marks turn slowly (`TravelRings`) and a sparse sky of stars
-stands far behind (`TravelStars`, the same point shader); lights, rings and stars join the isolated bloom. The camera parks at the Travel
-pose and the globe turns (`lib/scene/travel.ts`): a drag follows the pointer; a release coasts under friction
-and, below the snap speed, the nearest trip within the capture angle pulls the globe in; untouched, it drifts
-slowly. Apart from that capture, the trip nearest the globe's centre as it stands (within `focusWithin`, any point of
+still; a location may draw its own icon in place of the diamond (`LocationIcon`, more detail in focus and open); and an
+open location's stops are small diamonds, each named beside it where there is room (the hovered one always), fading in only as the camera settles on the location
+(`stopsFrom`) and out as it leaves, laid out like About's. A small location opens zoomed
+(`lib/scene/placesLens.ts`, `shaders/terrain/placesLens.glsl`): the globe keeps its size while its surface (ground,
+lines, lights, trails and markers) flows away from the location by a conformal zoom of the sphere, so shapes stay true
+everywhere and the scale falls off smoothly with no edge; each location's zoom comes from the spread of its places
+(`lens*` in `PLACES_LOCATION_CONFIG`), swells with the location's raised look, and the globe turns the zoom's centre rather
+than the location's place to the marker point. Every location has its own sharper, 16-bit ground
+(`public/places/ground/<id>.webp`, baked by `build-places-geo.mjs ground`, loaded by `useLocationGround` on first
+open), which `globe.frag` reads under the zoom at the detail a screen pixel covers, fading into the global map far
+out; the coastlines give way to it there. About the resting globe,
+outside its turn, two tilted orbit rings with tick marks turn slowly (`PlacesRings`) and a sparse sky of stars
+stands far behind (`PlacesStars`, the same point shader); lights, rings and stars join the isolated bloom. The camera parks at the Places
+pose and the globe turns (`lib/scene/places.ts`): a drag follows the pointer; a release coasts under friction
+and, below the snap speed, the nearest location within the capture angle pulls the globe in; untouched, it drifts
+slowly. Apart from that capture, the location nearest the globe's centre as it stands (within `focusWithin`, any point of
 its route or stops counting) is in focus: its marker, or its cluster's, locks on. A
-selected trip is pinned: while `CameraRig` journeys to the quarter-sphere framing `TravelGlobe` publishes,
-the globe holds for the first `turnFrom` of the way, then turns the trip to an offset from its centre, most of the turn
+selected location is pinned: while `CameraRig` journeys to the quarter-sphere framing `PlacesGlobe` publishes,
+the globe holds for the first `turnFrom` of the way, then turns the location to an offset from its centre, most of the turn
 done by the time the camera lands and the last of it a slight settle over `turnSettle` seconds more; the return to the
-overview plays the same way toward the globe's centre. A trip opening, the rings and the other markers
-leave at once; back to all trips they return only at `revealAt` of the return turn, as the globe settles. The HTML
-follows: the old view fades out, then the trip panel rises as the camera lands and the index as the globe settles
-(`TravelSection`, `Travel.css`). Lines and trails join the isolated bloom.
+overview plays the same way toward the globe's centre. A location opening, the rings and the other markers
+leave at once; back to all locations they return only at `revealAt` of the return turn, as the globe settles. The HTML
+follows: the old view fades out, then the location panel rises as the camera lands and the index as the globe settles
+(`PlacesSection`, `Places.css`). Lines and trails join the isolated bloom.
 
-Entry is one zoom-out in which the globe is the planet the landscape lies on. `CameraRig` raises a Travel morph
+Entry is one zoom-out in which the globe is the planet the landscape lies on. `CameraRig` raises a Places morph
 (0 to 1) over the 2 s journey. The landscape stands for `landscapeKm` of real ground, which sizes an Earth-scale
-planet (`lib/scene/travel.ts` `planetScale`); `TravelGlobe` places it for the frame, tangent under the overview
-camera's point of regard at the start and shrinking geometrically to the globe at the Travel pose, its turn
+planet (`lib/scene/places.ts` `planetScale`); `PlacesGlobe` places it for the frame, tangent under the overview
+camera's point of regard at the start and shrinking geometrically to the globe at the Places pose, its turn
 easing from lying flat to its own, the anchor gliding along a screen-space path so the zoom never leaves the
 frame; heights are above sea level, the landing place's elevation coming from the baked regional tile. It
 publishes the patch frame (centre, radius, anchor and tangent axes, pivot, arc scale, height factor and datum)
 through `CameraFrameState`. In the terrain cache, `terrain.vert` wraps every terrain vertex onto that sphere
 about the pivot and, across the edge fade, takes the heights of a baked tile of 600 km of real ground around the
-landing place (Terrarium tiles baked by `scripts/assets/build-travel-geo.mjs region`), which the globe reads for
+landing place (Terrarium tiles baked by `scripts/assets/build-places-geo.mjs region`), which the globe reads for
 its own surface there (`globe.vert`/`.frag`, ever more coarsely toward the tile's edge, `regionSpread`, so it
 softens into the global map); the home contour lines ride a little way and dissolve (`contours.vert`,
-`travelRide`), and the terrain's pool of light gives way to the globe's dark ground (`terrain.frag`). The
+`placesRide`), and the terrain's pool of light gives way to the globe's dark ground (`terrain.frag`). The
 terrain cache keeps the edge fade as alpha (the terrain is stored unblended; `terrainComposite.frag` lays it
 over the background) and `globe.frag` composites it over its own ground where the terrain is translucent, so the
 landscape's rim, which stands a little off the planet's coarse surface, fades into the ground from any camera
@@ -155,30 +163,30 @@ with altitude (`hazeOut`, `hazeFactor`); the lights come on at half strength ove
 (`lightsIn`) and reach full with the lines, the stars arrive with altitude (`starsIn`), and the rim, graticule,
 coastlines, rings and trails come in late (`linesIn`, `trailsIn`).
 The terrain cache redraws while the morph runs; the globe and lights discard fragments behind the terrain's
-depth (trails and markers hide only behind the globe's body, never terrain), and the tile writes none, so nothing reads as two objects. Leaving Travel plays it backwards; the globe
+depth (trails and markers hide only behind the globe's body, never terrain), and the tile writes none, so nothing reads as two objects. Leaving Places plays it backwards; the globe
 is never faded as a whole. The globe mounts quietly after the intro so its maps are loaded before the first
-journey. Travel clears the scene text like About. The trip index
-(overview) and trip panel share state with the scene through `TravelSceneContext`, which `TravelGlobe` and `CameraRig`
+journey. Places clears the scene text like About. The location index
+(overview) and location panel share state with the scene through `PlacesSceneContext`, which `PlacesGlobe` and `CameraRig`
 read inside the canvas (R3F bridges the contexts above it), so a selection or hover re-renders only them; arrows step through
-trips, Escape returns to the overview. The index lists trips west to east under a meridian strip, a small world map
-(trips as diamonds) whose shaded facing half and crosshair follow the place the globe faces (written each frame by `TravelGlobe` to a ref in the
-context); trips on the far side dim. The two views are two camera poses (`getCameraPose('travel')` and
-`getTravelTripPose`); the selection is read from the URL by the context itself, so the scene's first
-frame already holds the route's view: a refresh on a trip opens at its framing with the globe turned to it.
-Phones have their own poses: the whole globe and its rings above a cardless peek sheet (the trip in focus, or the
+locations, Escape returns to the overview. The index lists locations west to east under a meridian strip, a small world map
+(locations as diamonds) whose shaded facing half and crosshair follow the place the globe faces (written each frame by `PlacesGlobe` to a ref in the
+context); locations on the far side dim. The two views are two camera poses (`getCameraPose('places')` and
+`getPlacesLocationPose`); the selection is read from the URL by the context itself, so the scene's first
+frame already holds the route's view: a refresh on a location opens at its framing with the globe turned to it.
+Phones have their own poses: the whole globe and its rings above a cardless peek sheet (the location in focus, or the
 last one, and a bar that pulls the list up); the list pulled up (`indexOpen` in the context) steps the camera back
-to a third pose, `getTravelIndexPose` (a quick `travelIndex` journey, no turn); a trip frames the globe close at the
-top with the trip turned just above its sheet (`phoneMarkerOffset`). Phones hide the meridian strip and the index
+to a third pose, `getPlacesIndexPose` (a quick `placesIndex` journey, no turn); a location frames the globe close at the
+top with the location centred in the view above its sheet (`phoneMarkerOffset`). Phones hide the meridian strip and the index
 heading, keep the stops' names above the sheet with smaller stop markers, and draw the land lights smaller
 (`phoneLightScale`).
-`config/scene/travel.ts` holds three groups that never stand in for each other: `TRAVEL_CONFIG` (the globe as
-both views draw it, and the zoom-out), `TRAVEL_OVERVIEW_CONFIG` (all trips: ground, rings, feel by hand) and
-`TRAVEL_TRIP_CONFIG` (a trip: framing, its own servo hold rate, the focus journey and the raised-relief ground,
-whose summary blur rebuilds live); the globe eases between the overview's and the trip's values over the focus
-journey. Leva shows the matching Travel, Travel Overview (overview only) and Travel Trip (trip open only) folders,
-each saving to its group (the dev-config writer scopes keys to an exported object). The Travel folder's
-Edit camera toggle hands the pointer to the dev orbit camera so Save Camera can store the Travel poses (on phones
-all trips, the list pulled up or a trip, with its marker offset).
+`config/scene/places.ts` holds three groups that never stand in for each other: `PLACES_CONFIG` (the globe as
+both views draw it, and the zoom-out), `PLACES_OVERVIEW_CONFIG` (all locations: ground, rings, feel by hand) and
+`PLACES_LOCATION_CONFIG` (a location: framing, its own servo hold rate, the globe's turn and the raised-relief ground,
+whose summary blur rebuilds live); the globe eases between the overview's and the location's values over the focus
+journey. Leva shows the matching Places, Places Overview (overview only) and Places Location (location open only) folders,
+each saving to its group (the dev-config writer scopes keys to an exported object). The Places folder's
+Edit camera toggle hands the pointer to the dev orbit camera so Save Camera can store the Places poses (on phones
+all locations, the list pulled up or a location, with its marker offset).
 
 ## Art
 
@@ -262,25 +270,26 @@ position/target editing. Save Art View persists that shared pose to
 `config/scene/camera.ts`; Reset restores the last saved view. Reduced motion
 settles section transitions immediately.
 A camera journey is one motion straight from the pose the camera holds to the one asked for, planned by
-`lib/scene/cameraJourney.ts`, which names its kind (Travel's morph, the globe's focus turn, Art's flight,
-About's) and so its time. The rules:
+`lib/scene/cameraJourney.ts`, which names its kind (Places's morph, the globe's focus turn, Art's flight,
+About's) and so its time: every kind's duration lives in `CAMERA_JOURNEY_CONFIG` (`config/scene/camera.ts`; Leva's
+Camera Journeys, Art's in Art Transition), and the effects riding a journey run over it. The rules:
 
-- One zoom or one shrink, never a stop on the way. A trip leaves straight to Art or Home in the one shrink of
-  the planet; Art, About or the overview enters Travel, or a trip, in the one zoom-out. The overview is just
+- One zoom or one shrink, never a stop on the way. A location leaves straight to Art or Home in the one shrink of
+  the planet; Art, About or the overview enters Places, or a location, in the one zoom-out. The overview is just
   another camera angle, not a waypoint.
-- The effects go by the journey's two ends and run over its whole length: the Travel morph whenever one end
-  is Travel, the Art flight fog whenever one end is Art, the globe's focus progress between Travel's overview
-  and a trip. A journey from Art to Travel does both at once.
+- The effects go by the journey's two ends and run over its whole length: the Places morph whenever one end
+  is Places, the Art flight fog whenever one end is Art, the globe's focus progress between Places's overview
+  and a location. A journey from Art to Places does both at once.
 - A new destination mid-journey sets off from where the camera is, the effects continuing from their live
   values; the last frame lands exactly on their end values.
-- The globe keeps the trip it was showing while it shrinks away (the route, and so the selection, changes
-  mid-way), so leaving a trip is one shrink from that framing rather than a swing back to the overview first.
+- The globe keeps the location it was showing while it shrinks away (the route, and so the selection, changes
+  mid-way), so leaving a location is one shrink from that framing rather than a swing back to the overview first.
   On the ride the globe's own turn holds still: its servo would chase the marker offset against a camera that
   moves every frame, and the turn is composed in the view of the lens the globe rests under (yaw about the axis,
   pitch about that camera's right), not the moving camera's, or it would turn with the camera. Arriving at a
-  trip from outside Travel, the own turn is set once at the start of the ride to where the arriving camera will
-  see the trip, hidden under the flat planet until the globe forms, so no correction follows on arrival. The
-  globe publishes its outline for the trip panel only once it has arrived, so the panel is not reflowed around
+  location from outside Places, the own turn is set once at the start of the ride to where the arriving camera will
+  see the location, hidden under the flat planet until the globe forms, so no correction follows on arrival. The
+  globe publishes its outline for the location panel only once it has arrived, so the panel is not reflowed around
   an Earth-sized shape every frame of the ride.
 - The camera is never inside the planet, and nothing pushes it off its path. The planet is placed about the
   camera: the landing point's direction eases, in the live camera's own frame, from where the landscape stands to
@@ -288,15 +297,15 @@ About's) and so its time. The rules:
   planet's surface (`rideDistance`), that height falling geometrically from the camera's height over the flat
   Earth-sized planet to its height over the resting globe. Placed the other way round (the landing point at an
   interpolated distance), the planet, growing about the landing place while tilting into its own turn, would
-  sweep past a camera framing a trip near its limb. Directions, not screen positions: the landscape falls behind
+  sweep past a camera framing a location near its limb. Directions, not screen positions: the landscape falls behind
   a camera that has turned up to the globe, where projection folds over and a screen glide swings wild.
 - The glide starts from the live camera's view of the landing point, not the overview's, so a journey from any
   pose begins exactly where the landscape stands and never pans to meet it.
 
-Leaving Art or Travel by the nav, `SceneShell` cancels the link, fades the section's content out
+Leaving Art or Places by the nav, `SceneShell` cancels the link, fades the section's content out
 (`data-leaving`) while the camera sets off, and pushes the route once it is invisible; Back/Forward keep the
 instant swap. The canvas is sized to the viewport width (`w-screen`), not its container, so a scrollbar coming
-or going with the route (All works scrolls, Travel does not) cannot resize it mid-journey: a resized WebGL
+or going with the route (All works scrolls, Places does not) cannot resize it mid-journey: a resized WebGL
 canvas is blank for a frame. Journeys interpolate position and orientation independently with eased
 departure/arrival; the focus follows the rotation so large turns cannot cross
 the camera. The rig applies its pose after development orbit controls, which are off on About, where
@@ -311,11 +320,11 @@ Artworks are ordinary HTML images.
 
 To save GPU time, layers that are fully faded out skip their offscreen work: glyph rain while hidden, bloom while no
 contour or scene link is drawn. On every route, `StillFrameGate` skips frames identical to the last drawn one
-(`lib/scene/stillFrames.ts`), so a still gallery, About between checkpoints or a trip at rest leaves the GPU idle
+(`lib/scene/stillFrames.ts`), so a still gallery, About between checkpoints or a location at rest leaves the GPU idle
 (Home always draws: its contours pulse and the rain falls). The glyph rain's offscreen passes step at their own
 rate (`GLYPH_RAIN_CONFIG.compositor.stepsPerSecond`), every other frame at 60 Hz. The canvas is opaque
 (`alpha: false`), so the compositor blits it rather than blending it over the page. Layers that mount hidden (the
-Travel globe, the About map) get their shaders compiled while the scene is quiet (`PrecompileHidden`), and Art's
+Places globe, the About map) get their shaders compiled while the scene is quiet (`PrecompileHidden`), and Art's
 backdrop paintings are decoded off the main thread and uploaded at idle after the intro, so no journey links a
 program or uploads a texture mid-flight.
 
@@ -361,8 +370,8 @@ are named at the top of the stylesheet that uses them.
 | `npm run bake:terrain` / `npm run check:terrain-bake` | Generate / validate terrain artifacts |
 | `npm run bake:oil` | Legacy: rebuild oil pigment and relief maps (unused by the live site) |
 | `npm run sync:artwork-dimensions` | Update artwork dimensions |
-| `node scripts/test/<file>.mjs` | Unit checks: About path, Travel globe, dev config writer, backdrop wipe, camera transition, carousel layout, text transition, reach field |
-| `node scripts/assets/build-travel-geo.mjs coast <geojson>` / `track <id> <gpx…>` | Bake coastlines to `public/travel/coast.bin`; simplify GPX recordings to track JSON |
+| `node scripts/test/<file>.mjs` | Unit checks: About path, Places globe, dev config writer, backdrop wipe, camera transition, carousel layout, text transition, reach field |
+| `node scripts/assets/build-places-geo.mjs coast <geojson>` / `track <id> <gpx…>` | Bake coastlines to `public/places/coast.bin`; simplify GPX recordings to track JSON |
 | `node scripts/verify/verify-art.mjs` | Opt-in browser journey checks and screenshots; requires externally available Playwright |
 | `node scripts/verify/verify-pencil-overlay.mjs` | Opt-in backdrop wipe, image resize, and reduced-motion checks |
 | `node scripts/verify/verify-text-transitions.mjs` | Opt-in desktop/mobile text transition and navigation regression checks |

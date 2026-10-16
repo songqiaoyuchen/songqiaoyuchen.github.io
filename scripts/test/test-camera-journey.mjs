@@ -7,14 +7,14 @@ const route = (from, to) => { const {from: a, to: b, kind} = planJourney(from, t
 
 assert.equal(route('overview', 'art'), 'home>art:art');
 assert.equal(route('art', 'overview'), 'art>home:art');
-assert.equal(route('overview', 'travel'), 'home>travel:travelEntry');
-assert.equal(route('mobile-overview', 'travel'), 'home>travel:travelEntry');
-assert.equal(route('travel', 'mobile-overview'), 'travel>home:travelEntry');
-assert.equal(route('travel', 'travel:trip'), 'travel>travel:trip:travelFocus');
-assert.equal(route('travel', 'travel:index'), 'travel>travel:index:travelIndex');
-assert.equal(route('travel:index', 'travel'), 'travel:index>travel:travelIndex');
-assert.equal(route('travel:index', 'travel:trip'), 'travel:index>travel:trip:travelFocus');
-assert.equal(route('travel:index', 'overview'), 'travel:index>home:travelEntry');
+assert.equal(route('overview', 'places'), 'home>places:placesEntry');
+assert.equal(route('mobile-overview', 'places'), 'home>places:placesEntry');
+assert.equal(route('places', 'mobile-overview'), 'places>home:placesEntry');
+assert.equal(route('places', 'places:location'), 'places>places:location:placesFocus');
+assert.equal(route('places', 'places:index'), 'places>places:index:placesIndex');
+assert.equal(route('places:index', 'places'), 'places:index>places:placesIndex');
+assert.equal(route('places:index', 'places:location'), 'places:index>places:location:placesFocus');
+assert.equal(route('places:index', 'overview'), 'places:index>home:placesEntry');
 assert.equal(route('about:2', 'about:0'), 'about:2>about:0:aboutFocus');
 assert.equal(route('about:2', 'about'), 'about:2>about:aboutFocus');
 assert.equal(route('about', 'overview'), 'about>home:aboutEntry');
@@ -23,20 +23,20 @@ assert.equal(route('projects', 'blog'), 'projects>blog:default');
 assert.equal(route('map', 'overview'), 'map>home:descent');
 assert.equal(route('map', 'mobile-overview'), 'map>home:descent');
 
-// One zoom or one shrink, never a stop on the way: a trip leaves straight to Art, Art goes straight to Travel,
-// a direct entry to a trip lands there in the one zoom-out.
+// One zoom or one shrink, never a stop on the way: a location leaves straight to Art, Art goes straight to Places,
+// a direct entry to a location lands there in the one zoom-out.
 assert.equal(route('about:1', 'art'), 'about:1>art:art');
-assert.equal(route('travel', 'art'), 'travel>art:travelEntry');
-assert.equal(route('art', 'travel'), 'art>travel:travelEntry');
-assert.equal(route('travel:trip', 'art'), 'travel:trip>art:travelEntry');
-assert.equal(route('travel:trip', 'overview'), 'travel:trip>home:travelEntry');
-assert.equal(route('about:1', 'travel:trip'), 'about:1>travel:trip:travelEntry');
-assert.equal(route('overview', 'travel:trip'), 'home>travel:trip:travelEntry');
+assert.equal(route('places', 'art'), 'places>art:placesEntry');
+assert.equal(route('art', 'places'), 'art>places:placesEntry');
+assert.equal(route('places:location', 'art'), 'places:location>art:placesEntry');
+assert.equal(route('places:location', 'overview'), 'places:location>home:placesEntry');
+assert.equal(route('about:1', 'places:location'), 'about:1>places:location:placesEntry');
+assert.equal(route('overview', 'places:location'), 'home>places:location:placesEntry');
 
 // A viewport change between the overview poses is still a journey.
 assert.equal(route('overview', 'mobile-overview'), 'home>home:default');
 
-assert.equal(legKind('art', 'travel:trip'), 'travelEntry', 'The morph sets the pace whatever the other end');
+assert.equal(legKind('art', 'places:location'), 'placesEntry', 'The morph sets the pace whatever the other end');
 assert.equal(legKind('about:1', 'art'), 'art');
 
 console.log('camera journey ok');

@@ -1,5 +1,5 @@
 // Site sections reachable from the homepage scene links, drawer and navigation.
-export type SectionId = 'projects' | 'art' | 'blog' | 'about' | 'travel';
+export type SectionId = 'projects' | 'art' | 'blog' | 'about' | 'places';
 
 /** Visible section names, shared by the site nav and the drawer. */
 export const SECTION_LABELS: Record<SectionId, string> = {
@@ -7,5 +7,5 @@ export const SECTION_LABELS: Record<SectionId, string> = {
   art: 'Art',
   blog: 'Blog',
   projects: 'Projects',
-  travel: 'Travel',
+  places: 'Places',
 };

@@ -20,17 +20,18 @@ type CameraFrameState = {
   transitioning: boolean;
   // Flight fog weight: raised by Art camera journeys, released by the arrival wipe.
   artFog: number;
-  // Travel morph: 0 shows the terrain in place, 1 has it shrunk onto the globe; driven by Travel journeys.
-  travelMorph: number;
-  // A journey between Travel's overview and a trip: the camera's progress by time, 0 to 1, or -1 with none under way.
-  travelFocus: number;
-  // Where the terrain rides on the planet (set by TravelGlobe every frame while the morph runs): the planet's
+  // Places morph: 0 shows the terrain in place, 1 has it shrunk onto the globe; driven by Places journeys.
+  placesMorph: number;
+  // A journey between Places's overview and a location: the camera's progress by time, 0 to 1, or -1 with none under
+  // way.
+  placesFocus: number;
+  // Where the terrain rides on the planet (set by PlacesGlobe every frame while the morph runs): the planet's
   // current centre and radius, the unit direction from its centre to the patch with the patch's east and north axes
   // there, the terrain point (plane level, world space) that lands on that anchor, world units of arc per landscape
   // unit (scale), the terrain's height factor there (relief), the planet's own relief as a share of its radius
   // (lift), and the datum: the landing place's height above sea in landscape units (seaUnits), the terrain
   // surface's world y at the pivot (datumY) and metres per landscape unit (metresPerUnit).
-  travelPatch: {
+  placesPatch: {
     anchor: Vector3; east: Vector3; north: Vector3; center: Vector3; pivot: Vector3;
     radius: number; scale: number; relief: number; lift: number;
     seaUnits: number; datumY: number; metresPerUnit: number;
@@ -42,9 +43,9 @@ type CameraFrameState = {
   // rising to 1 as it lands on the overview; 1 whenever there is no intro. The ground's light and the fog follow it.
   introDescent: number;
   setArtFog: (weight: number) => void;
-  setTravelMorph: (morph: number) => void;
-  setTravelFocus: (progress: number) => void;
-  setTravelPatchMetrics: (metrics: {
+  setPlacesMorph: (morph: number) => void;
+  setPlacesFocus: (progress: number) => void;
+  setPlacesPatchMetrics: (metrics: {
     radius: number; scale: number; relief: number; lift: number; seaUnits: number; datumY: number;
     metresPerUnit: number;
   }) => void;
@@ -85,9 +86,9 @@ export function CameraFrameProvider({children}: {children: ReactNode}) {
     revision: 0,
     transitioning: false,
     artFog: 0,
-    travelMorph: 0,
-    travelFocus: -1,
-    travelPatch: {
+    placesMorph: 0,
+    placesFocus: -1,
+    placesPatch: {
       anchor: new Vector3(0, 1, 0), east: new Vector3(-1, 0, 0), north: new Vector3(0, 0, 1),
       center: new Vector3(), pivot: new Vector3(), radius: 1, scale: 1, relief: 1, lift: 0,
       seaUnits: 0, datumY: 0, metresPerUnit: 1000,
@@ -95,10 +96,10 @@ export function CameraFrameProvider({children}: {children: ReactNode}) {
     revealTime: REVEAL_DONE_SECONDS,
     introDescent: 1,
     setArtFog: (weight) => { frameState.current.artFog = weight; },
-    setTravelMorph: (morph) => { frameState.current.travelMorph = morph; },
-    setTravelFocus: (progress) => { frameState.current.travelFocus = progress; },
-    setTravelPatchMetrics: (metrics) => {
-      Object.assign(frameState.current.travelPatch, metrics);
+    setPlacesMorph: (morph) => { frameState.current.placesMorph = morph; },
+    setPlacesFocus: (progress) => { frameState.current.placesFocus = progress; },
+    setPlacesPatchMetrics: (metrics) => {
+      Object.assign(frameState.current.placesPatch, metrics);
     },
     setTransitioning: (transitioning) => { frameState.current.transitioning = transitioning; },
     setRevealTime: (time) => { frameState.current.revealTime = time; },

@@ -36,9 +36,6 @@ export function useAboutPathControls() {
       value: ABOUT_PATH_CONFIG.phoneFocusFollow, min: 0, max: 1, step: 0.01, label: 'Phone focus follow',
     },
     phoneFocusZoom: {value: ABOUT_PATH_CONFIG.phoneFocusZoom, min: 0, max: 0.7, step: 0.01, label: 'Phone focus zoom'},
-    // CameraRig.tsx: journey time between the landscape and About, and between entries on the path.
-    journeySeconds: {value: ABOUT_PATH_CONFIG.journeySeconds, min: 0.2, max: 8, step: 0.1, label: 'Journey (s)'},
-    focusSeconds: {value: ABOUT_PATH_CONFIG.focusSeconds, min: 0.2, max: 6, step: 0.1, label: 'Focus (s)'},
     // AboutPath.tsx + AboutCallouts.css: the route's signal colour (path, trail ahead, markers).
     trailColor: {value: ABOUT_PATH_CONFIG.trailColor, label: 'Trail colour'},
   }, {collapsed: false, ...ABOUT_FOLDER});

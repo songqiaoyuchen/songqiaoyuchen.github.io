@@ -31,7 +31,7 @@ Browser verification used Chromium with emulated touch, not physical mobile devi
   navigation stays available in collection views.
 - Warm Art entry moves the live camera and look-at to the Art pose, including on
   mobile. The gallery and medium treatment wait for camera arrival; terrain
-  contours and decoration blend out. Reduced motion skips the travel.
+  contours and decoration blend out. Reduced motion skips the places.
 - Terrain-only material compositing provides painted color/brush texture, light
   pencil strokes on dark, and digital particles. Transitions settle on medium
   changes; same-medium selection does not restart them. Artwork pixels and UI

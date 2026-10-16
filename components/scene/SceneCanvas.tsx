@@ -1,5 +1,5 @@
-// The persistent R3F canvas behind Home, About, Art and Travel: camera, terrain, contours, scene text, the About
-// path, the Travel globe and bloom. Layers mount in stages (useSceneAssembly); keep child order, since useFrame
+// The persistent R3F canvas behind Home, About, Art and Places: camera, terrain, contours, scene text, the About
+// path, the Places globe and bloom. Layers mount in stages (useSceneAssembly); keep child order, since useFrame
 // order follows it.
 'use client';
 
@@ -29,7 +29,7 @@ import {ArtCameraControls} from './controls/ArtCameraControls';
 import {ArtCursorControls} from './controls/ArtCursorControls';
 import {ArtTransitionControls} from './controls/ArtTransitionControls';
 import { SaveCameraButton } from './controls/SaveCameraButton';
-import { TravelTripScope } from './controls/sectionScope';
+import { PlacesLocationScope } from './controls/sectionScope';
 import { SaveConfigButton } from './controls/SaveConfigButton';
 import {useSceneControls} from './controls/useSceneControls';
 import { ColorOnlySMAA } from './effects/ColorOnlySMAA';
@@ -53,28 +53,28 @@ const HeroName = memo(SceneHeroName);
 const Links = memo(SceneLinks);
 const AboutMapLines = memo(AboutMap);
 const AboutRoute = memo(AboutPath);
-const Globe = memo(TravelGlobe);
+const Globe = memo(PlacesGlobe);
 
 const ABOUT_EDIT_ROTATE_SPEED = 0.3;
-import {TRAVEL_OVERVIEW_CONFIG} from '@/config/scene/travel';
+import {PLACES_OVERVIEW_CONFIG} from '@/config/scene/places';
 import { SceneFog } from './terrain/SceneFog';
 import { GlyphRain } from './text/GlyphRain';
 import {SceneHeroName} from './text/SceneHeroName';
 import {SceneLinks} from './text/SceneLinks';
-import {TravelGlobe} from './travel/TravelGlobe';
-import type {GlobeFront} from '@/components/travel/TravelSceneContext';
-import type {GlobeOutline} from '@/components/travel/useTripSheetPlacement';
+import {PlacesGlobe} from './places/PlacesGlobe';
+import type {GlobeFront} from '@/components/places/PlacesSceneContext';
+import type {GlobeOutline} from '@/components/places/useLocationSheetPlacement';
 import {useSceneAssembly} from './useSceneAssembly';
 
-// Quiet delay after the intro starts before the Travel globe (and its map) is built in the background, and a
+// Quiet delay after the intro starts before the Places globe (and its map) is built in the background, and a
 // further one before Art's backdrop paintings are decoded and uploaded, so the two never share a frame.
-const TRAVEL_PREFETCH_MS = 2500;
+const PLACES_PREFETCH_MS = 2500;
 const BACKDROP_PREFETCH_MS = 5000;
 // Then the About map's contours are built by the terrain worker, so the first About journey finds them ready.
 const ABOUT_MAP_PREFETCH_MS = 7500;
 
 // The Canvas re-measures itself on each of its own renders, which every context above it triggers (it bridges
-// them all: the router's on every navigation, Travel's on every hover, capture and selection). Its measured rect
+// them all: the router's on every navigation, Places's on every hover, capture and selection). Its measured rect
 // carries more keys than the stored size, so @react-three/fiber 9.5 takes it for a new one and replaces the store's
 // size and viewport unchanged, and every layer reading them re-renders in the middle of a camera journey. Skip the
 // replacement while the numbers are the same.
@@ -101,15 +101,15 @@ type SceneCanvasProps = {
   aboutStop: number;
   aboutProgressRef: MutableRefObject<number>;
   onAboutSelect: (stop: number) => void;
-  /** Travel: opening a trip, the trip under the pointer and the trip the globe rests on (the selected and hovered
-   * trips themselves reach the globe and the camera through TravelSceneContext). */
-  onTravelSelect: (id: string) => void;
-  onTravelHover: (id: string | null) => void;
-  onTravelCapture: (id: string | null) => void;
-  /** Receives the globe's circle on screen every frame (the trip panel keeps clear of it). */
-  travelGlobeOutlineRef: MutableRefObject<GlobeOutline | null>;
-  /** Receives the place at the globe's centre every frame (the trip index's meridian strip). */
-  travelGlobeFrontRef: MutableRefObject<GlobeFront | null>;
+  /** Places: opening a location, the location under the pointer and the one the globe rests on (selected and hovered
+   * locations themselves reach the globe and the camera through PlacesSceneContext). */
+  onPlacesSelect: (id: string) => void;
+  onPlacesHover: (id: string | null) => void;
+  onPlacesCapture: (id: string | null) => void;
+  /** Receives the globe's circle on screen every frame (the location panel keeps clear of it). */
+  placesGlobeOutlineRef: MutableRefObject<GlobeOutline | null>;
+  /** Receives the place at the globe's centre every frame (the location index's meridian strip). */
+  placesGlobeFrontRef: MutableRefObject<GlobeFront | null>;
   onPoseSettled?: (pose: SectionId | null | undefined) => void;
   /** The preloader's cover has lifted: the intro reveal's clock runs (on the overview, the camera descends). */
   revealStarted: boolean;
@@ -133,11 +133,11 @@ export const SceneCanvas = memo(function SceneCanvas({
   aboutStop,
   aboutProgressRef,
   onAboutSelect,
-  onTravelSelect,
-  onTravelHover,
-  onTravelCapture,
-  travelGlobeOutlineRef,
-  travelGlobeFrontRef,
+  onPlacesSelect,
+  onPlacesHover,
+  onPlacesCapture,
+  placesGlobeOutlineRef,
+  placesGlobeFrontRef,
   onPoseSettled,
   revealStarted,
   introStarted,
@@ -147,8 +147,8 @@ export const SceneCanvas = memo(function SceneCanvas({
   onLinkClick,
 }: SceneCanvasProps) {
   const orbitcontrolsRef = useRef<OrbitControlsInstance>(null);
-  // Development: Save Camera reads the open trip's marker offset through this (TravelGlobe fills it).
-  const travelMeasureOffsetRef = useRef<(() => [number, number] | null) | null>(null);
+  // Development: Save Camera reads the open location's marker offset through this (PlacesGlobe fills it).
+  const placesMeasureOffsetRef = useRef<(() => [number, number] | null) | null>(null);
   const composerRef = useRef<EffectComposerImpl>(null);
   const aboutFramingRef = useRef<AboutFraming | null>(null);
   const {capture} = useArtCapture();
@@ -159,7 +159,7 @@ export const SceneCanvas = memo(function SceneCanvas({
   const [heroMesh, setHeroMesh] = useState<Mesh | null>(null);
   const [sceneLinksMesh, setSceneLinksMesh] = useState<Mesh | null>(null);
   const [aboutPathMesh, setAboutPathMesh] = useState<Mesh | null>(null);
-  const [travelBloom, setTravelBloom] = useState<Object3D[]>([]);
+  const [placesBloom, setPlacesBloom] = useState<Object3D[]>([]);
   const [bloomReady, setBloomReady] = useState(false);
   const [terrainDepthTexture, setTerrainDepthTexture] = useState<DepthTexture | null>(null);
   const [terrainColorTexture, setTerrainColorTexture] = useState<Texture | null>(null);
@@ -174,20 +174,20 @@ export const SceneCanvas = memo(function SceneCanvas({
   const intro = useMemo(
     () => ({active: revealWanted, summitRef, settings: settings.intro}), [revealWanted, settings.intro]);
   const isAbout = activeId === 'about';
-  const isTravel = activeId === 'travel';
-  // Sections with their own journey (Art, About, Travel) clear the homepage text: glyph rain and scene links.
-  const hideSceneText = hideHomeScene || isAbout || isTravel;
-  // About's map contours and the Travel globe are built when their section first opens, or quietly a moment after
+  const isPlaces = activeId === 'places';
+  // Sections with their own journey (Art, About, Places) clear the homepage text: glyph rain and scene links.
+  const hideSceneText = hideHomeScene || isAbout || isPlaces;
+  // About's map contours and the Places globe are built when their section first opens, or quietly a moment after
   // the intro starts (the timers below), so each is in hand, its shaders compiled, before its first journey.
   const [aboutMapWanted, setAboutMapWanted] = useState(isAbout);
   if (isAbout && !aboutMapWanted) setAboutMapWanted(true);
-  const [travelWanted, setTravelWanted] = useState(isTravel);
-  if (isTravel && !travelWanted) setTravelWanted(true);
+  const [placesWanted, setPlacesWanted] = useState(isPlaces);
+  if (isPlaces && !placesWanted) setPlacesWanted(true);
   useEffect(() => {
-    if (travelWanted || !introStarted) return;
-    const timer = window.setTimeout(() => setTravelWanted(true), TRAVEL_PREFETCH_MS);
+    if (placesWanted || !introStarted) return;
+    const timer = window.setTimeout(() => setPlacesWanted(true), PLACES_PREFETCH_MS);
     return () => window.clearTimeout(timer);
-  }, [introStarted, travelWanted]);
+  }, [introStarted, placesWanted]);
   const [backdropsWanted, setBackdropsWanted] = useState(false);
   useEffect(() => {
     if (backdropsWanted || !introStarted) return;
@@ -200,35 +200,31 @@ export const SceneCanvas = memo(function SceneCanvas({
     return () => window.clearTimeout(timer);
   }, [aboutMapWanted, introStarted]);
   // Each hidden layer mounting (the globe; the About map) gets its shaders compiled while the scene is quiet.
-  const precompileRevision = (travelWanted ? 1 : 0) + (aboutMapWanted ? 2 : 0);
-  // The dev orbit camera: free on the overview and the drawer sections, on About and Travel only while Leva's Edit
+  const precompileRevision = (placesWanted ? 1 : 0) + (aboutMapWanted ? 2 : 0);
+  // The dev orbit camera: free on the overview and the drawer sections, on About and Places only while Leva's Edit
   // camera is on.
   const cameraEditable = activeId !== 'art'
     && (activeId !== 'about' || settings.aboutPath.editCamera)
-    && (activeId !== 'travel' || settings.travel.editCamera);
+    && (activeId !== 'places' || settings.places.editCamera);
   const aboutMapSettings = useMemo(
     () => ({...settings.contours, ...ABOUT_MAP_CONFIG.contours}),
     [settings.contours],
   );
-  // The riding landscape lands on the overview's ground: a trip's own look only eases in once the globe has formed.
-  const {baseColor: travelBase, lineColor: travelLine} = settings.travel;
-  const travelTint = settings.travelOverview.landTint;
-  const travelLook = useMemo(
-    () => ({baseColor: travelBase, lineColor: travelLine, landTint: travelTint, shade: TRAVEL_OVERVIEW_CONFIG.shade}),
-    [travelBase, travelLine, travelTint],
+  // The riding landscape lands on the overview's ground: a location's own look only eases in once the globe has formed.
+  const {baseColor: placesBase, lineColor: placesLine} = settings.places;
+  const placesTint = settings.placesOverview.landTint;
+  const placesLook = useMemo(
+    () => ({baseColor: placesBase, lineColor: placesLine, landTint: placesTint, shade: PLACES_OVERVIEW_CONFIG.shade}),
+    [placesBase, placesLine, placesTint],
   );
-  const {journeySeconds: travelJourney} = settings.travel;
-  const {focusSeconds: travelFocus} = settings.travelTrip;
-  const travelSeconds = useMemo(
-    () => ({journeySeconds: travelJourney, focusSeconds: travelFocus}), [travelFocus, travelJourney]);
-  // Contours and scene links must be ready before the composer; the About path and Travel lines join when mounted.
+  // Contours and scene links must be ready before the composer; the About path and Places lines join when mounted.
   const bloomBaseReady = contourMesh !== null && sceneLinksMesh !== null;
   const bloomSelection = useMemo(
     () => [
       ...[contourMesh, sceneLinksMesh, aboutPathMesh].filter((mesh): mesh is Mesh => mesh !== null),
-      ...travelBloom,
+      ...placesBloom,
     ],
-    [aboutPathMesh, contourMesh, sceneLinksMesh, travelBloom],
+    [aboutPathMesh, contourMesh, sceneLinksMesh, placesBloom],
   );
   const handleBloomReady = useCallback(() => setBloomReady(true), []);
   useEffect(() => {
@@ -301,7 +297,7 @@ export const SceneCanvas = memo(function SceneCanvas({
             <OrbitControls
               ref={orbitcontrolsRef}
               // Off on About: its camera is authored (pose, checkpoint framing); the route editor owns the pointer.
-              // Off on Travel too, where the pointer turns the globe. On either, Leva's Edit camera takes it.
+              // Off on Places too, where the pointer turns the globe. On either, Leva's Edit camera takes it.
               enabled={artActive ? artCameraEditing : cameraEditable}
               // Composing About's pose: slower turns, so a drag nudges the view rather than swinging it.
               rotateSpeed={activeId === 'about' ? ABOUT_EDIT_ROTATE_SPEED : 1}
@@ -315,18 +311,17 @@ export const SceneCanvas = memo(function SceneCanvas({
               activeId={activeId}
               aboutStop={aboutStop}
               aboutFramingRef={aboutFramingRef}
-              aboutSeconds={settings.aboutPath}
-              travelSeconds={travelSeconds}
+              journeySeconds={settings.cameraJourney}
               intro={intro}
               onPoseSettled={onPoseSettled}
               controlsRef={isDevelopment ? orbitcontrolsRef : undefined}
             />
-            {isDevelopment ? <TravelTripScope /> : null}
+            {isDevelopment ? <PlacesLocationScope /> : null}
             {isDevelopment && !artActive && activeId !== 'art' ? (
               <SaveCameraButton
                 activeId={activeId}
                 controlsRef={orbitcontrolsRef}
-                measureTravelOffset={travelMeasureOffsetRef}
+                measurePlacesOffset={placesMeasureOffsetRef}
               />
             ) : null}
             {isDevelopment && artActive && !capturing ? (
@@ -352,13 +347,13 @@ export const SceneCanvas = memo(function SceneCanvas({
                   onDepthTextureChange={setTerrainDepthTexture}
                   onColorTextureChange={setTerrainColorTexture}
                   terrainSettings={settings.terrain}
-                  travelLook={travelLook}
+                  placesLook={placesLook}
                 />
               ) : null}
               {assemblyPhase >= 2 ? (
                 <ContourLines
-                  hidden={hideHomeScene || isAbout || isTravel}
-                  travelRide
+                  hidden={hideHomeScene || isAbout || isPlaces}
+                  placesRide
                   reveal
                   summitRef={summitRef}
                   intro={settings.intro}
@@ -396,7 +391,7 @@ export const SceneCanvas = memo(function SceneCanvas({
                   {aboutMapWanted ? (
                     <AboutMapLines
                       hidden={!isAbout}
-                      travelRide
+                      placesRide
                       contourSettings={aboutMapSettings}
                       terrainDepthTexture={terrainDepthTexture}
                       terrainSettings={settings.terrain}
@@ -413,23 +408,24 @@ export const SceneCanvas = memo(function SceneCanvas({
                     framingRef={aboutFramingRef}
                     onSelect={onAboutSelect}
                   />
-                  {travelWanted ? (
+                  {placesWanted ? (
                     <Globe
-                      visible={!hideHomeScene && isTravel}
-                      editingCamera={settings.travel.editCamera}
-                      measureOffsetRef={travelMeasureOffsetRef}
-                      interactive={!settings.travel.editCamera}
-                      settings={settings.travel}
-                      overviewSettings={settings.travelOverview}
-                      tripSettings={settings.travelTrip}
+                      visible={!hideHomeScene && isPlaces}
+                      editingCamera={settings.places.editCamera}
+                      measureOffsetRef={placesMeasureOffsetRef}
+                      interactive={!settings.places.editCamera}
+                      settings={settings.places}
+                      overviewSettings={settings.placesOverview}
+                      locationSettings={settings.placesLocation}
+                      focusSeconds={settings.cameraJourney.placesFocus}
                       terrainDepthTexture={terrainDepthTexture}
                       terrainColorTexture={terrainColorTexture}
-                      onBloomObjects={setTravelBloom}
-                      onCapture={onTravelCapture}
-                      globeOutlineRef={travelGlobeOutlineRef}
-                      globeFrontRef={travelGlobeFrontRef}
-                      onSelect={onTravelSelect}
-                      onHover={onTravelHover}
+                      onBloomObjects={setPlacesBloom}
+                      onCapture={onPlacesCapture}
+                      globeOutlineRef={placesGlobeOutlineRef}
+                      globeFrontRef={placesGlobeFrontRef}
+                      onSelect={onPlacesSelect}
+                      onHover={onPlacesHover}
                     />
                   ) : null}
                 </>

@@ -26,12 +26,12 @@ const NAV_ITEMS = [
   {href: '/projects', label: SECTION_LABELS.projects},
   {href: '/artworks', label: SECTION_LABELS.art},
   {href: '/blog', label: SECTION_LABELS.blog},
-  {href: '/travel', label: SECTION_LABELS.travel},
+  {href: '/places', label: SECTION_LABELS.places},
   {href: '/about', label: SECTION_LABELS.about},
 ] as const;
 
 /** Sections whose deeper views stay put when their nav item is clicked again. */
-const KEEPS_VIEW = ['/artworks', '/travel'];
+const KEEPS_VIEW = ['/artworks', '/places'];
 
 export function Nav() {
   const pathname = usePathname();
@@ -61,7 +61,7 @@ export function Nav() {
               className={`${navStyles.item} ${pathname.startsWith(item.href) ? navStyles.current : navStyles.idle}`}
               href={item.href}
               onClick={(event) => {
-                // Already on Art or Travel: keep the current view instead of resetting it.
+                // Already on Art or Places: keep the current view instead of resetting it.
                 if (KEEPS_VIEW.includes(item.href) && pathname.startsWith(item.href)
                   && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) event.preventDefault();
                 else requestSectionNavigation(event, item.href);

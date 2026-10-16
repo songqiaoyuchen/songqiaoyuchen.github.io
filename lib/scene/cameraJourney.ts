@@ -1,14 +1,14 @@
 // Camera journey planning: a journey is always one motion straight from the pose the camera holds to the one asked
-// for, whatever the two are, and its kind decides its timing. The effects (the Travel morph, the Art flight fog,
+// for, whatever the two are, and its kind decides its timing. The effects (the Places morph, the Art flight fog,
 // the globe's focus progress) go by the journey's two ends and run over its whole length. No stop on the way:
-// a trip leaves straight to Art as one shrink, Art to Travel is one zoom-out, the overview is just another angle.
+// a location leaves straight to Art as one shrink, Art to Places is one zoom-out, the overview is just another angle.
 //
 // Pose keys as CameraRig names them: 'overview' or 'mobile-overview' (both the root, 'home' here), 'projects',
-// 'blog', 'about', 'about:<stop>', 'art', 'travel', 'travel:index' (phones, the trip list pulled up) and
-// 'travel:trip'. 'map' is the homepage intro's pose straight above the summit, left only for the overview.
+// 'blog', 'about', 'about:<stop>', 'art', 'places', 'places:index' (phones, the location list pulled up) and
+// 'places:location'. 'map' is the homepage intro's pose straight above the summit, left only for the overview.
 
 export type LegKind =
-  | 'default' | 'descent' | 'art' | 'aboutFocus' | 'aboutEntry' | 'travelFocus' | 'travelIndex' | 'travelEntry';
+  | 'default' | 'descent' | 'art' | 'aboutFocus' | 'aboutEntry' | 'placesFocus' | 'placesIndex' | 'placesEntry';
 
 export type JourneyLeg = Readonly<{from: string; to: string; kind: LegKind}>;
 
@@ -21,21 +21,21 @@ export function isHomeKey(key: string) {
 }
 
 export const isAboutKey = (key: string) => key === 'about' || key.startsWith('about:');
-export const isTravelKey = (key: string) => key === 'travel' || key === 'travel:index' || key === 'travel:trip';
+export const isPlacesKey = (key: string) => key === 'places' || key === 'places:index' || key === 'places:location';
 
 /**
- * What a journey between two poses is, for its timing: the intro's descent from the map first, then Travel's
- * moves (into or out of Travel the terrain
- * morphs, which sets the pace whatever the other end; between its overview and a trip the globe turns; the phone
+ * What a journey between two poses is, for its timing: the intro's descent from the map first, then Places's
+ * moves (into or out of Places the terrain
+ * morphs, which sets the pace whatever the other end; between its overview and a location the globe turns; the phone
  * list pulled up or let down is a quick step back with no turn), then
  * Art's flight, then About's.
  */
 export function legKind(from: string, to: string): LegKind {
   if (from === MAP) return 'descent';
   const ends = `${from}>${to}`;
-  if (ends === 'travel>travel:index' || ends === 'travel:index>travel') return 'travelIndex';
-  if (isTravelKey(from) && isTravelKey(to)) return 'travelFocus';
-  if (isTravelKey(from) !== isTravelKey(to)) return 'travelEntry';
+  if (ends === 'places>places:index' || ends === 'places:index>places') return 'placesIndex';
+  if (isPlacesKey(from) && isPlacesKey(to)) return 'placesFocus';
+  if (isPlacesKey(from) !== isPlacesKey(to)) return 'placesEntry';
   if (from === 'art' || to === 'art') return 'art';
   if (isAboutKey(from) && isAboutKey(to)) return 'aboutFocus';
   if (isAboutKey(from) !== isAboutKey(to)) return 'aboutEntry';

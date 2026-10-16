@@ -111,9 +111,6 @@ export const ABOUT_PATH_CONFIG = {
   phoneFocusScreen: [-0.42, 0.5] as readonly [number, number], // left of centre: its title reads to the right
   phoneFocusFollow: 0.85,
   phoneFocusZoom: 0.3,
-  // Camera journey times: between the landscape and the About pose, and between entries on the path.
-  journeySeconds: 1,
-  focusSeconds: 0.7,
   // The reading head must rest this long on an entry before the camera follows it.
   settleMs: 160,
 } as const;
