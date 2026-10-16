@@ -54,6 +54,9 @@
   --opacity-timeline-upcoming: 0.24;
   --radius-card: 0.875rem;
   --shadow-hero: 0 0 18px rgb(232 199 122 / 8%);
+  /* HeroName: bright core, wide faint halo (the links' bloom, in CSS). */
+  --text-shadow-hero-glow: 0 0 2px rgb(232 199 122 / 90%), 0 0 8px rgb(232 199 122 / 55%),
+    0 0 24px rgb(232 199 122 / 30%), 0 0 64px rgb(232 199 122 / 14%);
   --shadow-route: 0 0 10px rgb(232 199 122 / 12%);
   --shadow-route-marker: 0 0 9px rgb(232 199 122 / 34%);
   --spacing-drawer: clamp(21.25rem, 45vw, 38.75rem);
@@ -66,7 +69,7 @@
   --text-hero-annotation: clamp(0.8rem, 1.25vw, 0.95rem);
   --text-hero-eyebrow: clamp(0.7rem, 3vw, 0.8rem);
   --text-hero-support: clamp(0.7rem, 2.8vw, 0.82rem);
-  --text-hero-title: clamp(3.5rem, 16vw, 5rem);
+  --text-hero-title: clamp(4.25rem, 19vw, 6rem);
   --text-intro: clamp(2rem, 5vw, 3rem);
   --text-intro-copy: 0.74rem;
   --text-label: 0.625rem;

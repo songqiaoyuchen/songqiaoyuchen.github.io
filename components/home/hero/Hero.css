@@ -9,18 +9,20 @@
   71%, 80%, 91%, 100% { opacity: 0; }
 }
 
+/* The entrance offsets come from Tailwind's translate-y-* utilities (the `translate` property), so the keyframes
+   clear `translate`, not `transform`. */
 @keyframes hero-name {
   to {
     opacity: 1;
     filter: blur(0);
-    transform: translateY(0);
+    translate: 0 0;
   }
 }
 
 @keyframes hero-support {
   to {
     opacity: 1;
-    transform: translateY(0);
+    translate: 0 0;
   }
 }
 
@@ -32,9 +34,31 @@
     var(--type-reveal-delay) forwards;
 }
 
+/* HeroName's blurred twin: the same text (from data-text) smeared behind the glyphs, breathing slowly, so the
+   glow spreads wider than a text-shadow alone and shimmers like the scene links' bloom. */
+.hero-name-glow::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  filter: blur(14px);
+  opacity: 0.55;
+  pointer-events: none;
+  animation: hero-glow-breathe 4.2s ease-in-out infinite;
+}
+
+@keyframes hero-glow-breathe {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 0.38; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .hero-type-reveal {
     animation: none;
     clip-path: none;
+  }
+
+  .hero-name-glow::after {
+    animation: none;
   }
 }

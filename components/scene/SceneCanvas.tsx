@@ -11,6 +11,7 @@ import {SMAAPreset, type EffectComposer as EffectComposerImpl} from 'postprocess
 import type {DepthTexture, Mesh, Object3D, Texture, Vector3Tuple} from 'three';
 import type { OrbitControls as OrbitControlsInstance } from 'three-stdlib';
 import type {useCreateStore} from 'leva';
+import {HERO_NAME_RENDERER} from '@/config/hero';
 import {CAMERA_CONFIG, FOG_CONFIG} from '@/config/scene';
 import {useArtCapture} from '@/components/art/ArtSceneContext';
 import type {ArtMedium} from '@/data/artworks';
@@ -50,6 +51,8 @@ const Terrain = memo(CachedTerrain);
 const ContourLines = memo(Contours);
 const Rain = memo(GlyphRain);
 const HeroName = memo(SceneHeroName);
+// The WebGL name mounts only when Home shows it; otherwise HeroLayer renders the HTML one (HeroName).
+const webglHeroName = HERO_NAME_RENDERER === 'webgl';
 const Links = memo(SceneLinks);
 const AboutMapLines = memo(AboutMap);
 const AboutRoute = memo(AboutPath);
@@ -217,14 +220,15 @@ export const SceneCanvas = memo(function SceneCanvas({
     () => ({baseColor: placesBase, lineColor: placesLine, landTint: placesTint, shade: PLACES_OVERVIEW_CONFIG.shade}),
     [placesBase, placesLine, placesTint],
   );
-  // Contours and scene links must be ready before the composer; the About path and Places lines join when mounted.
+  // Contours and scene links must be ready before the composer; the hero name, About path and Places lines join
+  // when mounted.
   const bloomBaseReady = contourMesh !== null && sceneLinksMesh !== null;
   const bloomSelection = useMemo(
     () => [
-      ...[contourMesh, sceneLinksMesh, aboutPathMesh].filter((mesh): mesh is Mesh => mesh !== null),
+      ...[contourMesh, sceneLinksMesh, heroMesh, aboutPathMesh].filter((mesh): mesh is Mesh => mesh !== null),
       ...placesBloom,
     ],
-    [aboutPathMesh, contourMesh, sceneLinksMesh, placesBloom],
+    [aboutPathMesh, contourMesh, heroMesh, sceneLinksMesh, placesBloom],
   );
   const handleBloomReady = useCallback(() => setBloomReady(true), []);
   useEffect(() => {
@@ -237,7 +241,7 @@ export const SceneCanvas = memo(function SceneCanvas({
     terrainDepthTexture,
     contourMesh,
     glyphRainMesh,
-    heroMesh,
+    heroReady: !webglHeroName || heroMesh !== null,
     sceneLinksMesh,
     bloomReady,
     bloomSelectionCount: bloomSelection.length,
@@ -381,13 +385,15 @@ export const SceneCanvas = memo(function SceneCanvas({
                     onLinkClick={onLinkClick}
                     terrainSettings={settings.terrain}
                   />
-                  <HeroName
-                    ref={setHeroMesh}
-                    contourSettings={settings.contours}
-                    isHidden={hideHomeScene || activeId !== null}
-                    introStarted={introStarted}
-                    terrainSettings={settings.terrain}
-                  />
+                  {webglHeroName ? (
+                    <HeroName
+                      ref={setHeroMesh}
+                      contourSettings={settings.contours}
+                      isHidden={hideHomeScene || activeId !== null}
+                      introStarted={introStarted}
+                      terrainSettings={settings.terrain}
+                    />
+                  ) : null}
                   {aboutMapWanted ? (
                     <AboutMapLines
                       hidden={!isAbout}

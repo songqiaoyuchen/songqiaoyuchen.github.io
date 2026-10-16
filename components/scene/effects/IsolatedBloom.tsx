@@ -1,4 +1,4 @@
-// Bloom that renders only the selected meshes (contours, scene links) on their own layer.
+// Bloom that renders only the selected meshes (contours, scene links, hero name) on their own layer.
 'use client';
 
 import {useThree} from '@react-three/fiber';

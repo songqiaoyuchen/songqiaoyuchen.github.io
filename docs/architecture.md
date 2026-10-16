@@ -35,7 +35,9 @@ drawers. Home and Art share a persistent route-group layout (`(scene)`, mounting
 Art entry exposes content while the terrain prepares, and a warm return Home retains
 the canvas. Other sections retain their existing lifecycles.
 Scene text dissolves into pixels on section changes. Scene link layouts change only
-while fully hidden; scene links and the hero name reveal after camera arrival.
+while fully hidden; scene links and the hero name reveal after camera arrival. The hero name is HTML by default
+(`HeroName`: a glyph scramble on entrance and on hover or tap, a text-shadow glow); `HERO_NAME_RENDERER` in
+`config/hero.ts` switches Home to the WebGL name (`SceneHeroName`) instead.
 First arrival is one sequence from the preloader's mark to the landscape. Under the preloader the scene opens at a
 map pose straight above the summit (`CameraRig` snaps to it; `lib/scene/introDescent.ts` places it from the
 overview's heading so the descent is a pitch, never a roll), the ground unlit (`terrain.frag` `uLightsIn`) and the

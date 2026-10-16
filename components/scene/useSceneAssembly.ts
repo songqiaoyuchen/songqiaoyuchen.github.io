@@ -10,7 +10,8 @@ type AssemblyInputs = {
   terrainDepthTexture: DepthTexture | null;
   contourMesh: Mesh | null;
   glyphRainMesh: Mesh | null;
-  heroMesh: Mesh | null;
+  /** The WebGL hero name is mounted, or Home shows the HTML one instead. */
+  heroReady: boolean;
   sceneLinksMesh: Mesh | null;
   bloomReady: boolean;
   bloomSelectionCount: number;
@@ -26,7 +27,7 @@ export function useSceneAssembly({
   terrainDepthTexture,
   contourMesh,
   glyphRainMesh,
-  heroMesh,
+  heroReady,
   sceneLinksMesh,
   bloomReady,
   bloomSelectionCount,
@@ -41,7 +42,7 @@ export function useSceneAssembly({
         ? 1
         : !contourMesh
           ? 2
-          : !(glyphRainMesh && heroMesh && sceneLinksMesh)
+          : !(glyphRainMesh && heroReady && sceneLinksMesh)
             ? 3
             : assemblyPhase < 4
               ? 4
@@ -67,7 +68,7 @@ export function useSceneAssembly({
     canvasReady,
     contourMesh,
     glyphRainMesh,
-    heroMesh,
+    heroReady,
     sceneLinksMesh,
     terrainDepthTexture,
   ]);

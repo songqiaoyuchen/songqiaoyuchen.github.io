@@ -7,7 +7,7 @@ const POST = POST_PROCESSING_CONFIG;
 
 export function usePostControls() {
   return useControls('Post', {
-    // IsolatedBloom.tsx: strength of the glow around contours and scene links.
+    // IsolatedBloom.tsx: strength of the glow around contours, scene links and the hero name.
     bloomIntensity: {
       value: POST.bloomIntensity,
       min: 0, max: 12, step: 0.05,

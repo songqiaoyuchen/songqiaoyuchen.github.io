@@ -23,6 +23,7 @@ import {HeroLayer} from '@/components/home/hero/HeroLayer';
 import {Preloader} from '@/components/home/preloader/Preloader';
 import {HOME_OVERVIEW_EVENT, SECTION_NAVIGATE_EVENT} from '@/components/site/Nav';
 import {usePlacesSceneActions} from '@/components/places/PlacesSceneContext';
+import {HERO_NAME_RENDERER} from '@/config/hero';
 import {ABOUT_STOP_IDS} from '@/data/about';
 import type {SectionId} from '@/data/sections';
 import type {ArticleSummary} from '@/lib/content/types';
@@ -278,7 +279,7 @@ export function SceneShell({articles, children}: SceneShellProps) {
           // Like the WebGL name and glyph rain, the HTML hero returns only once the camera is home.
           <HeroLayer
             isHidden={activeId !== null || settledPose !== null}
-            useHtmlName={sceneState === 'fallback'}
+            useHtmlName={sceneState === 'fallback' || HERO_NAME_RENDERER === 'html'}
           />
         ) : null}
         <Drawer

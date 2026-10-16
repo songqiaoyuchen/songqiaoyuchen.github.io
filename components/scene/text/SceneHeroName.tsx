@@ -1,6 +1,6 @@
-// The WebGL hero name ("SQYC", swapping to "NIRO" on hover); on mobile it covers the HTML name's box, whose text
-// Hero keeps for screen readers and the terrain fallback.
-// Fades in after the preloader and dissolves whenever a section opens.
+// The WebGL hero name ("SQYC", swapping to "NIRO" on hover, or for a moment on a mobile tap); on mobile it covers
+// the HTML name's box, whose text Hero keeps for screen readers and the terrain fallback.
+// Fades in after the preloader, blooms with the scene links and dissolves whenever a section opens.
 'use client';
 
 import {forwardRef, useEffect, useMemo, useRef, useState} from 'react';
@@ -60,6 +60,8 @@ export const SceneHeroName = forwardRef<Mesh, SceneHeroNameProps>(function Scene
   const materialRef = useRef<ShaderMaterial>(null);
   const elapsed = useRef(0);
   const dissolve = useRef(0);
+  // Mobile: the tap that showed the alternate name schedules its swap back.
+  const swapBackTimer = useRef<number | null>(null);
   const cameraFrameState = useCameraFrameState();
   const viewportWidth = useThree((state) => state.size.width);
   const viewportHeight = useThree((state) => state.size.height);
@@ -162,8 +164,15 @@ export const SceneHeroName = forwardRef<Mesh, SceneHeroNameProps>(function Scene
     (material.uniforms.uLayoutOffsetZ.value as Float32Array)[0] = layoutPosition[1];
     material.uniforms.uLift.value = sceneLift;
   }, [layoutPosition, sceneLift]);
+  const clearSwapBack = () => {
+    if (swapBackTimer.current === null) return;
+    window.clearTimeout(swapBackTimer.current);
+    swapBackTimer.current = null;
+  };
+  useEffect(() => clearSwapBack, []);
   useEffect(() => {
     if (!isHidden) return;
+    clearSwapBack();
     const material = materialRef.current;
     if (!material) return;
     (material.uniforms.uTextTarget.value as Float32Array)[0] = 0;
@@ -221,6 +230,22 @@ export const SceneHeroName = forwardRef<Mesh, SceneHeroNameProps>(function Scene
     (material.uniforms.uTextTarget.value as Float32Array)[0] = target;
     (material.uniforms.uGlitch.value as Float32Array)[0] = isReducedMotion ? 0 : 1;
   };
+  // Mobile has no hover: a tap swaps the name, which swaps back on its own (or on the next tap).
+  const toggleHeroText = () => {
+    const material = materialRef.current;
+    if (!material) return;
+    clearSwapBack();
+    const showingAlternate = (material.uniforms.uTextTarget.value as Float32Array)[0] > 0.5;
+    setHeroTextTarget(showingAlternate ? 0 : 1);
+    if (showingAlternate) return;
+    swapBackTimer.current = window.setTimeout(() => {
+      swapBackTimer.current = null;
+      setHeroTextTarget(0);
+    }, HERO_SCENE_CONFIG.tapSwapHoldMs);
+  };
+  const hitAreaStyle = isDesktop || !mobileSlot
+    ? HERO_SCENE_CONFIG.hoverHitArea
+    : {width: `${Math.round(mobileSlot.width)}px`, height: `${Math.round(mobileSlot.height)}px`};
 
   return (
     <>
@@ -243,15 +268,17 @@ export const SceneHeroName = forwardRef<Mesh, SceneHeroNameProps>(function Scene
           blending={AdditiveBlending}
         />
       </mesh>
-      {isDesktop ? (
+      {isPlaced ? (
         <Html center position={hitTargetPosition} zIndexRange={[30, 10]}>
           <span
             aria-hidden="true"
-            className={`block bg-transparent ${isHidden ? 'pointer-events-none' : 'pointer-events-auto'}`}
+            className={`block touch-manipulation bg-transparent
+              ${isHidden ? 'pointer-events-none' : 'pointer-events-auto'}`}
             data-hero-name-hit-target
-            style={HERO_SCENE_CONFIG.hoverHitArea}
-            onPointerEnter={() => setHeroTextTarget(1)}
-            onPointerLeave={() => setHeroTextTarget(0)}
+            style={hitAreaStyle}
+            onPointerEnter={isDesktop ? () => setHeroTextTarget(1) : undefined}
+            onPointerLeave={isDesktop ? () => setHeroTextTarget(0) : undefined}
+            onClick={isDesktop ? undefined : toggleHeroText}
           />
         </Html>
       ) : null}

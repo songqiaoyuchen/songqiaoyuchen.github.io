@@ -81,3 +81,42 @@ Append dated decisions with rationale, alternatives considered, and evidence.
   2. Descent: the map is the real contour lines seen from straight above the summit; the camera lowers to the
      overview pose while the ground lights up. One sequence, reuses `IntroReveal` instead of repeating it.
   Recommended: descent; chosen and built the same day (see the decision log).
+- 2026-10-17: Review of the built descent. The user judged the preloader unchanged in character (a looped dash and
+  a timed count), the handoff a plain crossfade, and the camera pitch from the map to the overview wrong; of the
+  intro alone they prefer the first draft (the wave from the summit seen from the overview, no camera move).
+  Three loader-to-landscape directions were mocked side by side on a screenshot of the real overview, scrubbable,
+  all with the camera fixed at the overview: https://claude.ai/artifact/TodTZRe8LCL92xmnraiVHq
+  A. The climb: the mark's five rings draw in, foot to peak, as the five real pipeline stages finish (displacement,
+     shell, lighting, contours, shader compile and first frames); a one-word stage label replaces the percentage;
+     at the peak the mark glides onto the summit's screen position, shrinks to the real rings' scale, and the wave
+     sets off from under it while it fades.
+  B. One line: a pen draws the mark as one continuous stroke (length = progress), lifts off the peak, arcs down to
+     the summit trailing light, and the wave is the same line continuing.
+  C. The paused scene: the loader is the real summit's rings projected through the overview camera, appearing as
+     stages finish; ready resumes the wave from the held radius, nothing fades (needs the summit's polylines baked
+     out and a frame-exact swap; the mark leaves the loader).
+  Recommended: A with B's stroke-drawing for each ring. Decision pending.
+- 2026-10-17, round 2: the user rejected all three above for the same reason: each carries something (the mark,
+  a pen) down to the summit's screen position. Rule adopted for the next round: the mark holds still and the
+  scene's reveal starts where the mark is, as a screen-space front from the mark's centre (a small change to the
+  contour reveal: screen-space origin and distance instead of the reach field). Loading stays as in A (rings draw
+  in, one per pipeline stage). Three exits mocked at the same link (the page was replaced):
+  D. The ripple: at ready the rings widen past the screen edges outermost first, a beat apart; each one lights the
+     lines it crosses; the peak is the last to go. Recommended.
+  E. The dive: the whole mark zooms exponentially toward the viewer; the landscape resolves from the centre in step;
+     the viewer passes through the rings into the place.
+  F. The emblem stays: the mark loads small at top centre, where it stays as a permanent hero emblem; one front
+     from it lights the landscape; nothing exits (changes the hero's balance).
+  Decision pending.
+- 2026-10-17, round 3: the user set the sequence themselves (the ripple's scaled SVG was rejected as ugly):
+  1. loading: the mark's rings draw in, one per pipeline stage (kept from round 1/2);
+  2. at ready, more contour lines are drawn around the mark, outward, until the screen is a full contour map (no
+     scaling of the SVG; new lines accrete, the mark's rings are the innermost);
+  3. a fluid / bleeding-ink reveal spreads out of the contour lines, filling the dark gaps, and the scene shows
+     through where the ink has filled (reference: "Kevin's site" and its signature, link not yet given);
+  4. under it the terrain keeps the first version's intro (the summit wave from the overview pose); no camera move.
+  Mocked at the same link, replaced in place, with sliders for line spacing, lines per second, ink delay per line
+  and ink spread. The mock's map is isolines of a 2D field seeded by the mark's outline (offsets of the mark near
+  it, wandering into other hills further out); the ink is that field's distance grown over time and held back by
+  noise, computed per pixel, which is also the shape of the real implementation (a full-screen pass sampling the
+  scene through a grown mask). Decision pending on the mock.
