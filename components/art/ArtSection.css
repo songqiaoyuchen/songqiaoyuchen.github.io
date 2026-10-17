@@ -96,11 +96,13 @@
   outline-offset: 4px;
 }
 
-/* Selected works' × back to Home (SectionClose.tsx): where About's sits. */
+/* Selected works' × back to Home (SectionClose.tsx): where About's sits. Above the gallery, which on phones reaches
+   up under it (the carousel stage and its swipe rail would otherwise take its taps). */
 .art-close {
   position: fixed;
   top: 6rem;
   right: clamp(2rem, 5vw, 5rem);
+  z-index: 3;
 }
 
 /* The gallery column: stage above, a fixed-height wall label row below. */
