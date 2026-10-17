@@ -38,22 +38,27 @@ Scene text dissolves into pixels on section changes. Scene link layouts change o
 while fully hidden; scene links and the hero name reveal after camera arrival. The hero name is HTML by default
 (`HeroName`: a glyph scramble on entrance and on hover or tap, a text-shadow glow); `HERO_NAME_RENDERER` in
 `config/hero.ts` switches Home to the WebGL name (`SceneHeroName`) instead.
-First arrival is one sequence from the preloader's mark to the landscape. Under the preloader the scene opens at a
-map pose straight above the summit (`CameraRig` snaps to it; `lib/scene/introDescent.ts` places it from the
-overview's heading so the descent is a pitch, never a roll), the ground unlit (`terrain.frag` `uLightsIn`) and the
-fog pushed out for the height (`SceneFog`), so only the contour lines can show. When the scene is ready the
-preloader's cover lifts in one step (the same black) and the mark fades into the summit's rings as the contour map
-draws itself from the summit outward: a wave spreads over the ground by surface distance, so it takes longer to
-come over a hill than along the plain (`IntroReveal` runs the clock; the terrain worker builds the reach field,
-`lib/terrain/reach.ts`, distances over the terrain from the highest point near the overview's point of regard,
-`revealOriginX/Z`, and names that summit for the map pose); each line shows where the wave has passed, a faint
+First arrival is one sequence from the preloader's mark to the landscape, and the camera never moves. While the
+terrain loads, the mark's highlight spirals and the real stage under way is named beneath it (the worker's
+fetches, then the shaders' first frames; `PRELOADER_CONFIG.stages`, the worker's progress forwarded by
+`lib/terrain/assets.ts`). Once the scene is ready and held a moment, the cover takes over (`IntroInk`, a WebGL2
+canvas in the preloader), in two stages. First the map: a 2D brush at the page's resolution holds the strokes, the
+mark's own rings where its SVG stood, then one isoline after another outward (`lib/intro/inkPlan.ts`: a height
+field seeded by the mark's outline, `lib/intro/mapField.ts`, the mark's own offsets close in giving way to hills,
+basins and ridges of its own further out, values still climbing outward so the map accretes from the mark), until
+the screen is a contour map. Then the reveal: every line widens into a band (`shaders/intro/ink-sim.frag`, a
+half-resolution texture dilated a fraction of a texel a frame) whose edge is the gold line and whose inside is
+see-through (`ink-out.frag`: black paper with the preloader's glow, gold lines and band edges, open insides), until
+the bands have met and the last of the cover fades. As it lifts the terrain draws its own lines: the wave from
+the summit sets off then, in view (`IntroReveal` runs the clock from the shell's `revealStarted`;
+the terrain worker builds the reach field, `lib/terrain/reach.ts`, distances over the terrain from the highest
+point near the overview's point of regard, `revealOriginX/Z`); each line shows where the wave has passed, a faint
 ghost ahead of it and a flash just behind its front (`contours.vert`/`.frag`). The geometry never moves, so lines
-never cross. Once the wave has had its head start (`descentDelay`) the camera descends to the overview in one
-journey (`CAMERA_JOURNEY_CONFIG.descent`), publishing its progress as `introDescent`, on which the ground's light comes on and the
-fog eases back; the preloader goes when the camera lands, and the hero and scene links enter then as after any
-journey. Settings: the wave in `CONTOUR_CONFIG.reveal*` (Leva's Contour Lines › Reveal, whose Replay button
-replays the whole intro), the map pose and descent in `INTRO_CONFIG` (Leva's Intro). Entry on a section route and
-reduced motion skip it: the preloader then fades over the scene at its own pose.
+never cross. The scene text waits under the cover (`CameraRig` `holdSceneText`); the preloader goes when the cover
+has lifted and the hero and scene links enter then as after any journey. Settings: the map and the reveal in
+`INTRO_CONFIG` (Leva's Intro, read live by the preloader), the wave in `CONTOUR_CONFIG.reveal*` (Leva's Contour
+Lines › Reveal, whose Replay button replays the wave). Entry on a section route, reduced motion and browsers
+without WebGL2 skip it: the preloader then fades over the scene at its own pose.
 Art hides all scene text from navigation start, independently of backdrop loading.
 
 ## About

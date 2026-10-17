@@ -6,7 +6,7 @@
 // (contours.vert, from the patch frame PlacesGlobe publishes), so the home map flows into the globe's.
 'use client';
 
-import {forwardRef, useEffect, useMemo, useRef, useState, type MutableRefObject} from 'react';
+import {forwardRef, useEffect, useMemo, useRef, useState} from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import {
   AdditiveBlending,
@@ -18,11 +18,10 @@ import {
   UniformsLib,
   UniformsUtils,
 } from 'three';
-import type {DataTexture, DepthTexture, Group, Mesh, Vector3Tuple} from 'three';
+import type {DataTexture, DepthTexture, Group, Mesh} from 'three';
 import {CONTOUR_CONFIG, TERRAIN_MATERIAL_CONFIG, TERRAIN_MESH_CONFIG} from '@/config/scene';
 import type {
   ContourControlValues,
-  IntroControlValues,
   TerrainControlValues,
 } from '@/components/scene/controls/useSceneControls';
 import {
@@ -36,7 +35,6 @@ import {
   getContourBuildKey,
   getContourBuildOptions,
 } from '@/lib/terrain/contourOptions';
-import {sampleHeight} from '@/lib/terrain/height';
 import {createContourTubeGeometry} from '@/lib/terrain/lineTube';
 import vertexShader from '@/shaders/terrain/contours.vert';
 import fragmentShader from '@/shaders/terrain/contours.frag';
@@ -66,10 +64,6 @@ type ContoursProps = {
   placesRide?: boolean;
   /** Draw in behind the intro reveal's wave (the homepage lines); otherwise shown whole. */
   reveal?: boolean;
-  /** With reveal: receives the summit the wave starts from (world point) once the reach field names it, for the
-   * camera's map pose; and the intro settings, for the tubes' minimum width from up there. */
-  summitRef?: MutableRefObject<Vector3Tuple | null>;
-  intro?: IntroControlValues;
   focus?: ContourFocus | null;
   lighting?: ContourLighting | null;
   /** Minimum on-screen tube radius in device pixels, so distant lines dim rather than break up. */
@@ -81,7 +75,7 @@ type ContoursProps = {
 
 export const Contours = forwardRef<Mesh, ContoursProps>(function Contours(
   {
-    hidden = false, placesRide = false, reveal = false, summitRef, intro, focus = null, lighting = null,
+    hidden = false, placesRide = false, reveal = false, focus = null, lighting = null,
     minPixels = 0, contourSettings: lines, terrainDepthTexture, terrainSettings,
   },
   forwardedRef,
@@ -92,7 +86,7 @@ export const Contours = forwardRef<Mesh, ContoursProps>(function Contours(
   const wasRiding = useRef(false);
   const rideShown = useRef(false);
   const reducedMotion = useReducedMotion();
-  const {shellBase, staticLightingMap} = useTerrainAssets();
+  const {staticLightingMap} = useTerrainAssets();
 
   const {elevation, seaLevel, edgeFade} = terrainSettings;
   const [fadeStart, fadeEnd] = edgeFade;
@@ -237,17 +231,13 @@ export const Contours = forwardRef<Mesh, ContoursProps>(function Contours(
     }).then((field) => {
       if (cancelled) return;
       setReach(field);
-      if (summitRef) {
-        const [x, z] = field.origin;
-        summitRef.current = [x, sampleHeight(shellBase, x, z, elevation, seaLevel), z];
-      }
     }).catch((error: unknown) => {
       if (!cancelled) console.error('Unable to build the terrain reach field.', error);
     });
     return () => {
       cancelled = true;
     };
-  }, [elevation, reveal, revealOriginRadius, revealOriginX, revealOriginZ, seaLevel, shellBase, summitRef]);
+  }, [elevation, reveal, revealOriginRadius, revealOriginX, revealOriginZ, seaLevel]);
   useEffect(() => {
     const material = matRef.current;
     if (!material) return;
@@ -293,7 +283,7 @@ export const Contours = forwardRef<Mesh, ContoursProps>(function Contours(
     const material = matRef.current;
     if (!material) return;
     material.uniforms.uTime.value += delta;
-    const {placesMorph, placesPatch: patch, revealTime, introDescent} = cameraFrameState.current;
+    const {placesMorph, placesPatch: patch, revealTime} = cameraFrameState.current;
     if (reveal) material.uniforms.uRevealTime.value = revealTime;
     const riding = placesRide && placesMorph > 0 && placesMorph < 1;
     material.uniforms.uMorph.value = riding ? placesMorph : 0;
@@ -311,9 +301,7 @@ export const Contours = forwardRef<Mesh, ContoursProps>(function Contours(
       uSeaUnits.value = patch.seaUnits;
       uDatumY.value = patch.datumY;
     }
-    // From the map pose far above, the tubes keep a minimum width too, given back as the camera comes down.
-    const mapPixels = reveal && intro ? intro.mapMinPixels * (1 - introDescent) : 0;
-    material.uniforms.uMinPixels.value = riding ? Math.max(minPixels, RIDE_MIN_PIXELS) : Math.max(minPixels, mapPixels);
+    material.uniforms.uMinPixels.value = riding ? Math.max(minPixels, RIDE_MIN_PIXELS) : minPixels;
     const visibility = material.uniforms.uVisibility;
     // Settings that differ from the bake wait for their own geometry rather than showing the baked lines.
     const pending = contourKey !== initialContours.key && geometryBuffers === initialContours.buffers;

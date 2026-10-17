@@ -120,3 +120,23 @@ Append dated decisions with rationale, alternatives considered, and evidence.
   it, wandering into other hills further out); the ink is that field's distance grown over time and held back by
   noise, computed per pixel, which is also the shape of the real implementation (a full-screen pass sampling the
   scene through a grown mask). Decision pending on the mock.
+- 2026-10-17: Built as the user set it, with https://kevinzli.com/ as the reference for the ink (its signature is
+  written stroke by stroke, then the ink blooms outward in fingers and the city shows through the dense ink; a
+  WebGL2 ping-pong simulation with curl flow, fibrous diffusion, a noise-gated bloom and a radial spread). The
+  descent, the map pose, the unlit ground and the camera journey kind are gone. Rings draw per real pipeline
+  stage with a stage word instead of the timed count; the ink takes the rings over, grows the map, bleeds; the
+  terrain's wave runs under it; the hero and scene links enter once the ink has lifted. Timing in Leva's Intro,
+  not yet settled.
+- 2026-10-17, later: three corrections after the first run. The reveal is simplified to what was asked: no ink
+  simulation, no stain; every line widens into a see-through band (a half-res texture dilated a fraction of a
+  texel a frame; `revealSpeed` CSS px/s) until the pockets between lines close, then the last of the cover
+  fades. The map's field gained landforms of its own (hills, basins, ridges; `mapRelief`) because it read as
+  one peak; values still climb outward so the map accretes from the mark. The mark went back to its looping
+  highlight (the per-stage rings looked stuck on a slow load); the stage word stays in place of the count. The
+  earlier ink's cost (ninety noise octaves per texel, three steps a frame) is gone with it.
+- 2026-10-17: the map's density was too uniform; a slow steepness field (`STEEP_WAVELENGTH_PX`, `STEEP_RANGE` in
+  `lib/intro/mapField.ts`) now packs lines on steep ground and spreads them on plateaus, scaled by `mapRelief`.
+- 2026-10-17: the terrain's wave is the first iteration's unchanged (shaders, config, clock, reach field identical to
+  6150723) but it had been set off under the cover at the bloom, so it was already out from the summit when the
+  cover lifted; it now sets off as the cover lifts, in view, as before. Both stages are plain durations in Leva
+  (`mapSeconds`, `revealSeconds`) instead of lines per second and pixels per second.

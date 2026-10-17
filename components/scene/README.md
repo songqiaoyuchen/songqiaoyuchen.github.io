@@ -10,8 +10,8 @@ Everything inside the React Three Fiber canvas behind Home and Art.
 | `SceneReadySignal.tsx` | Reports ready after shaders compile and two frames render |
 | `StillFrameGate.tsx` | Skips drawing frames identical to the last one, so a still gallery, About or location idles |
 | `PrecompileHidden.tsx` | Compiles the shaders of layers that mount hidden (globe, About map) while the scene is quiet |
-| `camera/` | Section poses, camera journeys (the intro's map pose and descent among them), per-frame camera state |
-| `terrain/` | Cached terrain, its compositor, contour lines, fog and the intro reveal's clock (`IntroReveal`); the ground's light and the fog follow the intro's descent |
+| `camera/` | Section poses, camera journeys, per-frame camera state |
+| `terrain/` | Cached terrain, its compositor, contour lines, fog and the intro reveal's clock (`IntroReveal`) |
 | `backdrop/` | Art backdrops: images, projection, wipe decisions, cursor, Screenshot export |
 | `text/` | WebGL text: scene links, hero name, glyph rain |
 | `about/` | About experience path: ridge route tube, checkpoint markers, titles and altitude figures; dev route editor |

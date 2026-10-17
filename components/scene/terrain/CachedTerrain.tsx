@@ -12,7 +12,7 @@ import {
 } from 'three';
 import {useArtCapture} from '@/components/art/ArtSceneContext';
 import type {
-  ContourControlValues, FogControlValues, IntroControlValues, TerrainControlValues,
+  ContourControlValues, FogControlValues, TerrainControlValues,
 } from '@/components/scene/controls/useSceneControls';
 import {BACKDROP_CONFIG} from '@/config/art/backdrop';
 import {FOG_CONFIG, TERRAIN_MATERIAL_CONFIG, TERRAIN_MESH_CONFIG} from '@/config/scene';
@@ -53,8 +53,6 @@ type CachedTerrainProps = {
   contourSettings: ContourControlValues;
   preloadBackdrops: boolean;
   fogSettings: FogControlValues;
-  /** The intro's descent: the ground's light and the fog follow it (TerrainMesh, SceneFog). */
-  introSettings: IntroControlValues;
   onDepthTextureChange: (texture: ReturnType<typeof useFBO>['depthTexture']) => void;
   /** The cache itself: the fogged terrain with its edge fade as alpha (the globe composites it over its ground). */
   onColorTextureChange: (texture: Texture | null) => void;
@@ -74,7 +72,6 @@ export function CachedTerrain({
   contourSettings,
   preloadBackdrops,
   fogSettings,
-  introSettings,
   onDepthTextureChange,
   onColorTextureChange,
   terrainSettings,
@@ -96,7 +93,6 @@ export function CachedTerrain({
   const cameraFrameState = useCameraFrameState();
   const renderedCameraRevision = useRef(-1);
   const renderedMorph = useRef(-1);
-  const renderedDescent = useRef(-1);
   const reducedMotion = useReducedMotion();
   const cursor = useArtCursor(!!backdrop && !reducedMotion && !capture.enabled);
   const oil = useBackdropImage(preloadBackdrops, BACKDROP_CONFIG.images.oil, 'oil');
@@ -187,10 +183,6 @@ export function CachedTerrain({
     const {placesMorph} = frameState;
     if (placesMorph !== renderedMorph.current || (placesMorph > 0 && placesMorph < 1)) dirty.current = true;
     renderedMorph.current = placesMorph;
-    // The intro's descent lights the ground up frame by frame.
-    const {introDescent} = frameState;
-    if (introDescent !== renderedDescent.current) dirty.current = true;
-    renderedDescent.current = introDescent;
     // On the globe (morph 1) the terrain has shrunk away: the cache holds only its clear, the same from any
     // camera, so Places's camera journeys need not redraw it.
     const cameraRevision = frameState.revision;
@@ -215,8 +207,8 @@ export function CachedTerrain({
       {createPortal(
         <>
           <color attach="background" args={[FOG_CONFIG.color]} />
-          <SceneFog intro={introSettings} settings={fogSettings} />
-          <TerrainMesh intro={introSettings} look={placesLook} settings={terrainSettings} />
+          <SceneFog settings={fogSettings} />
+          <TerrainMesh look={placesLook} settings={terrainSettings} />
         </>,
         scene,
       )}

@@ -1,10 +1,12 @@
 // Scene loading state machine for SceneShell: loading -> exiting -> ready, or fallback. Exiting is the
-// preloader's way out: on first arrival at the overview the intro's descent (the cover lifts, the camera lowers
-// from the map pose and the shell completes the exit when it lands), elsewhere a fade. Also owns the preloader
-// progress, the "enter without terrain" bypass and dev #preview/#stall options.
+// preloader's way out: on first arrival at the overview the intro (the preloader's ink grows the contour map out of
+// the mark and bleeds until the scene shows through; the shell completes the exit when the ink has lifted),
+// elsewhere a fade. Also owns the preloader progress, the "enter without terrain" bypass and dev #preview/#stall
+// options.
 'use client';
 
 import {startTransition, useCallback, useEffect, useLayoutEffect, useRef, useState} from 'react';
+import {canRunIntroInk} from '@/components/home/preloader/IntroInk';
 import {PRELOADER_CONFIG} from '@/config/preloader';
 import {useReducedMotion} from '@/hooks/useReducedMotion';
 import {waitForHealthyFrames} from '@/lib/scene/frameBudget';
@@ -16,9 +18,9 @@ const readDevelopmentOption = (name: 'preview' | 'stall') =>
     typeof window !== 'undefined' &&
     new URLSearchParams(window.location.hash.slice(1)).get(name) === '1';
 
-/** On Art and Places the scene settles straight to ready; Home plays the preloader exit first, the descent when
- *  the page opened on the overview (`descentWanted`) and motion is allowed. */
-export function useSceneLoading(isArt: boolean, descentWanted: boolean) {
+/** On Art and Places the scene settles straight to ready; Home plays the preloader exit first, the intro when the
+ *  page opened on the overview (`introWanted`), motion is allowed and the ink can run (WebGL2). */
+export function useSceneLoading(isArt: boolean, introWanted: boolean) {
   const [sceneProgress, setSceneProgress] = useState(0);
   const [sceneStarted, setSceneStarted] = useState(false);
   const [sceneState, setSceneState] = useState<SceneState>('loading');
@@ -33,7 +35,10 @@ export function useSceneLoading(isArt: boolean, descentWanted: boolean) {
   const readyTimerRef = useRef<number | null>(null);
   const exitTimerRef = useRef<number | null>(null);
   const isReducedMotion = useReducedMotion();
-  const descent = descentWanted && !isReducedMotion;
+  // Known only in the browser; the server render shows the plain cover either way.
+  const [inkSupported, setInkSupported] = useState(false);
+  useEffect(() => setInkSupported(canRunIntroInk()), []);
+  const intro = introWanted && !isReducedMotion && inkSupported;
 
   useLayoutEffect(() => {
     previewStartedAtRef.current = window.performance.now();
@@ -83,16 +88,16 @@ export function useSceneLoading(isArt: boolean, descentWanted: boolean) {
       return;
     }
     setSceneState('exiting');
-    // The descent ends when the camera lands (completeExit); the timer is only its backstop.
+    // The intro ends when the ink has lifted (completeExit); the timer is only its backstop.
     const duration = isReducedMotion
       ? PRELOADER_CONFIG.reducedMotionExitDurationMs
-      : descent ? PRELOADER_CONFIG.descentTimeoutMs : PRELOADER_CONFIG.exitDurationMs;
+      : intro ? PRELOADER_CONFIG.introTimeoutMs : PRELOADER_CONFIG.exitDurationMs;
     exitTimerRef.current = window.setTimeout(() => {
       setSceneState('ready');
     }, duration);
-  }, [descent, isArt, isReducedMotion]);
+  }, [intro, isArt, isReducedMotion]);
 
-  /** The descent has landed: the preloader may go. */
+  /** The ink has lifted: the preloader may go. */
   const completeExit = useCallback(() => {
     if (exitTimerRef.current !== null) window.clearTimeout(exitTimerRef.current);
     exitTimerRef.current = null;
@@ -145,7 +150,7 @@ export function useSceneLoading(isArt: boolean, descentWanted: boolean) {
     sceneProgress,
     showBypass,
     isReducedMotion,
-    descent,
+    intro,
     completeExit,
     handleSceneReady,
     handleSceneProgress,

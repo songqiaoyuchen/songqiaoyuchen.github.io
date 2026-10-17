@@ -1,4 +1,5 @@
-// Per-frame camera bookkeeping shared by scene layers: change revision, journey flag and Art flight-fog weight.
+// Per-frame camera bookkeeping shared by scene layers: change revision, journey flag, Art flight-fog weight, the
+// Places morph and the intro reveal's clock.
 'use client';
 
 import {
@@ -39,9 +40,6 @@ type CameraFrameState = {
   // The homepage intro reveal's clock (written by IntroReveal every frame): seconds into the intro. Skipped, it
   // is REVEAL_DONE_SECONDS: the wave counts as long past everything.
   revealTime: number;
-  // The intro's descent (written by CameraRig every frame): 0 with the camera at the map pose above the summit,
-  // rising to 1 as it lands on the overview; 1 whenever there is no intro. The ground's light and the fog follow it.
-  introDescent: number;
   setArtFog: (weight: number) => void;
   setPlacesMorph: (morph: number) => void;
   setPlacesFocus: (progress: number) => void;
@@ -51,7 +49,6 @@ type CameraFrameState = {
   }) => void;
   setTransitioning: (transitioning: boolean) => void;
   setRevealTime: (time: number) => void;
-  setIntroDescent: (descent: number) => void;
 };
 
 const CameraFrameContext = createContext<MutableRefObject<CameraFrameState> | null>(null);
@@ -94,7 +91,6 @@ export function CameraFrameProvider({children}: {children: ReactNode}) {
       seaUnits: 0, datumY: 0, metresPerUnit: 1000,
     },
     revealTime: REVEAL_DONE_SECONDS,
-    introDescent: 1,
     setArtFog: (weight) => { frameState.current.artFog = weight; },
     setPlacesMorph: (morph) => { frameState.current.placesMorph = morph; },
     setPlacesFocus: (progress) => { frameState.current.placesFocus = progress; },
@@ -103,7 +99,6 @@ export function CameraFrameProvider({children}: {children: ReactNode}) {
     },
     setTransitioning: (transitioning) => { frameState.current.transitioning = transitioning; },
     setRevealTime: (time) => { frameState.current.revealTime = time; },
-    setIntroDescent: (descent) => { frameState.current.introDescent = descent; },
   });
   const previousCamera = useRef(
     new Float64Array(CAMERA_MATRIX_VALUE_COUNT).fill(Number.NaN),

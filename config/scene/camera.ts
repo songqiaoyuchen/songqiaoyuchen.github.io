@@ -50,7 +50,6 @@ export const CAMERA_CONFIG = {
 // so they follow. Leva "Camera Journeys" (Art's in "Art Transition") writes them here.
 export const CAMERA_JOURNEY_CONFIG = {
   default: 1.2, // between the overview, Projects and Blog
-  descent: 1.2, // the homepage intro, from the map pose above the summit down to the overview
   art: 1.5, // into or out of Art
   aboutEntry: 1, // between the landscape and the About pose
   aboutFocus: 0.7, // between entries on the About path

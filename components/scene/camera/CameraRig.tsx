@@ -3,9 +3,8 @@
 // it. On About, an entry being read gets its own framing of that checkpoint (AboutPath publishes the poses); on Places,
 // all locations and a selected location are two poses, the location's its quarter-sphere framing (phones add a third,
 // all locations stepped back while the location list is pulled up). The first frame lands on the view the route opens
-// (a refresh on a location stays on the location). The homepage intro opens at a map pose straight above the summit
-// (snapped to under the preloader) and, once the reveal's wave has had its head start, descends to the overview in one
-// journey, publishing its progress as the frame state's introDescent (the ground's light and the fog follow it).
+// (a refresh on a location stays on the location). The homepage intro moves the camera nowhere: it opens on the
+// overview under the preloader, and the scene text waits (holdSceneText) until the preloader's ink has lifted.
 'use client';
 
 import { useEffect, useMemo, useRef, type MutableRefObject } from 'react';
@@ -15,7 +14,6 @@ import type { OrbitControls as OrbitControlsInstance } from 'three-stdlib';
 import {
   CAMERA_CONFIG,
   CAMERA_JOURNEY_CONFIG,
-  CONTOUR_CONFIG,
   getCameraPose,
   getPlacesIndexPose,
   getPlacesLocationPose,
@@ -29,10 +27,8 @@ import {useReducedMotion} from '@/hooks/useReducedMotion';
 import {artTransitionSettings} from '@/lib/art/transitionSettings';
 import {getHomeFov} from '@/lib/scene/camera';
 import type {AboutFraming} from '@/lib/scene/aboutPath';
-import {HOME, isPlacesKey, MAP, planJourney, type JourneyLeg, type LegKind} from '@/lib/scene/cameraJourney';
+import {HOME, isPlacesKey, planJourney, type JourneyLeg, type LegKind} from '@/lib/scene/cameraJourney';
 import {CameraTransition} from '@/lib/scene/cameraTransition';
-import {mapPose} from '@/lib/scene/introDescent';
-import type {IntroControlValues} from '../controls/useSceneControls';
 import {useCameraFrameState} from './CameraFrameState';
 
 type CameraRigProps = {
@@ -44,17 +40,16 @@ type CameraRigProps = {
   /** Journey times per kind (Leva Camera Journeys; CAMERA_JOURNEY_CONFIG). Art's is read live from
    * artTransitionSettings, which Leva Art Transition retunes. */
   journeySeconds?: Readonly<Record<Exclude<LegKind, 'art'>, number>>;
-  /** The homepage intro: hold the map pose above the summit while the reveal's wave spreads (IntroReveal's
-   * clock, read from the frame state), then descend to the overview. The summit (world point) is filled in by
-   * Contours once the reach field names it; until then the configured origin stands in. */
-  intro?: {active: boolean; summitRef: MutableRefObject<Vector3Tuple | null>; settings: IntroControlValues};
+  /** The homepage intro is under way (the preloader's ink over the scene): the scene text waits as it does for a
+   * journey, so the name and the scene links enter once the landscape is uncovered. */
+  holdSceneText?: boolean;
   onPoseSettled?: (pose: SectionId | null | undefined) => void;
   controlsRef?: React.RefObject<OrbitControlsInstance | null>;
 };
 
 export function CameraRig({
-  activeId, aboutStop = -1, aboutFramingRef, journeySeconds: journeyTimes = CAMERA_JOURNEY_CONFIG, intro, controlsRef,
-  onPoseSettled,
+  activeId, aboutStop = -1, aboutFramingRef, journeySeconds: journeyTimes = CAMERA_JOURNEY_CONFIG,
+  holdSceneText = false, controlsRef, onPoseSettled,
 }: CameraRigProps) {
   const cameraFrameState = useCameraFrameState();
   const {selectedId: placesSelectedId, indexOpen: placesIndexOpen} = usePlacesScene();
@@ -119,8 +114,6 @@ export function CameraRig({
   const currentLookAt = useRef(new Vector3(...initialOverviewPose.lookAt));
   const overviewReturnPosition = useRef(new Vector3(...initialOverviewPose.position));
   const overviewReturnLookAt = useRef(new Vector3(...initialOverviewPose.lookAt));
-  // The summit the camera last snapped above (the reach field may refine it while the map holds).
-  const snappedSummit = useRef('');
 
   useFrame(({ camera }, delta) => {
     const controls = controlsRef?.current;
@@ -161,12 +154,7 @@ export function CameraRig({
       }
     }
 
-    // The intro holds the map pose until the wave has its head start; the clock reads long past when it is
-    // skipped (a section route, reduced motion) and before IntroReveal has mounted, so the camera opens on the
-    // overview and steps up to the map, unseen under the preloader, once the clock starts.
-    const atMap = !!intro?.active && cameraFrameState.current.revealTime < intro.settings.descentDelay;
-    const key = atMap ? MAP : poseKey;
-    const summitKey = intro?.summitRef.current?.join() ?? '';
+    const key = poseKey;
 
     const secondsFor = (kind: LegKind) => kind === 'art' ? artTransitionSettings.cameraSeconds : journeyTimes[kind];
 
@@ -176,12 +164,6 @@ export function CameraRig({
       if (key === HOME) {
         // The overview is wherever the visitor left it (bookkept below).
         return {position: overviewReturnPosition.current, lookAt: overviewReturnLookAt.current};
-      } else if (key === MAP) {
-        const overview = getCameraPose(null, isMobile);
-        const {mapHeight, phoneMapHeight, mapTilt} = intro?.settings ?? {};
-        pose = mapPose(overview,
-          intro?.summitRef.current ?? [CONTOUR_CONFIG.revealOriginX, overview.lookAt[1], CONTOUR_CONFIG.revealOriginZ],
-          (isMobile ? phoneMapHeight : mapHeight) ?? 0, mapTilt ?? 0);
       } else if (key.startsWith('about:')) {
         pose = aboutFramingRef?.current?.(aboutBase.current, Number(key.slice('about:'.length))) ?? aboutBase.current;
       } else if (key === 'about') {
@@ -196,25 +178,7 @@ export function CameraRig({
       return {position: new Vector3(...pose.position), lookAt: new Vector3(...pose.lookAt)};
     };
 
-    // Up to the map in one step: under the preloader on arrival, or on Replay in development.
-    const snapToMap = () => {
-      const map = resolvePose(MAP);
-      camera.position.copy(map.position);
-      currentLookAt.current.copy(map.lookAt);
-      camera.lookAt(currentLookAt.current);
-      controls?.target.copy(currentLookAt.current);
-      snappedSummit.current = summitKey;
-    };
-
-    if (key === MAP && key !== previousPoseKey.current) {
-      previousPoseKey.current = MAP;
-      leg.current = null;
-      isAnimating.current = false;
-      snapToMap();
-      onPoseSettled?.(undefined);
-    } else if (key === MAP && !isAnimating.current && snappedSummit.current !== summitKey) {
-      snapToMap();
-    } else if (key !== previousPoseKey.current) {
+    if (key !== previousPoseKey.current) {
       if (poseId !== null) {
         // Leaving the overview: return to where the visitor left it (not to mid-air when a return is cut short).
         if (previousPoseKey.current === 'overview' && !isAnimating.current) {
@@ -243,7 +207,6 @@ export function CameraRig({
     }
 
     if (isAnimating.current || !controls?.enabled) aboutPivoted.current = false;
-    let descent = atMap ? 0 : 1;
     if (isAnimating.current && leg.current) {
       const settled = transition.advance(
         camera, currentLookAt.current, delta, journeySeconds.current, isReducedMotion,
@@ -273,7 +236,6 @@ export function CameraRig({
       }
       // Between Places's overview and a location the globe turns the location into frame on the camera's clock.
       cameraFrameState.current.setPlacesFocus(kind === 'placesFocus' ? progress : -1);
-      if (kind === 'descent') descent = MathUtils.smootherstep(progress, 0, 1);
       if (settled) {
         isAnimating.current = false;
         onPoseSettled?.(poseId);
@@ -283,9 +245,8 @@ export function CameraRig({
       cameraFrameState.current.setPlacesMorph(poseId === 'places' ? 1 : 0);
       cameraFrameState.current.setPlacesFocus(-1);
     }
-    cameraFrameState.current.setIntroDescent(descent);
-    // The map pose is no resting place: the scene text waits for the camera to land on the overview.
-    cameraFrameState.current.setTransitioning(isAnimating.current || atMap);
+    // Under the intro's ink the scene text waits as it would for a journey.
+    cameraFrameState.current.setTransitioning(isAnimating.current || holdSceneText);
   // Own the final pose after development OrbitControls (-1), before cache capture (-0.5).
   }, -0.75);
 

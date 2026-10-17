@@ -21,7 +21,7 @@ export const EDITABLE_CONFIG = {
   cameraJourney: {
     file: 'scene/camera.ts',
     object: 'CAMERA_JOURNEY_CONFIG',
-    keys: ['default', 'descent', 'art', 'aboutEntry', 'aboutFocus', 'placesEntry', 'placesFocus', 'placesIndex'],
+    keys: ['default', 'art', 'aboutEntry', 'aboutFocus', 'placesEntry', 'placesFocus', 'placesIndex'],
   },
   // Three groups in one file share key names (relief, landTint); `object` keeps each scope's writes to its own.
   places: {
@@ -70,8 +70,7 @@ export const EDITABLE_CONFIG = {
   },
   intro: {
     file: 'scene/intro.ts',
-    keys: ['mapHeight', 'phoneMapHeight', 'mapTilt', 'descentDelay', 'mapFogScale', 'lightsIn',
-      'mapMinPixels'],
+    keys: ['lineSpacing', 'mapRelief', 'mapSeconds', 'mapHold', 'revealSeconds', 'fadeSeconds'],
   },
   fog: {
     file: 'scene/fog.ts',

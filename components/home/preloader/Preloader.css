@@ -1,7 +1,7 @@
-/* Homepage preloader (Preloader.tsx): full-screen cover, contour mark, progress readout, bypass offer,
-   and the exit: on the intro's descent the cover lifts at once and the mark swells and fades into the summit's
-   rings lighting up beneath it; opening on a section the whole cover fades (PRELOADER_CONFIG.exitDurationMs);
-   with reduced motion a short fade. */
+/* Homepage preloader (Preloader.tsx): full-screen cover, contour mark with its spiralling highlight, stage label,
+   bypass offer, and the exits: on the intro the cover canvas (IntroInk.tsx) takes over, the SVG mark hides on its
+   first frame and the stage label fades; opening on a section the whole cover fades
+   (PRELOADER_CONFIG.exitDurationMs); with reduced motion a short fade. */
 html[data-home-loading="true"] {
   overflow: hidden;
 }
@@ -28,32 +28,36 @@ html[data-home-loading="true"] {
   pointer-events: none;
 }
 
-/* The descent: the scene beneath opened unlit, the same black, so the cover can lift in one step. */
-.homepage-preloader[data-state="exiting"][data-descent="true"] {
+/* The intro: the cover canvas paints the page from its first frame (the same black and glow), so the page's own goes. */
+.homepage-preloader[data-ink="true"] {
   background: transparent;
 }
 
-.homepage-preloader[data-state="exiting"][data-descent="true"] .preloader-mountain-icon {
-  animation: preloader-mark-exit 700ms cubic-bezier(0.2, 0.6, 0.2, 1) forwards;
+.preloader-ink {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  width: 100%;
+  height: 100%;
 }
 
-.homepage-preloader[data-state="exiting"][data-descent="true"] .preloader-progress-readout {
+/* The cover has the rings: the SVG hides at once, the label fades. */
+.homepage-preloader[data-ink="true"] .preloader-mountain-icon {
+  opacity: 0;
+}
+
+.homepage-preloader[data-ink="true"] .preloader-stage {
   animation: preloader-content-exit 250ms ease-out forwards;
 }
 
 /* Opening on a section: the camera is already there, so the cover fades (the figure matches exitDurationMs). */
-.homepage-preloader[data-state="exiting"]:not([data-descent="true"]) {
+.homepage-preloader[data-state="exiting"]:not([data-intro="true"]) {
   animation: preloader-content-exit 500ms ease-out forwards;
 }
 
 .homepage-preloader[data-reduced-motion="true"][data-state="exiting"] {
   background: var(--color-background);
   animation: preloader-reduced-exit 150ms linear forwards;
-}
-
-.homepage-preloader[data-reduced-motion="true"][data-state="exiting"]
-  .preloader-mountain-variant {
-  animation: none;
 }
 
 .preloader-mountain-variant {
@@ -102,27 +106,14 @@ html[data-home-loading="true"] {
   will-change: stroke-dashoffset;
 }
 
-.preloader-progress-readout {
-  display: grid;
-  grid-template-columns: 3ch auto;
-  gap: 0.16em;
-  align-items: baseline;
+.preloader-stage {
+  margin: 0;
   color: var(--color-accent);
   font-family: var(--font-krypton), monospace;
-  font-size: var(--text-card);
-  font-variant-numeric: tabular-nums;
+  font-size: var(--text-label);
   letter-spacing: var(--tracking-label);
   line-height: 1;
   text-shadow: 0 0 12px var(--preloader-readout-glow);
-}
-
-.preloader-progress-value {
-  text-align: right;
-}
-
-.preloader-progress-unit {
-  color: var(--color-accent-muted);
-  font-size: var(--text-meta);
 }
 
 .preloader-bypass {
@@ -175,13 +166,6 @@ html[data-home-loading="true"] {
   to { opacity: 0; }
 }
 
-@keyframes preloader-mark-exit {
-  to {
-    opacity: 0;
-    transform: scale(1.35);
-  }
-}
-
 @media (max-width: 40rem) {
   .preloader-mountain-icon {
     width: clamp(9rem, 48vw, 11rem);
@@ -206,17 +190,13 @@ html[data-home-loading="true"] {
 
   .preloader-mountain-spiral {
     animation: none;
-  }
-
-  .homepage-preloader[data-state="exiting"] .preloader-mountain-icon,
-  .homepage-preloader[data-state="exiting"] .preloader-progress-readout {
-    animation: none;
-  }
-
-  .preloader-mountain-spiral {
     opacity: 0.82;
     stroke-dashoffset: 0;
     stroke-dasharray: none;
+  }
+
+  .homepage-preloader[data-state="exiting"] .preloader-stage {
+    animation: none;
   }
 }
 

@@ -10,7 +10,7 @@ Run with `node scripts/test/<file>`; each exits non-zero on failure.
 | `test-dev-config.mjs` | `app/api/dev-config/literals.ts`: literal formatting (nested waypoint lists) and key replacement, file-wide or within one exported object |
 | `test-backdrop-wipe.mjs` | `lib/art/backdropWipe.ts`: constant wipe speed, rapid selection, reduced motion |
 | `test-camera-journey.mjs` | `lib/scene/cameraJourney.ts`: one motion between any two poses, journey kinds |
-| `test-intro-descent.mjs` | `lib/scene/introDescent.ts`: the map pose above the summit, the light and fog over the descent |
+| `test-map-field.mjs` | `lib/intro/mapField.ts` and `lib/intro/markPaths.ts`: the mark's rings parse closed and nested, the field is the mark's distance, the isolines close around it |
 | `test-camera-transition.mjs` | `lib/scene/cameraTransition.ts`: rotation, arrival, retargeting, reduced motion |
 | `test-carousel-layout.mjs` | `lib/art/carouselLayout.ts`: settled poses, wrapping, continuous rotation |
 | `test-photo-track.mjs` | `lib/places/photoTrack.ts`: settled row, gaps, no overlap while moving, overscroll |

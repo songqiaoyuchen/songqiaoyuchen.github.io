@@ -11,7 +11,6 @@ export function useCameraJourneyControls() {
   // CameraRig.tsx: duration per journey kind (lib/scene/cameraJourney.ts legKind).
   return useControls('Camera Journeys', {
     default: {...SECONDS, value: J.default, label: 'Sections (s)'},
-    descent: {...SECONDS, value: J.descent, label: 'Intro descent (s)'},
     aboutEntry: {...SECONDS, value: J.aboutEntry, label: 'About in/out (s)'},
     aboutFocus: {...SECONDS, value: J.aboutFocus, label: 'About entries (s)'},
     placesEntry: {...SECONDS, value: J.placesEntry, label: 'Places in/out (s)'},

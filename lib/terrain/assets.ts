@@ -53,6 +53,9 @@ type ReachRequest = {
 };
 
 let assetsPromise: Promise<TerrainAssets> | null = null;
+// The worker's loading progress (its fetches in turn, 0 to 1), for the preloader's stages.
+const progressListeners = new Set<(progress: number) => void>();
+let lastProgress = 0;
 let initialContoursPromise: Promise<ContourTubeBuffers> | null = null;
 let initialContoursReject: ((error: Error) => void) | null = null;
 let initialContoursResolve: ((buffers: ContourTubeBuffers) => void) | null = null;
@@ -113,7 +116,11 @@ function loadTerrainAssets() {
     loadReject = reject;
     worker.onmessage = (event: MessageEvent<TerrainWorkerResponse>) => {
       const response = event.data;
-      if (response.type === 'progress') return;
+      if (response.type === 'progress') {
+        lastProgress = response.progress;
+        for (const listener of progressListeners) listener(response.progress);
+        return;
+      }
       if (response.type === 'error') {
         const error = new Error(response.message);
         if (response.requestId === undefined) rejectAll(error);
@@ -200,6 +207,15 @@ function loadTerrainAssets() {
   return assetsPromise;
 }
 
+/** Reports the worker's loading progress as it goes (and the latest at once); returns the unsubscribe. */
+export function subscribeTerrainProgress(listener: (progress: number) => void) {
+  progressListeners.add(listener);
+  if (lastProgress > 0) listener(lastProgress);
+  return () => {
+    progressListeners.delete(listener);
+  };
+}
+
 export function useTerrainContourBuffers() {
   loadTerrainAssets();
   if (!initialContoursPromise) {
@@ -253,6 +269,7 @@ export function disposeTerrainPipeline() {
   terrainWorker?.terminate();
   terrainWorker = null;
   assetsPromise = null;
+  lastProgress = 0;
   initialContoursPromise = null;
   gradientPromise = null;
 }

@@ -1,6 +1,5 @@
 // Scene distance fog, blended toward the denser flight fog during Art camera journeys, and thinned away during the
-// Places zoom-out as the camera leaves the haze (the fog distances grow with altitude), and pushed out while the
-// homepage intro's camera stands high above the summit (eased back over its descent). On phones About's camera
+// Places zoom-out as the camera leaves the haze (the fog distances grow with altitude). On phones About's camera
 // stands further back to see the whole route, so the fog moves out with it while About is open.
 'use client';
 
@@ -10,16 +9,12 @@ import {MathUtils, type Fog} from 'three';
 import {FOG_CONFIG, SCENE_LAYOUT_CONFIG} from '@/config/scene';
 import {ABOUT_MAP_CONFIG} from '@/config/scene/aboutPath';
 import {PLACES_CONFIG} from '@/config/scene/places';
-import type {FogControlValues, IntroControlValues} from '@/components/scene/controls/useSceneControls';
+import type {FogControlValues} from '@/components/scene/controls/useSceneControls';
 import {artTransitionSettings} from '@/lib/art/transitionSettings';
-import {introFogScale} from '@/lib/scene/introDescent';
 import {useCameraFrameState} from '../camera/CameraFrameState';
 
-/** Distance fog, thickened by Art camera journeys (see CameraFrameState.artFog), thinned by the Places morph
- *  and by the intro's height above the map (CameraFrameState.introDescent). */
-export function SceneFog({settings, intro, about = false}: {
-  settings: FogControlValues; intro: IntroControlValues; about?: boolean;
-}) {
+/** Distance fog, thickened by Art camera journeys (see CameraFrameState.artFog), thinned by the Places morph. */
+export function SceneFog({settings, about = false}: {settings: FogControlValues; about?: boolean}) {
   const fog = useRef<Fog>(null);
   const cameraFrameState = useCameraFrameState();
   const isMobile = useThree((state) => state.size.width) < SCENE_LAYOUT_CONFIG.mobileMaxWidth;
@@ -31,11 +26,10 @@ export function SceneFog({settings, intro, about = false}: {
     // Eased like the camera's journey to and from About, so the haze never jumps.
     const aboutTarget = isMobile && about ? ABOUT_MAP_CONFIG.phoneFogScale : 1;
     aboutScale.current += (aboutTarget - aboutScale.current) * (1 - Math.exp(-3 * Math.min(delta, 1 / 30)));
-    const {artFog, placesMorph, introDescent} = cameraFrameState.current;
+    const {artFog, placesMorph} = cameraFrameState.current;
     const [hazeFrom, hazeTo] = PLACES_CONFIG.hazeOut;
     const altitude = aboutScale.current
-      * Math.exp(Math.log(PLACES_CONFIG.hazeFactor) * MathUtils.smoothstep(placesMorph, hazeFrom, hazeTo))
-      * introFogScale(introDescent, intro.mapFogScale);
+      * Math.exp(Math.log(PLACES_CONFIG.hazeFactor) * MathUtils.smoothstep(placesMorph, hazeFrom, hazeTo));
     fog.current.near = MathUtils.lerp(settings.near, artTransitionSettings.flightFogNear, artFog) * altitude;
     fog.current.far = MathUtils.lerp(settings.far, artTransitionSettings.flightFogFar, artFog) * altitude;
   }, -0.7);

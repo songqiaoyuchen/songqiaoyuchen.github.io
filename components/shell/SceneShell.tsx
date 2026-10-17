@@ -93,25 +93,25 @@ export function SceneShell({articles, children}: SceneShellProps) {
   const [settledPose, setSettledPose] = useState<SectionId | null | undefined>(
     isArt ? 'art' : isPlaces ? 'places' : null,
   );
-  // First arrival on the overview: the preloader exits by the intro's descent, which the shell completes once the
-  // camera has landed (a direct section entry or a drawer route opens at its own pose and the cover fades).
-  const [descentWanted] = useState(activeId === null);
+  // First arrival on the overview: the preloader exits by the intro (the ink), completed when the ink has lifted (a
+  // direct section entry or a drawer route opens at its own pose and the cover fades). The terrain's wave sets off
+  // as the cover lifts.
+  const [introWanted] = useState(activeId === null);
+  const [waveStarted, setWaveStarted] = useState(false);
+  const startWave = useCallback(() => setWaveStarted(true), []);
   const {
     sceneState,
     sceneStarted,
     sceneProgress,
     showBypass,
     isReducedMotion,
-    descent,
+    intro,
     completeExit,
     handleSceneReady,
     handleSceneProgress,
     handleSceneError,
     enterTerrainFallback,
-  } = useSceneLoading(isArt || isPlaces, descentWanted);
-  useEffect(() => {
-    if (sceneState === 'exiting' && descent && settledPose === null) completeExit();
-  }, [completeExit, descent, sceneState, settledPose]);
+  } = useSceneLoading(isArt || isPlaces, introWanted);
 
   // A routed section dismisses the old homepage preview, including entry via Nav.
   // Adjust before rendering so Home always returns to the landscape overview.
@@ -265,7 +265,7 @@ export function SceneShell({articles, children}: SceneShellProps) {
               artCameraStore={artCameraStore}
               onArtCameraEditingChange={setArtCameraEditing}
               onPoseSettled={setSettledPose}
-              revealStarted={sceneState === 'exiting' || sceneState === 'ready'}
+              revealStarted={waveStarted || sceneState === 'ready'}
               introStarted={sceneState === 'ready'}
               onSceneError={handleSceneError}
               onSceneProgress={handleSceneProgress}
@@ -308,8 +308,10 @@ export function SceneShell({articles, children}: SceneShellProps) {
       ) : null}
       {isBlocking ? (
         <Preloader
-          descent={descent}
+          intro={intro}
           onContinueWithoutTerrain={enterTerrainFallback}
+          onIntroLift={startWave}
+          onIntroDone={completeExit}
           progress={sceneProgress}
           reducedMotion={isReducedMotion}
           showBypass={showBypass}

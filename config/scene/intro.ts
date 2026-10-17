@@ -1,13 +1,15 @@
-// The homepage intro's descent (CameraRig, TerrainMesh, SceneFog, Contours): the scene opens straight above the
-// summit as a contour map under the preloader's mark, the reveal's wave draws the map outward, and the camera
-// lowers to the overview while the ground's light comes on. Leva's Intro folder; the wave itself is tuned in
-// Contour Lines › Reveal (CONTOUR_CONFIG.reveal*).
+// The homepage intro (components/home/preloader/IntroInk.tsx), in two stages once the scene is ready: a contour map
+// accretes outward from the mark's rings until it fills the screen; then, the map held, every line widens into a
+// band that is see-through to the scene, until the bands meet and the cover is gone, the terrain's wave setting
+// off as it lifts (IntroReveal; the wave is tuned in Contour Lines › Reveal). Leva's Intro folder; seconds unless
+// noted.
 export const INTRO_CONFIG = {
-  mapHeight: 18, // camera height above the summit at the map pose, world units
-  phoneMapHeight: 30,
-  mapTilt: 2, // degrees off vertical, leaning back along the overview's heading, so the map is the right way up
-  descentDelay: 1.2, // seconds into the reveal before the camera sets off (its length: CAMERA_JOURNEY_CONFIG.descent)
-  mapFogScale: 3.2, // fog distances at the map pose as a multiple of the overview's, eased back on the way down
-  lightsIn: [0.15, 0.8] as readonly [number, number], // the ground's light comes on over this span of the descent
-  mapMinPixels: 0.75, // minimum on-screen tube radius at the map pose (drawing-buffer pixels), eased out on the way
+  lineSpacing: 26, // CSS px between the map's contour lines
+  mapRelief: 1, // how much the map's own landforms bend and break the mark's shape (0: concentric offsets)
+  mapSeconds: 1, // the map draws outward over this long, however many lines it has
+  mapHold: 0.5, // the map held complete, before the lines widen
+  revealSeconds: 0.6, // the lines widen until the bands meet over this long
+  fadeSeconds: 0.3, // the last of the cover lifting once the bands have met (the terrain's wave sets off then)
 } as const;
+
+export type IntroSettings = {[Key in keyof typeof INTRO_CONFIG]: number};

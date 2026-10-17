@@ -8,7 +8,7 @@ import {Canvas, type RootState} from '@react-three/fiber';
 import { OrbitControls, StatsGl } from '@react-three/drei';
 import { EffectComposer } from '@react-three/postprocessing';
 import {SMAAPreset, type EffectComposer as EffectComposerImpl} from 'postprocessing';
-import type {DepthTexture, Mesh, Object3D, Texture, Vector3Tuple} from 'three';
+import type {DepthTexture, Mesh, Object3D, Texture} from 'three';
 import type { OrbitControls as OrbitControlsInstance } from 'three-stdlib';
 import type {useCreateStore} from 'leva';
 import {HERO_NAME_RENDERER} from '@/config/hero';
@@ -19,6 +19,7 @@ import type {SectionId} from '@/data/sections';
 import {
   retainTerrainPipeline,
   scheduleTerrainPipelineDisposal,
+  subscribeTerrainProgress,
 } from '@/lib/terrain/assets';
 import type {AboutFraming} from '@/lib/scene/aboutPath';
 import {AboutMap} from './about/AboutMap';
@@ -114,7 +115,7 @@ type SceneCanvasProps = {
   /** Receives the place at the globe's centre every frame (the location index's meridian strip). */
   placesGlobeFrontRef: MutableRefObject<GlobeFront | null>;
   onPoseSettled?: (pose: SectionId | null | undefined) => void;
-  /** The preloader's cover has lifted: the intro reveal's clock runs (on the overview, the camera descends). */
+  /** The preloader's cover is lifting: the intro reveal's clock runs and the terrain draws its lines in. */
   revealStarted: boolean;
   /** The preloader has gone: the hero name may enter and the quiet prefetches start. */
   introStarted: boolean;
@@ -169,13 +170,11 @@ export const SceneCanvas = memo(function SceneCanvas({
   const isDevelopment = process.env.NODE_ENV === 'development';
   const settings = useSceneControls(activeId);
   const hideHomeScene = artActive || activeId === 'art';
-  // The intro (the camera above the summit, the contour map spreading from it, the descent to the overview) plays
-  // once the preloader's cover lifts, only when the page opened on the overview: a section route shows the lines
-  // whole under its own arrival. The summit is named by the contours' reach field for the camera's map pose.
+  // The intro (the preloader's ink over the scene, the terrain's wave under it) plays only when the page opened on
+  // the overview: a section route shows the lines whole under its own arrival.
   const [revealWanted] = useState(activeId === null);
-  const summitRef = useRef<Vector3Tuple | null>(null);
-  const intro = useMemo(
-    () => ({active: revealWanted, summitRef, settings: settings.intro}), [revealWanted, settings.intro]);
+  // The worker's loading stages reach the preloader's rings.
+  useEffect(() => subscribeTerrainProgress(onSceneProgress), [onSceneProgress]);
   const isAbout = activeId === 'about';
   const isPlaces = activeId === 'places';
   // Sections with their own journey (Art, About, Places) clear the homepage text: glyph rain and scene links.
@@ -316,7 +315,7 @@ export const SceneCanvas = memo(function SceneCanvas({
               aboutStop={aboutStop}
               aboutFramingRef={aboutFramingRef}
               journeySeconds={settings.cameraJourney}
-              intro={intro}
+              holdSceneText={revealWanted && !introStarted}
               onPoseSettled={onPoseSettled}
               controlsRef={isDevelopment ? orbitcontrolsRef : undefined}
             />
@@ -336,7 +335,7 @@ export const SceneCanvas = memo(function SceneCanvas({
                 <ArtCursorControls store={artCameraStore} />
               </>
             ) : null}
-            <Fog about={activeId === 'about'} intro={settings.intro} settings={settings.fog} />
+            <Fog about={activeId === 'about'} settings={settings.fog} />
             <Suspense fallback={null}>
               {assemblyPhase >= 1 ? (
                 <IntroReveal play={revealWanted && revealStarted} skip={!revealWanted} />
@@ -347,7 +346,6 @@ export const SceneCanvas = memo(function SceneCanvas({
                   backdrop={backdrop}
                   preloadBackdrops={hideHomeScene || backdropsWanted}
                   fogSettings={settings.fog}
-                  introSettings={settings.intro}
                   onDepthTextureChange={setTerrainDepthTexture}
                   onColorTextureChange={setTerrainColorTexture}
                   terrainSettings={settings.terrain}
@@ -359,8 +357,6 @@ export const SceneCanvas = memo(function SceneCanvas({
                   hidden={hideHomeScene || isAbout || isPlaces}
                   placesRide
                   reveal
-                  summitRef={summitRef}
-                  intro={settings.intro}
                   ref={setContourMesh}
                   contourSettings={settings.contours}
                   terrainDepthTexture={terrainDepthTexture}

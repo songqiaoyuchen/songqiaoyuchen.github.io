@@ -2,7 +2,6 @@
 // Uses the baked lighting map unless development controls change the lights (then relit live).
 // On the way to Places it rides onto the globe (terrain.vert), following the camera rig's morph and the patch
 // frame PlacesGlobe publishes each frame, and takes the globe's land shading in the globe's colours (terrain.frag).
-// On the homepage intro it opens unlit under the contour map and its light comes on as the camera descends.
 'use client';
 
 import {useFrame} from '@react-three/fiber';
@@ -10,7 +9,7 @@ import {useEffect, useMemo, useRef, useState} from 'react';
 import {
   Color, MathUtils, PlaneGeometry, ShaderMaterial, UniformsLib, UniformsUtils, Vector2, Vector3, type Texture,
 } from 'three';
-import type {IntroControlValues, TerrainControlValues} from '@/components/scene/controls/useSceneControls';
+import type {TerrainControlValues} from '@/components/scene/controls/useSceneControls';
 import {useRegion} from '@/components/scene/places/useRegion';
 import {TERRAIN_MATERIAL_CONFIG, TERRAIN_MESH_CONFIG} from '@/config/scene';
 import {PLACES_CONFIG, PLACES_OVERVIEW_CONFIG} from '@/config/scene/places';
@@ -18,7 +17,6 @@ import {
   requestTerrainGradient,
   useTerrainAssets,
 } from '@/lib/terrain/assets';
-import {introLights} from '@/lib/scene/introDescent';
 import {bakeTerrainLightingMap} from '@/lib/terrain/lightingBake';
 import vertexShader from '@/shaders/terrain/terrain.vert';
 import fragmentShader from '@/shaders/terrain/terrain.frag';
@@ -27,13 +25,11 @@ import '@/lib/scene/landShading';
 
 type TerrainMeshProps = {
   settings: TerrainControlValues;
-  /** The intro's descent: over which span of it the light comes on. */
-  intro: IntroControlValues;
   /** The globe's colours, which the terrain takes on the way to Places. */
   look: {baseColor: string; lineColor: string; landTint: number; shade: number};
 };
 
-export function TerrainMesh({settings, intro, look}: TerrainMeshProps) {
+export function TerrainMesh({settings, look}: TerrainMeshProps) {
   const surfaceMatRef = useRef<ShaderMaterial>(null);
   const cameraFrameState = useCameraFrameState();
   const {
@@ -192,7 +188,6 @@ export function TerrainMesh({settings, intro, look}: TerrainMeshProps) {
     uLandTint:      { value: PLACES_OVERVIEW_CONFIG.landTint },
     uLandShade:     { value: PLACES_OVERVIEW_CONFIG.shade },
     uRideBlend:     { value: 0 },
-    uLightsIn:      { value: 1 },
   }), [displacementMap, staticLightingMap]);
 
   // The regional tile the landscape's edge hands its heights to (the globe draws that ground); bound per frame, since
@@ -203,13 +198,12 @@ export function TerrainMesh({settings, intro, look}: TerrainMeshProps) {
   useFrame(() => {
     const material = surfaceMatRef.current;
     if (!material) return;
-    const {placesMorph, placesPatch: patch, introDescent} = cameraFrameState.current;
+    const {placesMorph, placesPatch: patch} = cameraFrameState.current;
     const {
       uMorph, uGlobeCenter, uGlobeRadius, uPatchAnchor, uPatchEast, uPatchNorth, uPatchPivot, uPatchScale,
       uPatchRelief, uSeaUnits, uDatumY, uRegion, uHasRegion, uRegionMaxMetres, uRegionTexel, uRegionScale,
-      uRegionUnits, uMetresPerUnit, uRideBlend, uLightsIn,
+      uRegionUnits, uMetresPerUnit, uRideBlend,
     } = material.uniforms;
-    uLightsIn.value = introLights(introDescent, intro.lightsIn);
     uRegion.value = region?.texture ?? null;
     uHasRegion.value = region ? 1 : 0;
     if (region) {
