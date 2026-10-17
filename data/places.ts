@@ -84,7 +84,7 @@ const ALL_LOCATIONS: readonly Location[] = [
     distanceKm: 777, // routed by road between the stops, not recorded
     mode: 'bicycle',
     place: {name: 'Ili, Xinjiang', lonLat: [84.9, 44.42]},
-    summary: 'Bikepacking over Tian Shan and west through the Ili Valley to the last teardrop of the Atlantic Ocean - Sayram Lake.',
+    summary: 'Bikepacking over the Tianshan Mountains and west through the Ili Valley to the last teardrop of the Atlantic Ocean - Sayram Lake.',
     description: 'Since then, I\'ve travelled farther and seen more of the world, yet Xinjiang has only grown more special to me.'
       + ' It was our first long-distance cycling trip — the three of us, inexperienced and wide-eyed, stumbling through mishaps and making plenty of memories we\'d later laugh about.'
       + ' We hadn\'t yet figured out the road ahead, but we never doubted we would make it to the end.',

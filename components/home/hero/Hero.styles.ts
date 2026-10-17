@@ -1,7 +1,7 @@
 // Tailwind classes for the homepage hero (Hero.tsx); desktop positions come from config/hero.ts.
-// Mobile top padding clears the nav and the frosted band fading out below it (top-nav-glass).
+// Mobile centres the block between the nav (pt = its height) and the scene links, whose tops sit at ~44svh (pb).
 export const heroStyles = {
-  section: `absolute inset-0 z-30 flex flex-col justify-start px-6 pt-28 pb-8 sm:pt-36 font-mono text-left
+  section: `absolute inset-0 z-30 flex flex-col justify-center px-6 pt-16 pb-[56svh] sm:pt-21 font-mono text-left
     transition-[opacity,translate] duration-300 ease-out motion-reduce:transition-opacity
     motion-reduce:duration-150 md:block md:w-auto md:max-w-none md:p-0 md:pointer-events-none`,
   shown: 'pointer-events-none translate-y-0 opacity-100',
