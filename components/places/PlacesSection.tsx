@@ -30,7 +30,7 @@ export function PlacesSection() {
   const {location, gallery, photos, photo, locationHref} = usePlacesRoute(queryString);
   const router = useRouter();
   const {hoveredId, capturedId, indexOpen} = usePlacesScene();
-  const {setHoveredId, setIndexOpen, globeOutline, globeFront} = usePlacesSceneActions();
+  const {setHoveredId, setIndexOpen, globeOutline, globeFront, turnRequest: turnRequestRef} = usePlacesSceneActions();
   const reducedMotion = useReducedMotion();
   // The view the text shows: the route's, once the old content has faded out.
   const [shownLocation, setShownLocation] = useState(location);
@@ -109,6 +109,7 @@ export function PlacesSection() {
               hoveredId={hoveredId}
               onHover={setHoveredId}
               onOpenChange={setIndexOpen}
+              onTurnTo={(id) => { turnRequestRef.current = id; }}
               open={indexOpen}
               locations={LOCATIONS}
             />

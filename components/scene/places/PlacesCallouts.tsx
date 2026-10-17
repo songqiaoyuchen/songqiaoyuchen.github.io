@@ -1,5 +1,6 @@
 // Places markers, laid out in screen space over the globe (PlacesCallouts.css). Over all locations the globe carries
-// markers, a location's title showing beside its marker only while it is hovered here or in the location index: a
+// markers, a location's title showing beside its marker only while it is hovered here or in the location index, or
+// stands nearest the globe's centre (titleWithin, before it takes the focus; on phones, the only titles shown): a
 // diamond for a location at one place; a path (a location with recorded tracks) is marked by its route alone (an unseen
 // pointer target half way along it). Locations nearer each other than clusterWithin share one stacked marker at their
 // middle; a click fans it out into a ring of the locations' own markers, each tied to the middle by a fine line, all
@@ -85,6 +86,8 @@ type PlacesCalloutsProps = {
   holdRef: MutableRefObject<boolean>;
   selectedIndex: number;
   focusedIndex: number;
+  /** The location near the globe's centre, which shows its title as if hovered (phones too), or -1. */
+  titledRef: MutableRefObject<number>;
   hoveredIndex: number;
   signalColor: string;
   onSelect: (id: string) => void;
@@ -214,7 +217,7 @@ function move(node: HTMLElement, written: Written, x: number, y: number) {
 export function PlacesCallouts({
   locations, groupRef, surfaceAt, globeRadius, markerSize, locationMarkerSize, clusterWithin, visibilityRef,
   overviewRef,
-  stopsShownRef, holdRef, selectedIndex, focusedIndex, hoveredIndex, signalColor, onSelect, onHover,
+  stopsShownRef, holdRef, selectedIndex, focusedIndex, titledRef, hoveredIndex, signalColor, onSelect, onHover,
 }: PlacesCalloutsProps) {
   const anchorsRef = useRef<Array<HTMLDivElement | null>>([]);
   const clustersRef = useRef<Array<HTMLDivElement | null>>([]);
@@ -460,8 +463,14 @@ export function PlacesCallouts({
         at = project(units[index], camera, screen.current);
         place(anchor, at, shown);
       }
-      // Its title, while hovered over all locations.
-      const titled = index === hoveredIndex && selectedIndex < 0 && at.front && markShown > 0.01;
+      // Its title, while hovered or near the globe's centre over all locations (phones show only the latter).
+      const near = index === titledRef.current;
+      const titled = (index === hoveredIndex || near) && selectedIndex < 0 && at.front && markShown > 0.01;
+      const label = labelsRef.current[index];
+      if (label && label.hasAttribute('data-near') !== near) {
+        label.toggleAttribute('data-near', near);
+        leadersRef.current[index]?.toggleAttribute('data-near', near);
+      }
       name(labelsRef.current[index], leadersRef.current[index], at.x, at.y, titled, fadeOf(at.facing) * markShown);
 
       // The open location's stops and their names, in as the camera settles on it and out as it leaves.

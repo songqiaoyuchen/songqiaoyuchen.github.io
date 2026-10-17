@@ -79,6 +79,8 @@ function usePlacesOverviewControls() {
       idleAfter: {value: PLACES_OVERVIEW_CONFIG.idleAfter, min: 0, max: 15, step: 0.5, label: 'Idle after (s)'},
       // PlacesGlobe.tsx: how near the globe's centre a location shows its open cue, apart from the capture.
       focusWithin: {value: PLACES_OVERVIEW_CONFIG.focusWithin, min: 5, max: 60, step: 1, label: 'Focus within (°)'},
+      // PlacesCallouts.tsx: how near the globe's centre a location's title shows, before it takes the focus.
+      titleWithin: {value: PLACES_OVERVIEW_CONFIG.titleWithin, min: 5, max: 60, step: 1, label: 'Title within (°)'},
     }, {collapsed: false}),
   }, {collapsed: false, ...PLACES_OVERVIEW_FOLDER});
 }

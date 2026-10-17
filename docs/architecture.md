@@ -181,10 +181,12 @@ context); locations on the far side dim. The two views are two camera poses (`ge
 `getPlacesLocationPose`); the selection is read from the URL by the context itself, so the scene's first
 frame already holds the route's view: a refresh on a location opens at its framing with the globe turned to it.
 Phones have their own poses: the whole globe and its rings above a cardless peek sheet (the location in focus, or the
-last one, and a bar that pulls the list up); the list pulled up (`indexOpen` in the context) steps the camera back
+last one, and a bar that pulls the list up; a sideways swipe on the peek steps west to east or back and asks the globe,
+through the context's `turnRequest`, to turn that location to its centre); the list pulled up (`indexOpen` in the context) steps the camera back
 to a third pose, `getPlacesIndexPose` (a quick `placesIndex` journey, no turn); a location frames the globe close at the
-top with the location centred in the view above its sheet (`phoneMarkerOffset`). Phones hide the meridian strip and the index
-heading, keep the stops' names above the sheet with smaller stop markers, and draw the land lights smaller
+top with the location centred in the view above its sheet (`phoneMarkerOffset`). The location nearest the globe's centre (within `titleWithin`, wider than
+the focus) shows its title beside its marker as a hover would; on phones it is the only location title. Phones hide the
+meridian strip and the index heading, keep the stops' names above the sheet with smaller stop markers, and draw the land lights smaller
 (`phoneLightScale`).
 `config/scene/places.ts` holds three groups that never stand in for each other: `PLACES_CONFIG` (the globe as
 both views draw it, and the zoom-out), `PLACES_OVERVIEW_CONFIG` (all locations: ground, rings, feel by hand) and

@@ -4,8 +4,9 @@
 // up (the camera steps back); read by PlacesSection and, through the canvas's context bridge, by PlacesGlobe and
 // CameraRig, so a change re-renders only them. Actions: the setters and the globe's outline on screen (CSS pixels,
 // written every frame by PlacesGlobe, read by the location panel's placement) and the place facing the camera (read by
-// the location index's meridian strip); stable, so SceneShell passes them to the canvas without re-rendering on every
-// change.
+// the location index's meridian strip), and a request for the globe to turn a location to its centre (the phone
+// sheet's swipe, taken up by PlacesGlobe on its next frame); stable, so SceneShell passes them to the canvas without
+// re-rendering on every change.
 'use client';
 
 import {createContext, useContext, useMemo, useRef, useState, type MutableRefObject, type ReactNode} from 'react';
@@ -28,6 +29,8 @@ type PlacesSceneActions = {
   setIndexOpen: (open: boolean) => void;
   globeOutline: MutableRefObject<GlobeOutline | null>;
   globeFront: MutableRefObject<GlobeFront | null>;
+  /** A location id for the globe to turn to its centre over all locations; PlacesGlobe clears it. */
+  turnRequest: MutableRefObject<string | null>;
 };
 
 const PlacesSceneStateContext = createContext<PlacesSceneState>({
@@ -35,7 +38,7 @@ const PlacesSceneStateContext = createContext<PlacesSceneState>({
 });
 const PlacesSceneActionsContext = createContext<PlacesSceneActions>({
   setHoveredId: () => {}, setCapturedId: () => {}, setIndexOpen: () => {},
-  globeOutline: {current: null}, globeFront: {current: null},
+  globeOutline: {current: null}, globeFront: {current: null}, turnRequest: {current: null},
 });
 
 export function PlacesSceneProvider({children}: {children: ReactNode}) {
@@ -45,9 +48,11 @@ export function PlacesSceneProvider({children}: {children: ReactNode}) {
   const [indexOpen, setIndexOpen] = useState(false);
   const globeOutline = useRef<GlobeOutline | null>(null);
   const globeFront = useRef<GlobeFront | null>(null);
+  const turnRequest = useRef<string | null>(null);
   const state = useMemo(
     () => ({selectedId, hoveredId, capturedId, indexOpen}), [capturedId, hoveredId, indexOpen, selectedId]);
-  const actions = useMemo(() => ({setHoveredId, setCapturedId, setIndexOpen, globeOutline, globeFront}), []);
+  const actions = useMemo(
+    () => ({setHoveredId, setCapturedId, setIndexOpen, globeOutline, globeFront, turnRequest}), []);
   return (
     <PlacesSceneActionsContext.Provider value={actions}>
       <PlacesSceneStateContext.Provider value={state}>{children}</PlacesSceneStateContext.Provider>

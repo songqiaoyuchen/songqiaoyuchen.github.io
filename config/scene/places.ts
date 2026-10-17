@@ -104,6 +104,7 @@ export const PLACES_OVERVIEW_CONFIG = {
   // Focus (PlacesGlobe.tsx -> lib/scene/places.ts focusedLocation): a location near the globe's centre shows its open
   // cue, by where the globe stands alone, apart from the capture servo.
   focusWithin: 22, // degrees from the globe's front; a focused location keeps focus until 5 degrees past it
+  titleWithin: 30, // degrees from the globe's front; the nearest location within shows its title beside its marker
 
 } as const;
 

@@ -26,7 +26,7 @@ import {
 import type {
   PlacesControlValues, PlacesOverviewControlValues, PlacesLocationControlValues,
 } from '@/components/scene/controls/useSceneControls';
-import {usePlacesScene} from '@/components/places/PlacesSceneContext';
+import {usePlacesScene, usePlacesSceneActions} from '@/components/places/PlacesSceneContext';
 import type {GlobeFront} from '@/components/places/PlacesSceneContext';
 import type {GlobeOutline} from '@/components/places/useLocationSheetPlacement';
 import {BLOOM_LAYER} from '@/components/scene/effects/IsolatedBloom';
@@ -182,6 +182,7 @@ export function PlacesGlobe({
   // The location pinned by the route (null for the overview) and the location under the pointer in the location index
   // or on its marker, read here through the canvas's context bridge so a change re-renders this layer alone.
   const {selectedId, hoveredId} = usePlacesScene();
+  const {turnRequest: turnRequestRef} = usePlacesSceneActions();
   const interactive = pointerFree && selectedId === null;
   const {width, height} = useThree((state) => state.size);
   const getState = useThree((state) => state.get);
@@ -213,7 +214,7 @@ export function PlacesGlobe({
   } = settings;
   const {
     relief, landTint, trailRadius, markerSize, clusterWithin, phoneClusterWithin, friction, snapBelow, capture,
-    snapRate, idleDrift, idleAfter, focusWithin, innerRingTilt, outerRingTilt,
+    snapRate, idleDrift, idleAfter, focusWithin, titleWithin, innerRingTilt, outerRingTilt,
   } = overviewSettings;
   const {
     markerOffset, phoneMarkerOffset, holdRate, turnFrom, turnSettle, revealAt,
@@ -303,6 +304,8 @@ export function PlacesGlobe({
   const overviewAmount = useRef(1);
   // The location near the globe's centre (focusedLocation), or -1.
   const focused = useRef(-1);
+  // The location near enough the globe's centre to show its title (read by PlacesCallouts each frame), or -1.
+  const titled = useRef(-1);
   const front = useRef(new Vector3());
   const inverse = useRef(new Quaternion());
   // The relief this frame, for the lights standing on it.
@@ -802,6 +805,15 @@ export function PlacesGlobe({
       // outside Places, the own turn is set once at the start of the ride (below) to where the arriving camera
       // will see the location; leaving one, it keeps the location as framed until the globe is gone.
       const riding = morph > 0 && morph < 1;
+      // The phone sheet's swipe: the servo turns the location asked for to the centre, as a capture would.
+      const requested = turnRequestRef.current;
+      if (requested !== null) {
+        turnRequestRef.current = null;
+        const index = LOCATIONS.findIndex((location) => location.id === requested);
+        if (index >= 0 && selected < 0 && !drag.current) {
+          Object.assign(state.current, {target: index, vYaw: 0, vPitch: 0});
+        }
+      }
       if (!editingCamera && !riding) {
         const feel = selected >= 0 ? locationGlobe : overviewGlobe;
         advanceGlobe(state.current, Math.min(delta, 1 / 30), feel, anchors, view.current, {
@@ -950,6 +962,9 @@ export function PlacesGlobe({
     focused.current = revealed && arrived
       ? focusedLocation(FOCUS_POINTS, front.current, focusWithin, FOCUS_RELEASE, focused.current)
       : -1;
+    titled.current = revealed && arrived
+      ? focusedLocation(FOCUS_POINTS, front.current, titleWithin, FOCUS_RELEASE, titled.current)
+      : -1;
     if (reportedFocus.current !== focused.current) {
       reportedFocus.current = focused.current;
       setFocusedIndex(focused.current);
@@ -1041,6 +1056,7 @@ export function PlacesGlobe({
         <PlacesCallouts
           clusterWithin={isMobile ? phoneClusterWithin : clusterWithin}
           focusedIndex={focusedIndex}
+          titledRef={titled}
           groupRef={groupRef}
           holdRef={hold}
           hoveredIndex={hoveredIndex}

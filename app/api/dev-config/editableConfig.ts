@@ -35,7 +35,8 @@ export const EDITABLE_CONFIG = {
     file: 'scene/places.ts',
     object: 'PLACES_OVERVIEW_CONFIG',
     keys: ['relief', 'landTint', 'trailRadius', 'markerSize', 'innerRingTilt', 'outerRingTilt',
-      'friction', 'snapBelow', 'capture', 'snapRate', 'idleDrift', 'idleAfter', 'focusWithin'],
+      'friction', 'snapBelow', 'capture', 'snapRate', 'idleDrift', 'idleAfter', 'focusWithin',
+      'titleWithin'],
   },
   placesLocation: {
     file: 'scene/places.ts',

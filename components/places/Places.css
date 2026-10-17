@@ -376,6 +376,13 @@
   }
 }
 
+@keyframes places-peek-slide {
+  from {
+    opacity: 0;
+    translate: calc(var(--slide-from, 0) * 24px) 0;
+  }
+}
+
 @keyframes places-rise {
   from {
     opacity: 0;
@@ -528,6 +535,14 @@
   .places-peek-location[data-captured] .places-index-coord {
     color: var(--places-signal);
   }
+  /* A sideways swipe steps to the next location (LocationIndex.tsx): the browser keeps vertical pans, and the location
+     stepped to slides in from the way it came (--slide-from). */
+  .places-peek-location {
+    touch-action: pan-y;
+  }
+  .places-peek-slide {
+    animation: places-peek-slide 280ms var(--ease-settle) both;
+  }
   .places-peek-title {
     display: -webkit-box;
     overflow: hidden;
@@ -589,7 +604,8 @@
 @media (prefers-reduced-motion: reduce) {
   .places-location > *,
   .places-index-backdrop,
-  .places-index-entry {
+  .places-index-entry,
+  .places-peek-slide {
     animation: none;
   }
   .places-environment .places-content,

@@ -392,11 +392,11 @@
   70%, 100% { opacity: 0; scale: 3.4; }
 }
 
-/* Phones: the whole globe is small, so it keeps no location titles, and its markers are smaller with a location open; an
+/* Phones: the whole globe is small, so it keeps only the title of the location nearest its centre (data-near), and its markers are smaller with a location open; an
    open location's stops keep their names, smaller, in the globe's window above the sheet (PlacesCallouts.tsx). */
 @media (width < 48rem) {
-  .places-callout:not(.places-stop-name),
-  .places-callout-leader {
+  .places-callout:not(.places-stop-name, [data-near]),
+  .places-callout-leader:not([data-near]) {
     display: none;
   }
 
