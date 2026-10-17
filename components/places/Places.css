@@ -2,6 +2,18 @@
    and the phone peek sheet; the photo viewer has PhotoViewer.css. The globe behind is the scene; this layer takes
    pointer events only on its own text, so the globe stays draggable everywhere else. */
 
+/* A press and drag on the globe turns it: without this, a long press on a phone starts a text selection in whatever
+   hidden text lies under the finger (markers, the hero, the closed drawer). The location's own text stays selectable. */
+.places-environment {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.places-environment .places-location {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
 /* SceneShell wrapper on Places routes: content stays hidden until the camera has arrived. */
 .places-environment .places-content {
   opacity: 1;
