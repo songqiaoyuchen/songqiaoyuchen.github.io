@@ -283,6 +283,8 @@ for (const [index, startYaw] of [[0, 0], [1, Math.PI], [2, 2.5], [3, -1]]) {
   assert.equal(focusedLocation(locations, lonLatToUnit([0, 25]), 22, 5, 0), 0, 'kept past the edge');
   assert.equal(focusedLocation(locations, lonLatToUnit([0, 25]), 22, 5, -1), -1, 'but not taken there');
   assert.equal(focusedLocation(locations, lonLatToUnit([0, 28]), 22, 5, 0), -1, 'released beyond the margin');
+  assert.equal(focusedLocation(locations, lonLatToUnit([14, 0]), 22, 5, 0), 0, 'kept over a neighbour nearly as near');
+  assert.equal(focusedLocation(locations, lonLatToUnit([20, 0]), 22, 5, 0), 1, 'given up to one clearly nearer');
 }
 
 console.log('places globe checks passed');

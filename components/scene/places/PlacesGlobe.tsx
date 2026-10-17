@@ -306,6 +306,9 @@ export function PlacesGlobe({
   const focused = useRef(-1);
   // The location near enough the globe's centre to show its title (read by PlacesCallouts each frame), or -1.
   const titled = useRef(-1);
+  // The location the phone sheet's swipe asked for while the globe turns to it, or -1: it holds the focus and the title
+  // for the whole turn, so the locations passed on the way never take them (nor the sheet).
+  const steering = useRef(-1);
   const front = useRef(new Vector3());
   const inverse = useRef(new Quaternion());
   // The relief this frame, for the lights standing on it.
@@ -812,6 +815,7 @@ export function PlacesGlobe({
         const index = LOCATIONS.findIndex((location) => location.id === requested);
         if (index >= 0 && selected < 0 && !drag.current) {
           Object.assign(state.current, {target: index, vYaw: 0, vPitch: 0});
+          steering.current = index;
         }
       }
       if (!editingCamera && !riding) {
@@ -959,12 +963,16 @@ export function PlacesGlobe({
         else globeFrontRef.current = {lon, lat};
       }
     }
-    focused.current = revealed && arrived
-      ? focusedLocation(FOCUS_POINTS, front.current, focusWithin, FOCUS_RELEASE, focused.current)
-      : -1;
-    titled.current = revealed && arrived
-      ? focusedLocation(FOCUS_POINTS, front.current, titleWithin, FOCUS_RELEASE, titled.current)
-      : -1;
+    // A swipe's turn ends as the globe settles on the location, or as a drag or anything else takes the servo off it.
+    const steered = steering.current;
+    if (steered >= 0 && (selected >= 0 || state.current.target !== steered
+      || (state.current.phase === 'resting' && state.current.active === steered))) {
+      steering.current = -1;
+    }
+    focused.current = !revealed || !arrived ? -1 : steering.current >= 0 ? steering.current
+      : focusedLocation(FOCUS_POINTS, front.current, focusWithin, FOCUS_RELEASE, focused.current);
+    titled.current = !revealed || !arrived ? -1 : steering.current >= 0 ? steering.current
+      : focusedLocation(FOCUS_POINTS, front.current, titleWithin, FOCUS_RELEASE, titled.current);
     if (reportedFocus.current !== focused.current) {
       reportedFocus.current = focused.current;
       setFocusedIndex(focused.current);

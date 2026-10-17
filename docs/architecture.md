@@ -182,7 +182,7 @@ context); locations on the far side dim. The two views are two camera poses (`ge
 frame already holds the route's view: a refresh on a location opens at its framing with the globe turned to it.
 Phones have their own poses: the whole globe and its rings above a cardless peek sheet (the location in focus, or the
 last one, and a bar that pulls the list up; a sideways swipe on the peek steps west to east or back and asks the globe,
-through the context's `turnRequest`, to turn that location to its centre); the list pulled up (`indexOpen` in the context) steps the camera back
+through the context's `turnRequest`, to turn that location to its centre, holding the focus through the turn); the list pulled up (`indexOpen` in the context) steps the camera back
 to a third pose, `getPlacesIndexPose` (a quick `placesIndex` journey, no turn); a location frames the globe close at the
 top with the location centred in the view above its sheet (`phoneMarkerOffset`). The location nearest the globe's centre (within `titleWithin`, wider than
 the focus) shows its title beside its marker as a hover would; on phones it is the only location title. Phones hide the

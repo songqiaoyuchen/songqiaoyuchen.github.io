@@ -359,7 +359,9 @@ export function releaseGlobe(state: GlobeState, vYaw: number, vPitch: number, ma
 /**
  * The location in the globe's focus zone: the one with a point (its place, or anywhere along its route) nearest the
  * globe's front, within `within` degrees. Purely where the globe stands, whatever the servo is doing; the location
- * already in focus keeps it until it leaves by `release` degrees more, so the zone's edge does not flicker.
+ * already in focus keeps it until it leaves by `release` degrees more, or another stands nearer by more than
+ * `release`, so neither the zone's edge nor a neighbour's nearly equal claim flickers, and a neighbour still in the
+ * zone never holds the focus from the location brought to the centre.
  * `points` are unit vectors per location and `front` the unit direction toward the camera, both in globe space.
  */
 export function focusedLocation(
@@ -377,9 +379,6 @@ export function focusedLocation(
     for (let at = 0; at < location.length; at++) cosine = Math.max(cosine, location[at].dot(front));
     nearest[index] = cosine;
   }
-  if (current >= 0 && current < points.length && nearest[current] >= Math.cos((within + release) * DEG)) {
-    return current;
-  }
   let best = -1;
   let bestCosine = Math.cos(within * DEG);
   for (let index = 0; index < nearest.length; index++) {
@@ -387,6 +386,10 @@ export function focusedLocation(
       bestCosine = nearest[index];
       best = index;
     }
+  }
+  if (current >= 0 && current < points.length && nearest[current] >= Math.cos((within + release) * DEG)) {
+    const angleOf = (cosine: number) => Math.acos(Math.min(1, cosine)) / DEG;
+    if (best < 0 || angleOf(nearest[best]) > angleOf(nearest[current]) - release) return current;
   }
   return best;
 }
