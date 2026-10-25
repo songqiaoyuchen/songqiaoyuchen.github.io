@@ -28,40 +28,47 @@ export function LocationPanel({location}: {location: Location}) {
         const photos = galleryPhotos(location, gallery);
         return (
           <section aria-label={gallery.title} className="places-gallery" key={gallery.id} style={rise()}>
-            <div className="places-gallery-head">
-              <p>{gallery.title}</p>
+            <p className="places-gallery-head">
+              <span className="places-gallery-title">{gallery.title}</span>
               {photos.length ? (
                 <Link className="places-link" href={`${locationHref}?gallery=${gallery.id}&photo=0`} scroll={false}>
                   {photos.length === 1 ? '1 photo' : `${photos.length} photos`} <span aria-hidden="true">→</span>
                 </Link>
               ) : null}
-            </div>
+            </p>
             {photos.length ? (
-              <ul className="places-photos">
-                {stripPhotos(photos).map(({photo, index, gap}) => (
-                  <li data-new-day={gap || undefined} key={photo.src}>
-                    <Link href={`${locationHref}?gallery=${gallery.id}&photo=${index}`} scroll={false}>
-                      <Image
-                        alt={photoAlt(gallery, photo)}
-                        height={photo.height}
-                        sizes="160px"
-                        src={photo.thumb}
-                        width={photo.width}
-                      />
-                    </Link>
-                  </li>
-                ))}
-              </ul>
+              // The strip scrolls, so it cannot flow around the globe's float as the text does: the empty probe line
+              // takes the row's start past the globe's limb, and the strip sits from there (useLocationSheetPlacement).
+              <div className="places-photos-row">
+                <span aria-hidden="true" className="places-photos-probe" />
+                <ul className="places-photos">
+                  {stripPhotos(photos).map(({photo, index, gap}) => (
+                    <li data-new-day={gap || undefined} key={photo.src}>
+                      <Link href={`${locationHref}?gallery=${gallery.id}&photo=${index}`} scroll={false}>
+                        <Image
+                          alt={photoAlt(gallery, photo)}
+                          height={photo.height}
+                          sizes="160px"
+                          src={photo.thumb}
+                          width={photo.width}
+                        />
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             ) : <p className="places-gallery-empty">Photos to come</p>}
           </section>
         );
       })}
       {location.stories?.map((story) => story.slug ? (
-        <Link className="places-link places-story" href={`/blog/${story.slug}`} key={story.title} style={rise()}>
-          {story.title} · {formatDay(story.date)} <span aria-hidden="true">→</span>
-        </Link>
+        <p className="places-story" key={story.title} style={rise()}>
+          <Link className="places-link" href={`/blog/${story.slug}`}>
+            {story.title} · {formatDay(story.date)} <span aria-hidden="true">→</span>
+          </Link>
+        </p>
       ) : (
-        <p className="places-link places-story" data-pending="" key={story.title} style={rise()}>
+        <p className="places-story" data-pending="" key={story.title} style={rise()}>
           {story.title} · {formatDay(story.date)} · in writing
         </p>
       ))}

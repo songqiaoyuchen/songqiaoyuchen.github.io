@@ -75,6 +75,21 @@ export function useLocationSheetPlacement(
     const phone = window.matchMedia(PHONE);
     let frame = 0;
     let placedOnce = false;
+    // The photo strips (LocationPanel.tsx .places-photos-row) cannot flow around the float themselves: each row's
+    // probe line lands past the limb, and the strip is placed from where it landed. Read at the start of a frame,
+    // from the layout the last frame painted, so the read forces no layout of its own; the strips follow the text
+    // by a frame while the globe moves. Pending after the shape is placed, and when the panel's content changes.
+    let indentPending = false;
+    const indent = () => {
+      indentPending = false;
+      for (const row of sheet.querySelectorAll<HTMLElement>('.places-photos-row')) {
+        const probe = row.firstElementChild as HTMLElement | null;
+        const value = probe ? `${probe.offsetLeft}px` : '';
+        if (row.style.getPropertyValue('--places-indent') !== value) row.style.setProperty('--places-indent', value);
+      }
+    };
+    const content = new MutationObserver(() => { indentPending = true; });
+    content.observe(sheet, {childList: true, subtree: true});
     // The outline as last placed, half pixels: a frame whose outline matches it changes nothing on screen.
     let placedX = NaN;
     let placedY = NaN;
@@ -109,6 +124,10 @@ export function useLocationSheetPlacement(
       sheet.style.translate = sheet.style.right = '';
       shape.style.marginLeft = shape.style.marginTop = shape.style.width = shape.style.height = '';
       shape.style.shapeOutside = '';
+      for (const row of sheet.querySelectorAll<HTMLElement>('.places-photos-row')) {
+        row.style.removeProperty('--places-indent');
+      }
+      indentPending = false;
       for (const property of Object.keys(sheetWritten) as WrittenStyle[]) delete sheetWritten[property];
       for (const property of Object.keys(shapeWritten) as WrittenStyle[]) delete shapeWritten[property];
       placedOnce = false;
@@ -130,6 +149,7 @@ export function useLocationSheetPlacement(
         if (placedOnce) clear();
         return;
       }
+      if (indentPending && placedOnce) indent();
       if (unchanged(outline)) return;
       placedX = half(outline.x);
       placedY = half(outline.y);
@@ -152,6 +172,7 @@ export function useLocationSheetPlacement(
       // From the border box: the default margin box is shrunk by the negative margins that place the float.
       write(shape.style, shapeWritten, 'shapeOutside', `${polygon} border-box`);
       placedOnce = true;
+      indentPending = true;
     };
     measure();
     window.addEventListener('resize', measure);
@@ -159,6 +180,7 @@ export function useLocationSheetPlacement(
     return () => {
       window.removeEventListener('resize', measure);
       window.cancelAnimationFrame(frame);
+      content.disconnect();
       clear();
     };
   }, [active, outlineRef, shapeRef, sheetRef]);
