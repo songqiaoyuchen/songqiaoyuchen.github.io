@@ -282,8 +282,11 @@ export function SceneShell({articles, children}: SceneShellProps) {
             useHtmlName={sceneState === 'fallback' || HERO_NAME_RENDERER === 'html'}
           />
         ) : null}
+        {/* The drawer opens only once the camera has settled (a journey under way leaves settledPose undefined), so it
+            never stands over a moving landscape; it closes at once as the camera sets off. Phones keep the overview
+            camera for Blog and Projects, and the fallback has no camera: neither leaves a journey under way. */}
         <Drawer
-          activeId={activeId === 'art' || activeId === 'places' ? null : activeId}
+          activeId={activeId === 'art' || activeId === 'places' || settledPose === undefined ? null : activeId}
           aboutProgressRef={aboutProgressRef}
           aboutScrollRequest={aboutScrollRequest}
           onAboutStopChange={setAboutStop}

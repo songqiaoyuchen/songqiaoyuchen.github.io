@@ -7,7 +7,7 @@
 // overview under the preloader, and the scene text waits (holdSceneText) until the preloader's ink has lifted.
 'use client';
 
-import { useEffect, useMemo, useRef, type MutableRefObject } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, type MutableRefObject } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import {MathUtils, PerspectiveCamera, Vector3, type Vector3Tuple} from 'three';
 import type { OrbitControls as OrbitControlsInstance } from 'three-stdlib';
@@ -102,6 +102,14 @@ export function CameraRig({
     aboutBase.current = getCameraPose('about', isMobile);
   }, [configuredAboutKey, isMobile]);
   const previousPoseKey = useRef(poseKey);
+  // A new destination unsettles the camera from this render on, before the journey's first frame, so what waits for
+  // it to settle (SceneShell's drawer and section content) never shows for the frame in between.
+  const announcedPoseKey = useRef(poseKey);
+  useLayoutEffect(() => {
+    if (poseKey === announcedPoseKey.current) return;
+    announcedPoseKey.current = poseKey;
+    onPoseSettled?.(undefined);
+  }, [onPoseSettled, poseKey]);
   const isAnimating = useRef(false);
   // The journey under way (one motion from pose to pose) and its time.
   const leg = useRef<JourneyLeg | null>(null);
