@@ -166,10 +166,11 @@ export function LocationIndex({
               <span aria-hidden="true" className="places-peek-cue">→</span>
             </Link>
           ) : null}
-          <ol className="places-index-list m-0 list-none border-t border-line p-0" id="places-index-list">
+          {/* The dividers belong to the rows, which fade in: a line on the list itself would stand before them. */}
+          <ol className="places-index-list m-0 list-none p-0" id="places-index-list">
             {westToEast.map((location, index) => (
               <li
-                className="places-index-entry border-b border-line"
+                className="places-index-entry border-b border-line first:border-t"
                 key={location.id}
                 style={{'--rise': index + 2} as CSSProperties}
               >

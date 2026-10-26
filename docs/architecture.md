@@ -145,7 +145,7 @@ the globe holds for the first `turnFrom` of the way, then turns the location to 
 done by the time the camera lands and the last of it a slight settle over `turnSettle` seconds more; the return to the
 overview plays the same way toward the globe's centre. A location opening, the rings and the other markers
 leave at once; back to all locations they return only at `revealAt` of the return turn, as the globe settles. The HTML
-follows: the old view fades out, then the location panel rises as the camera lands and the index as the globe settles
+follows: the old view fades out, then the location panel rises once the camera has landed and the index as the globe settles
 (`PlacesSection`, `Places.css`). Lines and trails join the isolated bloom.
 
 Entry is one zoom-out in which the globe is the planet the landscape lies on. `CameraRig` raises a Places morph

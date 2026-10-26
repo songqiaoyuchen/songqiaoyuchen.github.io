@@ -40,9 +40,10 @@
   --places-location-column: clamp(20rem, 40vw, 34rem);
   --places-rise: 520ms;
   /* Between the views (PlacesSection.tsx): the old content fades out over --places-exit (VIEW_EXIT_MS), then the
-     location panel rises as the camera lands (CAMERA_JOURNEY_CONFIG.placesFocus, 1.2 s) and the index as the globe settles back (revealAt). */
+     location panel rises once the camera has landed (--places-panel-delay, set inline by PlacesSection.tsx from
+     CAMERA_JOURNEY_CONFIG.placesFocus, 1.2 s) and the index as the globe settles back (revealAt). */
   --places-exit: 240ms;
-  --places-panel-delay: 460ms;
+  --places-panel-delay: 1020ms;
   --places-index-delay: 760ms;
   --z-places-section: 2;
   --z-places-overlay: 60;
