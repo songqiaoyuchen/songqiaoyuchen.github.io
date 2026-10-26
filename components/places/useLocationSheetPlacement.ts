@@ -145,10 +145,14 @@ export function useLocationSheetPlacement(
     const tick = () => {
       frame = window.requestAnimationFrame(tick);
       const outline = outlineRef.current;
-      if (phone.matches || !outline || outline.points.length < 6 || !sheet.parentElement) {
+      if (phone.matches || !sheet.parentElement) {
         if (placedOnce) clear();
         return;
       }
+      // No outline: the globe has not arrived, or is leaving under a panel that is fading out (the × or the nav,
+      // SceneShell's leaving state). The panel keeps its last placement rather than dropping back to the plain
+      // column mid-fade; the text is placed once the outline is there.
+      if (!outline || outline.points.length < 6) return;
       if (indentPending && placedOnce) indent();
       if (unchanged(outline)) return;
       placedX = half(outline.x);
