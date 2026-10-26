@@ -129,6 +129,11 @@ export function AboutCallouts({
       calculatePosition={(_, __, viewport) => [viewport.width / 2, viewport.height / 2]}
       fullscreen
       position={stops.at(-1)?.toArray()}
+      // Html hides the layer while its anchor is behind the camera, and looks again only when the layer's
+      // position moves, which ours never does: on the way in from Places the camera passes such a pose, and
+      // the layer stayed hidden with every callout in it. Each callout hides itself when off screen instead
+      // (as PlacesCallouts.tsx does).
+      onOcclude={() => {}}
       style={{pointerEvents: 'none'}}
       zIndexRange={[30, 10]}
     >
