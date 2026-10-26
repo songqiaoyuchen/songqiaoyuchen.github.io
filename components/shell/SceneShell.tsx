@@ -228,13 +228,7 @@ export function SceneShell({articles, children}: SceneShellProps) {
   // out, fades under the leaving state rather than snapping off as the camera sets off).
   const isLeaving = leaving !== null;
   const artArriving = isArt && !isLeaving && settledPose !== 'art' && sceneState !== 'fallback';
-  // Places gates its content only on the way in from outside: once the camera has settled on a Places pose, the
-  // journeys between the overview and a location are Places's own, choreographed by PlacesSection (the old view
-  // fades out, the new one rises as the camera lands), not hidden until the camera settles again.
-  const [placesEntered, setPlacesEntered] = useState(settledPose === 'places');
-  if (isPlaces && settledPose === 'places' && !placesEntered) setPlacesEntered(true);
-  if (!isPlaces && placesEntered) setPlacesEntered(false);
-  const placesArriving = isPlaces && !isLeaving && !placesEntered && sceneState !== 'fallback';
+  const placesArriving = isPlaces && !isLeaving && settledPose !== 'places' && sceneState !== 'fallback';
 
   return (
     <div

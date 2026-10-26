@@ -3,7 +3,7 @@
 // PlacesSceneContext and only takes pointer events on its own text; on phones the text is a sheet under the whole
 // globe, peeking with the location in focus, its list pulled up over it (the camera steps back) or a location. The
 // globe answers a change of view at once; the text follows it: the old content fades out first (VIEW_EXIT_MS), then the
-// new one rises once the camera has landed on a location, or as the globe settles back to all locations (Places.css).
+// new one rises as the camera lands on a location, or as the globe settles back to all locations (Places.css).
 'use client';
 
 import {useRouter} from 'next/navigation';
@@ -22,15 +22,8 @@ import {usePlacesRoute} from './usePlacesRoute';
 
 // Places.css --places-exit.
 const VIEW_EXIT_MS = 240;
-// The location panel mounts once the old view has faded (VIEW_EXIT_MS into the camera's focus journey) and fades in
-// only once the camera has landed: until then its text, laid out around the globe as drawn, would reflow under the
-// reader every frame of the zoom.
-const PANEL_DELAY_MS = Math.max(0, Math.round(CAMERA_JOURNEY_CONFIG.placesFocus * 1000 - VIEW_EXIT_MS)) + 60;
 // Phones: the sheet rises and falls with the camera's step back and forward as the location list opens and closes.
-const SECTION_STYLE = {
-  '--places-sheet-move': `${CAMERA_JOURNEY_CONFIG.placesIndex * 1000}ms`,
-  '--places-panel-delay': `${PANEL_DELAY_MS}ms`,
-} as CSSProperties;
+const SECTION_STYLE = {'--places-sheet-move': `${CAMERA_JOURNEY_CONFIG.placesIndex * 1000}ms`} as CSSProperties;
 
 export function PlacesSection() {
   const [queryString, setQueryString] = useState('');
