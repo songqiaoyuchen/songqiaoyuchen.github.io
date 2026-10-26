@@ -11,7 +11,7 @@ Checklists remain unchecked until the work is implemented and verified.
 | [Navigation and URLs](stage-2-navigation.md) | Shared destinations, top-nav handover, URLs and history | Extend the Art pattern when other sections are rebuilt |
 | [Unified Art journey](stage-2-art-journey.md) | Selected works, full collection, inspection and local return | Implemented and verified; future curation stays in Content |
 | [Section interactions](stage-2-section-interactions.md) | Shared interaction rules, attention and scope | Apply lessons from Art one section at a time |
-| [Lake exploration](stage-2-lake-exploration.md) | Dive, sonar, forgiving navigation and personal letter | Prototype movement and course boundaries |
+| [Lake exploration](stage-3-lake-exploration.md) | Stage 3: sonar dive down a crack to a personal letter | First prototype built 2026-10-25; play it, then tune length, cadence and visibility |
 | [Places](stage-2-places.md) | Terrain-to-globe transition, real locations and media | Review the globe and location views; build the terrain dissolve |
 | [About experience path](stage-2-about-path.md) | Metaphorical terrain timeline and experience details | Prototype linked list/checkpoint selection |
 

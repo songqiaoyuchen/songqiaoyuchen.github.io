@@ -50,6 +50,8 @@ function renderTerrain(
 
 type CachedTerrainProps = {
   backdrop?: ArtMedium | null;
+  /** The crack is on screen in its place: the cache is neither redrawn nor composited. */
+  hidden?: boolean;
   contourSettings: ContourControlValues;
   preloadBackdrops: boolean;
   fogSettings: FogControlValues;
@@ -69,6 +71,7 @@ type CachedTerrainProps = {
  */
 export function CachedTerrain({
   backdrop = null,
+  hidden = false,
   contourSettings,
   preloadBackdrops,
   fogSettings,
@@ -137,7 +140,7 @@ export function CachedTerrain({
 
   useFrame(({camera, gl}, delta) => {
     const values = materialRef.current?.uniforms;
-    if (!values) return;
+    if (!values || hidden) return;
     const step = Math.min(delta, .05);
     const frameState = cameraFrameState.current;
     values.uOil.value = oil ?? target.texture;
@@ -152,7 +155,7 @@ export function CachedTerrain({
       && (capture.source !== 1 || oil) && (capture.source !== 2 || pencil) ? 1 : 0;
     if (backdrop && registered) {
       wipe.current = advanceBackdropWipe(wipe.current, requestedBackdrop(backdrop, oil, pencil, wipe.current.to),
-        delta, reducedMotion, artTransitionSettings.revealSeconds);
+        delta, reducedMotion, artTransitionSettings.revealSeconds, BACKDROP_CONFIG.catchUpSeconds);
       values.uArtOpacity.value = 1;
       if (reducedMotion) frameState.setArtFog(0);
       else {
@@ -212,7 +215,7 @@ export function CachedTerrain({
         </>,
         scene,
       )}
-      <mesh frustumCulled={false} renderOrder={-1000}>
+      <mesh frustumCulled={false} renderOrder={-1000} visible={!hidden}>
         <planeGeometry args={[2, 2]} />
         <shaderMaterial
           ref={materialRef}

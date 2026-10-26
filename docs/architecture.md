@@ -15,6 +15,7 @@ Drei, post-processing, and GLSL for terrain. Motion supports interactions.
 | `components/home/` | Homepage hero, preloader and preview drawer (About, Blog, Projects panels) |
 | `components/art/` | Art section: carousel, collection, inspection, gallery transition, Screenshot mode |
 | `components/places/` | Places section: location index, location panel, photo viewer, shared scene state |
+| `components/lake/` | The lake dive's HTML: flow, dive screen (HUD and input), the letter |
 | `components/scene/`, `shaders/` | WebGL: camera, terrain, backdrops, scene text, effects, Leva controls |
 | `components/site/`, `components/projects/`, `components/blog/` | Nav, project cards, editorial UI |
 | `config/` | Tunable numbers (scene, art, places, hero, preloader, breakpoints) |
@@ -60,6 +61,56 @@ has lifted and the hero and scene links enter then as after any journey. Setting
 Lines › Reveal, whose Replay button replays the wave). Entry on a section route, reduced motion and browsers
 without WebGL2 skip it: the preloader then fades over the scene at its own pose.
 Art hides all scene text from navigation start, independently of backdrop loading.
+
+## Lake
+
+The lake (`LAKE_CONFIG`, `config/scene/lake.ts`) lies on the open plain below the hero: `LakeSurface` draws a
+water disc at a set level, cut to a noise-moved shore and hidden by the terrain cache's depth where the ground
+rises above it, so the terrain cuts its own shores (`shaders/lake/lake.*`). It glows on hover; an HTML button over
+it (clickable, focusable) is the only way into the dive: no nav entry, no route. The flow (`useLakeFlow`,
+`LAKE_FLOW`) runs on timers the camera's flights read too: `entering` flies the camera from the overview down to
+`divePosition` over the water while the veil (`.lake-veil`, black) darkens; `diving` shows the crack and lifts the
+veil; `found` stops the craft facing the bottle until the player opens it (the letter); `surfacing` darkens the
+veil; `returning` sets the camera
+above the water and flies it back to the overview pose (`getCameraPose(null, isMobile)`, so `CameraRig` finds it
+where it left it). `LakeDive` owns the camera at priority -0.74, after `CameraRig`; the dev orbit controls are off
+while the lake is active. Under water (`isUnderwater`) the terrain cache is neither redrawn nor composited
+(`CachedTerrain` `hidden`), the contours, glyph rain, scene links and hero hide as for a section, `body[data-lake]`
+steps the nav aside, and Escape or the HUD's Surface control is the way out; a section opening or the route leaving
+ends the dive at once.
+
+The crack (`lib/scene/lake.ts`, node-tested) is a route of control points stepping down from under the lake at a
+set pitch, its bend drifting with inertia under a cap (`yawBend`) and dying away over a straight run into the
+chamber (`straightEnd`), so the end wall shows ahead; sampled into stations with a level frame (the slot's gap axis is horizontal); the
+cross-section is a squared-off slot per station (`slotPower`): two rock faces either side of the route, a gap
+apart, standing near-vertical to a floor and a lake bed `halfHeight` away, far beyond the sonar, so above and
+below is void. The faces carry the relief, bedded rock: broad smooth bulges, gentle ledges stepping with the
+rock's height and a little roughness, pinched at set shares of the route, opening into a chamber at the end and
+closed at both ends; the ring's vertices are spread by height along the faces. The
+fragment shader adds a faint grain (level beds and a soft texture) to the normal and the return. The same radius function builds the mesh and answers the queries: `locate` (a point's
+frame and place in the cross-section), `wallDistance` (a ray to the wall, for the readouts) and `advanceCraft`
+(direction from the player alone, free in every direction so a corner is never a trap; fixed speed; the move
+taken in `collisionStep` sub-steps each kept off the walls, the heading easing along a wall it is pressed against
+at `slideEase`; a knock that cuts the speed to `bumpSlow` and slides along the wall with
+the system's warning repeating while the contact lasts and a jolt of the view (`bumpKick`); never past the ends; nothing steers for the player; the
+chamber runs at `chamberSpeed` so the bottle can be aimed at, and at its end wall the craft holds still). The walls are
+seen by sonar (`shaders/lake/crack.frag`) and, within `ambientReach`, by a faint resting light: one ping is sent as
+the crack comes into view, then each ping (space, enter, click or tap, on a cooldown the HUD shows as a bar) is an
+origin and a time, with a sound (`lib/lake/sonarSound.ts`: the recorded sample at `soundSrc` when one is
+configured, else a synthesised ping ringing into a convolver's tail); its front travels out at `pingSpeed`, the
+walls light as it
+passes by how squarely they face it, the depth lines (world height, gold) draw on them, the front itself is cyan,
+and what the front has passed decays over `pingDecay`, the return weakening with distance. The HUD (`LakeHud`,
+HTML) reads the dive's telemetry each frame through a shared ref and writes the player's input into another: wall
+readouts, live soundings each side every frame that a ping in flight caps at its front so they count up with it,
+depth and speed in metres (`metresPerUnit`), a scanning label, how to scan until the first ping, the hint until
+the first input, and after a finished dive a skip that lands a way before the bottle, facing it, with the
+revealing scan sent (`placeCraftBeforeBottle`). The dive ends when a scan has reached the bottle while it lies
+ahead within `foundRange`, or when the craft is right on it. Leva's Lake folder
+tunes the cooldown, the sonar, the resting light, the feel, the found range and the sound, and Save Config writes
+them to `LAKE_DIVE_CONFIG`. Reduced motion drops the camera's lag and lean and makes pings
+instant. Completion is remembered in the browser (`sqyc:lake`): the lake then offers the dive again and a Read the
+letter control that opens the letter without diving.
 
 ## About
 
@@ -251,9 +302,10 @@ their image paths); viewport changes crop through the live camera projection.
 `CachedTerrain` composites all three through one descending elevation-contour wipe,
 reconstructing the terrain's world height from cached depth; open sky blends separately.
 The same mask replaces the outgoing backdrop with the incoming one, preserving
-both through the wipe. Rapid selections leave the active wipe at its normal
-speed, then start only the latest requested backdrop; intermediate requests are
-discarded (`lib/art/backdropWipe.ts`). Reduced motion skips backdrop animations.
+both through the wipe. A wipe under way never swaps a visible side: a selection of the outgoing backdrop runs
+the front back up in place, and one of a third backdrop resolves the wipe the short way within
+`catchUpSeconds` before its own starts, so the latest selection follows within that time rather than after the
+whole wipe (`lib/art/backdropWipe.ts`). Reduced motion skips backdrop animations.
 
 Pointer movement over Art drives full-screen cursor treatments (`useArtCursor`,
 tuned in `config/art/cursor.ts`; Leva's Art Cursor folder tunes and saves
@@ -290,15 +342,23 @@ Camera Journeys, Art's in Art Transition), and the effects riding a journey run 
   is Places, the Art flight fog whenever one end is Art, the globe's focus progress between Places's overview
   and a location. A journey from Art to Places does both at once.
 - A new destination mid-journey sets off from where the camera is, the effects continuing from their live
-  values; the last frame lands exactly on their end values.
+  values; the last frame lands exactly on their end values. Every journey carries the morph (and a fog left by a
+  flight out of Art) to its destination's resting value, so a journey between Places's own poses that begins
+  mid-zoom (a location opened by the arrows while the globe is still forming, a return to Places cut short of its
+  route change) finishes the zoom rather than freezing it until it snaps on arrival.
 - The globe keeps the location it was showing while it shrinks away (the route, and so the selection, changes
   mid-way), so leaving a location is one shrink from that framing rather than a swing back to the overview first.
   On the ride the globe's own turn holds still: its servo would chase the marker offset against a camera that
   moves every frame, and the turn is composed in the view of the lens the globe rests under (yaw about the axis,
   pitch about that camera's right), not the moving camera's, or it would turn with the camera. Arriving at a
   location from outside Places, the own turn is set once at the start of the ride to where the arriving camera will
-  see the location, hidden under the flat planet until the globe forms, so no correction follows on arrival. The
-  globe publishes its outline for the location panel only once it has arrived, so the panel is not reflowed around
+  see the location, hidden under the flat planet until the globe forms, so no correction follows on arrival. A
+  destination changed on the way in (the nav's Places clicked mid-way out of a location, so the camera lands at
+  the overview rather than the location's framing the ride set off for; a location opened while the globe is
+  still forming) would move that lens, the ride's end and the own turn in one frame, now or on arrival: instead
+  the lens glides from the one the ride was bound for to the new one over the rest of the way, and the own turn
+  with it to the new framing (a location at its marker point; over all locations, the location held at the
+  centre). The globe publishes its outline for the location panel only once it has arrived, so the panel is not reflowed around
   an Earth-sized shape every frame of the ride.
 - The camera is never inside the planet, and nothing pushes it off its path. The planet is placed about the
   camera: the landing point's direction eases, in the live camera's own frame, from where the landscape stands to

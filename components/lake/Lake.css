@@ -1,0 +1,475 @@
+/* The lake dive's HTML: the veil over the entry and exit, the dive screen (LakeHud), the letter (LakeLetter) and the
+   nav stepping aside while under water. Colours: the site's gold (--color-accent) and the lake's cyan. */
+:root {
+  --lake-cyan: #7fe3ea;
+  --lake-cyan-dim: rgb(127 227 234 / 55%);
+  --lake-cyan-glow: rgb(127 227 234 / 35%);
+  --lake-gold-dim: rgb(232 199 122 / 60%);
+  --lake-panel: rgb(6 8 12 / 94%);
+  --lake-line: rgb(127 227 234 / 22%);
+}
+
+/* The veil: black over the whole page, between the overview and the crack. */
+.lake-veil {
+  position: fixed;
+  inset: 0;
+  z-index: 35;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 1.1s ease-out;
+}
+
+.lake-veil[data-dark] {
+  opacity: 1;
+  transition-duration: 0.7s;
+  transition-timing-function: ease-in;
+}
+
+/* The nav steps aside under water; Escape and the Surface control are the way out. */
+body[data-lake='underwater'] > nav {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.6s ease-out;
+}
+
+/* The dive screen. */
+.lake-hud {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  font-family: var(--font-mono);
+  color: var(--lake-cyan);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+  opacity: 0;
+  pointer-events: none;
+  user-select: none;
+  touch-action: none;
+  transition: opacity 0.9s ease-out;
+  text-shadow: 0 0 6px var(--lake-cyan-glow), 0 0 18px rgb(127 227 234 / 16%);
+  --lake-bump: 0;
+}
+
+.lake-hud[data-shown] {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.lake-hud p {
+  margin: 0;
+}
+
+/* Under the letter only the vignette stays. */
+.lake-hud[data-letter] > :not(.lake-hud-vignette) {
+  opacity: 0;
+  transition: opacity 0.6s ease-out;
+}
+
+.lake-hud-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 70% 66% at 50% 50%, transparent 42%, rgb(0 0 0 / 78%) 100%),
+    repeating-linear-gradient(to bottom, rgb(255 255 255 / 1.4%) 0 1px, transparent 1px 3px);
+}
+
+/* A knock against the wall: the readouts take a warmer light, and the screen's edges close in, while it lasts. */
+.lake-hud-readout span:not(.lake-hud-tick) {
+  color: color-mix(in srgb, var(--lake-cyan) calc(100% - var(--lake-bump) * 70%), var(--color-accent));
+}
+
+.lake-hud-vignette::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  box-shadow: inset 0 0 calc(var(--lake-bump) * 22vmin) calc(var(--lake-bump) * 6vmin)
+    rgb(232 199 122 / calc(var(--lake-bump) * 28%));
+  opacity: calc(var(--lake-bump) * 1);
+}
+
+.lake-hud-scan {
+  position: absolute;
+  top: 21svh;
+  left: 50%;
+  translate: -50% 0;
+  font-size: clamp(0.72rem, 1.3vw, 0.95rem);
+  letter-spacing: 0.32em;
+  text-align: center;
+}
+
+.lake-hud-scan span {
+  display: block;
+  padding-bottom: 0.45em;
+  border-bottom: 1px solid var(--lake-line);
+  opacity: 0;
+}
+
+/* How to scan, under the scanning label, until the player's first ping. */
+.lake-hud-scan-hint {
+  position: absolute;
+  top: calc(21svh + 3.2em);
+  left: 50%;
+  translate: -50% 0;
+  font-size: var(--text-micro);
+  letter-spacing: 0.26em;
+  color: var(--lake-cyan-dim);
+  white-space: nowrap;
+  animation: lake-scan-hint 2.6s ease-in-out infinite;
+  transition: opacity 0.8s ease-out;
+}
+
+.lake-hud[data-scan-hint='hidden'] .lake-hud-scan-hint {
+  opacity: 0;
+  animation: none;
+}
+
+@keyframes lake-scan-hint {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 1; }
+}
+
+.lake-hud-readout {
+  position: absolute;
+  top: 50%;
+  display: flex;
+  align-items: center;
+  gap: 0.55em;
+  translate: 0 -50%;
+  font-size: clamp(1rem, 1.9vw, 1.45rem);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+}
+
+.lake-hud-readout span:not(.lake-hud-tick) {
+  transition: opacity 0.2s linear;
+}
+
+.lake-hud-readout-left {
+  left: clamp(1.25rem, 7vw, 6rem);
+}
+
+.lake-hud-readout-right {
+  right: clamp(1.25rem, 7vw, 6rem);
+}
+
+.lake-hud-tick {
+  display: block;
+  width: 1px;
+  height: 1.3em;
+  background: var(--lake-cyan-dim);
+}
+
+.lake-hud-bottom {
+  position: absolute;
+  inset-inline: 0;
+  bottom: clamp(2.5rem, 9svh, 5rem);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: clamp(0.8rem, 1.35vw, 1.05rem);
+  font-variant-numeric: tabular-nums;
+}
+
+.lake-hud-depth,
+.lake-hud-speed {
+  display: flex;
+  gap: 0.9em;
+  align-items: baseline;
+}
+
+.lake-hud-speed {
+  font-size: 0.72em;
+  color: var(--lake-cyan-dim);
+}
+
+.lake-hud-label {
+  font-size: 0.62em;
+  color: var(--lake-cyan-dim);
+  letter-spacing: 0.3em;
+}
+
+.lake-hud-progress {
+  display: block;
+  width: min(34vw, 18rem);
+  height: 1px;
+  margin-top: 0.4rem;
+  background: var(--lake-line);
+  overflow: hidden;
+}
+
+.lake-hud-progress span {
+  display: block;
+  height: 100%;
+  background: var(--lake-gold-dim);
+  transform-origin: left center;
+  transform: scaleX(0);
+}
+
+/* The sonar's readiness: a bar that empties on a ping and fills back over the cooldown. */
+.lake-hud-sonar {
+  display: flex;
+  align-items: center;
+  gap: 0.9em;
+  margin-top: 0.35rem;
+}
+
+.lake-hud-sonar .lake-hud-label[data-ready='false'] {
+  color: rgb(127 227 234 / 30%);
+}
+
+.lake-hud-sonar-bar {
+  display: block;
+  width: 5.5rem;
+  height: 2px;
+  background: var(--lake-line);
+  overflow: hidden;
+}
+
+.lake-hud-sonar-bar span {
+  display: block;
+  height: 100%;
+  background: var(--lake-cyan-dim);
+  transform-origin: left center;
+  transform: scaleX(1);
+}
+
+.lake-hud-hint {
+  position: absolute;
+  left: clamp(1.25rem, 4vw, 3rem);
+  bottom: clamp(1.25rem, 4svh, 2.5rem);
+  max-width: calc(100% - 9rem);
+  font-size: var(--text-micro);
+  color: var(--lake-cyan-dim);
+  letter-spacing: 0.2em;
+  transition: opacity 1.2s ease-out;
+}
+
+.lake-hud-hint > span {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5em 1.4em;
+}
+
+/* Keys on a pointer device, touch on a phone. */
+.lake-hud-hint-touch {
+  display: none;
+}
+
+@media (pointer: coarse) {
+  .lake-hud-hint-keys {
+    display: none;
+  }
+
+  .lake-hud-hint-touch {
+    display: flex;
+  }
+}
+
+.lake-hud[data-hint='hidden'] .lake-hud-hint {
+  opacity: 0;
+}
+
+.lake-hud-surface {
+  position: absolute;
+  right: clamp(1.25rem, 4vw, 3rem);
+  bottom: clamp(1.25rem, 4svh, 2.5rem);
+  min-height: var(--size-hit-target);
+  padding: 0 0.1em;
+  border: 0;
+  border-bottom: 1px solid var(--lake-line);
+  background: transparent;
+  color: var(--lake-cyan-dim);
+  font: inherit;
+  font-size: var(--text-micro);
+  letter-spacing: 0.24em;
+  text-transform: inherit;
+  cursor: pointer;
+  transition: color var(--duration-ui), border-color var(--duration-ui);
+}
+
+/* The bottle in reach: the player opens it. */
+.lake-hud-open {
+  position: absolute;
+  top: 58%;
+  left: 50%;
+  translate: -50% 0;
+  min-height: var(--size-hit-target);
+  padding: 0 1.2em;
+  border: 1px solid rgb(232 199 122 / 40%);
+  background: rgb(6 8 12 / 55%);
+  color: var(--color-accent);
+  font: inherit;
+  font-size: var(--text-micro);
+  letter-spacing: 0.3em;
+  text-transform: inherit;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.9s ease-out, border-color var(--duration-ui), background var(--duration-ui);
+}
+
+.lake-hud[data-state='found'] .lake-hud-open {
+  opacity: 1;
+  pointer-events: auto;
+  animation: lake-scan-hint 2.6s ease-in-out infinite;
+}
+
+.lake-hud-open:hover,
+.lake-hud-open:focus-visible {
+  border-color: var(--color-accent);
+  background: rgb(232 199 122 / 12%);
+  outline: none;
+}
+
+/* After a finished dive: straight to the chamber. */
+.lake-hud-skip {
+  position: absolute;
+  right: clamp(1.25rem, 4vw, 3rem);
+  bottom: calc(clamp(1.25rem, 4svh, 2.5rem) + var(--size-hit-target) + 0.25rem);
+  min-height: var(--size-hit-target);
+  padding: 0 0.1em;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  background: transparent;
+  color: rgb(232 199 122 / 55%);
+  font: inherit;
+  font-size: var(--text-micro);
+  letter-spacing: 0.24em;
+  text-transform: inherit;
+  cursor: pointer;
+  transition: color var(--duration-ui), border-color var(--duration-ui);
+}
+
+.lake-hud-skip:hover,
+.lake-hud-skip:focus-visible {
+  color: var(--color-accent);
+  border-color: rgb(232 199 122 / 45%);
+  outline: none;
+}
+
+.lake-hud-surface:hover,
+.lake-hud-surface:focus-visible {
+  color: var(--lake-cyan);
+  border-color: var(--lake-cyan-dim);
+  outline: none;
+}
+
+/* The lake's HTML controls over the terrain (LakeSurface). */
+.lake-hit {
+  width: clamp(7rem, 16vw, 15rem);
+  height: clamp(4rem, 8vw, 7rem);
+}
+
+.lake-letter-link {
+  white-space: nowrap;
+}
+
+/* The letter. */
+.lake-letter {
+  position: fixed;
+  inset: 0;
+  z-index: 36;
+  display: grid;
+  place-items: center;
+  padding: var(--spacing-page-gutter);
+  background: rgb(0 0 0 / 55%);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.8s ease-out, visibility 0s linear 0.8s;
+}
+
+.lake-letter[data-open] {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition: opacity 1.4s ease-out, visibility 0s;
+}
+
+.lake-letter-panel {
+  position: relative;
+  width: min(100%, 36rem);
+  max-height: calc(100svh - 2 * var(--spacing-page-gutter));
+  padding: clamp(1.75rem, 5vw, 3.25rem) clamp(1.5rem, 5vw, 3rem);
+  overflow-y: auto;
+  border: 1px solid rgb(232 199 122 / 18%);
+  background: var(--lake-panel);
+  box-shadow: 0 0 60px rgb(232 199 122 / 6%), 0 30px 80px rgb(0 0 0 / 60%);
+  font-family: var(--font-mono);
+  color: var(--color-text);
+  translate: 0 0.75rem;
+  transition: translate 1.4s var(--ease-settle);
+}
+
+.lake-letter[data-open] .lake-letter-panel {
+  translate: 0 0;
+}
+
+.lake-letter-eyebrow {
+  margin: 0 0 1.1rem;
+  font-size: var(--text-micro);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--lake-cyan-dim);
+}
+
+.lake-letter-title {
+  margin: 0 0 1.75rem;
+  font-size: clamp(1.4rem, 3vw, 1.9rem);
+  font-weight: 400;
+  font-style: italic;
+  line-height: 1.1;
+  color: var(--color-accent);
+}
+
+.lake-letter-salutation,
+.lake-letter-copy {
+  margin: 0 0 1.1rem;
+  max-width: var(--container-copy);
+  font-size: var(--text-intro-copy);
+  line-height: var(--leading-intro-copy);
+  color: var(--color-muted);
+}
+
+.lake-letter-signature {
+  margin: 1.8rem 0 0;
+  font-size: var(--text-meta);
+  letter-spacing: var(--tracking-brand);
+  text-transform: uppercase;
+  color: var(--color-accent-soft);
+}
+
+.lake-letter-close {
+  margin-top: 2.25rem;
+  min-height: var(--size-hit-target);
+  padding: 0 0.1em;
+  border: 0;
+  border-bottom: 1px solid rgb(232 199 122 / 35%);
+  background: transparent;
+  color: var(--color-accent-muted);
+  font: inherit;
+  font-size: var(--text-micro);
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color var(--duration-ui), border-color var(--duration-ui);
+}
+
+.lake-letter-close:hover,
+.lake-letter-close:focus-visible {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+  outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lake-veil,
+  .lake-hud,
+  .lake-letter,
+  .lake-letter-panel {
+    transition-duration: 0.15s;
+  }
+}
