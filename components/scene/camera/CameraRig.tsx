@@ -213,7 +213,10 @@ export function CameraRig({
       );
       controls?.target.copy(currentLookAt.current);
       // The effects go by the journey's two ends and run over its whole length (a journey from Art to Places
-      // releases the fog and morphs the terrain at once); the last frame lands exactly on their end values.
+      // releases the fog and morphs the terrain at once); the last frame lands exactly on their end values. Every
+      // journey carries them to its destination's resting values, so one that cuts a journey short mid-way (a
+      // location opened while the globe is still forming, a return to Places from part-way out of it) finishes
+      // what the last one left rather than freezing it until it snaps on arrival.
       const {progress} = transition;
       const {from, to, kind} = leg.current;
       if (from === 'art' || to === 'art') {
@@ -227,13 +230,16 @@ export function CameraRig({
           const rise = MathUtils.lerp(artFogStart.current, 1, MathUtils.smootherstep(progress, 0, .3));
           cameraFrameState.current.setArtFog(rise * (1 - MathUtils.smootherstep(progress, .45, 1)));
         }
+      } else if (artFogStart.current > 0) {
+        // A flight out of Art cut short away from it: the fog it left thins over this journey.
+        cameraFrameState.current.setArtFog(
+          MathUtils.lerp(artFogStart.current, 0, MathUtils.smootherstep(progress, 0, 1)));
       }
-      if (isPlacesKey(from) !== isPlacesKey(to)) {
-        // Into Places the terrain shrinks onto the globe over the journey, from wherever the camera set off; out
-        // of it, it grows back, from the overview's or a location's framing alike.
-        cameraFrameState.current.setPlacesMorph(
-          MathUtils.lerp(morphStart.current, isPlacesKey(to) ? 1 : 0, MathUtils.smootherstep(progress, 0, 1)));
-      }
+      // Into Places the terrain shrinks onto the globe over the journey, from wherever the camera set off; out
+      // of it, it grows back, from the overview's or a location's framing alike. Between Places's own poses the
+      // morph holds at 1, or finishes a zoom-out cut short.
+      cameraFrameState.current.setPlacesMorph(
+        MathUtils.lerp(morphStart.current, isPlacesKey(to) ? 1 : 0, MathUtils.smootherstep(progress, 0, 1)));
       // Between Places's overview and a location the globe turns the location into frame on the camera's clock.
       cameraFrameState.current.setPlacesFocus(kind === 'placesFocus' ? progress : -1);
       if (settled) {

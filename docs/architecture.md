@@ -290,15 +290,23 @@ Camera Journeys, Art's in Art Transition), and the effects riding a journey run 
   is Places, the Art flight fog whenever one end is Art, the globe's focus progress between Places's overview
   and a location. A journey from Art to Places does both at once.
 - A new destination mid-journey sets off from where the camera is, the effects continuing from their live
-  values; the last frame lands exactly on their end values.
+  values; the last frame lands exactly on their end values. Every journey carries the morph (and a fog left by a
+  flight out of Art) to its destination's resting value, so a journey between Places's own poses that begins
+  mid-zoom (a location opened by the arrows while the globe is still forming, a return to Places cut short of its
+  route change) finishes the zoom rather than freezing it until it snaps on arrival.
 - The globe keeps the location it was showing while it shrinks away (the route, and so the selection, changes
   mid-way), so leaving a location is one shrink from that framing rather than a swing back to the overview first.
   On the ride the globe's own turn holds still: its servo would chase the marker offset against a camera that
   moves every frame, and the turn is composed in the view of the lens the globe rests under (yaw about the axis,
   pitch about that camera's right), not the moving camera's, or it would turn with the camera. Arriving at a
   location from outside Places, the own turn is set once at the start of the ride to where the arriving camera will
-  see the location, hidden under the flat planet until the globe forms, so no correction follows on arrival. The
-  globe publishes its outline for the location panel only once it has arrived, so the panel is not reflowed around
+  see the location, hidden under the flat planet until the globe forms, so no correction follows on arrival. A
+  destination changed on the way in (the nav's Places clicked mid-way out of a location, so the camera lands at
+  the overview rather than the location's framing the ride set off for; a location opened while the globe is
+  still forming) would move that lens, the ride's end and the own turn in one frame, now or on arrival: instead
+  the lens glides from the one the ride was bound for to the new one over the rest of the way, and the own turn
+  with it to the new framing (a location at its marker point; over all locations, the location held at the
+  centre). The globe publishes its outline for the location panel only once it has arrived, so the panel is not reflowed around
   an Earth-sized shape every frame of the ride.
 - The camera is never inside the planet, and nothing pushes it off its path. The planet is placed about the
   camera: the landing point's direction eases, in the live camera's own frame, from where the landscape stands to
