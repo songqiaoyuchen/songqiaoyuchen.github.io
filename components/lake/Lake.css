@@ -75,7 +75,8 @@ body[data-lake='underwater'] > nav {
     repeating-linear-gradient(to bottom, rgb(255 255 255 / 1.4%) 0 1px, transparent 1px 3px);
 }
 
-/* A knock against the wall: the readouts take a warmer light, and the screen's edges close in, while it lasts. */
+/* A knock against the wall: the readouts take a warmer light, and the screen's edges close in, while it lasts.
+   The edge glow is a fixed layer shown by opacity alone, so a knock costs the compositor, not a repaint. */
 .lake-hud-readout span:not(.lake-hud-tick) {
   color: color-mix(in srgb, var(--lake-cyan) calc(100% - var(--lake-bump) * 70%), var(--color-accent));
 }
@@ -84,9 +85,9 @@ body[data-lake='underwater'] > nav {
   content: '';
   position: absolute;
   inset: 0;
-  box-shadow: inset 0 0 calc(var(--lake-bump) * 22vmin) calc(var(--lake-bump) * 6vmin)
-    rgb(232 199 122 / calc(var(--lake-bump) * 28%));
-  opacity: calc(var(--lake-bump) * 1);
+  background: radial-gradient(ellipse 62% 58% at 50% 50%, transparent 60%, rgb(232 199 122 / 30%) 100%);
+  opacity: var(--lake-bump);
+  will-change: opacity;
 }
 
 .lake-hud-scan {

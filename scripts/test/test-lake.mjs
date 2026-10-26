@@ -76,6 +76,24 @@ const n = new Vector3().fromArray(geometry.normals, mid * 3);
 const c = stations[Math.floor(stations.length / 2)].position;
 assert.ok(n.dot(c.clone().sub(p)) > 0, 'normals point into the crack');
 
+// The faces are rock, not smooth walls: along a face at the craft's height the wall comes and goes by a good
+// fraction of a unit over a few units of route; the ring's vertices are close together where the faces meet the
+// gap, so that relief is carried by the mesh.
+const faceTheta = Math.atan2(1.5, LAKE_DIVE_CONFIG.halfWidth[0]);
+let reliefMin = Infinity, reliefMax = -Infinity;
+for (let s = 60; s < 70; s += 0.25) {
+  const r = route.radius(faceTheta, s) * Math.cos(faceTheta);
+  reliefMin = Math.min(reliefMin, r);
+  reliefMax = Math.max(reliefMax, r);
+}
+assert.ok(reliefMax - reliefMin > 0.4, `the faces carry relief (${(reliefMax - reliefMin).toFixed(2)} units over 10)`);
+const ring = LAKE_DIVE_CONFIG.ringSegments;
+const gapVertex = Math.floor(stations.length / 2) * ring + ring / 4; // the right face at the route's own height
+const gapSpacing = new Vector3().fromArray(geometry.positions, (gapVertex + 1) * 3)
+  .distanceTo(new Vector3().fromArray(geometry.positions, gapVertex * 3));
+assert.ok(gapSpacing < 0.25, `ring vertices close together near the gap (${gapSpacing.toFixed(2)} units)`);
+assert.ok(ring % 2 === 0, 'two faces of equal vertex count');
+
 // The bottle rests inside the chamber.
 const {bottle} = route;
 route.locate(bottle, locus);

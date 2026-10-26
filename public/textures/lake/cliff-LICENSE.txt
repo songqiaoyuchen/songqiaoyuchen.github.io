@@ -1,0 +1,6 @@
+cliff-1k.webp is packed from the "Cliff Side" texture set by James Ray Cock, Dario Barresi (photography) and
+Jenelle van Heerden (processing), published by Poly Haven under CC0 1.0 (public domain):
+https://polyhaven.com/a/cliff_side
+
+Channels: R, G = OpenGL normal map x, y; B = displacement (height); A = ambient occlusion. Packed at 1024 px
+from the 2K PNG maps by scripts/assets/pack-lake-rock.mjs.

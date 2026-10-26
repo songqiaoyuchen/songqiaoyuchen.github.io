@@ -17,6 +17,11 @@ export function useLakeControls() {
     // crack.frag: the walls' resting light and how far it reaches.
     ambient: {value: LAKE_DIVE_CONFIG.ambient, min: 0, max: 0.2, step: 0.005, label: 'Resting light'},
     ambientReach: {value: LAKE_DIVE_CONFIG.ambientReach, min: 1, max: 15, step: 0.5, label: 'Resting reach'},
+    // crack.frag / crack.vert: the scanned rock on the walls.
+    rockScale: {value: LAKE_DIVE_CONFIG.rockScale, min: 0.04, max: 0.6, step: 0.01, label: 'Rock scale'},
+    rockBump: {value: LAKE_DIVE_CONFIG.rockBump, min: 0, max: 2, step: 0.05, label: 'Rock bump'},
+    rockRelief: {value: LAKE_DIVE_CONFIG.rockRelief, min: 0, max: 0.4, step: 0.01, label: 'Rock relief'},
+    rockOcclusion: {value: LAKE_DIVE_CONFIG.rockOcclusion, min: 0, max: 1, step: 0.05, label: 'Rock occlusion'},
     // lib/scene/lake.ts advanceCraft: the craft's fixed speed and its turn rates.
     speed: {value: LAKE_DIVE_CONFIG.speed, min: 0.5, max: 6, step: 0.1, label: 'Speed'},
     chamberSpeed: {value: LAKE_DIVE_CONFIG.chamberSpeed, min: 0.1, max: 1, step: 0.05, label: 'Chamber speed'},

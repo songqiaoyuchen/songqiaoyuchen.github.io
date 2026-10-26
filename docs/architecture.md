@@ -74,8 +74,9 @@ veil; `found` stops the craft facing the bottle until the player opens it (the l
 veil; `returning` sets the camera
 above the water and flies it back to the overview pose (`getCameraPose(null, isMobile)`, so `CameraRig` finds it
 where it left it). `LakeDive` owns the camera at priority -0.74, after `CameraRig`; the dev orbit controls are off
-while the lake is active. Under water (`isUnderwater`) the terrain cache is neither redrawn nor composited
-(`CachedTerrain` `hidden`), the contours, glyph rain, scene links and hero hide as for a section, `body[data-lake]`
+while the lake is active. Under water (`isUnderwater`) the canvas renders at no more than `maxPixelRatio` (the overview's own comes back
+on surfacing), the bloom pass draws a cheap glow twin of the walls (`crackGlow.frag`, on the bloom layer alone)
+instead of the walls themselves, the terrain cache is neither redrawn nor composited (`CachedTerrain` `hidden`), the contours, glyph rain, scene links and hero hide as for a section, `body[data-lake]`
 steps the nav aside, and Escape or the HUD's Surface control is the way out; a section opening or the route leaving
 ends the dive at once.
 
@@ -84,10 +85,16 @@ set pitch, its bend drifting with inertia under a cap (`yawBend`) and dying away
 chamber (`straightEnd`), so the end wall shows ahead; sampled into stations with a level frame (the slot's gap axis is horizontal); the
 cross-section is a squared-off slot per station (`slotPower`): two rock faces either side of the route, a gap
 apart, standing near-vertical to a floor and a lake bed `halfHeight` away, far beyond the sonar, so above and
-below is void. The faces carry the relief, bedded rock: broad smooth bulges, gentle ledges stepping with the
-rock's height and a little roughness, pinched at set shares of the route, opening into a chamber at the end and
-closed at both ends; the ring's vertices are spread by height along the faces. The
-fragment shader adds a faint grain (level beds and a soft texture) to the normal and the return. The same radius function builds the mesh and answers the queries: `locate` (a point's
+below is void. The faces carry the relief, bedded rock: broad bulges, blocks and spalls a unit or two across with
+their edges sharp (`wallMid`, fading out high up the faces), ledges stepping where the beds change, and a little
+finer roughness, pinched at set shares of the route, opening into a chamber at the end and closed at both ends;
+the ring's vertices run up each face by height, densest about the gap. The finest grain is a scanned cliff
+(`public/textures/lake/cliff-1k.webp`, Poly Haven's CC0 "Cliff Side" packed by `scripts/assets/pack-lake-rock.mjs`:
+normal, height and occlusion in one map), loaded only once the player heads for the water and laid on the walls
+triplanar at two scales: its height map pushes the vertices a little for rock close by (`rockRelief`, well under
+the craft's clearance, fading with distance so far silhouettes stay clean), its normal tilts the shading and its
+crevices hold back the return (`rockOcclusion`). The depth lines flare in each ping front's wake and fade within
+the second: they are the sonar's alone, never in the afterimage or the resting light. The same radius function builds the mesh and answers the queries: `locate` (a point's
 frame and place in the cross-section), `wallDistance` (a ray to the wall, for the readouts) and `advanceCraft`
 (direction from the player alone, free in every direction so a corner is never a trap; fixed speed; the move
 taken in `collisionStep` sub-steps each kept off the walls, the heading easing along a wall it is pressed against

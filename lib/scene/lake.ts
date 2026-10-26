@@ -190,25 +190,44 @@ export class CrackRoute {
     const up = slot * sin;
     const height = station.position.y + up * station.narrow.y;
     const side = cos < 0 ? 1 : 0;
-    // Large bulges, finer roughness, and ledges stepping in and out with the height of the rock.
+    // Large bulges; blocks and spalls a unit or two across, their faces flattened and their edges sharp; finer
+    // roughness; and ledges stepping in and out where the beds change, their edges wandering along the route.
     const n = fbm3(up * 0.12 + 7.1 + side * 13.7, s * c.wallDetail, 2.3);
+    // The blocks fade out high up the faces, where the ring's vertices are too sparse to carry their edges (and
+    // the sonar seldom reaches).
+    const m = fbm3(up * c.wallMidDetail + side * 31.3, s * c.wallMidDetail + 2.2, 4.4);
+    const block = smoothstep(-0.5, 0.5, m) * 2 - 1;
+    const mid = (0.5 * m + 0.5 * block) * (1 - smoothstep(10, 22, Math.abs(up)));
     const fine = fbm3(up * 0.3 + 1.7 + side * 5.1, s * 0.2 + 4.0, 9.1);
     const band = height / c.terraceSpacing + 0.3 * fbm3(up * 0.05 + 2.0 + side * 3.3, s * 0.05, 6.0);
-    const ledge = (smoothstep(0.2, 0.8, band - Math.floor(band)) - 0.5) * 2;
+    // The ledges' steps soften high up the faces, for the same reason the blocks fade there.
+    const soft = 0.15 + 0.3 * smoothstep(8, 20, Math.abs(up));
+    const ledge = (smoothstep(0.5 - soft, 0.5 + soft, band - Math.floor(band)) - 0.5) * 2;
     // The relief belongs to the faces (the floor and the lake bed far off keep the slot's shape), and never takes
     // more than a share of the gap, so pinches stay passable.
-    const relief = (c.wallNoise * n + c.wallRoughness * fine + c.terrace * ledge) * Math.abs(cos);
+    const relief = (c.wallNoise * n + c.wallMid * mid + c.wallRoughness * fine + c.terrace * ledge)
+      * Math.abs(cos);
     const shape = Math.max(1 + relief, 0.72);
     // The trench closes at the start (under the lake) and at the end: the chamber's far wall, nearly flat.
     const cap = smoothstep(0, 3, s) * smoothstep(this.length, this.length - 1.2, s);
     return Math.max(slot * shape * cap, 0.05);
   }
 
-  /** The ring's vertex angles: spread by height along the faces rather than by angle, so the faces are dense. */
+  /**
+   * The ring's vertex angles: by height up the faces, densest about the gap (the rock the sonar shows, where the
+   * relief must be carried) and sparser toward the void above and below. Each half of the ring is one face, from
+   * its foot to its top; the angle runs on with j so the faces join at the top and the floor.
+   */
   private ringAngle(j: number) {
     const [a, b] = this.axes(this.length / 2);
-    const phi = j / this.config.ringSegments * TAU;
-    return Math.atan2(b * Math.sin(phi), a * Math.cos(phi));
+    const half = this.config.ringSegments / 2;
+    const left = j >= half;
+    const t = (left ? 1 - 2 * (j - half) / half : 2 * j / half - 1); // -1 at the foot, 1 at the top
+    const height = b * (Math.exp(3 * Math.abs(t)) - 1) / (Math.exp(3) - 1);
+    // The face's angle, carried to straight up (or down) at its end so the two faces meet.
+    const face = Math.atan2(height, a) + (Math.PI / 2 - Math.atan2(height, a)) * smoothstep(0.85, 1, Math.abs(t));
+    const theta = Math.sign(t || 1) * face;
+    return left ? Math.PI - theta : theta;
   }
 
   /**
@@ -264,9 +283,9 @@ export class CrackRoute {
     return out;
   }
 
-  /** Distance from a point along a direction to the wall, up to `max`. */
+  /** Distance from a point along a direction to the wall, up to `max`: a coarse march, then a bisection. */
   wallDistance(point: Vector3, direction: Vector3, max: number, locus: Locus, hint = -1) {
-    const step = 0.35;
+    const step = 0.8;
     let inside = 0;
     let index = hint;
     for (let t = step; t <= max; t += step) {
@@ -276,7 +295,7 @@ export class CrackRoute {
       if (locus.rho > locus.radius) {
         // Bisect the last step.
         let outside = t;
-        for (let i = 0; i < 6; i++) {
+        for (let i = 0; i < 7; i++) {
           const mid = (inside + outside) / 2;
           MARCH.copy(point).addScaledVector(direction, mid);
           this.locate(MARCH, locus, index);

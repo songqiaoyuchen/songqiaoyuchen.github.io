@@ -25,6 +25,7 @@ import type {AboutFraming} from '@/lib/scene/aboutPath';
 import {isUnderwater, type LakeInput, type LakeState, type LakeTelemetry} from '@/components/lake/lakeState';
 import {AboutMap} from './about/AboutMap';
 import {LakeDive} from './lake/LakeDive';
+import {LakePixelRatio} from './lake/LakePixelRatio';
 import {LakeSurface} from './lake/LakeSurface';
 import {AboutPath} from './about/AboutPath';
 import {CaptureExport} from './backdrop/CaptureExport';
@@ -495,6 +496,7 @@ export const SceneCanvas = memo(function SceneCanvas({
           {assemblyPhase >= 4 && bloomBaseReady ? composer : null}
           {capturing && assemblyPhase >= 4 && bloomBaseReady ? <CaptureExport /> : null}
           <StillFrameGate enabled={assemblyPhase >= 6 && !capturing} composerRef={composerRef} />
+          <LakePixelRatio underwater={underwater} composerRef={composerRef} />
         </Canvas>
       </SceneErrorBoundary>
     </div>

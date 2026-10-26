@@ -35,7 +35,7 @@ export const LAKE_DIVE_CONFIG = {
   // HUD's numbers.
   seed: 7,
   length: 150, // arc length of the route, units
-  stationSpacing: 0.4, // spacing of the sampled frames along the route
+  stationSpacing: 0.25, // spacing of the sampled frames along the route (the walls' relief is sampled as finely)
   controlStep: 12, // spacing of the route's control points
   pitch: 0.55, // radians below horizontal the route descends at, on average (gentle: the faces stand up)
   pitchWander: 0.12,
@@ -48,17 +48,28 @@ export const LAKE_DIVE_CONFIG = {
   halfWidth: [2.4, 3.8] as readonly [number, number],
   halfHeight: [34, 46] as readonly [number, number],
   slotPower: 4,
-  // The walls are bedded rock: broad smooth bulges, gentle ledges where the beds step, and only a little
-  // roughness; the grain lives in the shader's shading, not the silhouette.
+  // The walls are bedded rock: broad bulges, then blocks and spalls a unit or two across, ledges where the beds
+  // step, and a little finer roughness; all of it in the mesh, so the craft's clearance and the readouts see the
+  // same rock the sonar does. The finest grain is the scanned rock below.
   wallNoise: 0.26, // how much the wall surface departs from the ellipse, at the large scale
   wallDetail: 0.07, // noise frequency along the route
+  wallMid: 0.17, // the blocks and spalls, as a share of the radius
+  wallMidDetail: 0.45, // their frequency, per unit
   wallRoughness: 0.025, // the finer bulges
-  terraceSpacing: 4.2, // units of height between the walls' ledges
-  terrace: 0.05, // how far the ledges step in and out, as a share of the radius
+  terraceSpacing: 3.6, // units of height between the walls' ledges
+  terrace: 0.09, // how far the ledges step in and out, as a share of the radius
+  // The scanned rock laid on the walls (public/textures/lake, packed by scripts/lake/pack-rock.mjs): a normal map
+  // tilting the shading, a height map pushing the vertices, and its occlusion holding back the return in crevices.
+  rockTexture: '/textures/lake/cliff-1k.webp',
+  rockScale: 0.16, // repeats of the map per unit: a block in the scan is about a unit on the wall
+  rockDetailScale: 0.55, // the finer repeat, for rock close by
+  rockBump: 1.4, // how much the map's normal tilts the wall's
+  rockRelief: 0.16, // units the height map pushes the vertices, at most (well under `margin`)
+  rockOcclusion: 0.7, // how much the map's crevices hold back the return
   // Pinches: narrow passages at these shares of the route, their gap scale and spread in units.
   pinches: [[0.3, 0.72, 9], [0.62, 0.75, 7], [0.82, 0.68, 8]] as readonly (readonly [number, number, number])[],
   chamber: 14, // units of widened chamber at the end, where the bottle rests
-  ringSegments: 128, // vertices around each ring, spread along the faces by height
+  ringSegments: 320, // vertices around each ring: dense up the faces near the gap, sparse toward the void
   metresPerUnit: 10,
 
   // The craft: fixed speed, direction by the player alone (nothing steers for them); slower in the chamber, so
@@ -98,4 +109,7 @@ export const LAKE_DIVE_CONFIG = {
   ambient: 0.025,
   ambientReach: 3.5,
   readoutRange: 40, // units the readouts measure to a wall
+  // Under water the canvas renders at no more than this pixel ratio (the overview's own is restored on surfacing):
+  // the dive is dark and soft, and its walls are drawn twice (once for the bloom), so pixels are its main cost.
+  maxPixelRatio: 1.25,
 } as const;

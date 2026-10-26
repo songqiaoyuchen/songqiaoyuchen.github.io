@@ -7,8 +7,8 @@
 import {useFrame, useThree} from '@react-three/fiber';
 import {useEffect, useMemo, useRef, type MutableRefObject} from 'react';
 import {
-  BufferAttribute, BufferGeometry, Color, CylinderGeometry, Euler, MathUtils, Quaternion, SphereGeometry, Vector3,
-  Vector4, type Group, type Mesh, type ShaderMaterial,
+  BufferAttribute, BufferGeometry, Color, CylinderGeometry, Euler, MathUtils, NoColorSpace, Quaternion, RepeatWrapping,
+  SphereGeometry, TextureLoader, Vector3, Vector4, type Group, type Mesh, type ShaderMaterial, type Texture,
 } from 'three';
 import {createLakeTelemetry, isUnderwater, type LakeInput, type LakeState, type LakeTelemetry}
   from '@/components/lake/lakeState';
@@ -21,7 +21,9 @@ import {
   advanceCraft, createCraft, createLocus, CrackRoute, headingDirection, type CraftState,
 } from '@/lib/scene/lake';
 import fragmentShader from '@/shaders/lake/crack.frag';
+import glowFragmentShader from '@/shaders/lake/crackGlow.frag';
 import vertexShader from '@/shaders/lake/crack.vert';
+import {BLOOM_LAYER} from '../effects/IsolatedBloom';
 
 const UP = new Vector3(0, 1, 0);
 const CFG = LAKE_DIVE_CONFIG;
@@ -129,6 +131,41 @@ export function LakeDive({
   }, [bottleGeometry, geometry]);
 
 
+  // The scanned rock on the walls, loaded once the player heads for the water (the overview never needs it); the
+  // walls stand flat until it arrives.
+  const rockUniforms = useMemo(() => ({
+    uRock: {value: null as Texture | null},
+    uRockReady: {value: 0},
+    uRockScale: {value: CFG.rockScale as number},
+    uRockDetailScale: {value: CFG.rockDetailScale as number},
+    uRockBump: {value: CFG.rockBump as number},
+    uRockOcclusion: {value: CFG.rockOcclusion as number},
+    uRockRelief: {value: CFG.rockRelief as number},
+  }), []);
+  const rockWanted = state !== 'idle';
+  useEffect(() => {
+    if (!rockWanted || rockUniforms.uRock.value) return;
+    let disposed = false;
+    const loader = new TextureLoader();
+    loader.load(CFG.rockTexture, (texture) => {
+      if (disposed) {
+        texture.dispose();
+        return;
+      }
+      texture.colorSpace = NoColorSpace;
+      texture.wrapS = texture.wrapT = RepeatWrapping;
+      texture.anisotropy = 2;
+      rockUniforms.uRock.value = texture;
+      rockUniforms.uRockReady.value = 1;
+    });
+    return () => {
+      disposed = true;
+    };
+  }, [rockUniforms, rockWanted]);
+  useEffect(() => () => {
+    rockUniforms.uRock.value?.dispose();
+  }, [rockUniforms]);
+
   // Shared by the walls and the bottle: the pings and the clock.
   const pingUniforms = useMemo(() => ({
     uTime: {value: 0},
@@ -141,13 +178,13 @@ export function LakeDive({
   }), []);
   const wallUniforms = useMemo(() => ({
     ...pingUniforms,
+    ...rockUniforms,
     uDepthLines: {value: CFG.depthLines},
     uAmbient: {value: CFG.ambient},
     uAmbientReach: {value: CFG.ambientReach},
-    uRockBump: {value: 0.22},
     uGold: {value: new Color(LAKE_CONFIG.gold)},
     uCyan: {value: new Color(LAKE_CONFIG.cyan)},
-  }), [pingUniforms]);
+  }), [pingUniforms, rockUniforms]);
   const bottleUniforms = useMemo(() => ({
     ...pingUniforms,
     uFound: {value: 0},
@@ -156,6 +193,20 @@ export function LakeDive({
     uCyan: {value: new Color(LAKE_CONFIG.cyan)},
   }), [pingUniforms]);
   const paperUniforms = useMemo(() => ({...bottleUniforms, uPaper: {value: 1}}), [bottleUniforms]);
+  // The walls' glow twin for the bloom pass: the same geometry and ping uniforms, a far cheaper shader, on the
+  // bloom layer alone (the main pass never draws it, the bloom pass draws it instead of the walls).
+  const glowUniforms = useMemo(() => ({
+    ...pingUniforms,
+    ...rockUniforms,
+    uDepthLines: {value: CFG.depthLines},
+    uGold: {value: new Color(LAKE_CONFIG.gold)},
+    uCyan: {value: new Color(LAKE_CONFIG.cyan)},
+  }), [pingUniforms, rockUniforms]);
+  const glowRef = useRef<Mesh>(null);
+  useEffect(() => {
+    glowRef.current?.layers.set(BLOOM_LAYER);
+  }, []);
+
 
   // The craft and the camera's flights.
   const craft = useRef<CraftState | null>(null);
@@ -216,6 +267,11 @@ export function LakeDive({
     uniforms.uPingRange.value = settings.pingRange;
     uniforms.uAmbient.value = settings.ambient;
     uniforms.uAmbientReach.value = settings.ambientReach;
+    // The rock uniforms are the same objects in the glow twin's material, so one write reaches both.
+    uniforms.uRockScale.value = settings.rockScale;
+    uniforms.uRockBump.value = settings.rockBump;
+    uniforms.uRockRelief.value = settings.rockRelief;
+    uniforms.uRockOcclusion.value = settings.rockOcclusion;
 
     if (state !== previousState.current) {
       const from = previousState.current;
@@ -410,13 +466,23 @@ export function LakeDive({
 
   return (
     <group ref={groupRef} visible={false}>
-      <mesh ref={onCrackMesh} geometry={geometry} frustumCulled={false}>
+      <mesh geometry={geometry} frustumCulled={false}>
         <shaderMaterial
           ref={wallsMaterial}
           vertexShader={vertexShader}
           fragmentShader={fragmentShader}
           uniforms={wallUniforms}
         />
+      </mesh>
+      <mesh
+        ref={(mesh) => {
+          glowRef.current = mesh;
+          onCrackMesh(mesh);
+        }}
+        geometry={geometry}
+        frustumCulled={false}
+      >
+        <shaderMaterial vertexShader={vertexShader} fragmentShader={glowFragmentShader} uniforms={glowUniforms} />
       </mesh>
       <group ref={bottleRef}>
         <mesh ref={onBottleMesh} geometry={bottleGeometry.body}>

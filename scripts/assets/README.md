@@ -10,4 +10,5 @@
 | `generate_glyph_rain_atlas.py` | Builds the bitmap glyph atlas for the glyph rain (`decorative-atlas.png`) |
 | `capture-pencil-source.mjs` | Captures the bare terrain at the Art pose as a source for backdrop paintings |
 | `register-illustration.mjs` | Measures (and with `--apply` corrects) a backdrop painting's drift from that capture |
+| `pack-lake-rock.mjs` | Packs the lake dive's scanned rock (Poly Haven "Cliff Side", CC0: normal x, y; height; occlusion) into `public/textures/lake/cliff-1k.webp` from the set's 2K PNG maps |
 | `build-places-geo.mjs` | `coast <geojson…>` bakes coastlines and lakes to `public/places/coast.bin`; `elevation <image>` resizes a grayscale topography image to `public/places/elevation.png`; `region <lon> <lat>` fetches Terrarium tiles (AWS Open Data, attribution required) into `public/places/region.png` + `region.json`; `track <id> <gpx…>` simplifies recordings to track JSON |

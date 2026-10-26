@@ -85,8 +85,11 @@ Status: direction and prototype decisions accepted (2026-10-25); first prototype
   black and the HUD fades in; the reverse on surfacing.
 - Reduced motion: no sway or inertia, pings appear instantly rather than travelling. The game
   stays keyboard-operable. No skip to the letter; the letter is the reward.
-- Assets: there are none. Terrain, water, HUD and the bottle are generated procedurally or
-  built from scratch; the sonar's sound is synthesised with Web Audio.
+- Assets: one, the walls' scanned rock (Poly Haven's CC0 "Cliff Side", packed to a 0.6 MB map
+  by `scripts/assets/pack-lake-rock.mjs`, 2026-10-26: the procedural faces read as smooth
+  walls; the mesh now carries blocks and ledges and the scan the fine grain). Everything else
+  is generated procedurally or built from scratch; the sonar's sound is synthesised with Web
+  Audio (a recorded ping can replace it, `soundSrc`).
 - Tuning: Leva's Lake folder (cooldown, sonar, resting light, feel, found range, sound), saved
   to `LAKE_DIVE_CONFIG` by Save Config.
 - Places stays visible; the earlier idea of gating Places behind the game (2026-10-16) was
