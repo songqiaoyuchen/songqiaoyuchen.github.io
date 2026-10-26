@@ -251,9 +251,10 @@ their image paths); viewport changes crop through the live camera projection.
 `CachedTerrain` composites all three through one descending elevation-contour wipe,
 reconstructing the terrain's world height from cached depth; open sky blends separately.
 The same mask replaces the outgoing backdrop with the incoming one, preserving
-both through the wipe. Rapid selections leave the active wipe at its normal
-speed, then start only the latest requested backdrop; intermediate requests are
-discarded (`lib/art/backdropWipe.ts`). Reduced motion skips backdrop animations.
+both through the wipe. A wipe under way never swaps a visible side: a selection of the outgoing backdrop runs
+the front back up in place, and one of a third backdrop resolves the wipe the short way within
+`catchUpSeconds` before its own starts, so the latest selection follows within that time rather than after the
+whole wipe (`lib/art/backdropWipe.ts`). Reduced motion skips backdrop animations.
 
 Pointer movement over Art drives full-screen cursor treatments (`useArtCursor`,
 tuned in `config/art/cursor.ts`; Leva's Art Cursor folder tunes and saves

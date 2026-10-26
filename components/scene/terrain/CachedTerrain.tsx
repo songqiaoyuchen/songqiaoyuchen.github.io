@@ -152,7 +152,7 @@ export function CachedTerrain({
       && (capture.source !== 1 || oil) && (capture.source !== 2 || pencil) ? 1 : 0;
     if (backdrop && registered) {
       wipe.current = advanceBackdropWipe(wipe.current, requestedBackdrop(backdrop, oil, pencil, wipe.current.to),
-        delta, reducedMotion, artTransitionSettings.revealSeconds);
+        delta, reducedMotion, artTransitionSettings.revealSeconds, BACKDROP_CONFIG.catchUpSeconds);
       values.uArtOpacity.value = 1;
       if (reducedMotion) frameState.setArtFog(0);
       else {
