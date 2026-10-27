@@ -104,7 +104,8 @@ Status: direction and prototype decisions accepted (2026-10-25); first prototype
       minute of descent on the current alone; letter copy is a placeholder in `data/lake.ts`).
 - [ ] Play it to decide journey length, ping cadence and how little baseline visibility works.
 - [ ] Verify collisions are forgiving and the off-course current reads as proportionate.
-- [ ] Develop the letter and its reveal with representative content.
+- [ ] Develop the letter and its reveal with representative content (2026-10-27: paper sheets read off a stack,
+      authored pages in `data/lake.ts` with photo slots; waiting on the real copy and photos).
 - [ ] Verify keyboard/touch operation and reduced-motion behaviour.
 
 ## Reference

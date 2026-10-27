@@ -14,7 +14,6 @@ uniform float uHover; // 0..1
 uniform float uDive; // 0..1, the entry flight
 uniform float uVisibility;
 uniform vec2 uRadii; // the disc's half axes, world units (vLocal is in world units)
-uniform float uShoreNoise;
 uniform sampler2D uShore; // the water's depth over the contour field about the lake (the level less the ground)
 uniform vec2 uShoreScale; // world (x, z) to the field's uv: xz * scale + offset
 uniform vec2 uShoreOffset;
@@ -56,15 +55,9 @@ void main() {
   }
   // The shore: where the ground stands above the water there is none (the disc only has to reach past it), read
   // from the contour field the drawn lines are marched from, so the cut is the drawn contour at the lake's
-  // level; the disc's own edge, moved in and out by noise, is a last cut beyond that.
+  // level and nothing else: the disc's own edge lies off the map, hidden by the fade.
   float shore = texture2D(uShore, vWorld * uShoreScale + uShoreOffset).r;
   if (shore < 0.0) discard;
-  float angle = atan(vLocal.y, vLocal.x);
-  float wobble = noise(vec2(angle * 1.4 + 3.0, 1.7)) * 2.0 - 1.0;
-  wobble += 0.5 * (noise(vec2(angle * 3.1 + 9.0, 4.2)) * 2.0 - 1.0);
-  float edge = 1.0 + uShoreNoise * wobble;
-  float cut = vRim / edge; // 1 at the disc's edge
-  if (cut > 1.0) discard;
   // The shore is drawn by the terrain's own contour at the lake's level, so the water adds no line of its own
   // (a second line a hair inside it would show double); on hover a soft gold glow rises under that line, by the
   // shore's rate across the screen so a flat floor gets the same band as a steep bank.
@@ -75,7 +68,7 @@ void main() {
   vec2 p = vLocal * 1.6;
   float drift = noise(p + vec2(uTime * 0.05, uTime * 0.035)) * 0.5 + noise(p * 2.3 - uTime * 0.04) * 0.25;
   float rings = 0.5 + 0.5 * sin(length(vLocal / uRadii) * 22.0 - uTime * 2.2);
-  rings = pow(rings, 6.0) * (1.0 - smoothstep(0.7, 1.0, cut));
+  rings = pow(rings, 6.0) * (1.0 - smoothstep(0.7, 1.0, vRim));
   // Linear light: small numbers read far brighter on screen than they look here.
   vec3 color = uWater + uCyan * drift * 0.012;
   color += uCyan * uHover * (0.012 + rings * 0.05 + drift * 0.015);

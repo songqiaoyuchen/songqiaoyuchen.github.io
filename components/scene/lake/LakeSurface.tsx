@@ -14,7 +14,7 @@ import {
 } from 'three';
 import type {TerrainControlValues} from '@/components/scene/controls/useSceneControls';
 import type {LakeState} from '@/components/lake/lakeState';
-import {SCENE_LAYOUT_CONFIG, SCENE_LINK_EFFECT_CONFIG} from '@/config/scene';
+import {CONTOUR_CONFIG, SCENE_LAYOUT_CONFIG, SCENE_LINK_EFFECT_CONFIG} from '@/config/scene';
 import {LAKE_CONFIG, LAKE_FLOW, lakePlacement} from '@/config/scene/lake';
 import {useReducedMotion} from '@/hooks/useReducedMotion';
 import {advanceTextVisibility} from '@/lib/scene/textTransition';
@@ -28,8 +28,10 @@ const RINGS = 40;
 const SEGMENTS = 96;
 const FADE_RATE = 4;
 const HOVER_RATE = 6;
-// Ground in front of the water hides it only from this far above the water's level: a hill, not the shore's rise.
-const OCCLUDER_RISE = 0.3;
+// Ground in front of the water hides it only from this far above the water's level: a hill between the camera
+// and the lake, never a bank's own rise, however steep (the water fills to the shore line under a lip, as the
+// line itself shows there).
+const OCCLUDER_RISE = 2.5;
 // The water draws before the contour lines (its render order under theirs), so the terrain's contour at the
 // lake's level draws whole over it as the shore; the lines under the water are left out by the contours
 // themselves (Contours' lake prop), since their depth bias would beat a depth test against the water.
@@ -116,8 +118,8 @@ export function LakeSurface({
     return texture;
   }, [field, level]);
   useEffect(() => () => shoreTexture.dispose(), [shoreTexture]);
-  // A disc of RINGS × SEGMENTS at the water level; each vertex carries its share of the radius (rim), for the
-  // disc's own noise-moved cut.
+  // A disc of RINGS × SEGMENTS at the water level; each vertex carries its share of the radius (rim), which
+  // fades the hover rings toward the disc's edge.
   const geometry = useMemo(() => {
     // The disc lies rotated a quarter turn about x, so its local y runs along world -z; it is centred on the
     // disc's own centre, while the group (and the controls) sit at the lake's heart.
@@ -179,13 +181,13 @@ export function LakeSurface({
     uDive: {value: 0},
     uVisibility: {value: 0},
     uRadii: {value: new Vector2(rx, rz)},
-    uShoreNoise: {value: LAKE_CONFIG.shoreNoise},
     uShore: {value: shoreTexture},
     uShoreScale: {value: new Vector2(...field.uvScale)},
     uShoreOffset: {value: new Vector2(...field.uvOffset)},
     uClipToWorld: {value: new Matrix4()},
     uLevel: {value: level},
     uOccluderRise: {value: OCCLUDER_RISE},
+    uDepthBias: {value: CONTOUR_CONFIG.depthBias},
     uWater: {value: new Color(LAKE_CONFIG.water)},
     uGold: {value: new Color(LAKE_CONFIG.gold)},
     uCyan: {value: new Color(LAKE_CONFIG.cyan)},

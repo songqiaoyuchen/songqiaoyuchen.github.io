@@ -11,3 +11,4 @@ Site content and copy. Edit these to change what the site says; components only 
 | `blog.ts` | Blog drawer intro and empty state (articles are MDX in `content/`) |
 | `artworks.ts` | Artwork catalogue, medium sections and the featured carousel order |
 | `places.ts` | Locations: places, dates, recorded tracks, photos and article slugs (placeholders until real data) |
+| `lake.ts` | The letter in the bottle: authored pages of text and photos (photos imported from `public/images/letter/`) |

@@ -10,15 +10,14 @@ export const LAKE_CONFIG = {
   // one of the drawn contour levels (CONTOUR_CONFIG, jittered; the bake's own arithmetic gives them), so a
   // contour line runs along the shore. `center` is the lake's heart in the overview: the dive begins under it
   // and its controls sit about it. The basin runs open toward the camera and westward to the map's edge, so the
-  // water disc covers the whole of it (`disc`), the basin's flanks cutting the water's sides; the disc's own
-  // noise-moved edge bounds the water only where the ground stays below the level beyond it, off the map.
+  // water disc covers the whole of it (`disc`) with room to spare, the basin's flanks cutting the water's sides;
+  // the disc's own edge lies off the map, where the terrain's edge fade has already hidden the water.
   center: [4.3, 1.4] as readonly [number, number],
   level: 7.65, // contour 6, a major line
   disc: {
     center: [-1, -3] as readonly [number, number],
     radii: [11, 9] as readonly [number, number],
   },
-  shoreNoise: 0.12,
   // Where the HTML controls (the dive button, the letter) sit on the water, from its centre: phones frame the
   // plain from the side (CAMERA_CONFIG.mobileOverviewPosition), with the scene text standing in the water, so
   // there the controls sit at the lake's west end, clear of the columns. The water itself takes a click anywhere.

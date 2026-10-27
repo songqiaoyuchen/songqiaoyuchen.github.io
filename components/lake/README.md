@@ -8,5 +8,5 @@ the canvas, where `components/scene/lake` draws the lake and the crack.
 | `lakeState.ts` | The flow's stages, the player's input and the dive's telemetry (plain mutable objects crossing between the HUD and the canvas every frame), and what the browser remembers of a finished dive |
 | `useLakeFlow.ts` | The stages and their timers (`LAKE_FLOW`): the flight down, the dive, the bottle and the letter, the flight back; ends at once when a section opens or the route leaves |
 | `LakeHud.tsx` | The dive screen: wall readouts counting up with the ping's front, depth, speed, the sonar's cooldown bar, the scanning label, a hint and the Surface control; owns the input (keys, drag to steer, tap or space to ping, Escape to surface) |
-| `LakeLetter.tsx` | The letter in the bottle, a plain HTML dialog; closing it in the crack surfaces |
+| `LakeLetter.tsx` | The letter in the bottle, a plain HTML dialog of paper sheets read off a stack (arrows, swipe, tap); closing it in the crack surfaces |
 | `Lake.css` | The veil, the dive screen, the letter, the lake's HTML controls, and the nav stepping aside under water |
