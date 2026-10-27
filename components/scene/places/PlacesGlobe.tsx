@@ -143,6 +143,17 @@ function poseCamera(target: PerspectiveCamera, pose: CameraPose, like: Perspecti
   target.updateProjectionMatrix();
 }
 
+/** A camera pose as vectors (the ride's rest lens is blended between two of them). */
+type RestPose = {position: Vector3; lookAt: Vector3};
+
+/**
+ * How far the ride's end has moved from the lens it was bound for when the destination changed (at `from` of the
+ * morph) to the new one, reached exactly on arrival.
+ */
+function rideBlend(morph: number, from: number) {
+  return from >= 1 ? 1 : MathUtils.smoothstep(morph, from, 1);
+}
+
 type PlacesGlobeProps = {
   visible: boolean;
   /** False while the development orbit camera owns the pointer; an open location parks the pointer too. */
@@ -353,13 +364,24 @@ export function PlacesGlobe({
   }, [region]);
   // The patch frame last copied into the shell's uniforms.
   const writtenPatch = useRef<typeof patchLocal | null>(null);
-  // Scratch for placing the globe along the zoom-out; restCamera is the lens the globe was last seen resting from.
+  // Scratch for placing the globe along the zoom-out; restCamera is the lens the globe was last seen resting from, or
+  // is bound for. A destination changed on the way in (a nav click back to Places mid-way out of a location, a
+  // location opened while the globe is still forming) would move that lens, and with it the ride's end and the
+  // globe's own turn, in one frame, now or on arrival: instead the lens glides from the one the ride set off for
+  // (restFrom) to the new one (restTo) over the rest of the way (rideBlend from blendFrom), and the own turn with it.
   const morphScratch = useRef({
     restCamera: new PerspectiveCamera(), restKnown: false, places: new Quaternion(), lens: new Quaternion(),
     point: new Vector3(), anchorEnd: new Vector3(), pivot: new Vector3(), normal: new Vector3(),
     start: new Vector3(), startLocal: new Vector3(), endLocal: new Vector3(), ray: new Vector3(),
     // The view the globe's own turn is composed in while on the ride: the resting lens's, not the moving camera's.
     rideView: createGlobeView(),
+    // The selection the rest lens stands for (-1 over all locations), the two lenses it is blended between and where
+    // on the morph the blend began (1: no blend).
+    restFor: -1, restFrom: {position: new Vector3(), lookAt: new Vector3()} as RestPose,
+    restTo: {position: new Vector3(), lookAt: new Vector3()} as RestPose, blendFrom: 1,
+    // The own turn blending with the lens, from the angles it held to the new destination's framing.
+    turning: false, turnFrom: {yaw: 0, pitch: 0} as GlobeAngles, turnTo: {yaw: 0, pitch: 0} as GlobeAngles,
+    destCamera: new PerspectiveCamera(), destView: createGlobeView(),
   });
   // Per-frame scratch: the aim's marker offset, the globe as drawn, the turn's goal, the ride's planet and the
   // patch metrics published, so the frame loop allocates nothing.
@@ -826,6 +848,13 @@ export function PlacesGlobe({
           aim: aim.current,
           reducedMotion,
         });
+      } else if (riding && morphScratch.current.turning) {
+        // The destination changed on the way in: the own turn glides to the new destination's framing with the lens.
+        const {turnFrom, turnTo, blendFrom} = morphScratch.current;
+        const blend = rideBlend(morph, blendFrom);
+        state.current.yaw = turnFrom.yaw + wrapAngle(turnTo.yaw - turnFrom.yaw) * blend;
+        state.current.pitch = MathUtils.lerp(turnFrom.pitch, turnTo.pitch, blend);
+        if (blend >= 1) morphScratch.current.turning = false;
       }
       // The own turn is yaw about the axis then pitch about the camera's right: composed in the live view it
       // would turn with the camera along the ride, so the ride keeps the view of the lens the globe rests under.
@@ -863,6 +892,14 @@ export function PlacesGlobe({
       scratch.restCamera.copy(camera);
       scratch.restCamera.updateMatrixWorld(true);
       scratch.restKnown = true;
+      scratch.restFor = selected;
+      scratch.restFrom.position.copy(camera.position);
+      scratch.restFrom.lookAt.set(0, 0, -1).applyQuaternion(camera.quaternion)
+        .multiplyScalar(camera.position.distanceTo(center)).add(camera.position);
+      scratch.restTo.position.copy(scratch.restFrom.position);
+      scratch.restTo.lookAt.copy(scratch.restFrom.lookAt);
+      scratch.blendFrom = 1;
+      scratch.turning = false;
       viewFromCamera(center, camera.position, scratch.rideView);
       metrics.radius = radius;
       metrics.scale = 0;
@@ -894,6 +931,14 @@ export function PlacesGlobe({
         const destination = selected >= 0 ? getPlacesLocationPose(isMobile) : getCameraPose('places', isMobile);
         poseCamera(scratch.restCamera, destination, camera);
         viewFromCamera(center, scratch.restCamera.position, scratch.rideView);
+        scratch.restKnown = true;
+        scratch.restFor = selected;
+        scratch.restFrom.position.fromArray(destination.position);
+        scratch.restFrom.lookAt.fromArray(destination.lookAt);
+        scratch.restTo.position.copy(scratch.restFrom.position);
+        scratch.restTo.lookAt.copy(scratch.restFrom.lookAt);
+        scratch.blendFrom = 1;
+        scratch.turning = false;
         if (selected >= 0) {
           // Arriving at a location: the globe's own turn is the location as that camera will see it, from the first
           // frame of the ride (hidden under the flat planet until the globe forms), so no turn is needed on arrival.
@@ -901,6 +946,49 @@ export function PlacesGlobe({
           const goal = anglesToward(anchors[selected], restAim, scratch.rideView, maxPitch);
           Object.assign(state.current, {yaw: goal.yaw, pitch: goal.pitch, vYaw: 0, vPitch: 0, target: selected});
         }
+      } else if (visible && selected !== scratch.restFor) {
+        // The destination changed on the way in: the ride's end glides from the lens it was bound for, as far as it
+        // has come, to the new destination's over the rest of the way, and the own turn to the new framing (a
+        // location at its marker point; over all locations, the location the globe holds at the centre, as the
+        // return turn would leave it), so nothing jumps now or on arrival.
+        const blend = rideBlend(morph, scratch.blendFrom);
+        scratch.restFrom.position.lerp(scratch.restTo.position, blend);
+        scratch.restFrom.lookAt.lerp(scratch.restTo.lookAt, blend);
+        const destination = selected >= 0 ? getPlacesLocationPose(isMobile) : getCameraPose('places', isMobile);
+        scratch.restTo.position.fromArray(destination.position);
+        scratch.restTo.lookAt.fromArray(destination.lookAt);
+        scratch.blendFrom = morph;
+        scratch.restFor = selected;
+        const place = selected >= 0 ? selected
+          : state.current.target >= 0 ? state.current.target : state.current.active;
+        if (place >= 0) {
+          poseCamera(scratch.destCamera, destination, camera);
+          viewFromCamera(center, scratch.destCamera.position, scratch.destView);
+          const destAim = aimForOffset(scratch.destCamera, center, radius, offset, turn.aim);
+          anglesToward(anchors[place], destAim, scratch.destView, maxPitch, scratch.turnTo);
+          scratch.turnFrom.yaw = state.current.yaw;
+          scratch.turnFrom.pitch = state.current.pitch;
+          scratch.turning = true;
+          Object.assign(state.current, {vYaw: 0, vPitch: 0, target: place});
+        }
+      } else if (!visible && scratch.blendFrom < 1) {
+        // Leaving again mid-glide: the end stays where the glide has brought it.
+        const blend = rideBlend(morph, scratch.blendFrom);
+        scratch.restFrom.position.lerp(scratch.restTo.position, blend);
+        scratch.restFrom.lookAt.lerp(scratch.restTo.lookAt, blend);
+        scratch.restTo.position.copy(scratch.restFrom.position);
+        scratch.restTo.lookAt.copy(scratch.restFrom.lookAt);
+        scratch.blendFrom = 1;
+        scratch.turning = false;
+      }
+      if (scratch.blendFrom < 1) {
+        // The rest lens between the two, this frame.
+        const blend = rideBlend(morph, scratch.blendFrom);
+        scratch.restCamera.position.lerpVectors(scratch.restFrom.position, scratch.restTo.position, blend);
+        scratch.point.lerpVectors(scratch.restFrom.lookAt, scratch.restTo.lookAt, blend);
+        scratch.restCamera.lookAt(scratch.point);
+        scratch.restCamera.updateMatrixWorld(true);
+        viewFromCamera(center, scratch.restCamera.position, scratch.rideView);
       }
       scratch.anchorEnd.copy(center).addScaledVector(
         scratch.point.copy(patchLocal.anchor).applyQuaternion(scratch.places), radius * (1 + relief));
