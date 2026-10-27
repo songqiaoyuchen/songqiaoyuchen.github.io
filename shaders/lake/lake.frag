@@ -1,21 +1,32 @@
-// The lake surface: dark still water in the terrain's language, a gold shoreline where the ground meets it and a
-// faint drawn rim where the water is cut, brightening with a cyan sheen and slow rings on hover, and stilling to
-// black as the dive begins. The terrain cache's depth hides it where the ground stands in front.
+// The lake surface: dark still water in the terrain's language under the terrain's own contour at its level,
+// brightening with a cyan sheen, slow rings and a soft gold glow along the shore on hover, and stilling to black
+// as the dive begins. The terrain cache's depth hides it where the ground stands in front. The water is
+// hidden at the map's boundary as the terrain and its lines are: the scene fog, and the terrain's edge fade to
+// alpha by plan distance from the plane's centre (TERRAIN_MESH_CONFIG.edgeFade, live from the terrain settings).
+#include <fog_pars_fragment>
 uniform sampler2D uTerrainDepth;
 uniform float uUseTerrainDepth;
+uniform mat4 uClipToWorld; // the camera's, as the terrain cache's depth was rendered
+uniform float uLevel; // the water's world height
+uniform float uOccluderRise; // units above the water a ground point in front must stand to hide the water
 uniform float uTime;
 uniform float uHover; // 0..1
 uniform float uDive; // 0..1, the entry flight
 uniform float uVisibility;
 uniform vec2 uRadii; // the disc's half axes, world units (vLocal is in world units)
 uniform float uShoreNoise;
+uniform sampler2D uShore; // the water's depth over the contour field about the lake (the level less the ground)
+uniform vec2 uShoreScale; // world (x, z) to the field's uv: xz * scale + offset
+uniform vec2 uShoreOffset;
+uniform vec2 uEdgeFade;
 uniform vec3 uWater;
 uniform vec3 uGold;
 uniform vec3 uCyan;
 
 varying vec2 vScreenUv;
+varying vec2 vWorld;
+varying float vPlan;
 varying vec2 vLocal;
-varying float vShore;
 varying float vRim;
 
 float hash(vec2 p) {
@@ -30,22 +41,35 @@ float noise(vec2 p) {
 }
 
 void main() {
+  float edgeOpacity = 1.0 - smoothstep(uEdgeFade.x, uEdgeFade.y, vPlan);
+  if (edgeOpacity < 0.004) discard;
+  // Ground in front of the water hides it only where it stands well above the water's level (a hill between the
+  // camera and the lake): ground about the level, whether the shore's own rise or the floor just under the
+  // surface, never does, so the shore is where the sampled ground crosses the level whatever the view, and the
+  // water's level never seems to move with the camera.
   if (uUseTerrainDepth > 0.5) {
     float terrainDepth = texture2D(uTerrainDepth, vScreenUv).r;
-    if (gl_FragCoord.z > terrainDepth) discard;
+    if (terrainDepth < gl_FragCoord.z) {
+      vec4 ground = uClipToWorld * vec4(vScreenUv * 2.0 - 1.0, terrainDepth * 2.0 - 1.0, 1.0);
+      if (ground.y / ground.w > uLevel + uOccluderRise) discard;
+    }
   }
-  // The shore the water is cut to: the disc's edge moved in and out by noise around it.
+  // The shore: where the ground stands above the water there is none (the disc only has to reach past it), read
+  // from the contour field the drawn lines are marched from, so the cut is the drawn contour at the lake's
+  // level; the disc's own edge, moved in and out by noise, is a last cut beyond that.
+  float shore = texture2D(uShore, vWorld * uShoreScale + uShoreOffset).r;
+  if (shore < 0.0) discard;
   float angle = atan(vLocal.y, vLocal.x);
   float wobble = noise(vec2(angle * 1.4 + 3.0, 1.7)) * 2.0 - 1.0;
   wobble += 0.5 * (noise(vec2(angle * 3.1 + 9.0, 4.2)) * 2.0 - 1.0);
   float edge = 1.0 + uShoreNoise * wobble;
-  float cut = vRim / edge; // 1 at the cut shore
+  float cut = vRim / edge; // 1 at the disc's edge
   if (cut > 1.0) discard;
-  float toShore = 1.0 - cut;
-  // Ground just under the water also reads as shore (the terrain's own cut lies a little further in).
-  float shallow = 1.0 - smoothstep(0.0, 0.045, vShore);
-  float shoreLine = max(1.0 - smoothstep(0.0, 0.03, toShore), shallow * 0.5);
-  float shoreGlow = max(exp(-toShore * 9.0), shallow * 0.7) * 0.3;
+  // The shore is drawn by the terrain's own contour at the lake's level, so the water adds no line of its own
+  // (a second line a hair inside it would show double); on hover a soft gold glow rises under that line, by the
+  // shore's rate across the screen so a flat floor gets the same band as a steep bank.
+  float shoreRate = max(fwidth(shore), 1e-5);
+  float shoreGlow = (1.0 - smoothstep(0.0, 12.0 * shoreRate, shore)) * uHover;
 
   // The water: dark, with a slow drift of faint ripples that brighten and ring outward on hover.
   vec2 p = vLocal * 1.6;
@@ -55,9 +79,11 @@ void main() {
   // Linear light: small numbers read far brighter on screen than they look here.
   vec3 color = uWater + uCyan * drift * 0.012;
   color += uCyan * uHover * (0.012 + rings * 0.05 + drift * 0.015);
-  color += uGold * (shoreGlow * (0.12 + 0.2 * uHover) + shoreLine * (0.4 + 0.5 * uHover));
+  color += uGold * shoreGlow * 0.08;
   // Stilling to black as the camera sinks in.
   color = mix(color, uWater * 0.6, uDive);
-  float alpha = (0.9 + 0.1 * uHover) * uVisibility;
-  gl_FragColor = vec4(color * uVisibility, alpha);
+  // Opaque water: what lies under it (the ground, the contour lines there) never shows through, but for the
+  // terrain's own edge fade, which thins the ground and its lines there by the same measure.
+  gl_FragColor = vec4(color * uVisibility, uVisibility * edgeOpacity);
+  #include <fog_fragment>
 }

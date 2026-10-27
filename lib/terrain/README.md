@@ -11,6 +11,7 @@ compressed artifacts offline; at runtime a worker downloads them and builds cont
 | `manifest.ts` | Baked manifest types and cached fetch |
 | `bake.ts` | Height grid types; baked data to Three.js textures |
 | `height.ts` | CPU height sampling matching the shader (places scene text) |
+| `contourField.ts` | The contour field (shell dilated, smoothed, averaged down as the lines are marched) over a window: world heights on the march's grid with their texture mapping, and a sampler. What must sit on a drawn contour (the lake's shore) reads it |
 | `shell.ts` | Smoothed "shell" height field |
 | `blur.ts` | Box-blur passes over a height grid |
 | `lightingBake.ts` | Development-only live relight of the two point lights |

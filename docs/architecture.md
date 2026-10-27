@@ -64,10 +64,25 @@ Art hides all scene text from navigation start, independently of backdrop loadin
 
 ## Lake
 
-The lake (`LAKE_CONFIG`, `config/scene/lake.ts`) lies on the open plain below the hero: `LakeSurface` draws a
-water disc at a set level, cut to a noise-moved shore and hidden by the terrain cache's depth where the ground
-rises above it, so the terrain cuts its own shores (`shaders/lake/lake.*`). It glows on hover; an HTML button over
-it (clickable, focusable) is the only way into the dive: no nav entry, no route. The flow (`useLakeFlow`,
+The lake (`LAKE_CONFIG`, `config/scene/lake.ts`) lies over the plain's central basin at the foot of the
+overview, its near half below the frame's bottom edge (`lakePlacement` also gives the entry flight's pose as
+offsets from the centre). The terrain is never reshaped for it: `LakeSurface` draws a water disc at the lake's
+level, which is one of the drawn contour levels, and cuts it per pixel wherever the ground stands above the
+water as the contour field has it (`lib/terrain/contourField.ts`: the shell dilated, smoothed and averaged down
+as the lines are marched from it, over a window about the lake, read in the shader as a texture of the water's
+depth; the terrain itself never rises above that field, so it lies under the water everywhere inside), so the
+shore is the drawn contour line at that level, and the water's level and shore stay put as the camera moves;
+the terrain cache's depth hides it only behind ground standing well in front of it (a hill between), never the
+shore's own gentle rise. The water draws before the contour lines, so the line at its level runs whole over it
+as the shore, and the lines under it are left out by the contours themselves (`Contours`' `lake` prop: inside
+the disc and under the level) rather than by depth, which their depth bias would beat. The pointer meets the
+water only on water (the mesh's raycast reads the same field). The basin runs open toward
+the camera to the map's edge, so the water disc (`LAKE_CONFIG.disc`) reaches that far and is hidden at the
+boundary as the terrain and its lines are (the scene fog and the terrain settings' `edgeFade` to alpha); the
+entry flight keeps the overview's heading and dives straight
+ahead into the water (`diveOffset`), never swinging round to look back across the lake
+(`shaders/lake/lake.*`). It glows on hover; a click on the water, or on the HTML button over
+it (focusable, labelled), is the only way into the dive: no nav entry, no route. The flow (`useLakeFlow`,
 `LAKE_FLOW`) runs on timers the camera's flights read too: `entering` flies the camera from the overview down to
 `divePosition` over the water while the veil (`.lake-veil`, black) darkens; `diving` shows the crack and lifts the
 veil; `found` stops the craft facing the bottle until the player opens it (the letter); `surfacing` darkens the
@@ -82,12 +97,17 @@ ends the dive at once.
 
 The crack (`lib/scene/lake.ts`, node-tested) is a route of control points stepping down from under the lake at a
 set pitch, its bend drifting with inertia under a cap (`yawBend`) and dying away over a straight run into the
-chamber (`straightEnd`), so the end wall shows ahead; sampled into stations with a level frame (the slot's gap axis is horizontal); the
+basin (`straightEnd`), where it levels to `basinPitch`; sampled into stations with a level frame (the slot's gap axis is horizontal); the
 cross-section is a squared-off slot per station (`slotPower`): two rock faces either side of the route, a gap
 apart, standing near-vertical to a floor and a lake bed `halfHeight` away, far beyond the sonar, so above and
 below is void. The faces carry the relief, bedded rock: broad bulges, blocks and spalls a unit or two across with
 their edges sharp (`wallMid`, fading out high up the faces), ledges stepping where the beds change, and a little
-finer roughness, pinched at set shares of the route, opening into a chamber at the end and closed at both ends;
+finer roughness, pinched at set shares of the route, and closed at both ends. Over the last `basin` units the
+faces fall away to `basinHalfWidth` either side, beyond the sonar's reach, and a floor of low dunes and rubble
+comes up to `basinDepth` below the route over the `floorRise` units before the mouth, a gentle slope (the void
+above stays): open water after the trench, where a scan
+shows a short stretch of the seafloor (`floorRange`) and nothing else, with the bottle resting on that floor
+and its own light reaching only `haloReach` units, so the player has to search the floor for it;
 the ring's vertices run up each face by height, densest about the gap. The finest grain is a scanned cliff
 (`public/textures/lake/cliff-1k.webp`, Poly Haven's CC0 "Cliff Side" packed by `scripts/assets/pack-lake-rock.mjs`:
 normal, height and occlusion in one map), loaded only once the player heads for the water and laid on the walls
@@ -100,7 +120,8 @@ frame and place in the cross-section), `wallDistance` (a ray to the wall, for th
 taken in `collisionStep` sub-steps each kept off the walls, the heading easing along a wall it is pressed against
 at `slideEase`; a knock that cuts the speed to `bumpSlow` and slides along the wall with
 the system's warning repeating while the contact lasts and a jolt of the view (`bumpKick`); never past the ends; nothing steers for the player; the
-chamber runs at `chamberSpeed` so the bottle can be aimed at, and at its end wall the craft holds still). The walls are
+basin runs at `basinSpeed` so the floor can be searched, and at the basin's far end, beyond the sonar, the craft
+holds still). The walls are
 seen by sonar (`shaders/lake/crack.frag`) and, within `ambientReach`, by a faint resting light: one ping is sent as
 the crack comes into view, then each ping (space, enter, click or tap, on a cooldown the HUD shows as a bar) is an
 origin and a time, with a sound (`lib/lake/sonarSound.ts`: the recorded sample at `soundSrc` when one is
@@ -110,7 +131,8 @@ passes by how squarely they face it, the depth lines (world height, gold) draw o
 and what the front has passed decays over `pingDecay`, the return weakening with distance. The HUD (`LakeHud`,
 HTML) reads the dive's telemetry each frame through a shared ref and writes the player's input into another: wall
 readouts, live soundings each side every frame that a ping in flight caps at its front so they count up with it,
-depth and speed in metres (`metresPerUnit`), a scanning label, how to scan until the first ping, the hint until
+depth and speed in metres (`metresPerUnit`), heading and pitch in degrees (the one fixed reference in the open
+water, so a turn can be undone), a scanning label, how to scan until the first ping, the hint until
 the first input, and after a finished dive a skip that lands a way before the bottle, facing it, with the
 revealing scan sent (`placeCraftBeforeBottle`). The dive ends when a scan has reached the bottle while it lies
 ahead within `foundRange`, or when the craft is right on it. Leva's Lake folder

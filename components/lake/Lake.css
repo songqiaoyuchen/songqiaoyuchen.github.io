@@ -175,15 +175,23 @@ body[data-lake='underwater'] > nav {
 }
 
 .lake-hud-depth,
-.lake-hud-speed {
+.lake-hud-speed,
+.lake-hud-attitude {
   display: flex;
   gap: 0.9em;
   align-items: baseline;
 }
 
-.lake-hud-speed {
+.lake-hud-speed,
+.lake-hud-attitude {
   font-size: 0.72em;
   color: var(--lake-cyan-dim);
+}
+
+/* Heading and pitch: the one fixed reference in the open water, so a turn can be undone. */
+.lake-hud-attitude {
+  gap: 0.7em;
+  font-size: 0.66em;
 }
 
 .lake-hud-label {

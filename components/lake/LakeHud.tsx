@@ -14,7 +14,7 @@ const STEER_PIXELS = 140;
 type LakeHudProps = {
   state: LakeState;
   letterOpen: boolean;
-  /** The bottle has been found before: the dive may be skipped to the chamber. */
+  /** The bottle has been found before: the dive may be skipped to the basin. */
   completed: boolean;
   inputRef: MutableRefObject<LakeInput>;
   telemetryRef: MutableRefObject<LakeTelemetry>;
@@ -41,6 +41,8 @@ export function LakeHud({
   const rightRef = useRef<HTMLSpanElement>(null);
   const depthRef = useRef<HTMLSpanElement>(null);
   const speedRef = useRef<HTMLSpanElement>(null);
+  const headingRef = useRef<HTMLSpanElement>(null);
+  const pitchRef = useRef<HTMLSpanElement>(null);
   const scanRef = useRef<HTMLSpanElement>(null);
   const progressRef = useRef<HTMLSpanElement>(null);
   const sonarRef = useRef<HTMLSpanElement>(null);
@@ -187,6 +189,12 @@ export function LakeHud({
       if (depth) write('depth', `-${t.depth.toFixed(1)}m`, (v) => { depth.textContent = v; });
       const speed = speedRef.current;
       if (speed) write('speed', `${t.speed.toFixed(1)}m/s`, (v) => { speed.textContent = v; });
+      const heading = headingRef.current;
+      if (heading) {
+        write('heading', `${Math.round(t.heading).toString().padStart(3, '0')}°`, (v) => { heading.textContent = v; });
+      }
+      const pitch = pitchRef.current;
+      if (pitch) write('pitch', `${t.pitch >= 0 ? '+' : ''}${Math.round(t.pitch)}°`, (v) => { pitch.textContent = v; });
       const scan = scanRef.current;
       if (scan) write('scan', Math.min(1, t.scanning * 1.6).toFixed(2), (v) => { scan.style.opacity = v; });
       const progress = progressRef.current;
@@ -254,6 +262,12 @@ export function LakeHud({
         <p className="lake-hud-speed">
           <span className="lake-hud-label">Speed</span>
           <span ref={speedRef}>0.0m/s</span>
+        </p>
+        <p className="lake-hud-attitude">
+          <span className="lake-hud-label">Hdg</span>
+          <span ref={headingRef}>000°</span>
+          <span className="lake-hud-label">Pitch</span>
+          <span ref={pitchRef}>+0°</span>
         </p>
         <span className="lake-hud-progress" aria-hidden><span ref={progressRef} /></span>
         <p className="lake-hud-sonar">

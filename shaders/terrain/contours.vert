@@ -53,6 +53,7 @@ varying vec2 vTerrainUv;
 varying float vNoise;
 varying vec2 vScreenUv;
 varying float vThin;
+varying vec3 vWorld; // the line's world position (before the ride), for the lake's cover
 
 // Periodic classic Perlin noise (Stefan Gustavson / webgl-noise, MIT).
 vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
@@ -123,6 +124,7 @@ void main() {
     position.y * uElevation + uLift + uMeshY,
     position.z
   );
+  vWorld = center;
   float flash = vRevealBehind >= 0.0 ? exp(-vRevealBehind / max(uRevealFlashUnits, 0.0001)) : 0.0;
   float radius = mix(uMinorRadius, uMajorRadius, vMajor) * (1.0 + uRevealFlashRadius * flash);
   vec3 tubeNormal = normal;

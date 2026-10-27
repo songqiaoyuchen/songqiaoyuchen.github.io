@@ -67,6 +67,7 @@ const Dive = memo(LakeDive);
 
 const ABOUT_EDIT_ROTATE_SPEED = 0.3;
 import {PLACES_OVERVIEW_CONFIG} from '@/config/scene/places';
+import {lakePlacement} from '@/config/scene/lake';
 import { SceneFog } from './terrain/SceneFog';
 import { GlyphRain } from './text/GlyphRain';
 import {SceneHeroName} from './text/SceneHeroName';
@@ -186,6 +187,8 @@ export const SceneCanvas = memo(function SceneCanvas({
   const [sceneLinksMesh, setSceneLinksMesh] = useState<Mesh | null>(null);
   const [aboutPathMesh, setAboutPathMesh] = useState<Mesh | null>(null);
   const [lakeMesh, setLakeMesh] = useState<Mesh | null>(null);
+  // The home contours leave out the lines under the lake's water.
+  const lakeShore = useMemo(() => lakePlacement(), []);
   const [crackMesh, setCrackMesh] = useState<Mesh | null>(null);
   const [bottleMesh, setBottleMesh] = useState<Mesh | null>(null);
   const [placesBloom, setPlacesBloom] = useState<Object3D[]>([]);
@@ -388,6 +391,7 @@ export const SceneCanvas = memo(function SceneCanvas({
                   hidden={hideHomeScene || isAbout || isPlaces || underwater}
                   placesRide
                   reveal
+                  lake={lakeShore}
                   ref={setContourMesh}
                   contourSettings={settings.contours}
                   terrainDepthTexture={terrainDepthTexture}

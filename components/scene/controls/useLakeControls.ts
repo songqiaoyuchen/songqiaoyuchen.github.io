@@ -24,7 +24,7 @@ export function useLakeControls() {
     rockOcclusion: {value: LAKE_DIVE_CONFIG.rockOcclusion, min: 0, max: 1, step: 0.05, label: 'Rock occlusion'},
     // lib/scene/lake.ts advanceCraft: the craft's fixed speed and its turn rates.
     speed: {value: LAKE_DIVE_CONFIG.speed, min: 0.5, max: 6, step: 0.1, label: 'Speed'},
-    chamberSpeed: {value: LAKE_DIVE_CONFIG.chamberSpeed, min: 0.1, max: 1, step: 0.05, label: 'Chamber speed'},
+    basinSpeed: {value: LAKE_DIVE_CONFIG.basinSpeed, min: 0.1, max: 1, step: 0.05, label: 'Basin speed'},
     turnRate: {value: LAKE_DIVE_CONFIG.turnRate, min: 0.2, max: 3, step: 0.05, label: 'Turn rate'},
     pitchRate: {value: LAKE_DIVE_CONFIG.pitchRate, min: 0.2, max: 3, step: 0.05, label: 'Pitch rate'},
     // LakeDive.tsx: how far off a scanned bottle ends the dive.

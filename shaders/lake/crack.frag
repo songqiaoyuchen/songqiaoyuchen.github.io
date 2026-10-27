@@ -11,6 +11,7 @@ uniform int uPingCount;
 uniform float uPingSpeed; // units per second
 uniform float uPingDecay; // seconds the passed light takes to fade
 uniform float uPingRange; // units over which the return weakens
+uniform float uFloorRange; // share of that for the seafloor, which shows only close by
 uniform float uDepthLines; // units between the depth lines
 uniform float uAmbient;
 uniform float uAmbientReach; // units within which the resting light shows
@@ -85,6 +86,9 @@ void main() {
   float lineWidth = max(fwidth(depthCoord) * 1.1, 0.012);
   float line = 1.0 - smoothstep(0.0, lineWidth * 1.5, abs(fract(depthCoord + 0.5) - 0.5));
 
+  // The seafloor returns over a short range only: a scan in the basin shows a stretch of it, then the void.
+  float floorness = smoothstep(0.35, 0.75, normal.y);
+  float range = uPingRange * mix(1.0, uFloorRange, floorness);
   float lit = 0.0; // the walls' light from the pings that have passed
   float front = 0.0; // the fronts themselves
   float lineGlow = 0.0; // the depth lines: lit as a front crosses them, gone again soon after
@@ -103,16 +107,16 @@ void main() {
     // Rock facing the ping squarely returns it hardest, so the bumps and ledges stand out in the image.
     float facing = max(dot(normal, -fromPing / max(d, 1e-3)), 0.0);
     float square = facing * facing * facing * facing;
-    float response = (0.18 + 0.62 * facing + 0.45 * square) * exp(-d / uPingRange)
+    float response = (0.18 + 0.62 * facing + 0.45 * square) * exp(-d / range)
       * (0.3 + 0.7 * smoothstep(0.0, 4.0, d));
     float fade = exp(-behind / (uPingSpeed * uPingDecay));
     // A flash just behind the front, which is the brightest moment of each wall.
     float flash = exp(-behind / 1.5);
     lit += response * fade * (0.06 + 1.1 * flash);
     // The front: a thin band at the reach itself.
-    front += exp(-behind / 0.45) * (0.35 + 0.65 * facing) * exp(-d / (uPingRange * 1.6));
+    front += exp(-behind / 0.45) * (0.35 + 0.65 * facing) * exp(-d / (range * 1.6));
     // The depth lines flare in the front's wake and fade within the second, whatever the walls keep showing.
-    lineGlow += exp(-behind / 1.1) * exp(-d / (uPingRange * 1.3));
+    lineGlow += exp(-behind / 1.1) * exp(-d / (range * 1.3));
   }
   lit = min(lit * occlusion, 1.25);
 

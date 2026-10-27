@@ -1,9 +1,10 @@
 // The lake dive's crack: the route winding down from under the lake, the walls about it, the craft's motion and the
 // queries the sonar HUD makes of the walls. Framework-free apart from three's maths, so scripts/test can check it.
 import {CatmullRomCurve3, Vector3} from 'three';
-import type {LAKE_CONFIG, LAKE_DIVE_CONFIG} from '@/config/scene/lake';
+import type {LAKE_DIVE_CONFIG} from '@/config/scene/lake';
 
-export type LakeConfig = typeof LAKE_CONFIG;
+/** Where the lake lies: the route starts under its centre. */
+export type LakeConfig = {readonly center: readonly [number, number]; readonly level: number};
 /** The dive's numbers, widened so tuned values (Leva) can stand in for the config's literals. */
 export type LakeDiveConfig = {
   readonly [K in keyof typeof LAKE_DIVE_CONFIG]: (typeof LAKE_DIVE_CONFIG)[K] extends number
@@ -111,15 +112,19 @@ const RADIAL = new Vector3();
 
 export class CrackRoute {
   readonly stations: Station[] = [];
+  /** Arc length of the route the craft may travel. */
   readonly length: number;
+  /** Arc length of the walls: the open water runs on past the route's end, closing far beyond a scan's reach. */
+  readonly end: number;
   readonly spacing: number;
-  /** Where the bottle rests: on the chamber's floor near the end of the route. */
+  /** Where the bottle rests: on the basin's floor, a way into the basin. */
   readonly bottle: Vector3;
   private readonly config: LakeDiveConfig;
 
   constructor(config: LakeDiveConfig, lake: LakeConfig) {
     this.config = config;
     this.length = config.length;
+    this.end = config.length + config.basinTail;
     this.spacing = config.stationSpacing;
     const random = mulberry32(config.seed);
     // Control points: a heading drifting in yaw, descending at the configured pitch, stepping down from under
@@ -129,21 +134,26 @@ export class CrackRoute {
     let bend = 0;
     let travelled = 0;
     const direction = new Vector3();
-    while (travelled < config.length + config.controlStep * 2) {
+    while (travelled < this.end + config.controlStep * 2) {
       // The bend drifts rather than jumps, is capped, and dies away over the straight run at the end.
       bend = Math.max(-config.yawBend, Math.min(config.yawBend, bend * 0.6 + (random() * 2 - 1) * config.yawWander));
       const straight = travelled > config.length - config.straightEnd - config.controlStep;
       yaw += straight ? 0 : bend;
-      const pitch = config.pitch + (straight ? 0 : (random() * 2 - 1) * config.pitchWander);
+      // The route levels out into the basin, so its floor lies more or less level too: gently, over a few control
+      // steps, since the basin's wide rings would fold into each other round a tight bend.
+      const levelling = Math.min(1, Math.max(0,
+        (travelled - (config.length - config.basin - config.controlStep * 3)) / (config.controlStep * 3)));
+      const wander = straight ? 0 : (random() * 2 - 1) * config.pitchWander;
+      const pitch = config.pitch + wander + (config.basinPitch - config.pitch) * levelling;
       headingDirection(yaw, -pitch, direction);
       points.push(points[points.length - 1].clone().addScaledVector(direction, config.controlStep));
       travelled += config.controlStep;
     }
     const curve = new CatmullRomCurve3(points, false, 'centripetal');
     const total = curve.getLength();
-    const count = Math.round(config.length / config.stationSpacing) + 1;
+    const count = Math.round(this.end / config.stationSpacing) + 1;
     for (let index = 0; index < count; index++) {
-      const s = Math.min(index * config.stationSpacing, config.length);
+      const s = Math.min(index * config.stationSpacing, this.end);
       const t = Math.min(s / total, 1);
       const position = curve.getPointAt(t);
       const tangent = curve.getTangentAt(t).normalize();
@@ -156,8 +166,22 @@ export class CrackRoute {
     this.bottle = this.bottlePosition();
   }
 
-  /** Half-axes of the slot's ellipse at s along the route, before the wall noise. */
-  axes(s: number): [number, number] {
+  /** How far into the basin s is, 0 before it and 1 within: the faces fall away about the mouth. */
+  basinIn(s: number) {
+    return smoothstep(this.length - this.config.basin - 8, this.length - this.config.basin + 6, s);
+  }
+
+  /** How far the floor has come up toward the basin's, 0 in the trench and 1 in the basin: a long, gentle slope. */
+  floorIn(s: number) {
+    const {basin, floorRise} = this.config;
+    return smoothstep(this.length - basin - floorRise, this.length - basin + 6, s);
+  }
+
+  /**
+   * Half-axes of the slot's ellipse at s along the route, before the wall noise: across the gap, up to the lake
+   * bed, and down to the floor (far off in the trench, near in the basin).
+   */
+  axes(s: number): [number, number, number] {
     const {config: c} = this;
     const n = s / this.length;
     const clamp01 = (x: number) => Math.min(1, Math.max(0, x));
@@ -169,10 +193,12 @@ export class CrackRoute {
       const d = (n - share) * this.length / spread;
       a *= 1 - (1 - scale) * Math.exp(-d * d);
     }
-    // The chamber at the end opens out for the bottle, its faces still within the sonar's range.
-    const chamberIn = smoothstep(this.length - c.chamber - 8, this.length - c.chamber + 3, s);
-    a += (c.halfWidth[1] * 1.7 - a) * chamberIn;
-    return [Math.max(a, 0.8), Math.max(b, 0.8)];
+    // The basin: the floor comes up from the void over a long slope before the mouth, where the faces fall away
+    // beyond the sonar's reach.
+    const basinIn = this.basinIn(s);
+    a += (c.basinHalfWidth - a) * basinIn;
+    const bDown = b + (c.basinDepth - b) * this.floorIn(s);
+    return [Math.max(a, 0.8), Math.max(b, 0.8), Math.max(bDown, 0.8)];
   }
 
   /**
@@ -181,8 +207,9 @@ export class CrackRoute {
    */
   radius(theta: number, s: number) {
     const {config: c} = this;
-    const [a, b] = this.axes(s);
+    const [a, bUp, bDown] = this.axes(s);
     const cos = Math.cos(theta), sin = Math.sin(theta);
+    const b = sin < 0 ? bDown : bUp;
     const p = c.slotPower;
     const slot = 1 / Math.pow(Math.pow(Math.abs(cos) / a, p) + Math.pow(Math.abs(sin) / b, p), 1 / p);
     // Where this point lies on a face: its height up the trench, for the relief and the ledges.
@@ -205,11 +232,19 @@ export class CrackRoute {
     const ledge = (smoothstep(0.5 - soft, 0.5 + soft, band - Math.floor(band)) - 0.5) * 2;
     // The relief belongs to the faces (the floor and the lake bed far off keep the slot's shape), and never takes
     // more than a share of the gap, so pinches stay passable.
-    const relief = (c.wallNoise * n + c.wallMid * mid + c.wallRoughness * fine + c.terrace * ledge)
-      * Math.abs(cos);
-    const shape = Math.max(1 + relief, 0.72);
-    // The trench closes at the start (under the lake) and at the end: the chamber's far wall, nearly flat.
-    const cap = smoothstep(0, 3, s) * smoothstep(this.length, this.length - 1.2, s);
+    // The relief is a share of the radius, so where the basin's faces stand far out it is scaled back to the
+    // trench's size in units, or its ledges would be slabs.
+    const faceScale = Math.min(1, c.halfWidth[1] / a);
+    const faces = (c.wallNoise * n + c.wallMid * mid + c.wallRoughness * fine + c.terrace * ledge)
+      * Math.abs(cos) * faceScale;
+    // The floor, as it comes up: low dunes and rubble.
+    const floorness = Math.max(-sin, 0) * this.floorIn(s);
+    const across = slot * cos;
+    const floor = (0.07 * fbm3(across * 0.3 + 2.0, s * 0.3, 5.5) + 0.025 * fbm3(across * 1.2 + 4.0, s * 1.2, 8.8))
+      * floorness * floorness;
+    const shape = Math.max(1 + faces + floor, 0.72);
+    // The trench closes at the start (under the lake) and at the walls' end, far beyond the sonar.
+    const cap = smoothstep(0, 3, s) * smoothstep(this.end, this.end - 1.2, s);
     return Math.max(slot * shape * cap, 0.05);
   }
 
@@ -310,7 +345,7 @@ export class CrackRoute {
   }
 
   private bottlePosition(out = new Vector3()) {
-    const s = this.length - this.config.chamber * 0.3;
+    const s = this.length - this.config.basin * 0.45;
     const locus = createLocus();
     const station = this.stations[Math.min(Math.round(s / this.spacing), this.stations.length - 1)];
     this.locate(station.position, locus);
@@ -318,9 +353,9 @@ export class CrackRoute {
     RADIAL.copy(locus.narrow);
     if (RADIAL.y > 0) RADIAL.negate();
     const theta = Math.atan2(RADIAL.dot(locus.narrow), RADIAL.dot(locus.wide));
-    // Just below the route's line, well above the floor, so flying straight on meets it.
+    // Resting on the floor: the player has to look down to find it.
     const floor = this.radius(theta, locus.s);
-    return out.copy(locus.center).addScaledVector(RADIAL, Math.min(2.2, Math.max(floor - 1.1, 0.4)));
+    return out.copy(locus.center).addScaledVector(RADIAL, Math.max(floor - 0.3, 0.4));
   }
 
   /** Puts the craft on the route a way before the bottle, facing it. */
@@ -483,9 +518,9 @@ export function advanceCraft(
 
   craft.speedScale += (1 - craft.speedScale) * (1 - Math.exp(-config.bumpRecover * dt));
   headingDirection(craft.yaw, craft.pitch, HEADING);
-  // Slower in the chamber, so there is time to aim at the bottle; at the end wall the craft holds still rather
+  // Slower in the basin, so there is time to search for the bottle; at the end wall the craft holds still rather
   // than pushing at it (it can still turn, look and scan).
-  const pace = locus.s > route.length - config.chamber - 3 ? config.chamberSpeed : 1;
+  const pace = locus.s > route.length - config.basin - 3 ? config.basinSpeed : 1;
   const atEnd = locus.s > route.length - 3 && HEADING.dot(locus.tangent) > 0;
   const move = atEnd ? 0 : speed * pace * craft.speedScale * dt;
   // The move in sub-steps, each kept off the walls, so none can carry the craft through a face.

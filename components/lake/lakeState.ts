@@ -22,7 +22,7 @@ export type LakeInput = {
   pitch: number;
   /** A ping asked for; the dive clears it. */
   ping: boolean;
-  /** A jump to the chamber asked for (after a finished dive); the dive clears it. */
+  /** A jump to the basin asked for (after a finished dive); the dive clears it. */
   skip: boolean;
 };
 
@@ -47,6 +47,10 @@ export type LakeTelemetry = {
   cooldown: number;
   /** 0..1: the share of the route behind the craft. */
   progress: number;
+  /** Degrees of heading, 0..360 (0 along +z, as a compass reads). */
+  heading: number;
+  /** Degrees of pitch above level, negative down. */
+  pitch: number;
 };
 
 export function createLakeInput(): LakeInput {
@@ -56,7 +60,7 @@ export function createLakeInput(): LakeInput {
 export function createLakeTelemetry(): LakeTelemetry {
   return {
     left: 0, right: 0, leftFresh: 0, rightFresh: 0, measured: -1, depth: 0, speed: 0, scanning: 0, bump: 0,
-    cooldown: 1, progress: 0,
+    cooldown: 1, progress: 0, heading: 0, pitch: 0,
   };
 }
 

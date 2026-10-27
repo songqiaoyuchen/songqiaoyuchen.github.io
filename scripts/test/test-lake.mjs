@@ -3,15 +3,17 @@
 // it), and a craft steered along the route reaching the bottle.
 import assert from 'node:assert/strict';
 import {Vector3} from 'three';
-import {LAKE_CONFIG, LAKE_DIVE_CONFIG} from '../../config/scene/lake.ts';
+import {LAKE_DIVE_CONFIG, lakePlacement} from '../../config/scene/lake.ts';
 import {
   advanceCraft, createCraft, createLocus, CrackRoute, directionPitch, directionYaw, headingDirection, wrapAngle,
 } from '../../lib/scene/lake.ts';
 
-const route = new CrackRoute(LAKE_DIVE_CONFIG, LAKE_CONFIG);
+const LAKE = lakePlacement();
+const route = new CrackRoute(LAKE_DIVE_CONFIG, LAKE);
 const {stations} = route;
-assert.equal(stations.length, Math.round(LAKE_DIVE_CONFIG.length / LAKE_DIVE_CONFIG.stationSpacing) + 1);
-assert.ok(Math.abs(stations[0].position.x - LAKE_CONFIG.center[0]) < 1e-6, 'starts under the lake');
+assert.equal(stations.length,
+  Math.round((LAKE_DIVE_CONFIG.length + LAKE_DIVE_CONFIG.basinTail) / LAKE_DIVE_CONFIG.stationSpacing) + 1);
+assert.ok(Math.abs(stations[0].position.x - LAKE.center[0]) < 1e-6, 'starts under the lake');
 assert.ok(stations[stations.length - 1].position.y < stations[0].position.y - 60, 'descends well below the lake');
 for (const station of stations) {
   assert.ok(Math.abs(station.wide.y) < 1e-6, 'the slot stays level');
@@ -19,7 +21,7 @@ for (const station of stations) {
   assert.ok(Math.abs(station.narrow.dot(station.tangent)) < 1e-6);
 }
 
-// The route bends gently and runs straight into the chamber.
+// The route bends gently and runs straight into the basin.
 for (let i = 2; i < stations.length - 2; i++) {
   const turn = Math.abs(wrapAngle(directionYaw(stations[i + 2].tangent) - directionYaw(stations[i - 2].tangent)));
   assert.ok(turn < 0.2, `no sharp bend (${turn.toFixed(2)} rad over ${(4 * LAKE_DIVE_CONFIG.stationSpacing).toFixed(1)} units at s=${stations[i].s})`);
@@ -35,7 +37,10 @@ assert.ok(route.radius(0, LAKE_DIVE_CONFIG.length - 2) > 3, 'the gap holds up to
 // Walls: closed at the ends, open in the middle, never negative; the faces either side are near, the floor and
 // the lake bed far off.
 assert.ok(route.radius(0, 0) < 0.1, 'closed at the start');
-assert.ok(route.radius(1, LAKE_DIVE_CONFIG.length) < 0.1, 'closed at the end');
+assert.ok(route.radius(1, route.end) < 0.1, "closed at the walls' end");
+assert.ok(route.radius(0, LAKE_DIVE_CONFIG.length) > LAKE_DIVE_CONFIG.pingRange * 2,
+  "the open water runs on past the route's end, no wall within a scan");
+assert.ok(route.end - LAKE_DIVE_CONFIG.length > LAKE_DIVE_CONFIG.pingRange * 2, 'the far wall lies beyond two scans');
 let least = Infinity;
 for (let s = 6; s < LAKE_DIVE_CONFIG.length - 6; s += 0.5) {
   for (let theta = 0; theta < Math.PI * 2; theta += 0.3) least = Math.min(least, route.radius(theta, s));
@@ -47,9 +52,10 @@ assert.ok(route.radius(0, 60) < 6 && route.radius(Math.PI, 60) < 6, 'faces near 
 const upTheta = Math.atan2(12, LAKE_DIVE_CONFIG.halfWidth[1]);
 assert.ok(route.radius(upTheta, 60) * Math.cos(upTheta) < LAKE_DIVE_CONFIG.halfWidth[1] * 1.6, 'faces stand up');
 
-// Points on the centre line are inside; a point far out is outside.
+// Points on the centre line are inside; a point far out is outside (in the trench: the basin's walls stand
+// beyond the readouts' reach, checked below).
 const locus = createLocus();
-for (let s = 5; s < LAKE_DIVE_CONFIG.length - 5; s += 7) {
+for (let s = 5; s < LAKE_DIVE_CONFIG.length - LAKE_DIVE_CONFIG.basin - 10; s += 7) {
   const station = stations[Math.round(s / LAKE_DIVE_CONFIG.stationSpacing)];
   route.locate(station.position, locus);
   assert.ok(locus.rho < 0.05 && locus.radius > 1, `centre line inside at ${s}`);
@@ -70,10 +76,11 @@ for (let s = 5; s < LAKE_DIVE_CONFIG.length - 5; s += 7) {
 // Geometry: inward normals.
 const geometry = route.buildGeometry();
 assert.equal(geometry.positions.length, stations.length * LAKE_DIVE_CONFIG.ringSegments * 3);
-const mid = Math.floor(stations.length / 2) * LAKE_DIVE_CONFIG.ringSegments + 7;
+const midStation = Math.round(LAKE_DIVE_CONFIG.length / 2 / LAKE_DIVE_CONFIG.stationSpacing); // in the trench
+const mid = midStation * LAKE_DIVE_CONFIG.ringSegments + 7;
 const p = new Vector3().fromArray(geometry.positions, mid * 3);
 const n = new Vector3().fromArray(geometry.normals, mid * 3);
-const c = stations[Math.floor(stations.length / 2)].position;
+const c = stations[midStation].position;
 assert.ok(n.dot(c.clone().sub(p)) > 0, 'normals point into the crack');
 
 // The faces are rock, not smooth walls: along a face at the craft's height the wall comes and goes by a good
@@ -88,17 +95,24 @@ for (let s = 60; s < 70; s += 0.25) {
 }
 assert.ok(reliefMax - reliefMin > 0.4, `the faces carry relief (${(reliefMax - reliefMin).toFixed(2)} units over 10)`);
 const ring = LAKE_DIVE_CONFIG.ringSegments;
-const gapVertex = Math.floor(stations.length / 2) * ring + ring / 4; // the right face at the route's own height
+const gapVertex = midStation * ring + ring / 4; // the right face at the route's own height
 const gapSpacing = new Vector3().fromArray(geometry.positions, (gapVertex + 1) * 3)
   .distanceTo(new Vector3().fromArray(geometry.positions, gapVertex * 3));
 assert.ok(gapSpacing < 0.25, `ring vertices close together near the gap (${gapSpacing.toFixed(2)} units)`);
 assert.ok(ring % 2 === 0, 'two faces of equal vertex count');
 
-// The bottle rests inside the chamber.
+// The basin: the faces fall away and a floor comes up within the sonar's reach; the bottle rests on that floor.
+const basinMid = LAKE_DIVE_CONFIG.length - LAKE_DIVE_CONFIG.basin * 0.5;
+assert.ok(route.radius(0, basinMid) > LAKE_DIVE_CONFIG.pingRange && route.radius(Math.PI, basinMid) > LAKE_DIVE_CONFIG.pingRange,
+  'the basin opens beyond the sonar');
+assert.ok(route.radius(-Math.PI / 2, basinMid) < LAKE_DIVE_CONFIG.basinDepth + 2, 'the basin has a floor');
+assert.ok(route.radius(Math.PI / 2, basinMid) > 25, 'the void above stays');
 const {bottle} = route;
 route.locate(bottle, locus);
-assert.ok(locus.rho < locus.radius - 0.5, 'bottle inside the chamber');
-assert.ok(locus.s > LAKE_DIVE_CONFIG.length - LAKE_DIVE_CONFIG.chamber - 1, 'bottle near the end');
+assert.ok(locus.rho < locus.radius, 'bottle inside the basin');
+assert.ok(locus.radius - locus.rho < 0.8, `bottle on the floor (${(locus.radius - locus.rho).toFixed(2)} off it)`);
+assert.ok(bottle.y < locus.center.y - 4, 'bottle well below the route');
+assert.ok(locus.s > LAKE_DIVE_CONFIG.length - LAKE_DIVE_CONFIG.basin - 1, 'bottle in the basin');
 
 // A craft driven by nothing else runs into a wall and stays inside, never past the route's ends.
 const idle = createCraft(route);
@@ -109,7 +123,7 @@ for (let i = 0; i < 60 * 60; i++) {
   assert.ok(locus.s >= 0 && locus.s <= route.length, 'idle craft stays on the route');
 }
 
-// A craft steered along the route (toward its direction, in the chamber toward the bottle) reaches the bottle.
+// A craft steered along the route (toward its direction, in the basin toward the bottle) reaches the bottle.
 const craft = createCraft(route);
 let bumps = 0;
 let seconds = 0;
@@ -117,7 +131,7 @@ const start = craft.position.clone();
 const aim = new Vector3();
 while (seconds < 150) {
   route.locate(craft.position, locus, craft.hint);
-  if (locus.s > route.length - LAKE_DIVE_CONFIG.chamber - 2) aim.subVectors(bottle, craft.position).normalize();
+  if (locus.s > route.length - LAKE_DIVE_CONFIG.basin - 2) aim.subVectors(bottle, craft.position).normalize();
   else aim.copy(locus.tangent);
   // Right input lowers the yaw, so a wanted increase in yaw is a left input.
   const yawError = wrapAngle(directionYaw(aim) - craft.yaw);

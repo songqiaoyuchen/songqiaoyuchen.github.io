@@ -50,7 +50,7 @@ Status: direction and prototype decisions accepted (2026-10-25); first prototype
   play-through, 2026-10-26; a cone about the route's direction was tried and removed for that
   reason). Steering answers at once with light damping at a modest rate, and no course aid on
   screen. Touch: drag to steer, tap to ping.
-- The route bends gently and runs straight for the last stretch into the chamber, whose end wall
+- The route bends gently and runs straight for the last stretch into the basin, whose end wall
   stands across the trench within sonar range (sixth play-through: a sharp bend at the end lost
   the walls).
 - The crack is a trench, not a tunnel: two near-vertical rock faces either side of the view, a
@@ -71,7 +71,9 @@ Status: direction and prototype decisions accepted (2026-10-25); first prototype
 - Off course: invisible checkpoints along the main channel. Deep in a side pocket an
   "off course" warning appears; persisting, a current carries the player back to the last
   checkpoint. The cost is time, never progress.
-- Treasure: a glowing bottle at the bottom; at the chamber's end wall the craft holds still (it
+- Treasure: a glowing bottle lying on the basin's floor (2026-10-26: the trench opens into a basin whose walls
+  stand beyond the sonar; a scan there shows a short stretch of seafloor and nothing else, and the bottle's own
+  light reaches only a few units, so the floor has to be searched); at the basin's far end the craft holds still (it
   can still turn, look and scan) rather than pushing on (eighth play-through, 2026-10-26: the
   end could be reached without the bottle in reach; a beacon pulse from the bottle was tried
   and removed).
