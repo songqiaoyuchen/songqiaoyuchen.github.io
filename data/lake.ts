@@ -4,7 +4,7 @@ import ljubljanaPhoto from '@/public/images/letter/ljub.webp';
 import kjeragPhoto from '@/public/images/letter/kjerag.webp';
 
 export interface LakeLetterPhoto {
-  /** A static import from `public/images/letter/`; left out, the page shows an empty print. */
+  /** A static import from `public/images/letter/` (import:letter-photos); left out, the page shows an empty print. */
   image?: StaticImageData;
   alt: string;
   caption: string;

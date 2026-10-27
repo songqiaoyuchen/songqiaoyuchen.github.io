@@ -17,16 +17,14 @@ import {mkdir, readdir, readFile, writeFile} from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
 import {fileURLToPath} from 'node:url';
-import {crc32, deflateSync} from 'node:zlib';
-import decodeHeic from 'heic-decode';
-import sharp from 'sharp';
+import {encode, ORIGINAL, readable} from './photoEncode.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SOURCE_DIR = path.join(ROOT, 'photos-src');
 const PHOTOS_DIR = path.join(ROOT, 'public', 'places', 'photos');
 const FORCE = process.argv.includes('--force');
-const ORIGINAL = /\.(heic|heif|jpe?g|png|webp|tiff?)$/i;
-const HEIC = /\.hei[cf]$/i;
+// The lake letter's originals, imported by import-letter-photos.mjs.
+const LETTER = 'letter';
 
 // Long edge (px) and WebP quality: the viewer's photo, and the location panel's thumbnail (120px wide, at up to 3x).
 const FULL = {size: 2400, quality: 80};
@@ -144,41 +142,6 @@ function nameTime(file) {
   return match ? `${match[1]}_${match[2] ?? '00'}${match[3] ?? '00'}${match[4] ?? '00'}` : '';
 }
 
-/** The ICC profile in a HEIC's colr box, if any. */
-function heicProfile(buffer) {
-  const at = buffer.indexOf('colrprof', 0, 'latin1');
-  return at < 4 ? null : buffer.subarray(at + 8, at - 4 + buffer.readUInt32BE(at - 4));
-}
-
-/** A PNG with `icc` spliced in after IHDR, so sharp converts its colours to sRGB as it would any tagged image. */
-function withProfile(png, icc) {
-  const data = Buffer.concat([Buffer.from('icc\0\0', 'latin1'), deflateSync(icc)]);
-  const body = Buffer.concat([Buffer.from('iCCP', 'latin1'), data]);
-  const chunk = Buffer.alloc(body.length + 8);
-  chunk.writeUInt32BE(data.length, 0);
-  body.copy(chunk, 4);
-  chunk.writeUInt32BE(crc32(body), body.length + 4);
-  return Buffer.concat([png.subarray(0, 33), chunk, png.subarray(33)]);
-}
-
-/** The original as something sharp reads: HEIC decoded (already upright) and re-tagged with its profile. */
-async function readable(file, buffer) {
-  if (!HEIC.test(file)) return buffer;
-  const {width, height, data} = await decodeHeic({buffer});
-  const png = await sharp(data, {raw: {width, height, channels: 4}}).png({compressionLevel: 0}).toBuffer();
-  const icc = heicProfile(buffer);
-  return icc ? withProfile(png, icc) : png;
-}
-
-async function encode(input, {size, quality}, file) {
-  // sharp keeps no metadata unless asked, and converts a tagged image to sRGB on the way out.
-  await sharp(input)
-    .rotate()
-    .resize({width: size, height: size, fit: 'inside', withoutEnlargement: true})
-    .webp({quality, effort: 5})
-    .toFile(file);
-}
-
 async function readManifest(file) {
   let text;
   try {
@@ -221,6 +184,7 @@ async function sortManifest(file) {
 async function main() {
   let imported = 0;
   for (const location of await folders(SOURCE_DIR)) {
+    if (location === LETTER) continue;
     for (const gallery of await folders(path.join(SOURCE_DIR, location))) {
       const source = path.join(SOURCE_DIR, location, gallery);
       const target = path.join(PHOTOS_DIR, location, gallery);

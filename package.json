@@ -17,6 +17,7 @@
     "lint": "eslint",
     "sync:artwork-dimensions": "node scripts/assets/sync-artwork-dimensions.mjs",
     "sync:places-photos": "node scripts/assets/sync-places-photos.mjs",
+    "import:letter-photos": "node scripts/assets/import-letter-photos.mjs",
     "import:places-photos": "node scripts/assets/import-places-photos.mjs"
   },
   "dependencies": {
