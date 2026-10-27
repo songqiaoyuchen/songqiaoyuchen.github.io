@@ -7,7 +7,7 @@
 import {useFrame, useThree} from '@react-three/fiber';
 import {useEffect, useMemo, useRef, type MutableRefObject} from 'react';
 import {
-  AdditiveBlending, BufferAttribute, BufferGeometry, Color, CylinderGeometry, Euler, LatheGeometry, MathUtils,
+  AdditiveBlending, BufferGeometry, Color, CylinderGeometry, Euler, LatheGeometry, MathUtils,
   NoColorSpace, PlaneGeometry, Quaternion, RepeatWrapping, TextureLoader, Vector2, Vector3, Vector4, type Group,
   type Mesh, type ShaderMaterial, type Texture,
 } from 'three';
@@ -25,8 +25,10 @@ import fragmentShader from '@/shaders/lake/crack.frag';
 import glowFragmentShader from '@/shaders/lake/crackGlow.frag';
 import vertexShader from '@/shaders/lake/crack.vert';
 import {BLOOM_LAYER} from '../effects/IsolatedBloom';
+import {useCrackGeometry} from './useCrackGeometry';
 
 const UP = new Vector3(0, 1, 0);
+const EMPTY = new BufferGeometry();
 const CFG = LAKE_DIVE_CONFIG;
 const SCAN_SECONDS = 1.3;
 
@@ -164,16 +166,8 @@ export function LakeDive({
   const route = useMemo(() => new CrackRoute(CFG, placement), [placement]);
   const sonar = useMemo(() => createSonar(CFG.soundSrc), []);
   useEffect(() => () => sonar.dispose(), [sonar]);
-  const geometry = useMemo(() => {
-    const {positions, normals, indices, along} = route.buildGeometry();
-    const built = new BufferGeometry();
-    built.setAttribute('position', new BufferAttribute(positions, 3));
-    built.setAttribute('normal', new BufferAttribute(normals, 3));
-    built.setAttribute('along', new BufferAttribute(along, 1));
-    built.setIndex(new BufferAttribute(indices, 1));
-    built.computeBoundingSphere();
-    return built;
-  }, [route]);
+  // The walls, laid out from the bake once the page is idle; null until then (the dive draws no walls).
+  const geometry = useCrackGeometry(route);
   // The bottle: one lathed glass (a rounded base, shoulders, a neck with a lip), the letter rolled inside, a cork,
   // and the halo's plane. The base sits at y = 0.
   const bottleGeometry = useMemo(() => {
@@ -191,9 +185,8 @@ export function LakeDive({
     return {glass, cork, letter, halo};
   }, []);
   useEffect(() => () => {
-    geometry.dispose();
     for (const part of Object.values(bottleGeometry)) part.dispose();
-  }, [bottleGeometry, geometry]);
+  }, [bottleGeometry]);
 
 
   // The scanned rock on the walls, loaded once the player heads for the water (the overview never needs it); the
@@ -530,6 +523,15 @@ export function LakeDive({
     const pace = locus.s > route.length - CFG.basin - 3 ? settings.basinSpeed : 1;
     telemetry.speed = settings.speed * pace * current.speedScale * metres;
     telemetry.progress = MathUtils.clamp(locus.s / route.length, 0, 1);
+    // Only the stretch of walls about the craft is drawn (the walls and their glow twin share the geometry): rock
+    // further along is beyond the sonar and sunk in the water, and the trench is long.
+    if (geometry) {
+      const ring = CFG.ringSegments;
+      const reach = Math.round(CFG.drawReach / CFG.stationSpacing);
+      const from = Math.max(0, current.hint - reach);
+      const to = Math.min(route.stations.length - 1, current.hint + reach);
+      geometry.setDrawRange(from * ring * 6, (to - from) * ring * 6);
+    }
     telemetry.heading = (MathUtils.radToDeg(current.yaw) % 360 + 360) % 360;
     telemetry.pitch = MathUtils.radToDeg(current.pitch);
 
@@ -544,7 +546,8 @@ export function LakeDive({
 
   return (
     <group ref={groupRef} visible={false}>
-      <mesh geometry={geometry} frustumCulled={false}>
+      {/* With no walls yet, an empty geometry keeps the materials (and the ping uniforms written through them). */}
+      <mesh geometry={geometry ?? EMPTY} frustumCulled={false}>
         <shaderMaterial
           ref={wallsMaterial}
           vertexShader={vertexShader}
@@ -557,7 +560,7 @@ export function LakeDive({
           glowRef.current = mesh;
           onCrackMesh(mesh);
         }}
-        geometry={geometry}
+        geometry={geometry ?? EMPTY}
         frustumCulled={false}
       >
         <shaderMaterial vertexShader={vertexShader} fragmentShader={glowFragmentShader} uniforms={glowUniforms} />

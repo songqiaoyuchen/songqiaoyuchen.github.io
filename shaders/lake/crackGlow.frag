@@ -17,7 +17,6 @@ uniform vec3 uCyan;
 
 varying vec3 vWorldPosition;
 varying vec3 vWorldNormal;
-varying float vAlong;
 
 void main() {
   vec3 normal = normalize(vWorldNormal);

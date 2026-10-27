@@ -67,7 +67,7 @@ const Dive = memo(LakeDive);
 
 const ABOUT_EDIT_ROTATE_SPEED = 0.3;
 import {PLACES_OVERVIEW_CONFIG} from '@/config/scene/places';
-import {lakePlacement} from '@/config/scene/lake';
+import {LAKE_DIVE_CONFIG, lakePlacement} from '@/config/scene/lake';
 import { SceneFog } from './terrain/SceneFog';
 import { GlyphRain } from './text/GlyphRain';
 import {SceneHeroName} from './text/SceneHeroName';
@@ -286,7 +286,10 @@ export const SceneCanvas = memo(function SceneCanvas({
   const composer = useMemo(
     () => (
       <EffectComposer ref={composerRef} multisampling={0}>
-        <ColorOnlySMAA preset={SMAAPreset.MEDIUM} />
+        <ColorOnlySMAA
+          preset={SMAAPreset.MEDIUM}
+          edgeThreshold={underwater ? LAKE_DIVE_CONFIG.edgeThreshold : undefined}
+        />
         {assemblyPhase >= 5 ? (
           <IsolatedBloom
             onReady={handleBloomReady}
@@ -301,7 +304,7 @@ export const SceneCanvas = memo(function SceneCanvas({
         ) : <></>}
       </EffectComposer>
     ),
-    [assemblyPhase, bloomIntensity, bloomSelection, bloomSmoothing, bloomThreshold, handleBloomReady],
+    [assemblyPhase, bloomIntensity, bloomSelection, bloomSmoothing, bloomThreshold, handleBloomReady, underwater],
   );
 
   return (
@@ -328,7 +331,9 @@ export const SceneCanvas = memo(function SceneCanvas({
             <StatsGl className="fixed right-0 bottom-0 z-10000" />
           ) : null}
 
-          <color attach="background" args={[FOG_CONFIG.color]} />
+          {/* Under water the background is the void: black, as the walls are where no ping reaches (only the walls
+              about the craft are drawn, so beyond them the background shows). */}
+          <color attach="background" args={[underwater ? '#000000' : FOG_CONFIG.color]} />
           {isDevelopment ? (
             <OrbitControls
               ref={orbitcontrolsRef}

@@ -7,11 +7,8 @@ uniform float uRockReady; // 1 once the map has loaded, 0 before: flat walls unt
 uniform float uRockScale; // repeats of the map per unit
 uniform float uRockRelief; // units the height map pushes a vertex, at most
 
-attribute float along;
-
 varying vec3 vWorldPosition;
 varying vec3 vWorldNormal;
-varying float vAlong;
 
 void main() {
   vec4 world = modelMatrix * vec4(position, 1.0);
@@ -29,6 +26,5 @@ void main() {
   world.xyz += worldNormal * ((height - 0.6) * uRockRelief * uRockReady * nearness);
   vWorldPosition = world.xyz;
   vWorldNormal = worldNormal;
-  vAlong = along;
   gl_Position = projectionMatrix * viewMatrix * world;
 }

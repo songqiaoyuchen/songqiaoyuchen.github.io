@@ -28,7 +28,6 @@ uniform float uRockOcclusion; // how much the map's crevices hold back the retur
 
 varying vec3 vWorldPosition;
 varying vec3 vWorldNormal;
-varying float vAlong;
 
 // The map on each of the three planes: its coordinates run so that each plane's tangent frame is right-handed
 // whichever way the plane faces (the sign flips below), so the map's bumps stand out on both faces of the crack

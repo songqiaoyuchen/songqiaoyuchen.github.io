@@ -45,9 +45,7 @@ export function LakeHud({
   const pitchRef = useRef<HTMLSpanElement>(null);
   const scanRef = useRef<HTMLSpanElement>(null);
   const progressRef = useRef<HTMLSpanElement>(null);
-  const sonarRef = useRef<HTMLSpanElement>(null);
-  const sonarLabelRef = useRef<HTMLSpanElement>(null);
-  const held = useRef({...HELD});
+  const sonarRef = useRef<HTMLSpanElement>(null);  const held = useRef({...HELD});
   const drag = useRef<{id: number; x: number; y: number; at: number; moved: boolean} | null>(null);
   const steer = useRef({yaw: 0, pitch: 0});
   const hintShown = useRef(true);
@@ -200,10 +198,7 @@ export function LakeHud({
       const progress = progressRef.current;
       if (progress) write('progress', t.progress.toFixed(3), (v) => { progress.style.transform = `scaleX(${v})`; });
       const sonar = sonarRef.current;
-      if (sonar) write('sonar', t.cooldown.toFixed(3), (v) => { sonar.style.transform = `scaleX(${v})`; });
-      const sonarLabel = sonarLabelRef.current;
-      if (sonarLabel) write('ready', t.cooldown >= 1 ? 'true' : 'false', (v) => { sonarLabel.dataset.ready = v; });
-      write('bump', t.bump.toFixed(2), (v) => root.style.setProperty('--lake-bump', v));
+      if (sonar) write('sonar', t.cooldown.toFixed(3), (v) => { sonar.style.transform = `scaleX(${v})`; });      write('bump', t.bump.toFixed(2), (v) => root.style.setProperty('--lake-bump', v));
       write('hint', hintShown.current ? 'shown' : 'hidden', (v) => { root.dataset.hint = v; });
       write('scanHint', scanHintShown.current ? 'shown' : 'hidden', (v) => { root.dataset.scanHint = v; });
     };
@@ -271,9 +266,6 @@ export function LakeHud({
         </p>
         <span className="lake-hud-progress" aria-hidden><span ref={progressRef} /></span>
         <p className="lake-hud-sonar">
-          <span className="lake-hud-label" ref={sonarLabelRef} data-ready="true">
-            Sonar <span className="lake-hud-hint-keys">· space</span><span className="lake-hud-hint-touch">· tap</span>
-          </span>
           <span className="lake-hud-sonar-bar" aria-hidden><span ref={sonarRef} /></span>
         </p>
       </div>

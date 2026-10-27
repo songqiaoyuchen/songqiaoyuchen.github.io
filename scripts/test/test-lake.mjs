@@ -84,16 +84,16 @@ const c = stations[midStation].position;
 assert.ok(n.dot(c.clone().sub(p)) > 0, 'normals point into the crack');
 
 // The faces are rock, not smooth walls: along a face at the craft's height the wall comes and goes by a good
-// fraction of a unit over a few units of route; the ring's vertices are close together where the faces meet the
-// gap, so that relief is carried by the mesh.
+// fraction of a unit over a buttress or two of route; the ring's vertices are close together where the faces meet
+// the gap, so that relief is carried by the mesh.
 const faceTheta = Math.atan2(1.5, LAKE_DIVE_CONFIG.halfWidth[0]);
 let reliefMin = Infinity, reliefMax = -Infinity;
-for (let s = 60; s < 70; s += 0.25) {
+for (let s = 60; s < 80; s += 0.25) {
   const r = route.radius(faceTheta, s) * Math.cos(faceTheta);
   reliefMin = Math.min(reliefMin, r);
   reliefMax = Math.max(reliefMax, r);
 }
-assert.ok(reliefMax - reliefMin > 0.4, `the faces carry relief (${(reliefMax - reliefMin).toFixed(2)} units over 10)`);
+assert.ok(reliefMax - reliefMin > 0.4, `the faces carry relief (${(reliefMax - reliefMin).toFixed(2)} units over 20)`);
 const ring = LAKE_DIVE_CONFIG.ringSegments;
 const gapVertex = midStation * ring + ring / 4; // the right face at the route's own height
 const gapSpacing = new Vector3().fromArray(geometry.positions, (gapVertex + 1) * 3)
@@ -129,7 +129,7 @@ let bumps = 0;
 let seconds = 0;
 const start = craft.position.clone();
 const aim = new Vector3();
-while (seconds < 150) {
+while (seconds < 450) {
   route.locate(craft.position, locus, craft.hint);
   if (locus.s > route.length - LAKE_DIVE_CONFIG.basin - 2) aim.subVectors(bottle, craft.position).normalize();
   else aim.copy(locus.tangent);

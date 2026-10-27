@@ -68,7 +68,7 @@ export const LAKE_DIVE_CONFIG = {
   // The crack: a steep slot winding down from under the lake. Units are landscape units; metresPerUnit scales the
   // HUD's numbers.
   seed: 7,
-  length: 196, // arc length of the route, units
+  length: 588, // arc length of the route, units
   stationSpacing: 0.25, // spacing of the sampled frames along the route (the walls' relief is sampled as finely)
   controlStep: 12, // spacing of the route's control points
   pitch: 0.55, // radians below horizontal the route descends at, on average (gentle: the faces stand up)
@@ -82,16 +82,22 @@ export const LAKE_DIVE_CONFIG = {
   halfWidth: [2.4, 3.8] as readonly [number, number],
   halfHeight: [34, 46] as readonly [number, number],
   slotPower: 4,
-  // The walls are bedded rock: broad bulges, then blocks and spalls a unit or two across, ledges where the beds
-  // step, and a little finer roughness; all of it in the mesh, so the craft's clearance and the readouts see the
-  // same rock the sonar does. The finest grain is the scanned rock below.
-  wallNoise: 0.26, // how much the wall surface departs from the ellipse, at the large scale
-  wallDetail: 0.07, // noise frequency along the route
-  wallMid: 0.17, // the blocks and spalls, as a share of the radius
-  wallMidDetail: 0.45, // their frequency, per unit
-  wallRoughness: 0.025, // the finer bulges
-  terraceSpacing: 3.6, // units of height between the walls' ledges
-  terrace: 0.09, // how far the ledges step in and out, as a share of the radius
+  // The walls are bedded rock, broken at every height: faces leaning back or overhanging, broad bulges, spurs
+  // running slantwise down them, rounded buttresses and alcoves several units across, shelves where the beds
+  // change, and a little finer roughness; all of it in the mesh, so the craft's clearance and the readouts see the
+  // same rock the sonar does. The finest grain is the scanned rock below. Amounts are shares of the gap's half-width.
+  wallLean: 0.36, // units a face steps back per unit up, at most; now and then it overhangs a little
+  wallLeanDetail: 0.035, // how quickly the lean changes along the route, per unit
+  riseScale: 6, // units up a face beyond which its forms grow broader with height
+  wallNoise: 0.45, // the broad bulges
+  wallDetail: 0.07, // their frequency along the route
+  wallSpur: 0.4, // the slanting spurs
+  wallSpurDetail: 0.09, // their frequency across the face
+  wallMid: 0.32, // the buttresses and alcoves
+  wallMidDetail: 0.11, // their frequency, per unit
+  wallRoughness: 0.02, // the finer bulges
+  terraceSpacing: 8, // units of height between the walls' shelves
+  terrace: 0.14, // how far the shelves stand in and out
   // The scanned rock laid on the walls (public/textures/lake, packed by scripts/lake/pack-rock.mjs): a normal map
   // tilting the shading, a height map pushing the vertices, and its occlusion holding back the return in crevices.
   rockTexture: '/textures/lake/cliff-1k.webp',
@@ -101,7 +107,9 @@ export const LAKE_DIVE_CONFIG = {
   rockRelief: 0.16, // units the height map pushes the vertices, at most (well under `margin`)
   rockOcclusion: 0.7, // how much the map's crevices hold back the return
   // Pinches: narrow passages at these shares of the route, their gap scale and spread in units.
-  pinches: [[0.28, 0.72, 9], [0.5, 0.75, 7], [0.68, 0.68, 8]] as readonly (readonly [number, number, number])[],
+  pinches: [
+    [0.1, 0.74, 8], [0.19, 0.7, 9], [0.3, 0.76, 7], [0.4, 0.68, 8], [0.5, 0.72, 9], [0.59, 0.7, 7], [0.69, 0.68, 8],
+  ] as readonly (readonly [number, number, number])[],
   // The basin: over the last `basin` units the faces fall away to `basinHalfWidth` either side, beyond the
   // sonar's reach, a floor comes up to `basinDepth` below the route (the void above stays) and the route levels
   // to `basinPitch`. Open water: a scan shows a short stretch of the seafloor and nothing else, the walls and
@@ -113,6 +121,7 @@ export const LAKE_DIVE_CONFIG = {
   basinDepth: 8,
   basinPitch: 0.3, // radians below horizontal across the basin
   ringSegments: 320, // vertices around each ring: dense up the faces near the gap, sparse toward the void
+  drawReach: 70, // units of route either side of the craft whose walls are drawn: beyond, the water has them
   metresPerUnit: 10,
 
   // The craft: fixed speed, direction by the player alone (nothing steers for them); slower in the basin, so
@@ -160,4 +169,6 @@ export const LAKE_DIVE_CONFIG = {
   // Under water the canvas renders at no more than this pixel ratio (the overview's own is restored on surfacing):
   // the dive is dark and soft, and its walls are drawn twice (once for the bloom), so pixels are its main cost.
   maxPixelRatio: 1.25,
+  // SMAA's edge threshold under water (its usual is 0.1, on linear colour): the walls are dim against black water.
+  edgeThreshold: 0.02,
 } as const;

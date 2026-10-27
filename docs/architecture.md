@@ -100,9 +100,11 @@ set pitch, its bend drifting with inertia under a cap (`yawBend`) and dying away
 basin (`straightEnd`), where it levels to `basinPitch`; sampled into stations with a level frame (the slot's gap axis is horizontal); the
 cross-section is a squared-off slot per station (`slotPower`): two rock faces either side of the route, a gap
 apart, standing near-vertical to a floor and a lake bed `halfHeight` away, far beyond the sonar, so above and
-below is void. The faces carry the relief, bedded rock: broad bulges, blocks and spalls a unit or two across with
-their edges sharp (`wallMid`, fading out high up the faces), ledges stepping where the beds change, and a little
-finer roughness, pinched at set shares of the route, and closed at both ends. Over the last `basin` units the
+below is void. Each face leans back or overhangs by a slope wandering along the route (`wallLean`, a shear of the
+slot), and carries bedded rock at every height: broad bulges, slanting spurs, rounded buttresses and alcoves, shelves
+easing in and out where the beds change, and a little finer roughness, all broadening with height (`riseScale`; the
+wall is one radius per angle about the route, so a steep form high up would fold) and nothing much under a unit,
+which would only saw the silhouettes, pinched at set shares of the route, and closed at both ends. Over the last `basin` units the
 faces fall away to `basinHalfWidth` either side, beyond the sonar's reach, and a floor of low dunes and rubble
 comes up to `basinDepth` below the route over the `floorRise` units before the mouth, a gentle slope (the void
 above stays): open water after the trench, where a scan
@@ -466,6 +468,7 @@ are named at the top of the stylesheet that uses them.
 | `npm run build` | Validate terrain bake, compile, type-check, generate routes |
 | `npm run lint` | ESLint |
 | `npm run bake:terrain` / `npm run check:terrain-bake` | Generate / validate terrain artifacts |
+| `npm run bake:lake` / `npm run check:lake-bake` | Generate / validate the lake dive's crack walls (rerun after changing the route, the walls or their config) |
 | `npm run bake:oil` | Legacy: rebuild oil pigment and relief maps (unused by the live site) |
 | `npm run sync:artwork-dimensions` | Update artwork dimensions |
 | `node scripts/test/<file>.mjs` | Unit checks: About path, Places globe, dev config writer, backdrop wipe, camera transition, carousel layout, text transition, reach field |

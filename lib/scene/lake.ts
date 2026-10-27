@@ -211,41 +211,58 @@ export class CrackRoute {
     const cos = Math.cos(theta), sin = Math.sin(theta);
     const b = sin < 0 ? bDown : bUp;
     const p = c.slotPower;
-    const slot = 1 / Math.pow(Math.pow(Math.abs(cos) / a, p) + Math.pow(Math.abs(sin) / b, p), 1 / p);
-    // Where this point lies on a face: its height up the trench, for the relief and the ledges.
+    const side = cos < 0 ? 1 : 0;
+    // Each face leans: it steps back (or, a little, overhangs) as it rises, by a slope that wanders along the
+    // route, and closes in more gently below, so the trench is a gorge rather than a slot. The lean shears the
+    // slot's own shape, which keeps the wall one surface about the route whatever the slope.
+    const lean = c.wallLean * (0.4 + fbm3(s * c.wallLeanDetail + side * 9.1, side * 5.5, 3.3));
+    const shear = Math.max(Math.abs(cos) - lean * (sin > 0 ? 1 : 0.3) * sin, 1e-4);
+    const slot = 1 / Math.pow(Math.pow(shear / a, p) + Math.pow(Math.abs(sin) / b, p), 1 / p);
+    // Where this point lies on a face: its height up the trench, for the landforms and the shelves. The forms
+    // grow broader with height (`rise`, compressed past `riseScale` units): a bump steep enough high up the face
+    // would fold back over the rock beneath it as seen from the route, which the wall, one radius per angle about
+    // the route, cannot hold; and far rock reads as broad forms anyway.
     const station = this.stations[Math.min(Math.max(Math.round(s / this.spacing), 0), this.stations.length - 1)];
     const up = slot * sin;
-    const height = station.position.y + up * station.narrow.y;
-    const side = cos < 0 ? 1 : 0;
-    // Large bulges; blocks and spalls a unit or two across, their faces flattened and their edges sharp; finer
-    // roughness; and ledges stepping in and out where the beds change, their edges wandering along the route.
-    const n = fbm3(up * 0.12 + 7.1 + side * 13.7, s * c.wallDetail, 2.3);
-    // The blocks fade out high up the faces, where the ring's vertices are too sparse to carry their edges (and
-    // the sonar seldom reaches).
-    const m = fbm3(up * c.wallMidDetail + side * 31.3, s * c.wallMidDetail + 2.2, 4.4);
-    const block = smoothstep(-0.5, 0.5, m) * 2 - 1;
-    const mid = (0.5 * m + 0.5 * block) * (1 - smoothstep(10, 22, Math.abs(up)));
-    const fine = fbm3(up * 0.3 + 1.7 + side * 5.1, s * 0.2 + 4.0, 9.1);
-    const band = height / c.terraceSpacing + 0.3 * fbm3(up * 0.05 + 2.0 + side * 3.3, s * 0.05, 6.0);
-    // The ledges' steps soften high up the faces, for the same reason the blocks fade there.
-    const soft = 0.15 + 0.3 * smoothstep(8, 20, Math.abs(up));
-    const ledge = (smoothstep(0.5 - soft, 0.5 + soft, band - Math.floor(band)) - 0.5) * 2;
-    // The relief belongs to the faces (the floor and the lake bed far off keep the slot's shape), and never takes
-    // more than a share of the gap, so pinches stay passable.
-    // The relief is a share of the radius, so where the basin's faces stand far out it is scaled back to the
-    // trench's size in units, or its ledges would be slabs.
-    const faceScale = Math.min(1, c.halfWidth[1] / a);
-    const faces = (c.wallNoise * n + c.wallMid * mid + c.wallRoughness * fine + c.terrace * ledge)
-      * Math.abs(cos) * faceScale;
-    // The floor, as it comes up: low dunes and rubble.
+    const rise = Math.sign(up) * c.riseScale * Math.log(1 + Math.abs(up) / c.riseScale);
+    const height = station.position.y + rise * station.narrow.y;
+    // The faces' landforms, as a sideways push of the face in units: large bulges; spurs running slantwise down
+    // the face; rounded buttresses and alcoves several units across; shelves where the beds change; a little finer
+    // roughness. Nothing much under a unit, which would only saw the silhouettes at a scan's distance (the scanned
+    // rock carries the fine grain).
+    const n = fbm3(rise * 0.12 + 7.1 + side * 13.7, s * c.wallDetail, 2.3);
+    const along = (side ? 1 : -1) * 0.7;
+    const rib = fbm3((rise + s * along) * c.wallSpurDetail + side * 17.3, (s - rise * along) * 0.03, 7.7);
+    const spur = 1 - 2 * Math.sqrt(rib * rib + 0.02);
+    const m = fbm3(rise * c.wallMidDetail + side * 31.3, s * c.wallMidDetail + 2.2, 4.4);
+    const mid = smoothstep(-0.8, 0.8, m) * 2 - 1;
+    const fine = fbm3(rise * 0.12 + 1.7 + side * 5.1, s * 0.1 + 4.0, 9.1);
+    const band = height / c.terraceSpacing + 0.3 * fbm3(rise * 0.05 + 2.0 + side * 3.3, s * 0.05, 6.0);
+    // Each bed stands out as a shelf and eases back into a recess before the next, with no step between beds.
+    const f = band - Math.floor(band);
+    const ledge = (smoothstep(0.1, 0.4, f) - smoothstep(0.6, 0.9, f)) * 2 - 1;
+    // The relief is in the trench's units, so where the basin's faces stand far out its forms stay rock-sized
+    // rather than slabs. It belongs to the faces: the basin's floor keeps its own, and far up and down the faces,
+    // beyond the sonar, the slot's plain shape takes over.
+    const scale = Math.min(a, c.halfWidth[1]);
     const floorness = Math.max(-sin, 0) * this.floorIn(s);
+    // Up the face the forms grow as they broaden, so the rock high above is as broken as the rock alongside.
+    const grow = 1 + 0.3 * Math.abs(rise) / c.riseScale;
+    const reach = grow * (1 - smoothstep(20, 32, Math.abs(up))) * (1 - floorness);
+    const push = scale * (c.wallNoise * n + c.wallSpur * spur + c.wallMid * mid
+      + c.wallRoughness * fine + c.terrace * ledge) * reach;
+    // The floor, as it comes up: low dunes and rubble.
     const across = slot * cos;
     const floor = (0.07 * fbm3(across * 0.3 + 2.0, s * 0.3, 5.5) + 0.025 * fbm3(across * 1.2 + 4.0, s * 1.2, 8.8))
       * floorness * floorness;
-    const shape = Math.max(1 + faces + floor, 0.72);
+    // A sideways push moves the face along the radius by the push over the cosine; that also lifts it, by the
+    // push times the tangent, so far up and down a face, where the radius runs steep, the push is held back (its
+    // forms fade there) rather than stretching the rock up the face. The wall never closes in to much less than a
+    // share of the slot, so pinches stay passable; it eases onto that limit rather than kinking.
+    const r = smoothMax(slot * (1 + floor) + push / Math.max(Math.abs(cos), 0.4), slot * 0.72, 1);
     // The trench closes at the start (under the lake) and at the walls' end, far beyond the sonar.
     const cap = smoothstep(0, 3, s) * smoothstep(this.end, this.end - 1.2, s);
-    return Math.max(slot * shape * cap, 0.05);
+    return Math.max(r * cap, 0.05);
   }
 
   /**
@@ -390,81 +407,102 @@ export class CrackRoute {
     };
   }
 
-  /** Triangle mesh of the walls, normals pointing into the crack. */
-  buildGeometry() {
-    const {stations, config} = this;
-    const ring = config.ringSegments;
-    const positions = new Float32Array(stations.length * ring * 3);
-    const along = new Float32Array(stations.length * ring);
-    const vertex = new Vector3();
-    for (let i = 0; i < stations.length; i++) {
-      const station = stations[i];
+  /** The ring's vertex angles, as the mesh lays them out. */
+  ringAngles() {
+    return Float64Array.from({length: this.config.ringSegments}, (_, j) => this.ringAngle(j));
+  }
+
+  /**
+   * The wall's radius at every station and ring angle, station by station: the costly part of the walls' mesh,
+   * baked at build time (scripts/bake/bake-lake.mjs) and laid out in the browser by `layPositions`.
+   */
+  radii() {
+    const angles = this.ringAngles();
+    const ring = angles.length;
+    const radii = new Float32Array(this.stations.length * ring);
+    for (let i = 0; i < this.stations.length; i++) {
+      for (let j = 0; j < ring; j++) radii[i * ring + j] = this.radius(angles[j], this.stations[i].s);
+    }
+    return radii;
+  }
+
+  /** Vertex positions for stations [from, to) from the radii (indexed station by station, then by ring angle). */
+  layPositions(radii: ArrayLike<number>, scale: number, angles: Float64Array, positions: Float32Array, from: number,
+    to: number) {
+    const ring = angles.length;
+    for (let i = from; i < to; i++) {
+      const {position, wide, narrow} = this.stations[i];
       for (let j = 0; j < ring; j++) {
-        const theta = this.ringAngle(j);
-        const r = this.radius(theta, station.s);
-        vertex.copy(station.position)
-          .addScaledVector(station.wide, r * Math.cos(theta))
-          .addScaledVector(station.narrow, r * Math.sin(theta));
         const k = i * ring + j;
-        positions[k * 3] = vertex.x;
-        positions[k * 3 + 1] = vertex.y;
-        positions[k * 3 + 2] = vertex.z;
-        along[k] = station.s / this.length;
+        const r = radii[k] * scale;
+        const u = r * Math.cos(angles[j]), v = r * Math.sin(angles[j]);
+        positions[k * 3] = position.x + wide.x * u + narrow.x * v;
+        positions[k * 3 + 1] = position.y + wide.y * u + narrow.y * v;
+        positions[k * 3 + 2] = position.z + wide.z * u + narrow.z * v;
       }
     }
-    const quads = (stations.length - 1) * ring;
+  }
+
+  /**
+   * Vertex normals for stations [from, to) from the laid positions (the stations either side must be laid too):
+   * across the ring and along the route, turned to face the route's centre line, into the crack.
+   */
+  layNormals(positions: Float32Array, normals: Float32Array, ring: number, from: number, to: number) {
+    const last = this.stations.length - 1;
+    const read = (i: number, j: number, out: Vector3) => out.fromArray(positions, (i * ring + (j + ring) % ring) * 3);
+    const a = new Vector3(), b = new Vector3(), across = new Vector3(), along = new Vector3(), n = new Vector3();
+    for (let i = from; i < to; i++) {
+      const centre = this.stations[i].position;
+      for (let j = 0; j < ring; j++) {
+        across.subVectors(read(i, j + 1, a), read(i, j - 1, b));
+        along.subVectors(read(Math.min(i + 1, last), j, a), read(Math.max(i - 1, 0), j, b));
+        n.crossVectors(across, along).normalize();
+        read(i, j, a);
+        if (n.dot(b.subVectors(centre, a)) < 0) n.negate();
+        n.toArray(normals, (i * ring + j) * 3);
+      }
+    }
+  }
+
+  /** The walls' triangles over the station-by-station grid, wound to face into the crack. */
+  layIndices(ring: number) {
+    const quads = (this.stations.length - 1) * ring;
     const indices = new Uint32Array(quads * 6);
     let n = 0;
-    for (let i = 0; i < stations.length - 1; i++) {
+    for (let i = 0; i < this.stations.length - 1; i++) {
       for (let j = 0; j < ring; j++) {
         const a = i * ring + j;
         const b = i * ring + (j + 1) % ring;
         const c = (i + 1) * ring + (j + 1) % ring;
         const d = (i + 1) * ring + j;
-        // Wound to face the inside of the crack (theta runs wide -> narrow, which is right -> up seen from
-        // inside looking down the route).
-        indices[n++] = a; indices[n++] = c; indices[n++] = b;
-        indices[n++] = a; indices[n++] = d; indices[n++] = c;
+        // Wound to face the inside of the crack: the station frame has the same handedness all along the route.
+        indices[n++] = a; indices[n++] = b; indices[n++] = c;
+        indices[n++] = a; indices[n++] = c; indices[n++] = d;
       }
     }
+    return indices;
+  }
+
+  /** Triangle mesh of the walls, all at once (scripts and tests; the browser lays the baked radii in chunks). */
+  buildGeometry(radii: ArrayLike<number> = this.radii(), scale = 1) {
+    const angles = this.ringAngles();
+    const ring = angles.length;
+    const positions = new Float32Array(this.stations.length * ring * 3);
     const normals = new Float32Array(positions.length);
-    const pa = new Vector3(), pb = new Vector3(), pc = new Vector3(), face = new Vector3();
-    for (let i = 0; i < indices.length; i += 3) {
-      const ia = indices[i], ib = indices[i + 1], ic = indices[i + 2];
-      pa.fromArray(positions, ia * 3);
-      pb.fromArray(positions, ib * 3);
-      pc.fromArray(positions, ic * 3);
-      face.crossVectors(pb.sub(pa), pc.sub(pa));
-      for (const index of [ia, ib, ic]) {
-        normals[index * 3] += face.x;
-        normals[index * 3 + 1] += face.y;
-        normals[index * 3 + 2] += face.z;
-      }
-    }
-    for (let i = 0; i < normals.length; i += 3) {
-      const l = Math.hypot(normals[i], normals[i + 1], normals[i + 2]) || 1;
-      normals[i] /= l; normals[i + 1] /= l; normals[i + 2] /= l;
-    }
-    // Make sure the normals point inward (toward the centre line) whichever way the frame turned out.
-    const probe = Math.floor(stations.length / 2) * ring;
-    const centre = stations[Math.floor(stations.length / 2)].position;
-    pa.fromArray(positions, probe * 3);
-    pb.fromArray(normals, probe * 3);
-    if (pb.dot(pc.subVectors(centre, pa)) < 0) {
-      for (let i = 0; i < normals.length; i++) normals[i] = -normals[i];
-      for (let i = 0; i < indices.length; i += 3) {
-        const swap = indices[i + 1];
-        indices[i + 1] = indices[i + 2];
-        indices[i + 2] = swap;
-      }
-    }
-    return {positions, normals, indices, along};
+    this.layPositions(radii, scale, angles, positions, 0, this.stations.length);
+    this.layNormals(positions, normals, ring, 0, this.stations.length);
+    return {positions, normals, indices: this.layIndices(ring)};
   }
 }
 
 function smoothstep(edge0: number, edge1: number, x: number) {
   const t = Math.min(1, Math.max(0, (x - edge0) / (edge1 - edge0)));
   return t * t * (3 - 2 * t);
+}
+
+/** The larger of a and b, rounded over a width of about `k` where they meet. */
+function smoothMax(a: number, b: number, k: number) {
+  return 0.5 * (a + b + Math.sqrt((a - b) * (a - b) + k * k));
 }
 
 export type CraftState = {
@@ -528,18 +566,19 @@ export function advanceCraft(
   let bumped = false;
   for (let step = 0; step < steps; step++) {
     craft.position.addScaledVector(HEADING, move / steps);
-    if (settleAgainstWalls(craft, route, locus, config, dt / steps)) bumped = true;
+    if (settleAgainstWalls(craft, input, route, locus, config, dt / steps)) bumped = true;
   }
-  if (move === 0 && settleAgainstWalls(craft, route, locus, config, dt)) bumped = true;
+  if (move === 0 && settleAgainstWalls(craft, input, route, locus, config, dt)) bumped = true;
   return bumped;
 }
 
 /**
  * Keeps the craft off the walls and off the route's closed ends; true on contact. Pressed against a wall, the
- * heading eases toward the wall's own direction (the slide) rather than snapping to it.
+ * heading eases toward the wall's own direction (the slide) rather than snapping to it, and a held turn overrides
+ * the slide as far as it is held, so a turn into a smooth face still brings the craft round.
  */
 function settleAgainstWalls(
-  craft: CraftState, route: CrackRoute, locus: Locus, config: LakeDiveConfig, dt: number,
+  craft: CraftState, input: CraftInput, route: CrackRoute, locus: Locus, config: LakeDiveConfig, dt: number,
 ) {
   route.locate(craft.position, locus, craft.hint);
   craft.hint = locus.index;
@@ -561,8 +600,10 @@ function settleAgainstWalls(
     if (SLIDE.lengthSq() > 1e-6) {
       SLIDE.normalize();
       const ease = 1 - Math.exp(-config.slideEase * dt);
-      craft.yaw += wrapAngle(directionYaw(SLIDE) - craft.yaw) * ease;
-      const pitch = craft.pitch + (directionPitch(SLIDE) - craft.pitch) * ease;
+      const yawEase = ease * (1 - Math.min(Math.abs(input.yaw), 1));
+      const pitchEase = ease * (1 - Math.min(Math.abs(input.pitch), 1));
+      craft.yaw += wrapAngle(directionYaw(SLIDE) - craft.yaw) * yawEase;
+      const pitch = craft.pitch + (directionPitch(SLIDE) - craft.pitch) * pitchEase;
       craft.pitch = Math.min(config.pitchRange[1], Math.max(config.pitchRange[0], pitch));
       headingDirection(craft.yaw, craft.pitch, HEADING);
     }

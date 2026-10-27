@@ -221,12 +221,7 @@ body[data-lake='underwater'] > nav {
 .lake-hud-sonar {
   display: flex;
   align-items: center;
-  gap: 0.9em;
   margin-top: 0.35rem;
-}
-
-.lake-hud-sonar .lake-hud-label[data-ready='false'] {
-  color: rgb(127 227 234 / 30%);
 }
 
 .lake-hud-sonar-bar {

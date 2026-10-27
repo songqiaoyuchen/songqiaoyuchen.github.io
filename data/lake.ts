@@ -38,7 +38,7 @@ export const LAKE_LETTER: {title: string; signature: string; pages: readonly Lak
       photo: {
         image: ljubljanaPhoto,
         alt: 'Photo of author at sunset, with city and mountains in the background.', 
-        caption: 'A photo of me, at Ljubljana.'}
+        caption: 'Me at Ljubljana, Slovenia.'}
     },
     {
       heading: 'To be continued...',
