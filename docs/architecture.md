@@ -120,8 +120,9 @@ the second: they are the sonar's alone, never in the afterimage or the resting l
 frame and place in the cross-section), `wallDistance` (a ray to the wall, for the readouts) and `advanceCraft`
 (direction from the player alone, free in every direction so a corner is never a trap; fixed speed; the move
 taken in `collisionStep` sub-steps each kept off the walls, the heading easing along a wall it is pressed against
-at `slideEase`; a knock that cuts the speed to `bumpSlow` and slides along the wall with
-the system's warning repeating while the contact lasts and a jolt of the view (`bumpKick`); never past the ends; nothing steers for the player; the
+at `slideEase`; a knock that cuts the speed to `bumpSlow` and slides along the wall, with a jolt of the view
+(`bumpKick`), returning the share of full speed carried into the face; never past the ends; nothing steers for
+the player; the
 basin runs at `basinSpeed` so the floor can be searched, and at the basin's far end, beyond the sonar, the craft
 holds still). The walls are
 seen by sonar (`shaders/lake/crack.frag`) and, within `ambientReach`, by a faint resting light: one ping is sent as
@@ -134,10 +135,15 @@ and what the front has passed decays over `pingDecay`, the return weakening with
 HTML) reads the dive's telemetry each frame through a shared ref and writes the player's input into another: wall
 readouts, live soundings each side every frame that a ping in flight caps at its front so they count up with it,
 depth and speed in metres (`metresPerUnit`), heading and pitch in degrees (the one fixed reference in the open
-water, so a turn can be undone), a scanning label, how to scan until the first ping, the hint until
-the first input, and after a finished dive a skip that lands a way before the bottle, facing it, with the
+water, so a turn can be undone), a scanning label, how to scan until the first ping, the controls legend
+(steady through the dive; Surface shows its Esc key), and after a finished dive a skip that lands a way before the bottle, facing it, with the
 revealing scan sent (`placeCraftBeforeBottle`). The dive ends when a scan has reached the bottle while it lies
-ahead within `foundRange`, or when the craft is right on it. Leva's Lake folder
+ahead within `foundRange`, or when the craft is right on it. The hull (`wearHull`) loses `hullHit` on a fresh knock
+(one after `contactGrace` clear of the rock; `hullGraze` of it for the lightest, all from `hullFullImpact`) and
+`hullScrape` a second against it; the
+HUD shows it with the system's red warnings (contact on the side touched, critical below `hullCritical`), the
+sound module adds the knock, the scrape and the dry alarm, and at 0 the flow's `breached` stage holds the dead
+screen for `LAKE_FLOW.breachHold` before surfacing. Leva's Lake folder
 tunes the cooldown, the sonar, the resting light, the feel, the found range and the sound, and Save Config writes
 them to `LAKE_DIVE_CONFIG`. Reduced motion drops the camera's lag and lean and makes pings
 instant. Completion is remembered in the browser (`sqyc:lake`): the lake then offers the dive again and a Read the

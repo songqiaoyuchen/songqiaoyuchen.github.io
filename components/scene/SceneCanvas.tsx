@@ -123,13 +123,14 @@ type SceneCanvasProps = {
   placesGlobeFrontRef: MutableRefObject<GlobeFront | null>;
   onPoseSettled?: (pose: SectionId | null | undefined) => void;
   /** The lake dive (components/lake/useLakeFlow.ts): its stage, the HUD's input and the dive's telemetry, the
-   * lake's click, the bottle reached, and the letter reopened from the overview. */
+   * lake's click, the bottle reached, the hull given out, and the letter reopened from the overview. */
   lake: LakeState;
   lakeCompleted: boolean;
   lakeInputRef: MutableRefObject<LakeInput>;
   lakeTelemetryRef: MutableRefObject<LakeTelemetry>;
   onLakeEnter: () => void;
   onLakeFound: () => void;
+  onLakeBreach: () => void;
   onLakeLetter: () => void;
   /** The preloader's cover is lifting: the intro reveal's clock runs and the terrain draws its lines in. */
   revealStarted: boolean;
@@ -165,6 +166,7 @@ export const SceneCanvas = memo(function SceneCanvas({
   lakeTelemetryRef,
   onLakeEnter,
   onLakeFound,
+  onLakeBreach,
   onLakeLetter,
   revealStarted,
   introStarted,
@@ -468,6 +470,7 @@ export const SceneCanvas = memo(function SceneCanvas({
                     onCrackMesh={setCrackMesh}
                     onBottleMesh={setBottleMesh}
                     onFound={onLakeFound}
+                    onBreach={onLakeBreach}
                   />
                   {placesWanted ? (
                     <Globe

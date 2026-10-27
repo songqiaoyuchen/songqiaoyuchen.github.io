@@ -1,11 +1,13 @@
 // Checks the lake dive's crack (lib/scene/lake.ts): a route of the asked length descending from under the lake,
 // walls closed at both ends, a point on the centre line always inside, an idle craft kept inside (nothing steers
-// it), and a craft steered along the route reaching the bottle.
+// it), a craft steered along the route reaching the bottle with its hull whole, and a craft left on the wall
+// wearing its hull out.
 import assert from 'node:assert/strict';
 import {Vector3} from 'three';
 import {LAKE_DIVE_CONFIG, lakePlacement} from '../../config/scene/lake.ts';
 import {
-  advanceCraft, createCraft, createLocus, CrackRoute, directionPitch, directionYaw, headingDirection, wrapAngle,
+  advanceCraft, createCraft, createLocus, CrackRoute, directionPitch, directionYaw, headingDirection, wearHull,
+  wrapAngle,
 } from '../../lib/scene/lake.ts';
 
 const LAKE = lakePlacement();
@@ -115,17 +117,27 @@ assert.ok(bottle.y < locus.center.y - 4, 'bottle well below the route');
 assert.ok(locus.s > LAKE_DIVE_CONFIG.length - LAKE_DIVE_CONFIG.basin - 1, 'bottle in the basin');
 
 // A craft driven by nothing else runs into a wall and stays inside, never past the route's ends.
+// Left to knock and slide along the walls that long, its hull wears: scraping along the rock is no free way down.
 const idle = createCraft(route);
+let idleHull = 1;
+let idleContact = -1000;
 for (let i = 0; i < 60 * 60; i++) {
-  advanceCraft(idle, {yaw: 0, pitch: 0}, route, locus, 1 / 60, LAKE_DIVE_CONFIG.speed, LAKE_DIVE_CONFIG);
+  const impact = advanceCraft(idle, {yaw: 0, pitch: 0}, route, locus, 1 / 60, LAKE_DIVE_CONFIG.speed, LAKE_DIVE_CONFIG);
+  if (impact > 0) {
+    idleHull = wearHull(idleHull, impact, i / 60 - idleContact > LAKE_DIVE_CONFIG.contactGrace, 1 / 60, LAKE_DIVE_CONFIG);
+    idleContact = i / 60;
+  }
   route.locate(idle.position, locus);
   assert.ok(locus.rho <= locus.radius + 1e-3, 'idle craft stays inside');
   assert.ok(locus.s >= 0 && locus.s <= route.length, 'idle craft stays on the route');
 }
 
 // A craft steered along the route (toward its direction, in the basin toward the bottle) reaches the bottle.
+assert.ok(idleHull < 0.75, `a craft left on the wall wears its hull (${Math.round(idleHull * 100)}% left)`);
+
 const craft = createCraft(route);
 let bumps = 0;
+let hull = 1;
 let seconds = 0;
 const start = craft.position.clone();
 const aim = new Vector3();
@@ -137,13 +149,26 @@ while (seconds < 450) {
   const yawError = wrapAngle(directionYaw(aim) - craft.yaw);
   const pitchError = directionPitch(aim) - craft.pitch;
   const input = {yaw: Math.max(-1, Math.min(1, -yawError * 3)), pitch: Math.max(-1, Math.min(1, pitchError * 3))};
-  if (advanceCraft(craft, input, route, locus, 1 / 60, LAKE_DIVE_CONFIG.speed, LAKE_DIVE_CONFIG)) bumps++;
+  const impact = advanceCraft(craft, input, route, locus, 1 / 60, LAKE_DIVE_CONFIG.speed, LAKE_DIVE_CONFIG);
+  if (impact > 0) {
+    bumps++;
+    hull = wearHull(hull, impact, true, 1 / 60, LAKE_DIVE_CONFIG);
+  }
   seconds += 1 / 60;
   if (craft.position.distanceTo(bottle) < LAKE_DIVE_CONFIG.reach) break;
 }
 assert.ok(craft.position.distanceTo(bottle) < LAKE_DIVE_CONFIG.reach,
   `steered craft reaches the bottle (${seconds.toFixed(0)} s, ${craft.position.distanceTo(bottle).toFixed(1)} off)`);
 assert.ok(bumps < 60 * 6, `steered craft bumps little (${bumps} frames)`);
+assert.ok(hull > 0.5, `steered craft keeps its hull (${Math.round(hull * 100)}%)`);
+
+// Rams as a player makes them (0.2 to 0.4 of full speed into the face): six hold, seven break the hull.
+const ram = (count) => {
+  let worn = 1;
+  for (let i = 0; i < count; i++) worn = wearHull(worn, 0.3, true, 1 / 60, LAKE_DIVE_CONFIG);
+  return worn;
+};
+assert.ok(ram(6) > 0 && ram(7) === 0, `seven rams breach the hull (${Math.round(ram(6) * 100)}% after six)`);
 assert.ok(craft.position.y < start.y - 50, 'the craft went down');
 
 // A craft steered hard left stays inside and slides; the heading is free, so it can turn right round, which is

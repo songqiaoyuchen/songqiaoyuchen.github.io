@@ -1,15 +1,20 @@
-// The dive screen: the sonar readouts (metres to the wall on each side, counting up with the ping's front), depth
-// and speed, the scanning label, a hint and the way out. It owns the player's input: arrow or WASD keys and a drag
+// The dive screen: the sonar readouts (metres to the wall on each side, counting up with the ping's front), depth,
+// speed and the hull, the scanning label, the system's warnings (contact, the hull critical, the breach), a hint and
+// the way out. It owns the player's input: arrow or WASD keys and a drag
 // steer, space, enter, a click or a tap send a ping, Escape surfaces. Numbers are written straight into the DOM
 // from the dive's telemetry each frame, so nothing re-renders.
 'use client';
 
-import {useEffect, useRef, type MutableRefObject, type PointerEvent as ReactPointerEvent} from 'react';
+import {useEffect, useRef, useState, type MutableRefObject, type PointerEvent as ReactPointerEvent} from 'react';
+import {LAKE_DIVE_CONFIG} from '@/config/scene/lake';
 import {isUnderwater, type LakeInput, type LakeState, type LakeTelemetry} from './lakeState';
 
 const TAP_PIXELS = 10;
 const TAP_SECONDS = 0.35;
 const STEER_PIXELS = 140;
+// The eased contact mark (telemetry.bump) above which the screen says the craft is on the wall.
+const CONTACT_SHOWN = 0.2;
+const WARNINGS = {contact: 'Hull contact', critical: 'Hull critical', none: ''} as const;
 
 type LakeHudProps = {
   state: LakeState;
@@ -45,15 +50,21 @@ export function LakeHud({
   const pitchRef = useRef<HTMLSpanElement>(null);
   const scanRef = useRef<HTMLSpanElement>(null);
   const progressRef = useRef<HTMLSpanElement>(null);
-  const sonarRef = useRef<HTMLSpanElement>(null);  const held = useRef({...HELD});
+  const sonarRef = useRef<HTMLSpanElement>(null);
+  const hullRef = useRef<HTMLSpanElement>(null);
+  const warningRef = useRef<HTMLSpanElement>(null);
+  const held = useRef({...HELD});
   const drag = useRef<{id: number; x: number; y: number; at: number; moved: boolean} | null>(null);
   const steer = useRef({yaw: 0, pitch: 0});
-  const hintShown = useRef(true);
   // Until the player's first ping, the screen says how to scan.
   const scanHintShown = useRef(true);
   const underwater = isUnderwater(state);
   const active = state === 'diving';
   const shown = state !== 'idle' && state !== 'entering' && state !== 'returning';
+  // A breach holds the dead screen until the next dive, through the veil on the way up.
+  const [dead, setDead] = useState(false);
+  if (state === 'breached' && !dead) setDead(true);
+  if ((state === 'diving' || state === 'idle') && dead) setDead(false);
 
   // Keyboard: held keys steer, space or enter pings, Escape surfaces (the letter has its own Escape).
   useEffect(() => {
@@ -73,12 +84,10 @@ export function LakeHud({
       if (key) {
         keys[key] = true;
         apply();
-        hintShown.current = false;
         event.preventDefault();
       } else if (event.code === 'Space' || event.code === 'Enter') {
         if (state === 'found') onOpenLetter();
         else inputRef.current.ping = true;
-        hintShown.current = false;
         scanHintShown.current = false;
         event.preventDefault();
       } else if (event.key === 'Escape') {
@@ -132,7 +141,6 @@ export function LakeHud({
     const input = inputRef.current;
     input.yaw = Math.max(-1, Math.min(1, (keys.right ? 1 : 0) - (keys.left ? 1 : 0) + steer.current.yaw));
     input.pitch = Math.max(-1, Math.min(1, (keys.up ? 1 : 0) - (keys.down ? 1 : 0) + steer.current.pitch));
-    hintShown.current = false;
   };
   const onPointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
     const current = drag.current;
@@ -140,7 +148,6 @@ export function LakeHud({
     drag.current = null;
     if (!current.moved && performance.now() - current.at < TAP_SECONDS * 1000) {
       inputRef.current.ping = true;
-      hintShown.current = false;
       scanHintShown.current = false;
     }
     steer.current.yaw = steer.current.pitch = 0;
@@ -198,8 +205,22 @@ export function LakeHud({
       const progress = progressRef.current;
       if (progress) write('progress', t.progress.toFixed(3), (v) => { progress.style.transform = `scaleX(${v})`; });
       const sonar = sonarRef.current;
-      if (sonar) write('sonar', t.cooldown.toFixed(3), (v) => { sonar.style.transform = `scaleX(${v})`; });      write('bump', t.bump.toFixed(2), (v) => root.style.setProperty('--lake-bump', v));
-      write('hint', hintShown.current ? 'shown' : 'hidden', (v) => { root.dataset.hint = v; });
+      if (sonar) write('sonar', t.cooldown.toFixed(3), (v) => { sonar.style.transform = `scaleX(${v})`; });
+      const hull = hullRef.current;
+      if (hull) write('hull', `${Math.ceil(t.hull * 100)}%`, (v) => { hull.textContent = v; });
+      // The warning: on the wall, quicker once critical; critical alone off it.
+      const critical = t.hull < LAKE_DIVE_CONFIG.hullCritical;
+      const touching = t.bump > CONTACT_SHOWN;
+      const warn = touching ? (critical ? 'contact-critical' : 'contact') : critical ? 'critical' : 'none';
+      write('warn', warn, (v) => { root.dataset.warn = v; });
+      const warning = warningRef.current;
+      if (warning) {
+        write('warning', WARNINGS[critical ? 'critical' : touching ? 'contact' : 'none'],
+          (v) => { warning.textContent = v; });
+      }
+      write('hullState', critical ? 'critical' : 'ok', (v) => { root.dataset.hull = v; });
+      write('side', t.contactSide < 0 ? 'left' : 'right', (v) => { root.dataset.side = v; });
+      write('bump', t.bump.toFixed(2), (v) => root.style.setProperty('--lake-bump', v));
       write('scanHint', scanHintShown.current ? 'shown' : 'hidden', (v) => { root.dataset.scanHint = v; });
     };
     frame = requestAnimationFrame(tick);
@@ -213,6 +234,7 @@ export function LakeHud({
       data-state={state}
       data-shown={shown || undefined}
       data-letter={letterOpen || undefined}
+      data-dead={dead || undefined}
       aria-hidden={!shown}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
@@ -220,6 +242,19 @@ export function LakeHud({
       onPointerCancel={onPointerUp}
     >
       <div className="lake-hud-vignette" aria-hidden />
+      <span className="lake-hud-edge lake-hud-edge-left" aria-hidden />
+      <span className="lake-hud-edge lake-hud-edge-right" aria-hidden />
+      <p className="lake-hud-warning" aria-live="polite">
+        <span ref={warningRef} />
+      </p>
+      <div className="lake-hud-breach" aria-live="assertive">
+        {dead ? (
+          <>
+            <p className="lake-hud-breach-title">Hull breach</p>
+            <p className="lake-hud-breach-detail">Systems offline</p>
+          </>
+        ) : null}
+      </div>
       <p className="lake-hud-scan" aria-live="polite">
         <span ref={scanRef}>Scanning</span>
       </p>
@@ -257,6 +292,8 @@ export function LakeHud({
         <p className="lake-hud-speed">
           <span className="lake-hud-label">Speed</span>
           <span ref={speedRef}>0.0m/s</span>
+          <span className="lake-hud-label">Hull</span>
+          <span ref={hullRef} className="lake-hud-hull">100%</span>
         </p>
         <p className="lake-hud-attitude">
           <span className="lake-hud-label">Hdg</span>
@@ -269,11 +306,11 @@ export function LakeHud({
           <span className="lake-hud-sonar-bar" aria-hidden><span ref={sonarRef} /></span>
         </p>
       </div>
+      {/* The controls, the whole dive through; the way out is the Surface control's own. */}
       <p className="lake-hud-hint">
         <span className="lake-hud-hint-keys">
-          <span>Arrows steer</span>
-          <span>Space scans</span>
-          <span>Esc surfaces</span>
+          <span><kbd>Arrows</kbd> Steer</span>
+          <span><kbd>Space</kbd> Scan</span>
         </span>
         <span className="lake-hud-hint-touch">
           <span>Drag to steer</span>
@@ -303,6 +340,7 @@ export function LakeHud({
         }}
       >
         Surface
+        <kbd className="lake-hud-hint-keys">Esc</kbd>
       </button>
     </div>
   );

@@ -6,7 +6,7 @@
 
 import {Html} from '@react-three/drei';
 import {useFrame, useThree} from '@react-three/fiber';
-import {useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {
   BufferAttribute, BufferGeometry, Color, DataTexture, DataUtils, HalfFloatType, LinearFilter, Matrix4, Mesh,
   NormalBlending, RedFormat, UniformsLib, UniformsUtils, Vector2, Vector3, type Camera, type DepthTexture,
@@ -36,18 +36,66 @@ const OCCLUDER_RISE = 2.5;
 // lake's level draws whole over it as the shore; the lines under the water are left out by the contours
 // themselves (Contours' lake prop), since their depth bias would beat a depth test against the water.
 
-// The controls' screen position: the lake's centre, kept this far inside the viewport (phones see the lake at
-// the screen's edge).
+// The controls' screen position, kept this far inside the viewport. Phones place them at a set point on the
+// water (LAKE_CONFIG.mobileControlOffset); wider screens in the middle of the water as framed, wherever the
+// screen's shape crops it: a grid of rays from the camera meets the water's level, and the controls sit midway
+// between the highest and lowest cells that land on water, at their mean across (the water widens toward the
+// frame's foot, so its mean down would sink to the edge); recomputed only when the view or the screen changes.
 const SCREEN_MARGIN = {x: 84, y: 72};
+const WATER_GRID = {x: 32, y: 20};
 const PROJECTED = new Vector3();
-function placeControls(object: Object3D, camera: Camera, size: {width: number; height: number}) {
-  object.getWorldPosition(PROJECTED).project(camera);
-  const x = (PROJECTED.x + 1) / 2 * size.width;
-  const y = (1 - PROJECTED.y) / 2 * size.height;
+const ORIGIN = new Vector3();
+type ScreenSize = {width: number; height: number};
+
+function clampToScreen(x: number, y: number, size: ScreenSize) {
   return [
     Math.min(Math.max(x, SCREEN_MARGIN.x), size.width - SCREEN_MARGIN.x),
     Math.min(Math.max(y, SCREEN_MARGIN.y), size.height - SCREEN_MARGIN.y),
   ];
+}
+
+function placeControls(object: Object3D, camera: Camera, size: ScreenSize) {
+  object.getWorldPosition(PROJECTED).project(camera);
+  return clampToScreen((PROJECTED.x + 1) / 2 * size.width, (1 - PROJECTED.y) / 2 * size.height, size);
+}
+
+function framedWaterPlacement(onWater: (x: number, z: number) => boolean, level: number) {
+  const view = new Matrix4();
+  const projection = new Matrix4();
+  let width = 0;
+  let height = 0;
+  let centre: [number, number] | null = null;
+  return function placeOnWater(object: Object3D, camera: Camera, size: ScreenSize) {
+    if (size.width !== width || size.height !== height || !view.equals(camera.matrixWorld)
+      || !projection.equals(camera.projectionMatrix)) {
+      width = size.width;
+      height = size.height;
+      view.copy(camera.matrixWorld);
+      projection.copy(camera.projectionMatrix);
+      ORIGIN.setFromMatrixPosition(camera.matrixWorld);
+      let sumX = 0;
+      let top = 1;
+      let bottom = 0;
+      let count = 0;
+      for (let row = 0; row < WATER_GRID.y; row++) {
+        const v = (row + 0.5) / WATER_GRID.y;
+        for (let column = 0; column < WATER_GRID.x; column++) {
+          const u = (column + 0.5) / WATER_GRID.x;
+          const ray = PROJECTED.set(u * 2 - 1, 1 - v * 2, 0.5).unproject(camera).sub(ORIGIN);
+          if (ray.y >= 0) continue;
+          const t = (level - ORIGIN.y) / ray.y;
+          if (!onWater(ORIGIN.x + ray.x * t, ORIGIN.z + ray.z * t)) continue;
+          sumX += u;
+          top = Math.min(top, v);
+          bottom = Math.max(bottom, v);
+          count++;
+        }
+      }
+      centre = count ? [sumX / count, (top + bottom) / 2] : null;
+    }
+    if (!centre) return placeControls(object, camera, size);
+    return clampToScreen(centre[0] * size.width, centre[1] * size.height, size);
+  };
 }
 
 // The mesh's raycast, keeping only the hits that land on water: the disc reaches well past the shore (and,
@@ -97,7 +145,7 @@ export function LakeSurface({
   const controlsRef = useRef<HTMLDivElement>(null);
   const {center: [cx, cz], level, disc: {center: [discX, discZ], radii: [rx, rz]}} = lakePlacement();
   const isMobile = useThree((s) => s.size.width) < SCENE_LAYOUT_CONFIG.mobileMaxWidth;
-  const [controlX, controlZ] = isMobile ? LAKE_CONFIG.controlOffset.mobile : LAKE_CONFIG.controlOffset.desktop;
+  const [controlX, controlZ] = LAKE_CONFIG.mobileControlOffset;
 
   // The ground under the disc, from the contour field the drawn lines are marched from, so the shore is the drawn
   // contour at the lake's level, and the terrain itself (which that field never falls below) lies under the water
@@ -166,10 +214,12 @@ export function LakeSurface({
   useEffect(() => () => geometry.dispose(), [geometry]);
 
   // The pointer meets the water only where there is water: under the level, and before the terrain's edge fade.
-  const raycast = useMemo(() => waterRaycast((x, z) => {
+  const onWater = useCallback((x: number, z: number) => {
     const ground = groundAt(x, z);
     return !Number.isNaN(ground) && ground <= level && Math.hypot(x, z) <= fadeStart;
-  }), [fadeStart, groundAt, level]);
+  }, [fadeStart, groundAt, level]);
+  const raycast = useMemo(() => waterRaycast(onWater), [onWater]);
+  const placeOnWater = useMemo(() => framedWaterPlacement(onWater, level), [level, onWater]);
 
   const uniforms = useMemo(() => ({
     ...UniformsUtils.clone(UniformsLib.fog),
@@ -265,8 +315,14 @@ export function LakeSurface({
         />
       </mesh>
       {interactive ? (
-        <Html center zIndexRange={[30, 10]} position={[controlX, 0, controlZ]} calculatePosition={placeControls}>
-          <div ref={controlsRef} className="flex flex-col items-center gap-2" style={{opacity: 0}}>
+        <Html
+          center
+          zIndexRange={[30, 10]}
+          position={[controlX, 0, controlZ]}
+          calculatePosition={isMobile ? placeControls : placeOnWater}
+        >
+          {/* The letter's link lies over the middle of the dive's target, so the text itself marks the anchor. */}
+          <div ref={controlsRef} className="grid place-items-center *:[grid-area:1/1]" style={{opacity: 0}}>
             <button
               type="button"
               className={HIT_CLASS}

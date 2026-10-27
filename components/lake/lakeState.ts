@@ -7,12 +7,13 @@ export type LakeState =
   | 'entering' // the camera flies down to the water, the veil darkens
   | 'diving' // in the crack
   | 'found' // the bottle in reach; the letter opens
+  | 'breached' // the hull gave out: the sonar dies, then the dive surfaces
   | 'surfacing' // the veil darkens over the crack
   | 'returning'; // the camera flies back up to the overview
 
 /** The crack is on screen (the home scene hidden). */
 export function isUnderwater(state: LakeState) {
-  return state === 'diving' || state === 'found' || state === 'surfacing';
+  return state === 'diving' || state === 'found' || state === 'breached' || state === 'surfacing';
 }
 
 export type LakeInput = {
@@ -41,8 +42,12 @@ export type LakeTelemetry = {
   speed: number;
   /** 0..1: a ping is being sent. */
   scanning: number;
-  /** 0..1: the craft just brushed a wall. */
+  /** 0..1: the craft is against a wall, eased in and out. */
   bump: number;
+  /** The side of the wall last touched: -1 left, 1 right. */
+  contactSide: number;
+  /** 0..1: the hull's integrity; at 0 the dive ends. */
+  hull: number;
   /** 0..1: the sonar's readiness; 1 is ready to ping. */
   cooldown: number;
   /** 0..1: the share of the route behind the craft. */
@@ -60,7 +65,7 @@ export function createLakeInput(): LakeInput {
 export function createLakeTelemetry(): LakeTelemetry {
   return {
     left: 0, right: 0, leftFresh: 0, rightFresh: 0, measured: -1, depth: 0, speed: 0, scanning: 0, bump: 0,
-    cooldown: 1, progress: 0, heading: 0, pitch: 0,
+    contactSide: 0, hull: 1, cooldown: 1, progress: 0, heading: 0, pitch: 0,
   };
 }
 

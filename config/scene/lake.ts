@@ -18,13 +18,11 @@ export const LAKE_CONFIG = {
     center: [-1, -3] as readonly [number, number],
     radii: [11, 9] as readonly [number, number],
   },
-  // Where the HTML controls (the dive button, the letter) sit on the water, from its centre: phones frame the
+  // Where the HTML controls (the dive button, the letter) sit on phones, from the lake's centre: phones frame the
   // plain from the side (CAMERA_CONFIG.mobileOverviewPosition), with the scene text standing in the water, so
-  // there the controls sit at the lake's west end, clear of the columns. The water itself takes a click anywhere.
-  controlOffset: {
-    desktop: [0, 0.2] as readonly [number, number],
-    mobile: [-2.4, -0.9] as readonly [number, number],
-  },
+  // there the controls sit at the lake's west end, clear of the columns. Wider screens put them in the middle of
+  // the water as framed (LakeSurface). The water itself takes a click anywhere.
+  mobileControlOffset: [-2.4, -0.9] as readonly [number, number],
   // Colours (the site's gold and cyan; tokens.css --color-accent for the gold).
   gold: '#e8c77a',
   cyan: '#7fe3ea',
@@ -62,6 +60,7 @@ export const LAKE_FLOW = {
   veilUp: 1.1,
   surfaceVeil: 0.6, // the veil darkens over the crack
   returnFlight: 2.2, // the water back to the overview
+  breachHold: 2.4, // seconds of the dead screen after the hull gives out, before the veil
 } as const;
 
 export const LAKE_DIVE_CONFIG = {
@@ -139,6 +138,18 @@ export const LAKE_DIVE_CONFIG = {
   bumpSlow: 0.25, // speed kept on a bump: a knock nearly stops the craft
   bumpRecover: 0.7, // per second, so the speed takes a few seconds to come back
   bumpKick: 0.1, // radians the view is knocked over by a hit
+  // The hull: integrity runs from 1 to 0 over the dive and is never repaired in it; at 0 the dive ends. A fresh
+  // knock costs `hullHit` once its impact (the share of full speed carried into the face) reaches
+  // `hullFullImpact`, and never less than `hullGraze` of that for the lightest touch, so six or seven knocks
+  // break it; staying pressed against the rock costs `hullScrape` a second, so a slide along a wall is no free way
+  // down.
+  hullHit: 0.17,
+  hullGraze: 0.5,
+  hullFullImpact: 0.4, // a deliberate ram carries 0.2 to 0.4 of full speed into the face
+  hullScrape: 0.015,
+  hullCritical: 0.3, // below this the system warns even off the wall
+  contactGrace: 0.4, // seconds clear of the rock before a contact counts as a fresh knock (and the alarm stops)
+  breachList: 0.22, // radians the dead craft lists to as it drifts after a breach
   slideEase: 5, // per second: how quickly the heading turns along a wall it is pressed against
   lookEase: 30, // per second, the camera's lag behind the heading (none felt)
   lean: 0.09, // radians of roll per radian per second of yaw

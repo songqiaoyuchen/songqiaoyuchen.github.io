@@ -288,6 +288,7 @@ export function SceneShell({articles, children}: SceneShellProps) {
               lakeTelemetryRef={lakeTelemetryRef}
               onLakeEnter={lake.enter}
               onLakeFound={lake.found}
+              onLakeBreach={lake.breach}
               onLakeLetter={lake.openLetter}
               revealStarted={waveStarted || sceneState === 'ready'}
               introStarted={sceneState === 'ready'}

@@ -515,6 +515,8 @@ export type CraftState = {
   speedScale: number;
   /** The last station found, to keep the route search local. */
   hint: number;
+  /** Outward from the route toward the wall last touched. */
+  contactNormal: Vector3;
 };
 
 export type CraftInput = {
@@ -527,7 +529,7 @@ export type CraftInput = {
 export function createCraft(route: CrackRoute): CraftState {
   const start = route.startPose();
   return {position: start.position, yaw: start.yaw, pitch: start.pitch, yawVelocity: 0, pitchVelocity: 0,
-    speedScale: 1, hint: -1};
+    speedScale: 1, hint: -1, contactNormal: new Vector3()};
 }
 
 const HEADING = new Vector3();
@@ -537,7 +539,8 @@ const SLIDE = new Vector3();
  * One step of the craft: the heading turns with the input (and with nothing else), the craft moves at its fixed
  * speed (slowed after a bump), stays off the walls and slides along them, its heading easing along the wall
  * rather than snapping. The move is taken in short sub-steps, each checked against the walls, so a fast move
- * cannot slip through a face. Returns whether it bumped.
+ * cannot slip through a face. Returns how hard it met a wall: 0 for no contact, else the share of full speed
+ * carried into the face (a head-on knock at full speed is 1, a slide along it near 0).
  */
 export function advanceCraft(
   craft: CraftState, input: CraftInput, route: CrackRoute, locus: Locus, delta: number, speed: number,
@@ -563,17 +566,29 @@ export function advanceCraft(
   const move = atEnd ? 0 : speed * pace * craft.speedScale * dt;
   // The move in sub-steps, each kept off the walls, so none can carry the craft through a face.
   const steps = Math.max(1, Math.ceil(move / config.collisionStep));
-  let bumped = false;
+  let impact = 0;
   for (let step = 0; step < steps; step++) {
     craft.position.addScaledVector(HEADING, move / steps);
-    if (settleAgainstWalls(craft, input, route, locus, config, dt / steps)) bumped = true;
+    impact = Math.max(impact, settleAgainstWalls(craft, input, route, locus, config, dt / steps));
   }
-  if (move === 0 && settleAgainstWalls(craft, input, route, locus, config, dt)) bumped = true;
-  return bumped;
+  if (move === 0) impact = Math.max(impact, settleAgainstWalls(craft, input, route, locus, config, dt));
+  return impact;
 }
 
 /**
- * Keeps the craft off the walls and off the route's closed ends; true on contact. Pressed against a wall, the
+ * The hull's integrity after a frame of contact (`impact` from advanceCraft; 0 leaves it as it was): a fresh knock
+ * costs `hullHit` (at least `hullGraze` of it for the lightest touch, all of it from `hullFullImpact`), every moment
+ * against the rock `hullScrape` a second. Never below 0.
+ */
+export function wearHull(hull: number, impact: number, fresh: boolean, dt: number, config: LakeDiveConfig) {
+  if (impact <= 0) return hull;
+  const share = config.hullGraze + (1 - config.hullGraze) * Math.min(1, impact / config.hullFullImpact);
+  return Math.max(0, hull - (fresh ? config.hullHit * share : 0) - config.hullScrape * dt);
+}
+
+/**
+ * Keeps the craft off the walls and off the route's closed ends; returns the contact's impact (0 for none, see
+ * advanceCraft). Pressed against a wall, the
  * heading eases toward the wall's own direction (the slide) rather than snapping to it, and a held turn overrides
  * the slide as far as it is held, so a turn into a smooth face still brings the craft round.
  */
@@ -590,11 +605,13 @@ function settleAgainstWalls(
     craft.speedScale = Math.min(craft.speedScale, config.bumpSlow);
   }
   const limit = Math.max(locus.radius - config.margin, 0.2);
-  if (locus.rho <= limit) return false;
+  if (locus.rho <= limit) return 0;
   RADIAL.copy(locus.wide).multiplyScalar(locus.u / locus.rho).addScaledVector(locus.narrow, locus.v / locus.rho);
   craft.position.copy(locus.center).addScaledVector(RADIAL, limit);
-  craft.speedScale = Math.min(craft.speedScale, config.bumpSlow);
+  craft.contactNormal.copy(RADIAL);
   const into = HEADING.dot(RADIAL);
+  const impact = Math.max(craft.speedScale * Math.max(into, 0), 1e-3);
+  craft.speedScale = Math.min(craft.speedScale, config.bumpSlow);
   if (into > 0) {
     SLIDE.copy(HEADING).addScaledVector(RADIAL, -into);
     if (SLIDE.lengthSq() > 1e-6) {
@@ -608,5 +625,5 @@ function settleAgainstWalls(
       headingDirection(craft.yaw, craft.pitch, HEADING);
     }
   }
-  return true;
+  return impact;
 }

@@ -61,13 +61,28 @@ Status: direction and prototype decisions accepted (2026-10-25); first prototype
   Walls are noise-displaced around it. A few short side pockets; no maze.
 - Journey length: short. The first prototype is a quick dive, not the full experience; the
   final length is decided after playing it, and stays well under a few minutes.
-- Collisions: a knock: the system's two-tone warning repeating for as long as the contact lasts
-  (not a crash sound, nor a beep per touch; fifth and ninth play-throughs), a jolt of the
-  view, the speed cut to a quarter and a few seconds to come back, the readouts warming and the
-  screen's edges closing in while it lasts. Pressed against a wall, the heading eases along it
-  over a fraction of a second rather than snapping (tenth play-through). The move is checked
-  against the walls in short sub-steps, so nothing slips through a face.
-  No health, no restart (fourth play-through, 2026-10-26: the dive was too easy without this).
+- Collisions: a knock in the water and a grinding scrape while the contact lasts, a jolt of the
+  view, the speed cut to a quarter and a few seconds to come back. Pressed against a wall, the
+  heading eases along it over a fraction of a second rather than snapping (tenth play-through).
+  The move is checked against the walls in short sub-steps, so nothing slips through a face.
+- Hull integrity (2026-10-27, replacing "no health, no restart"; the contact had no cost, so
+  sliding along a wall was a free way down): 100% to 0%, never repaired within a dive. About
+  seven knocks break it (play-through, 2026-10-27: scaling the cost by speed made a ram cost
+  2-4%, since a ram carries only 0.2-0.4 of full speed into the face): a fresh knock costs
+  `hullHit`, at least `hullGraze` of it for the lightest touch; every second against the rock
+  costs `hullScrape`. On simulated pilots a careful dive keeps it whole, an honest one ends at
+  40-90%, and sloppy or messing-about play breaches. At 0 the hull breaches: a crunch, the instruments go out, the screen says "Hull
+  breach / Systems offline" for `breachHold`, and the dive surfaces on its own; diving again
+  starts afresh.
+- Warnings are the system's, in red (the one place red is used): a boxed "Hull contact" label
+  blinking with the alarm, the readout and a bracket at the screen edge on the side touched, and
+  the hull's percentage beside the speed. Below `hullCritical` the label reads "Hull critical",
+  the percentage turns red, and the alarm keeps a slow double pip even off the wall. The alarm
+  is dry square-wave pips outside the water's filter, quicker on the wall once critical (the
+  earlier soft two-tone sine read as a doorbell, and the gold edge glow as atmosphere).
+- Screen layout (2026-10-27): the controls legend (steer, scan; drag and tap on touch) stays
+  bottom left for the whole dive rather than vanishing on the first input; Surface, bottom
+  right, carries its own Esc key; "Skip to the bottle" sits in the top right corner.
 - Off course: invisible checkpoints along the main channel. Deep in a side pocket an
   "off course" warning appears; persisting, a current carries the player back to the last
   checkpoint. The cost is time, never progress.

@@ -1,6 +1,6 @@
-// The lake dive's flow: the overview, the flight down, the dive, the bottle and the letter, the flight back. The
-// shell holds it; the timers run on LAKE_FLOW, which the camera's flights (LakeDive) read too, so the veil goes
-// dark as the camera reaches the water and lifts as the crack is in place.
+// The lake dive's flow: the overview, the flight down, the dive, the bottle and the letter (or the hull giving out),
+// the flight back. The shell holds it; the timers run on LAKE_FLOW, which the camera's flights (LakeDive) read too,
+// so the veil goes dark as the camera reaches the water and lifts as the crack is in place.
 'use client';
 
 import {useCallback, useEffect, useRef, useState, useSyncExternalStore} from 'react';
@@ -71,6 +71,15 @@ export function useLakeFlow(enabled: boolean) {
     });
   }, [after, clearTimers]);
 
+  // The hull gave out: the dead screen holds a moment, then the dive surfaces on its own.
+  const breach = useCallback(() => {
+    if (stage.current !== 'diving') return;
+    clearTimers();
+    stage.current = 'breached';
+    setState('breached');
+    after(LAKE_FLOW.breachHold, surfaceFromCrack);
+  }, [after, clearTimers, surfaceFromCrack]);
+
   const surface = useCallback(() => {
     setLetterOpen(false);
     const current = stage.current;
@@ -110,5 +119,5 @@ export function useLakeFlow(enabled: boolean) {
     stage.current = 'idle';
   }, [clearTimers, enabled]);
 
-  return {state, letterOpen, veilDark, completed, enter, found, surface, openLetter, closeLetter};
+  return {state, letterOpen, veilDark, completed, enter, found, breach, surface, openLetter, closeLetter};
 }

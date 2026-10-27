@@ -1,7 +1,7 @@
 // The dive: the crack's walls under the lake, imaged by sonar pings (crack.frag), the bottle resting on the
 // basin's floor at the bottom, and the camera: the flight from the overview down to the water, the craft's own
-// view in the crack (direction by the player alone, speed fixed), and the flight back up. Reads the HUD's input
-// and writes its telemetry every frame (components/lake/lakeState.ts).
+// view in the crack (direction by the player alone, speed fixed), the hull worn by the rock until it gives out, and
+// the flight back up. Reads the HUD's input and writes its telemetry every frame (components/lake/lakeState.ts).
 'use client';
 
 import {useFrame, useThree} from '@react-three/fiber';
@@ -19,7 +19,7 @@ import {getCameraPose, SCENE_LAYOUT_CONFIG} from '@/config/scene';
 import {LAKE_CONFIG, LAKE_DIVE_CONFIG, LAKE_FLOW, lakePlacement} from '@/config/scene/lake';
 import {useReducedMotion} from '@/hooks/useReducedMotion';
 import {
-  advanceCraft, createCraft, createLocus, CrackRoute, headingDirection, type CraftState,
+  advanceCraft, createCraft, createLocus, CrackRoute, headingDirection, wearHull, type CraftState,
 } from '@/lib/scene/lake';
 import fragmentShader from '@/shaders/lake/crack.frag';
 import glowFragmentShader from '@/shaders/lake/crackGlow.frag';
@@ -148,10 +148,12 @@ type LakeDiveProps = {
   onCrackMesh: (mesh: Mesh | null) => void;
   onBottleMesh: (mesh: Mesh | null) => void;
   onFound: () => void;
+  /** The hull has given out. */
+  onBreach: () => void;
 };
 
 export function LakeDive({
-  state, settings, inputRef, telemetryRef, onCrackMesh, onBottleMesh, onFound,
+  state, settings, inputRef, telemetryRef, onCrackMesh, onBottleMesh, onFound, onBreach,
 }: LakeDiveProps) {
   const groupRef = useRef<Group>(null);
   const bottleRef = useRef<Group>(null);
@@ -292,6 +294,7 @@ export function LakeDive({
   const found = useRef(false);
   const knocking = useRef(false);
   const lastContact = useRef(-1000);
+  const hull = useRef(1);
   const foundAt = useRef(0);
   const divingSince = useRef(0);
   const scratch = useMemo(() => ({
@@ -361,12 +364,16 @@ export function LakeDive({
         lastPing.current = now + CFG.firstPingAt - CFG.pingCooldown;
         lastManualPing.current = -1000;
         found.current = false;
+        hull.current = 1;
+        lastContact.current = -1000;
         divingSince.current = now;
         Object.assign(telemetry, createLakeTelemetry());
         input.ping = false;
         input.skip = false;
       } else if (state === 'found') {
         foundAt.current = now;
+      } else if (state === 'breached') {
+        sonar.breach(settings.soundVolume);
       } else if (state === 'returning') {
         flight.current.elapsed = 0;
         flight.current.fromPosition.fromArray(placement.divePosition);
@@ -377,10 +384,15 @@ export function LakeDive({
       }
     }
 
-    // The crack is drawn only under water, fading in as the veil lifts and out as it falls.
-    if (state !== 'diving') sonar.contact(false, 0);
+    // The crack is drawn only under water, fading in as the veil lifts and out as it falls; a breach kills the
+    // sonar, and the walls go to black a little slower than the veil would take them.
+    if (state !== 'diving') {
+      sonar.alarm(0, 0);
+      sonar.scrape(0, 0);
+    }
     const fadeTarget = state === 'diving' || state === 'found' ? 1 : 0;
-    fade.current += (fadeTarget - fade.current) * (1 - Math.exp(-(fadeTarget ? 2.2 : 5) * Math.min(delta, 1 / 20)));
+    const fadeRate = fadeTarget ? 2.2 : state === 'breached' ? 2.5 : 5;
+    fade.current += (fadeTarget - fade.current) * (1 - Math.exp(-fadeRate * Math.min(delta, 1 / 20)));
     uniforms.uFade.value = fade.current;
     if (groupRef.current) groupRef.current.visible = underwater && fade.current > 0.001;
     bottleValues.uFound.value += ((state === 'found' ? 1 : 0) - bottleValues.uFound.value)
@@ -428,14 +440,14 @@ export function LakeDive({
         lastManualPing.current = now;
       }
     }
-    // The craft: steered by the player until the bottle is in reach, then drifting to a stop before it.
-    let bumped = false;
+    // The craft: steered by the player until the bottle is in reach (or the hull gives out), then drifting to a stop.
+    let impact = 0;
     const feel = {
       ...CFG, speed: settings.speed, basinSpeed: settings.basinSpeed, turnRate: settings.turnRate,
       pitchRate: settings.pitchRate,
     };
     if (state === 'diving') {
-      bumped = advanceCraft(current, {yaw: input.yaw, pitch: input.pitch}, route, locus, delta, settings.speed, feel);
+      impact = advanceCraft(current, {yaw: input.yaw, pitch: input.pitch}, route, locus, delta, settings.speed, feel);
       // The dive ends when a scan has reached the bottle while it lies ahead within the found range, or when the
       // craft is right on it whatever the scan showed.
       const bottleDistance = current.position.distanceTo(route.bottle);
@@ -462,7 +474,7 @@ export function LakeDive({
     const ease = reducedMotion ? 1 : 1 - Math.exp(-CFG.lookEase * dt);
     let targetYaw = current.yaw;
     let targetPitch = current.pitch;
-    if (state !== 'diving') {
+    if (state === 'found') {
       scratch.toBottle.subVectors(route.bottle, current.position).normalize();
       targetYaw = Math.atan2(scratch.toBottle.x, scratch.toBottle.z);
       targetPitch = Math.asin(MathUtils.clamp(scratch.toBottle.y, -1, 1));
@@ -470,8 +482,9 @@ export function LakeDive({
     const view = look.current;
     view.yaw += (targetYaw - view.yaw - Math.round((targetYaw - view.yaw) / (Math.PI * 2)) * Math.PI * 2) * ease;
     view.pitch += (targetPitch - view.pitch) * ease;
-    // Yaw grows to the left; a left turn banks the view left (a positive roll).
-    const leanTarget = reducedMotion || state !== 'diving' ? 0 : current.yawVelocity * CFG.lean;
+    // Yaw grows to the left; a left turn banks the view left (a positive roll). A dead craft lists to one side.
+    const leanTarget = reducedMotion ? 0 : state === 'diving' ? current.yawVelocity * CFG.lean
+      : state === 'breached' ? CFG.breachList : 0;
     view.roll += (leanTarget - view.roll) * ease;
     camera.position.copy(current.position);
     headingDirection(view.yaw, view.pitch, scratch.heading);
@@ -507,17 +520,37 @@ export function LakeDive({
     telemetry.measured = 0;
     telemetry.scanning = Math.max(0, 1 - (now - lastPing.current) / SCAN_SECONDS);
     telemetry.cooldown = Math.min(1, (now - lastManualPing.current) / settings.pingCooldown);
-    // A knock: the first frame of contact jolts the view; the system's warning sounds for as long as the contact
-    // lasts (a short grace bridges the frames a slide lets go); the HUD's mark eases in and out rather than
-    // toggling frame by frame.
-    if (bumped && !knocking.current && !reducedMotion) {
-      const strength = Math.min(1, 0.5 + current.speedScale);
-      look.current.roll += (Math.random() < 0.5 ? -1 : 1) * CFG.bumpKick * strength;
-      look.current.pitch -= CFG.bumpKick * 0.5 * strength;
+    // A knock: the first frame of contact jolts the view and knocks; a contact after a moment clear of the rock
+    // is a fresh one and costs the hull its share of the hit, and every moment against the rock wears it a little
+    // more. The scrape grinds while the contact lasts and the system's alarm sounds (a short grace bridges the
+    // frames a slide lets go), quicker once the hull is critical, and slowly off the wall then too. The HUD's mark
+    // eases in and out rather than toggling frame by frame.
+    const bumped = impact > 0;
+    if (bumped) {
+      const fresh = now - lastContact.current > CFG.contactGrace;
+      if (!knocking.current) {
+        sonar.knock(impact, settings.soundVolume);
+        if (!reducedMotion) {
+          const strength = Math.min(1, 0.5 + impact);
+          look.current.roll += (Math.random() < 0.5 ? -1 : 1) * CFG.bumpKick * strength;
+          look.current.pitch -= CFG.bumpKick * 0.5 * strength;
+        }
+      }
+      hull.current = wearHull(hull.current, impact, fresh,
+        dt, {...CFG, hullHit: settings.hullHit, hullScrape: settings.hullScrape});
+      // The side touched, as the view has it.
+      telemetry.contactSide = current.contactNormal.dot(scratch.right) < 0 ? -1 : 1;
+      lastContact.current = now;
     }
     knocking.current = bumped;
-    if (bumped) lastContact.current = now;
-    sonar.contact(now - lastContact.current < 0.4, settings.soundVolume);
+    telemetry.hull = hull.current;
+    if (state === 'diving') {
+      const touching = now - lastContact.current < CFG.contactGrace;
+      const critical = hull.current < CFG.hullCritical;
+      sonar.alarm(touching ? (critical ? 3 : 2) : critical ? 1 : 0, settings.soundVolume);
+      sonar.scrape(touching ? 1 : 0, settings.soundVolume);
+      if (hull.current <= 0) onBreach();
+    }
     telemetry.bump = bumped ? Math.min(1, telemetry.bump + dt * 8) : Math.max(0, telemetry.bump - dt * 1.2);
     telemetry.depth = Math.max(0, (placement.level - current.position.y) * metres);
     const pace = locus.s > route.length - CFG.basin - 3 ? settings.basinSpeed : 1;

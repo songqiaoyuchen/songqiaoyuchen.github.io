@@ -1,5 +1,6 @@
 /* The lake dive's HTML: the veil over the entry and exit, the dive screen (LakeHud), the letter (LakeLetter) and the
-   nav stepping aside while under water. Colours: the site's gold (--color-accent) and the lake's cyan. */
+   nav stepping aside while under water. Colours: the site's gold (--color-accent) and the lake's cyan; red for the
+   system's warnings alone. */
 :root {
   --lake-cyan: #7fe3ea;
   --lake-cyan-dim: rgb(127 227 234 / 55%);
@@ -7,6 +8,9 @@
   --lake-gold-dim: rgb(232 199 122 / 60%);
   --lake-panel: rgb(6 8 12 / 94%);
   --lake-line: rgb(127 227 234 / 22%);
+  --lake-red: #ff5a4a;
+  --lake-red-dim: rgb(255 90 74 / 60%);
+  --lake-red-glow: rgb(255 90 74 / 40%);
 }
 
 /* The veil: black over the whole page, between the overview and the crack. */
@@ -75,19 +79,136 @@ body[data-lake='underwater'] > nav {
     repeating-linear-gradient(to bottom, rgb(255 255 255 / 1.4%) 0 1px, transparent 1px 3px);
 }
 
-/* A knock against the wall: the readouts take a warmer light, and the screen's edges close in, while it lasts.
-   The edge glow is a fixed layer shown by opacity alone, so a knock costs the compositor, not a repaint. */
-.lake-hud-readout span:not(.lake-hud-tick) {
-  color: color-mix(in srgb, var(--lake-cyan) calc(100% - var(--lake-bump) * 70%), var(--color-accent));
+/* Against the wall: the readout on the side touched turns red, and a red bracket stands at that edge of the screen
+   while the contact lasts. The brackets are fixed layers shown by opacity alone, so a knock costs the compositor,
+   not a repaint. */
+.lake-hud[data-side='left'] .lake-hud-readout-left span:not(.lake-hud-tick),
+.lake-hud[data-side='right'] .lake-hud-readout-right span:not(.lake-hud-tick) {
+  color: color-mix(in srgb, var(--lake-cyan) calc(100% - var(--lake-bump) * 100%), var(--lake-red));
 }
 
-.lake-hud-vignette::after {
-  content: '';
+.lake-hud-edge {
   position: absolute;
-  inset: 0;
-  background: radial-gradient(ellipse 62% 58% at 50% 50%, transparent 60%, rgb(232 199 122 / 30%) 100%);
-  opacity: var(--lake-bump);
+  top: 50%;
+  width: 0.9rem;
+  height: 34svh;
+  translate: 0 -50%;
+  border: 2px solid var(--lake-red);
+  box-shadow: 0 0 14px var(--lake-red-glow);
+  opacity: 0;
+  pointer-events: none;
   will-change: opacity;
+}
+
+.lake-hud-edge-left {
+  left: clamp(0.5rem, 2vw, 1.5rem);
+  border-right: 0;
+}
+
+.lake-hud-edge-right {
+  right: clamp(0.5rem, 2vw, 1.5rem);
+  border-left: 0;
+}
+
+.lake-hud[data-side='left'] .lake-hud-edge-left,
+.lake-hud[data-side='right'] .lake-hud-edge-right {
+  opacity: var(--lake-bump);
+}
+
+/* The system's warning: a red boxed label at the top, blinking with the alarm's rhythm; off the wall with the
+   hull critical it pulses slowly. */
+.lake-hud-warning {
+  position: absolute;
+  top: 11svh;
+  left: 50%;
+  translate: -50% 0;
+  font-size: clamp(0.72rem, 1.3vw, 0.95rem);
+  letter-spacing: 0.32em;
+  color: var(--lake-red);
+  text-shadow: 0 0 8px var(--lake-red-glow);
+  white-space: nowrap;
+}
+
+.lake-hud-warning span {
+  display: block;
+  padding: 0.5em 0.9em 0.5em 1.22em;
+  border: 1px solid var(--lake-red);
+  background: rgb(40 6 4 / 55%);
+  box-shadow: 0 0 12px var(--lake-red-glow), inset 0 0 10px rgb(255 90 74 / 18%);
+}
+
+.lake-hud[data-warn='none'] .lake-hud-warning,
+.lake-hud-warning span:empty {
+  visibility: hidden;
+}
+
+.lake-hud[data-warn='contact'] .lake-hud-warning span {
+  animation: lake-blink 0.8s steps(1, end) infinite;
+}
+
+.lake-hud[data-warn='contact-critical'] .lake-hud-warning span {
+  animation: lake-blink-fast 0.42s steps(1, end) infinite;
+}
+
+.lake-hud[data-warn='critical'] .lake-hud-warning span {
+  animation: lake-pulse 1.7s ease-in-out infinite;
+}
+
+/* Two names for one blink, so a change of rhythm starts it afresh, in step with the alarm's restart. */
+@keyframes lake-blink {
+  0%, 100% { opacity: 1; }
+  55% { opacity: 0.3; }
+}
+
+@keyframes lake-blink-fast {
+  0%, 100% { opacity: 1; }
+  55% { opacity: 0.3; }
+}
+
+@keyframes lake-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
+/* The hull's readout: cyan while sound, red once critical. */
+.lake-hud[data-hull='critical'] .lake-hud-hull {
+  color: var(--lake-red);
+  text-shadow: 0 0 8px var(--lake-red-glow);
+}
+
+/* The breach: the instruments go out at once and the screen says why, before the veil. */
+.lake-hud-breach {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.9rem;
+  color: var(--lake-red);
+  text-shadow: 0 0 10px var(--lake-red-glow), 0 0 28px rgb(255 90 74 / 18%);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.lake-hud-breach-title {
+  padding: 0.55em 1em 0.55em 1.4em;
+  border: 1px solid var(--lake-red);
+  background: rgb(40 6 4 / 60%);
+  font-size: clamp(1rem, 2.2vw, 1.6rem);
+  letter-spacing: 0.4em;
+  animation: lake-blink 0.8s steps(1, end) 3;
+}
+
+.lake-hud-breach-detail {
+  font-size: var(--text-micro);
+  letter-spacing: 0.3em;
+  color: var(--lake-red-dim);
+}
+
+.lake-hud[data-dead] > :not(.lake-hud-vignette, .lake-hud-breach) {
+  visibility: hidden;
 }
 
 .lake-hud-scan {
@@ -240,46 +361,61 @@ body[data-lake='underwater'] > nav {
   transform: scaleX(1);
 }
 
+/* The controls legend, bottom left, steady for the whole dive. */
 .lake-hud-hint {
   position: absolute;
   left: clamp(1.25rem, 4vw, 3rem);
   bottom: clamp(1.25rem, 4svh, 2.5rem);
-  max-width: calc(100% - 9rem);
+  display: flex;
+  align-items: center;
+  min-height: var(--size-hit-target);
+  max-width: calc(100% - 11rem);
   font-size: var(--text-micro);
   color: var(--lake-cyan-dim);
   letter-spacing: 0.2em;
-  transition: opacity 1.2s ease-out;
 }
 
 .lake-hud-hint > span {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5em 1.4em;
+  gap: 0.5em 1.6em;
 }
 
-/* Keys on a pointer device, touch on a phone. */
-.lake-hud-hint-touch {
+/* A key's name, framed as a key. */
+.lake-hud kbd {
+  margin-right: 0.45em;
+  padding: 0.15em 0.4em 0.15em 0.55em;
+  border: 1px solid var(--lake-line);
+  font: inherit;
+  letter-spacing: 0.15em;
+}
+
+.lake-hud-surface kbd {
+  margin-right: 0;
+}
+
+/* Keys on a pointer device, touch on a phone; scoped to the HUD so they outrank the legend's own display. */
+.lake-hud .lake-hud-hint-touch {
   display: none;
 }
 
 @media (pointer: coarse) {
-  .lake-hud-hint-keys {
+  .lake-hud .lake-hud-hint-keys {
     display: none;
   }
 
-  .lake-hud-hint-touch {
+  .lake-hud .lake-hud-hint-touch {
     display: flex;
   }
-}
-
-.lake-hud[data-hint='hidden'] .lake-hud-hint {
-  opacity: 0;
 }
 
 .lake-hud-surface {
   position: absolute;
   right: clamp(1.25rem, 4vw, 3rem);
   bottom: clamp(1.25rem, 4svh, 2.5rem);
+  display: flex;
+  align-items: center;
+  gap: 0.9em;
   min-height: var(--size-hit-target);
   padding: 0 0.1em;
   border: 0;
@@ -328,11 +464,11 @@ body[data-lake='underwater'] > nav {
   outline: none;
 }
 
-/* After a finished dive: straight to the chamber. */
+/* After a finished dive: straight to the bottle, up in the corner away from the dive's own controls. */
 .lake-hud-skip {
   position: absolute;
+  top: clamp(1rem, 3svh, 2rem);
   right: clamp(1.25rem, 4vw, 3rem);
-  bottom: calc(clamp(1.25rem, 4svh, 2.5rem) + var(--size-hit-target) + 0.25rem);
   min-height: var(--size-hit-target);
   padding: 0 0.1em;
   border: 0;
@@ -596,6 +732,11 @@ body[data-lake='underwater'] > nav {
 
 /* Without motion the sheets only fade: no slide, no fan, no follow. */
 @media (prefers-reduced-motion: reduce) {
+  .lake-hud-warning span,
+  .lake-hud-breach-title {
+    animation: none !important;
+  }
+
   .lake-veil,
   .lake-hud,
   .lake-letter,

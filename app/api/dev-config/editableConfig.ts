@@ -78,7 +78,7 @@ export const EDITABLE_CONFIG = {
     object: 'LAKE_DIVE_CONFIG',
     keys: ['pingCooldown', 'pingSpeed', 'pingDecay', 'pingRange', 'ambient', 'ambientReach', 'rockScale',
       'rockBump', 'rockRelief', 'rockOcclusion', 'speed', 'basinSpeed', 'turnRate', 'pitchRate', 'foundRange',
-      'soundVolume'],
+      'hullHit', 'hullScrape', 'soundVolume'],
   },
   fog: {
     file: 'scene/fog.ts',
