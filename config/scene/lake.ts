@@ -18,11 +18,6 @@ export const LAKE_CONFIG = {
     center: [-1, -3] as readonly [number, number],
     radii: [11, 9] as readonly [number, number],
   },
-  // Where the HTML controls (the dive button, the letter) sit on phones, from the lake's centre: phones frame the
-  // plain from the side (CAMERA_CONFIG.mobileOverviewPosition), with the scene text standing in the water, so
-  // there the controls sit at the lake's west end, clear of the columns. Wider screens put them in the middle of
-  // the water as framed (LakeSurface). The water itself takes a click anywhere.
-  mobileControlOffset: [-2.4, -0.9] as readonly [number, number],
   // Colours (the site's gold and cyan; tokens.css --color-accent for the gold).
   gold: '#e8c77a',
   cyan: '#7fe3ea',

@@ -5,7 +5,7 @@
 'use client';
 
 import {Html} from '@react-three/drei';
-import {useFrame, useThree} from '@react-three/fiber';
+import {useFrame} from '@react-three/fiber';
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {
   BufferAttribute, BufferGeometry, Color, DataTexture, DataUtils, HalfFloatType, LinearFilter, Matrix4, Mesh,
@@ -14,7 +14,7 @@ import {
 } from 'three';
 import type {TerrainControlValues} from '@/components/scene/controls/useSceneControls';
 import type {LakeState} from '@/components/lake/lakeState';
-import {CONTOUR_CONFIG, SCENE_LAYOUT_CONFIG, SCENE_LINK_EFFECT_CONFIG} from '@/config/scene';
+import {CONTOUR_CONFIG, SCENE_LINK_EFFECT_CONFIG} from '@/config/scene';
 import {LAKE_CONFIG, LAKE_FLOW, lakePlacement} from '@/config/scene/lake';
 import {useReducedMotion} from '@/hooks/useReducedMotion';
 import {advanceTextVisibility} from '@/lib/scene/textTransition';
@@ -28,6 +28,9 @@ const RINGS = 40;
 const SEGMENTS = 96;
 const FADE_RATE = 4;
 const HOVER_RATE = 6;
+// Now and then, while the lake waits untouched, it plays its own hover for `hold` seconds out of every `every`,
+// so it reads as something to press (touch has no hover); the first comes `every - hold` after it appears.
+const BECKON = {every: 6, hold: 1.2};
 // Ground in front of the water hides it only from this far above the water's level: a hill between the camera
 // and the lake, never a bank's own rise, however steep (the water fills to the shore line under a lip, as the
 // line itself shows there).
@@ -36,11 +39,11 @@ const OCCLUDER_RISE = 2.5;
 // lake's level draws whole over it as the shore; the lines under the water are left out by the contours
 // themselves (Contours' lake prop), since their depth bias would beat a depth test against the water.
 
-// The controls' screen position, kept this far inside the viewport. Phones place them at a set point on the
-// water (LAKE_CONFIG.mobileControlOffset); wider screens in the middle of the water as framed, wherever the
-// screen's shape crops it: a grid of rays from the camera meets the water's level, and the controls sit midway
-// between the highest and lowest cells that land on water, at their mean across (the water widens toward the
-// frame's foot, so its mean down would sink to the edge); recomputed only when the view or the screen changes.
+// The controls' screen position, kept this far inside the viewport: the middle of the water as framed, wherever
+// the screen's shape crops it (phones and desktops frame it differently). A grid of rays from the camera meets
+// the water's level, and the controls sit midway between the highest and lowest cells that land on water, at
+// their mean across (the water widens toward the frame's foot, so its mean down would sink to the edge);
+// recomputed only when the view or the screen changes. With no water in the frame, the lake's centre.
 const SCREEN_MARGIN = {x: 84, y: 72};
 const WATER_GRID = {x: 32, y: 20};
 const PROJECTED = new Vector3();
@@ -137,6 +140,7 @@ export function LakeSurface({
   const [hovered, setHovered] = useState(false);
   const fade = useRef(0);
   const hover = useRef(0);
+  const beckon = useRef(0);
   const entering = useRef(-1);
   // The HTML controls over the water come and go with the scene links: dissolving in once the camera has arrived,
   // at the links' own speeds, so a return from the dive shows them together (the links' reveal in SceneLinks).
@@ -144,8 +148,6 @@ export function LakeSurface({
   const reveal = useRef(0);
   const controlsRef = useRef<HTMLDivElement>(null);
   const {center: [cx, cz], level, disc: {center: [discX, discZ], radii: [rx, rz]}} = lakePlacement();
-  const isMobile = useThree((s) => s.size.width) < SCENE_LAYOUT_CONFIG.mobileMaxWidth;
-  const [controlX, controlZ] = LAKE_CONFIG.mobileControlOffset;
 
   // The ground under the disc, from the contour field the drawn lines are marched from, so the shore is the drawn
   // contour at the lake's level, and the terrain itself (which that field never falls below) lies under the water
@@ -276,7 +278,10 @@ export function LakeSurface({
     }
     const target = shown ? 1 : 0;
     fade.current = reducedMotion ? target : fade.current + (target - fade.current) * (1 - Math.exp(-FADE_RATE * step));
-    const hoverTarget = hovered && state === 'idle' ? 1 : 0;
+    // Counted only while the controls are fully in and nothing hovers the water; a real hover starts it over.
+    beckon.current = reveal.current >= 1 && !hovered && !reducedMotion ? beckon.current + delta : 0;
+    const beckoning = beckon.current % BECKON.every > BECKON.every - BECKON.hold;
+    const hoverTarget = (hovered || beckoning) && state === 'idle' ? 1 : 0;
     hover.current += (hoverTarget - hover.current) * (1 - Math.exp(-HOVER_RATE * step));
     if (entering.current >= 0) entering.current += delta;
     const dive = entering.current < 0 ? 0 : Math.min(entering.current / LAKE_FLOW.entryFlight, 1);
@@ -318,8 +323,7 @@ export function LakeSurface({
         <Html
           center
           zIndexRange={[30, 10]}
-          position={[controlX, 0, controlZ]}
-          calculatePosition={isMobile ? placeControls : placeOnWater}
+          calculatePosition={placeOnWater}
         >
           {/* The letter's link lies over the middle of the dive's target, so the text itself marks the anchor. */}
           <div ref={controlsRef} className="grid place-items-center *:[grid-area:1/1]" style={{opacity: 0}}>
