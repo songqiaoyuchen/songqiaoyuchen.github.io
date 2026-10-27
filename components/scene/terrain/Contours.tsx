@@ -57,6 +57,14 @@ export type ContourFocus = readonly [number, number, number, number, number];
 
 /** Light lines like the terrain beneath: brightness kept on unlit ground, and the baked light at full. */
 export type ContourLighting = readonly [number, number];
+/** The homepage lake's water: lines under it are not drawn (its disc in plan, and the level they lie under). */
+export type ContourLake = {
+  disc: {center: readonly [number, number]; radii: readonly [number, number]};
+  level: number;
+};
+// Lines this far under the lake's level and inside its disc lie under the water: the line at the level itself
+// (the shore) stays, the next level down (a quarter unit under) goes.
+const LAKE_COVER = 0.1;
 
 type ContoursProps = {
   hidden?: boolean;
@@ -66,6 +74,7 @@ type ContoursProps = {
   reveal?: boolean;
   focus?: ContourFocus | null;
   lighting?: ContourLighting | null;
+  lake?: ContourLake | null;
   /** Minimum on-screen tube radius in device pixels, so distant lines dim rather than break up. */
   minPixels?: number;
   contourSettings: ContourControlValues;
@@ -75,7 +84,7 @@ type ContoursProps = {
 
 export const Contours = forwardRef<Mesh, ContoursProps>(function Contours(
   {
-    hidden = false, placesRide = false, reveal = false, focus = null, lighting = null,
+    hidden = false, placesRide = false, reveal = false, focus = null, lighting = null, lake = null,
     minPixels = 0, contourSettings: lines, terrainDepthTexture, terrainSettings,
   },
   forwardedRef,
@@ -152,6 +161,9 @@ export const Contours = forwardRef<Mesh, ContoursProps>(function Contours(
     uFocus: {value: new Vector4()},
     uFocusFloor: {value: 0},
     uUseFocus: {value: 0},
+    uLakeDisc: {value: new Vector4()},
+    uLakeLevel: {value: 0},
+    uUseLake: {value: 0},
     uLightingMap: {value: null as DataTexture | null},
     uLit: {value: new Vector2()},
     uUseLit: {value: 0},
@@ -252,6 +264,16 @@ export const Contours = forwardRef<Mesh, ContoursProps>(function Contours(
     material.uniforms.uTerrainDepth.value = terrainDepthTexture;
     material.uniforms.uUseTerrainDepth.value = terrainDepthTexture ? 1 : 0;
   }, [terrainDepthTexture]);
+
+  useEffect(() => {
+    const material = matRef.current;
+    if (!material) return;
+    if (lake) {
+      material.uniforms.uLakeDisc.value.set(...lake.disc.center, ...lake.disc.radii);
+      material.uniforms.uLakeLevel.value = lake.level - LAKE_COVER;
+    }
+    material.uniforms.uUseLake.value = lake ? 1 : 0;
+  }, [lake]);
 
   const [focusX, focusZ, focusStart, focusEnd, focusFloor] = focus ?? [0, 0, 0, 0, 1];
   useEffect(() => {

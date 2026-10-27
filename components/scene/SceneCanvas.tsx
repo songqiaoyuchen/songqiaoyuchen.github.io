@@ -22,7 +22,11 @@ import {
   subscribeTerrainProgress,
 } from '@/lib/terrain/assets';
 import type {AboutFraming} from '@/lib/scene/aboutPath';
+import {isUnderwater, type LakeInput, type LakeState, type LakeTelemetry} from '@/components/lake/lakeState';
 import {AboutMap} from './about/AboutMap';
+import {LakeDive} from './lake/LakeDive';
+import {LakePixelRatio} from './lake/LakePixelRatio';
+import {LakeSurface} from './lake/LakeSurface';
 import {AboutPath} from './about/AboutPath';
 import {CaptureExport} from './backdrop/CaptureExport';
 import {CameraFrameProvider} from './camera/CameraFrameState';
@@ -58,9 +62,12 @@ const Links = memo(SceneLinks);
 const AboutMapLines = memo(AboutMap);
 const AboutRoute = memo(AboutPath);
 const Globe = memo(PlacesGlobe);
+const Lake = memo(LakeSurface);
+const Dive = memo(LakeDive);
 
 const ABOUT_EDIT_ROTATE_SPEED = 0.3;
 import {PLACES_OVERVIEW_CONFIG} from '@/config/scene/places';
+import {LAKE_DIVE_CONFIG, lakePlacement} from '@/config/scene/lake';
 import { SceneFog } from './terrain/SceneFog';
 import { GlyphRain } from './text/GlyphRain';
 import {SceneHeroName} from './text/SceneHeroName';
@@ -115,6 +122,16 @@ type SceneCanvasProps = {
   /** Receives the place at the globe's centre every frame (the location index's meridian strip). */
   placesGlobeFrontRef: MutableRefObject<GlobeFront | null>;
   onPoseSettled?: (pose: SectionId | null | undefined) => void;
+  /** The lake dive (components/lake/useLakeFlow.ts): its stage, the HUD's input and the dive's telemetry, the
+   * lake's click, the bottle reached, the hull given out, and the letter reopened from the overview. */
+  lake: LakeState;
+  lakeCompleted: boolean;
+  lakeInputRef: MutableRefObject<LakeInput>;
+  lakeTelemetryRef: MutableRefObject<LakeTelemetry>;
+  onLakeEnter: () => void;
+  onLakeFound: () => void;
+  onLakeBreach: () => void;
+  onLakeLetter: () => void;
   /** The preloader's cover is lifting: the intro reveal's clock runs and the terrain draws its lines in. */
   revealStarted: boolean;
   /** The preloader has gone: the hero name may enter and the quiet prefetches start. */
@@ -143,6 +160,14 @@ export const SceneCanvas = memo(function SceneCanvas({
   placesGlobeOutlineRef,
   placesGlobeFrontRef,
   onPoseSettled,
+  lake,
+  lakeCompleted,
+  lakeInputRef,
+  lakeTelemetryRef,
+  onLakeEnter,
+  onLakeFound,
+  onLakeBreach,
+  onLakeLetter,
   revealStarted,
   introStarted,
   onSceneError,
@@ -163,6 +188,11 @@ export const SceneCanvas = memo(function SceneCanvas({
   const [heroMesh, setHeroMesh] = useState<Mesh | null>(null);
   const [sceneLinksMesh, setSceneLinksMesh] = useState<Mesh | null>(null);
   const [aboutPathMesh, setAboutPathMesh] = useState<Mesh | null>(null);
+  const [lakeMesh, setLakeMesh] = useState<Mesh | null>(null);
+  // The home contours leave out the lines under the lake's water.
+  const lakeShore = useMemo(() => lakePlacement(), []);
+  const [crackMesh, setCrackMesh] = useState<Mesh | null>(null);
+  const [bottleMesh, setBottleMesh] = useState<Mesh | null>(null);
   const [placesBloom, setPlacesBloom] = useState<Object3D[]>([]);
   const [bloomReady, setBloomReady] = useState(false);
   const [terrainDepthTexture, setTerrainDepthTexture] = useState<DepthTexture | null>(null);
@@ -177,8 +207,12 @@ export const SceneCanvas = memo(function SceneCanvas({
   useEffect(() => subscribeTerrainProgress(onSceneProgress), [onSceneProgress]);
   const isAbout = activeId === 'about';
   const isPlaces = activeId === 'places';
-  // Sections with their own journey (Art, About, Places) clear the homepage text: glyph rain and scene links.
-  const hideSceneText = hideHomeScene || isAbout || isPlaces;
+  // The lake dive: the crack replaces the landscape under water; the flights down and back keep it in view.
+  const lakeActive = lake !== 'idle';
+  const underwater = isUnderwater(lake);
+  // Sections with their own journey (Art, About, Places) and the dive clear the homepage text: glyph rain and
+  // scene links.
+  const hideSceneText = hideHomeScene || isAbout || isPlaces || lakeActive;
   // About's map contours and the Places globe are built when their section first opens, or quietly a moment after
   // the intro starts (the timers below), so each is in hand, its shaders compiled, before its first journey.
   const [aboutMapWanted, setAboutMapWanted] = useState(isAbout);
@@ -205,7 +239,7 @@ export const SceneCanvas = memo(function SceneCanvas({
   const precompileRevision = (placesWanted ? 1 : 0) + (aboutMapWanted ? 2 : 0);
   // The dev orbit camera: free on the overview and the drawer sections, on About and Places only while Leva's Edit
   // camera is on.
-  const cameraEditable = activeId !== 'art'
+  const cameraEditable = activeId !== 'art' && !lakeActive
     && (activeId !== 'about' || settings.aboutPath.editCamera)
     && (activeId !== 'places' || settings.places.editCamera);
   const aboutMapSettings = useMemo(
@@ -224,10 +258,11 @@ export const SceneCanvas = memo(function SceneCanvas({
   const bloomBaseReady = contourMesh !== null && sceneLinksMesh !== null;
   const bloomSelection = useMemo(
     () => [
-      ...[contourMesh, sceneLinksMesh, heroMesh, aboutPathMesh].filter((mesh): mesh is Mesh => mesh !== null),
+      ...[contourMesh, sceneLinksMesh, heroMesh, aboutPathMesh, lakeMesh, crackMesh, bottleMesh]
+        .filter((mesh): mesh is Mesh => mesh !== null),
       ...placesBloom,
     ],
-    [aboutPathMesh, contourMesh, heroMesh, sceneLinksMesh, placesBloom],
+    [aboutPathMesh, bottleMesh, contourMesh, crackMesh, heroMesh, lakeMesh, sceneLinksMesh, placesBloom],
   );
   const handleBloomReady = useCallback(() => setBloomReady(true), []);
   useEffect(() => {
@@ -253,7 +288,10 @@ export const SceneCanvas = memo(function SceneCanvas({
   const composer = useMemo(
     () => (
       <EffectComposer ref={composerRef} multisampling={0}>
-        <ColorOnlySMAA preset={SMAAPreset.MEDIUM} />
+        <ColorOnlySMAA
+          preset={SMAAPreset.MEDIUM}
+          edgeThreshold={underwater ? LAKE_DIVE_CONFIG.edgeThreshold : undefined}
+        />
         {assemblyPhase >= 5 ? (
           <IsolatedBloom
             onReady={handleBloomReady}
@@ -268,7 +306,7 @@ export const SceneCanvas = memo(function SceneCanvas({
         ) : <></>}
       </EffectComposer>
     ),
-    [assemblyPhase, bloomIntensity, bloomSelection, bloomSmoothing, bloomThreshold, handleBloomReady],
+    [assemblyPhase, bloomIntensity, bloomSelection, bloomSmoothing, bloomThreshold, handleBloomReady, underwater],
   );
 
   return (
@@ -295,7 +333,9 @@ export const SceneCanvas = memo(function SceneCanvas({
             <StatsGl className="fixed right-0 bottom-0 z-10000" />
           ) : null}
 
-          <color attach="background" args={[FOG_CONFIG.color]} />
+          {/* Under water the background is the void: black, as the walls are where no ping reaches (only the walls
+              about the craft are drawn, so beyond them the background shows). */}
+          <color attach="background" args={[underwater ? '#000000' : FOG_CONFIG.color]} />
           {isDevelopment ? (
             <OrbitControls
               ref={orbitcontrolsRef}
@@ -344,6 +384,7 @@ export const SceneCanvas = memo(function SceneCanvas({
                 <Terrain
                   contourSettings={settings.contours}
                   backdrop={backdrop}
+                  hidden={underwater}
                   preloadBackdrops={hideHomeScene || backdropsWanted}
                   fogSettings={settings.fog}
                   onDepthTextureChange={setTerrainDepthTexture}
@@ -354,9 +395,10 @@ export const SceneCanvas = memo(function SceneCanvas({
               ) : null}
               {assemblyPhase >= 2 ? (
                 <ContourLines
-                  hidden={hideHomeScene || isAbout || isPlaces}
+                  hidden={hideHomeScene || isAbout || isPlaces || underwater}
                   placesRide
                   reveal
+                  lake={lakeShore}
                   ref={setContourMesh}
                   contourSettings={settings.contours}
                   terrainDepthTexture={terrainDepthTexture}
@@ -385,7 +427,7 @@ export const SceneCanvas = memo(function SceneCanvas({
                     <HeroName
                       ref={setHeroMesh}
                       contourSettings={settings.contours}
-                      isHidden={hideHomeScene || activeId !== null}
+                      isHidden={hideHomeScene || activeId !== null || lakeActive}
                       introStarted={introStarted}
                       terrainSettings={settings.terrain}
                     />
@@ -409,6 +451,26 @@ export const SceneCanvas = memo(function SceneCanvas({
                     terrainDepthTexture={terrainDepthTexture}
                     framingRef={aboutFramingRef}
                     onSelect={onAboutSelect}
+                  />
+                  <Lake
+                    visible={!hideHomeScene && activeId === null}
+                    state={lake}
+                    completed={lakeCompleted}
+                    terrainDepthTexture={terrainDepthTexture}
+                    terrainSettings={settings.terrain}
+                    meshRef={setLakeMesh}
+                    onEnter={onLakeEnter}
+                    onReadLetter={onLakeLetter}
+                  />
+                  <Dive
+                    state={lake}
+                    settings={settings.lake}
+                    inputRef={lakeInputRef}
+                    telemetryRef={lakeTelemetryRef}
+                    onCrackMesh={setCrackMesh}
+                    onBottleMesh={setBottleMesh}
+                    onFound={onLakeFound}
+                    onBreach={onLakeBreach}
                   />
                   {placesWanted ? (
                     <Globe
@@ -446,6 +508,7 @@ export const SceneCanvas = memo(function SceneCanvas({
           {assemblyPhase >= 4 && bloomBaseReady ? composer : null}
           {capturing && assemblyPhase >= 4 && bloomBaseReady ? <CaptureExport /> : null}
           <StillFrameGate enabled={assemblyPhase >= 6 && !capturing} composerRef={composerRef} />
+          <LakePixelRatio underwater={underwater} composerRef={composerRef} />
         </Canvas>
       </SceneErrorBoundary>
     </div>

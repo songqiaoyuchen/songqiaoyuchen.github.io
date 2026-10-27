@@ -14,6 +14,11 @@ uniform float uRevealFlashUnits;
 uniform vec2 uEdgeFade;
 uniform sampler2D uTerrainDepth;
 uniform float uUseTerrainDepth;
+// The homepage lake (LakeSurface): its water disc's centre (world x, z) and half axes, and the height under
+// which lines inside the disc lie under the water.
+uniform vec4 uLakeDisc;
+uniform float uLakeLevel;
+uniform float uUseLake;
 uniform float uPlaneSize;
 // xy: focus centre (world x, z); z, w: distance where the dimming starts and where it bottoms out.
 uniform vec4 uFocus;
@@ -42,11 +47,19 @@ varying vec2 vTerrainUv;
 varying float vNoise;
 varying vec2 vScreenUv;
 varying float vThin;
+varying vec3 vWorld;
 
 void main() {
   if (uUseTerrainDepth > 0.5) {
     float terrainDepth = texture2D(uTerrainDepth, vScreenUv).r;
     if (gl_FragCoord.z > terrainDepth) discard;
+  }
+  // Under the lake's opaque water nothing shows; the water draws before the lines (the depth bias above would
+  // beat a depth test against it), so the lines under it go here, and the line at the lake's own level runs
+  // whole over the water as its shore.
+  if (uUseLake > 0.5) {
+    vec2 onDisc = (vWorld.xz - uLakeDisc.xy) / uLakeDisc.zw;
+    if (dot(onDisc, onDisc) < 1.0 && vWorld.y < uLakeLevel) discard;
   }
 
   float n = vNoise;

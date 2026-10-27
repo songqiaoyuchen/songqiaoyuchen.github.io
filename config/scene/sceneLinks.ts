@@ -58,7 +58,7 @@ export const SCENE_LINK_LAYOUT = {
 export const MOBILE_SCENE_LINK_CONFIG = {
   mobileStartX: -0.68,
   mobileEndX: 0.68,
-  mobileCenterY: -1.2,
+  mobileCenterY: -0.88,
   mobileDepthOffset: 9,
 } as const satisfies MobileSceneLinkSettings;
 

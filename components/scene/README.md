@@ -16,11 +16,12 @@ Everything inside the React Three Fiber canvas behind Home and Art.
 | `text/` | WebGL text: scene links, hero name, glyph rain |
 | `about/` | About experience path: ridge route tube, checkpoint markers, titles and altitude figures; dev route editor |
 | `places/` | Places globe: shell, graticule and coastlines, trail tubes, markers and titles, drag/coast/snap |
+| `lake/` | The lake on the terrain and the dive beneath it: water surface and its controls, the crack's walls, the bottle, the dive's camera |
 | `effects/` | Post-processing passes (SMAA, isolated bloom) |
 | `controls/` | Leva tuning panels (development only) |
 
-`useFrame` callbacks run by priority, then mount order: dev OrbitControls (-1), CameraRig (-0.75),
-SceneFog (-0.7), IntroReveal (-0.6), CameraFrameState (-0.5), default (0), PlacesGlobe (0.1), TerrainMesh, Contours and AboutPath
+`useFrame` callbacks run by priority, then mount order: dev OrbitControls (-1), CameraRig (-0.75), LakeDive
+(-0.74, the camera while the lake is active), SceneFog (-0.7), IntroReveal (-0.6), CameraFrameState (-0.5), default (0), PlacesGlobe (0.1), TerrainMesh, Contours and AboutPath
 (0.2, after the globe has placed the patch they ride), SceneLinks (0.25), PlacesCallouts and AboutCallouts (0.3),
 CachedTerrain (0.5), StillFrameGate (0.9), EffectComposer render (1), CaptureExport (2). Keep the JSX order in `SceneCanvas`
 when adding layers. Anything that renders into a texture the visible scene samples must call

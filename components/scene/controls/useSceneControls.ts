@@ -9,6 +9,7 @@ import {useContourControls} from './useContourControls';
 import {useFogControls} from './useFogControls';
 import {useGlyphRainControls} from './useGlyphRainControls';
 import {useIntroControls} from './useIntroControls';
+import {useLakeControls} from './useLakeControls';
 import {usePostControls} from './usePostControls';
 import {useSceneLinkControls} from './useSceneLinkControls';
 import {useTerrainControls} from './useTerrainControls';
@@ -26,11 +27,12 @@ export function useSceneControls(activeId: SectionId | null) {
   const aboutPath = useAboutPathControls();
   const {places, placesOverview, placesLocation} = usePlacesControls();
   const cameraJourney = useCameraJourneyControls();
+  const lake = useLakeControls();
 
   return {
     terrain, contours, fog, intro, postProcessing, sceneLinks, glyphRain, aboutPath,
     places, placesOverview, placesLocation,
-    cameraJourney,
+    cameraJourney, lake,
   };
 }
 
@@ -45,3 +47,4 @@ export type AboutPathControlValues = SceneControlValues['aboutPath'];
 export type PlacesControlValues = SceneControlValues['places'];
 export type PlacesOverviewControlValues = SceneControlValues['placesOverview'];
 export type PlacesLocationControlValues = SceneControlValues['placesLocation'];
+export type LakeControlValues = SceneControlValues['lake'];

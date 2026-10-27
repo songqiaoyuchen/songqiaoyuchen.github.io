@@ -49,7 +49,7 @@ archives; migrate those only within their own workstreams.
 - Extend route/layout/state architecture with the
   [loading workstream](stage-2-loading-and-return.md); Home/Art persistence is implemented.
 - Include the accepted [Places](stage-2-places.md), [About](stage-2-about-path.md),
-  and [lake](stage-2-lake-exploration.md) directions in future route/view design.
+  and [lake](stage-3-lake-exploration.md) directions in future route/view design.
   The lake's entry is the basin; its additional navigation representation is open.
   These are deferred plans, not authorization to implement in this documentation task.
 

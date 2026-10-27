@@ -11,6 +11,7 @@ values through a ref (`latest.current`), never from its closure.
 | `sectionScope.ts` | Shows folders per section (About: only About Path and Config): a hidden `section` input read by folder `render` settings | — |
 | `useTerrainControls.ts` | Terrain, Point Light 1, Point Light 2 (not on About) | `config/scene/terrain.ts` |
 | `useContourControls.ts` | Contour Lines (not on About) | `config/scene/contours.ts` |
+| `useLakeControls.ts` | Lake (not on About or Places): the dive's sonar (cooldown, speed, decay, range), resting light, feel, found range and sound | `config/scene/lake.ts` |
 | `useFogControls.ts` | Fog (not on About) | `config/scene/fog.ts` |
 | `usePostControls.ts` | Post (not on About) | `config/scene/postProcessing.ts` |
 | `useSceneLinkControls.ts` | Mobile Scene Links (not on About) | `config/scene/sceneLinks.ts` |

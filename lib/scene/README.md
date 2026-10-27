@@ -6,6 +6,8 @@
 | `cameraJourney.ts` | Journey planning: the one motion between two poses and its kind, which sets its pace (node-tested) |
 | `cameraTransition.ts` | Camera journey: eased position, slerped orientation (node-tested) |
 | `aboutPath.ts` | About route through the checkpoints and each checkpoint's camera framing (node-tested) |
+| `lakeBake.ts` | The baked crack's format (radius per station and ring angle as station-to-station deltas), shared by `scripts/bake/bake-lake.mjs` and the browser |
+| `lake.ts` | The lake dive's crack: the route down from under the lake, its wall radius (one function for the bake, the mesh and the queries), the mesh laid out from radii, where a point lies about it, a ray to the wall, the craft's step (direction by the player, fixed speed, current, bumps) (node-tested) |
 | `places.ts` | Places globe: places on the sphere, yaw/pitch toward the camera, drag release, coast, capture and snap, track densifying, coastline file format, location framing, the zoom-out's planet scale and ride wrap for CPU-laid-out layers (node-tested) |
 | `placesWorker.ts` | Pure maths the places worker runs: elevation map blur/summary, bilinear sampler, light point sampling (node-tested) |
 | `places.worker.ts`, `placesWorkerTypes.ts` | The places worker: decodes the elevation map off the main thread and builds the summary and light points; its messages |

@@ -20,6 +20,10 @@ import {CapturePanel} from '@/components/art/capture/CapturePanel';
 import type {AboutScrollRequest} from '@/components/home/drawer/about/useTimelineProgress';
 import {Drawer, preloadDrawerPanels} from '@/components/home/drawer/Drawer';
 import {HeroLayer} from '@/components/home/hero/HeroLayer';
+import {LakeHud} from '@/components/lake/LakeHud';
+import {LakeLetter} from '@/components/lake/LakeLetter';
+import {createLakeInput, createLakeTelemetry, isUnderwater} from '@/components/lake/lakeState';
+import {useLakeFlow} from '@/components/lake/useLakeFlow';
 import {Preloader} from '@/components/home/preloader/Preloader';
 import {HOME_OVERVIEW_EVENT, SECTION_NAVIGATE_EVENT} from '@/components/site/Nav';
 import {usePlacesSceneActions} from '@/components/places/PlacesSceneContext';
@@ -88,6 +92,10 @@ export function SceneShell({articles, children}: SceneShellProps) {
   const [aboutScrollRequest, setAboutScrollRequest] = useState<AboutScrollRequest | null>(null);
   // The drawer's reading head in stops, read by the terrain path every frame.
   const aboutProgressRef = useRef(0);
+  // The lake dive: only from the overview; a section opening or the route leaving ends it. The HUD's input and
+  // the dive's telemetry cross between the HTML and the canvas as mutable refs, written and read every frame.
+  const lakeInputRef = useRef(createLakeInput());
+  const lakeTelemetryRef = useRef(createLakeTelemetry());
   const [artCameraEditing, setArtCameraEditing] = useState(false);
   const artCameraStore = useCreateStore();
   const [settledPose, setSettledPose] = useState<SectionId | null | undefined>(
@@ -99,6 +107,15 @@ export function SceneShell({articles, children}: SceneShellProps) {
   const [introWanted] = useState(activeId === null);
   const [waveStarted, setWaveStarted] = useState(false);
   const startWave = useCallback(() => setWaveStarted(true), []);
+  const lake = useLakeFlow(activeId === null && pathname === '/');
+  const underwater = isUnderwater(lake.state);
+  useEffect(() => {
+    if (underwater) document.body.dataset.lake = 'underwater';
+    else delete document.body.dataset.lake;
+    return () => {
+      delete document.body.dataset.lake;
+    };
+  }, [underwater]);
   const {
     sceneState,
     sceneStarted,
@@ -265,6 +282,14 @@ export function SceneShell({articles, children}: SceneShellProps) {
               artCameraStore={artCameraStore}
               onArtCameraEditingChange={setArtCameraEditing}
               onPoseSettled={setSettledPose}
+              lake={lake.state}
+              lakeCompleted={lake.completed}
+              lakeInputRef={lakeInputRef}
+              lakeTelemetryRef={lakeTelemetryRef}
+              onLakeEnter={lake.enter}
+              onLakeFound={lake.found}
+              onLakeBreach={lake.breach}
+              onLakeLetter={lake.openLetter}
               revealStarted={waveStarted || sceneState === 'ready'}
               introStarted={sceneState === 'ready'}
               onSceneError={handleSceneError}
@@ -278,7 +303,7 @@ export function SceneShell({articles, children}: SceneShellProps) {
         {!isBlocking && !isArt ? (
           // Like the WebGL name and glyph rain, the HTML hero returns only once the camera is home.
           <HeroLayer
-            isHidden={activeId !== null || settledPose !== null}
+            isHidden={activeId !== null || settledPose !== null || lake.state !== 'idle'}
             useHtmlName={sceneState === 'fallback' || HERO_NAME_RENDERER === 'html'}
           />
         ) : null}
@@ -293,6 +318,17 @@ export function SceneShell({articles, children}: SceneShellProps) {
           articles={articles}
           onClose={closeSection}
         />
+        <LakeHud
+          state={lake.state}
+          letterOpen={lake.letterOpen}
+          completed={lake.completed}
+          inputRef={lakeInputRef}
+          telemetryRef={lakeTelemetryRef}
+          onSurface={lake.surface}
+          onOpenLetter={lake.openLetter}
+        />
+        <LakeLetter open={lake.letterOpen} underwater={underwater} onClose={lake.closeLetter} />
+        <div className="lake-veil" data-dark={lake.veilDark || undefined} aria-hidden />
       </div>
       <div
         aria-hidden={artArriving || placesArriving || isLeaving || undefined}
