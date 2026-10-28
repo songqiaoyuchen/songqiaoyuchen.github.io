@@ -11,12 +11,19 @@ import {decodeCrackRadii, LAKE_BAKE_DIRECTORY, type LakeBakeManifest} from '@/li
 
 type Deadline = {timeRemaining: () => number};
 
+// A phone busy drawing every frame rarely goes idle: its slices come at the timeout with no idle time left, so
+// each still does a little work, and the timeout is short enough that the walls are built within seconds.
+const MIN_SLICE_MS = 4;
+const IDLE_TIMEOUT_MS = 200;
+
 function idle() {
   return new Promise<Deadline>((resolve) => {
-    if (typeof requestIdleCallback === 'function') requestIdleCallback(resolve, {timeout: 1000});
+    if (typeof requestIdleCallback === 'function') requestIdleCallback(resolve, {timeout: IDLE_TIMEOUT_MS});
     else {
-      const start = performance.now();
-      setTimeout(() => resolve({timeRemaining: () => Math.max(0, 8 - (performance.now() - start))}), 16);
+      setTimeout(() => {
+        const start = performance.now();
+        resolve({timeRemaining: () => Math.max(0, 8 - (performance.now() - start))});
+      }, 16);
     }
   });
 }
@@ -27,8 +34,9 @@ async function inSlices(count: number, step: (i: number) => void, cancelled: () 
   while (i < count) {
     const deadline = await idle();
     if (cancelled()) return;
+    const start = performance.now();
     do step(i++);
-    while (i < count && deadline.timeRemaining() > 2);
+    while (i < count && (deadline.timeRemaining() > 2 || performance.now() - start < MIN_SLICE_MS));
   }
 }
 

@@ -5,6 +5,7 @@
 
 import {useCallback, useEffect, useRef, useState, useSyncExternalStore} from 'react';
 import {LAKE_FLOW} from '@/config/scene/lake';
+import {unlockSonarAudio} from '@/lib/lake/sonarSound';
 import {
   markLakeHydrated, readLakeCompleted, subscribeLakeCompleted, writeLakeCompleted, type LakeState,
 } from './lakeState';
@@ -35,6 +36,8 @@ export function useLakeFlow(enabled: boolean) {
 
   const enter = useCallback(() => {
     if (stage.current !== 'idle') return;
+    // Called from the tap on the lake: the gesture mobile browsers need before the dive's sound can play.
+    unlockSonarAudio();
     clearTimers();
     stage.current = 'entering';
     setState('entering');

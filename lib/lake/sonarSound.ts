@@ -4,8 +4,9 @@
 // under a low-pass for the water. The rock: a knock on each fresh contact and a grinding scrape while the craft is
 // pressed against it, in the water like the ping, and the crunch of the hull giving out. The system's alarm is
 // the craft's own, dry and outside the water's low-pass: pips repeating while the craft is on the wall, quicker
-// once the hull is critical, and a slow double pip when critical off the wall. The context is made on the first
-// sound, which follows the click on the lake, so the page already has the gesture browsers require.
+// once the hull is critical, and a slow double pip when critical off the wall. The context is one for the page,
+// made and resumed inside the tap that starts the dive (unlockSonarAudio): mobile browsers keep a context made
+// later, outside a gesture, silent.
 
 /** 0 silent; 1 the hull critical, off the wall; 2 against the wall; 3 against the wall with the hull critical. */
 export type AlarmLevel = 0 | 1 | 2 | 3;
@@ -32,6 +33,29 @@ const ALARMS = {
 } as const;
 
 const REVERB_SECONDS = 4.2;
+
+let shared: AudioContext | null = null;
+
+function audioContext() {
+  if (shared) return shared;
+  const Context = window.AudioContext ?? (window as unknown as {webkitAudioContext?: typeof AudioContext})
+    .webkitAudioContext;
+  if (!Context) return null;
+  shared = new Context();
+  return shared;
+}
+
+/** Makes and resumes the page's audio context; call it from a user gesture (the tap that starts the dive). */
+export function unlockSonarAudio() {
+  const ctx = audioContext();
+  if (!ctx) return;
+  if (ctx.state !== 'running') void ctx.resume();
+  // Older iOS Safari unlocks only on a sound started inside the gesture: a silent sample.
+  const source = ctx.createBufferSource();
+  source.buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
+  source.connect(ctx.destination);
+  source.start();
+}
 
 /** An impulse response: noise decaying over the tail, duller as it goes, with a few early reflections. */
 function impulseResponse(ctx: AudioContext) {
@@ -72,10 +96,8 @@ export function createSonar(sampleSrc = ''): Sonar {
 
   const ensure = () => {
     if (context) return context;
-    const Context = window.AudioContext ?? (window as unknown as {webkitAudioContext?: typeof AudioContext})
-      .webkitAudioContext;
-    if (!Context) return null;
-    context = new Context();
+    context = audioContext();
+    if (!context) return null;
     master = context.createGain();
     // The water: a gentle low-pass on everything.
     const lowpass = context.createBiquadFilter();
@@ -100,7 +122,7 @@ export function createSonar(sampleSrc = ''): Sonar {
   const ready = (volume: number) => {
     const ctx = ensure();
     if (!ctx || !master || !cabin) return null;
-    if (ctx.state === 'suspended') void ctx.resume();
+    if (ctx.state !== 'running') void ctx.resume();
     master.gain.value = volume;
     cabin.gain.value = volume;
     return ctx;
@@ -323,7 +345,9 @@ export function createSonar(sampleSrc = ''): Sonar {
       scrapeSource = null;
       scrapeGain = null;
       scrapeLevel = 0;
-      void context?.close();
+      // The context is the page's; only this sonar's graph is let go.
+      master?.disconnect();
+      cabin?.disconnect();
       context = null;
       master = null;
       dry = null;
