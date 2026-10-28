@@ -47,6 +47,10 @@ type CameraRigProps = {
   controlsRef?: React.RefObject<OrbitControlsInstance | null>;
 };
 
+// About's checkpoint framings (`about:<stop>`) are About's own pose: a journey between them never unsettles it.
+const sectionPose = (key: string) => key.replace(/^about:\d+$/, 'about');
+const isSamePose = (from: string, to: string) => sectionPose(from) === sectionPose(to);
+
 export function CameraRig({
   activeId, aboutStop = -1, aboutFramingRef, journeySeconds: journeyTimes = CAMERA_JOURNEY_CONFIG,
   holdSceneText = false, controlsRef, onPoseSettled,
@@ -103,12 +107,14 @@ export function CameraRig({
   }, [configuredAboutKey, isMobile]);
   const previousPoseKey = useRef(poseKey);
   // A new destination unsettles the camera from this render on, before the journey's first frame, so what waits for
-  // it to settle (SceneShell's drawer and section content) never shows for the frame in between.
+  // it to settle (SceneShell's drawer and section content) never shows for the frame in between. Framing About's
+  // checkpoints as the drawer scrolls stays within About, so the drawer it follows stays open.
   const announcedPoseKey = useRef(poseKey);
   useLayoutEffect(() => {
     if (poseKey === announcedPoseKey.current) return;
+    const leavesPose = !isSamePose(announcedPoseKey.current, poseKey);
     announcedPoseKey.current = poseKey;
-    onPoseSettled?.(undefined);
+    if (leavesPose) onPoseSettled?.(undefined);
   }, [onPoseSettled, poseKey]);
   const isAnimating = useRef(false);
   // The journey under way (one motion from pose to pose) and its time.
@@ -203,6 +209,7 @@ export function CameraRig({
       }
       // A journey cut short by a new destination sets off from where it was heading, from the live camera.
       const origin = isAnimating.current && leg.current ? leg.current.to : previousPoseKey.current;
+      const leavesPose = !isSamePose(previousPoseKey.current, key);
       previousPoseKey.current = key;
       leg.current = planJourney(origin, key);
       journeySeconds.current = secondsFor(leg.current.kind);
@@ -211,7 +218,7 @@ export function CameraRig({
       const destination = resolvePose(leg.current.to);
       transition.begin(camera, currentLookAt.current, destination.position, destination.lookAt);
       isAnimating.current = true;
-      onPoseSettled?.(undefined);
+      if (leavesPose) onPoseSettled?.(undefined);
     }
 
     if (isAnimating.current || !controls?.enabled) aboutPivoted.current = false;
