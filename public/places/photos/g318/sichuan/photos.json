@@ -12,7 +12,8 @@
   "2026-05-16_121256.webp": {
     "date": "2026-05-16",
     "location": "Erlang Mountain",
-    "description": "After the Erlangshan Tunnel, the snow peaks are now visible in the distance."
+    "description": "After the Erlangshan Tunnel, the snow peaks are now visible in the distance.",
+    "order": 3
   },
   "2026-05-16_190204.webp": {
     "date": "2026-05-16",
@@ -37,7 +38,8 @@
   "2026-05-19_162900.webp": {
     "date": "2026-05-19",
     "location": "Zheduo Mountain",
-    "description": "Descending from Zheduo Mountain. I got a bad muscle injury after this ride and could barely walk that night."
+    "description": "Descending from Zheduo Mountain. I got a bad muscle injury after this ride and could barely walk that night.",
+    "order": 2
   },
   "2026-05-21_125301.webp": {
     "date": "2026-05-21",
@@ -92,12 +94,14 @@
   "2026-05-25_192000.webp": {
     "date": "2026-05-25",
     "location": "Litang",
-    "description": "Changqingchun Ke'er Monastery under the afternoon sun."
+    "description": "Changqingchun Ke'er Monastery under the afternoon sun.",
+    "order": 5
   },
   "2026-05-26_175609.webp": {
     "date": "2026-05-26",
     "location": "Maoya Grassland",
-    "description": "Yaks on Maoya Grassland."
+    "description": "Yaks on Maoya Grassland.",
+    "order": 4
   },
   "2026-05-27_080411.webp": {
     "date": "2026-05-27",
@@ -117,6 +121,7 @@
   "2026-05-27_131200.webp": {
     "date": "2026-05-27",
     "location": "Sister Lakes",
-    "description": ""
+    "description": "",
+    "order": 1
   }
 }
