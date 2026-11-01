@@ -1,6 +1,6 @@
 // About drawer content: introduction, experience timeline and contact links.
 export const ABOUT_INTRO = {
-  name: 'Song Qiaoyuchen',
+  name: 'SQYC',
   studies: 'Computer Science + Mathematics · National University of Singapore',
   connect: 'Open for opportunities, collaborations, art jam or a chill ride on the bike.',
 } as const;

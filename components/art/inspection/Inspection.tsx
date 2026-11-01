@@ -1,11 +1,13 @@
-// Inspected artwork (/artworks/[id]): full-screen dialog with the large image and its wall label.
-// Escape or "Back to collection" returns to the view it was opened from (Inspection.css).
+// Inspected artwork (/artworks/[id]): full-screen dialog with the large image and its wall label. On desktops the
+// image zooms (useInspectionZoom) and swaps to the original once it has loaded. Escape returns a zoomed image to fit,
+// else it or "Back to collection" returns to the view it was opened from (Inspection.css).
 'use client';
 
 import Image from 'next/image';
-import {useState} from 'react';
+import {useRef, useState} from 'react';
 import type {Artwork} from '@/data/artworks';
 import {WallLabel} from '../label/WallLabel';
+import {useFullResolution, useInspectionZoom} from './useInspectionZoom';
 import {useModalDialog} from './useModalDialog';
 
 export function Inspection({
@@ -19,6 +21,12 @@ export function Inspection({
 }) {
   const {dialogRef, closeRef, trapFocus} = useModalDialog();
   const [imageState, setImageState] = useState<'loading' | 'ready' | 'failed'>('loading');
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const imageRef = useRef<HTMLImageElement>(null);
+  const zoom = useInspectionZoom({viewportRef, imageRef, naturalWidth: artwork.width});
+  // The original, unresized, for a close look.
+  const original = imageState === 'ready' ? artwork.src : undefined;
+  const image = useFullResolution(imageRef, artwork.src, original, zoom.enabled);
 
   return (
     <dialog
@@ -27,7 +35,9 @@ export function Inspection({
       className="art-inspection"
       aria-labelledby="inspection-title"
       aria-describedby="inspection-description"
-      onKeyDown={trapFocus}
+      onKeyDown={(event) => {
+        if (!zoom.handleKey(event)) trapFocus(event);
+      }}
       onCancel={(event) => {
         event.preventDefault();
         onClose();
@@ -47,7 +57,7 @@ export function Inspection({
           Back to collection <span aria-hidden="true">×</span>
         </a>
       </div>
-      <div className="art-inspection-image">
+      <div className="art-inspection-image" ref={viewportRef} {...zoom.viewportProps}>
         {/* Without JavaScript the dialog is the whole page. */}
         <noscript>
           <style>{`
@@ -67,11 +77,15 @@ export function Inspection({
         )}
         <Image
           alt={artwork.alt}
-          src={artwork.src}
+          src={image.src}
+          unoptimized={image.full}
+          style={image.style}
           width={artwork.width}
           height={artwork.height}
           sizes="(max-width: 767px) 94vw, 86vw"
           priority
+          draggable={false}
+          ref={imageRef}
           onLoad={() => setImageState('ready')}
           onError={() => setImageState('failed')}
         />

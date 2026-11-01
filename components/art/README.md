@@ -17,8 +17,8 @@ terrain re-rendered as oil, pencil or digital — matching the medium on screen.
 | `selected/` | Selected works carousel and its wall label |
 | `all/` | All works collection and medium nav |
 | `label/` | The museum-style wall label used by every view |
-| `inspection/` | Full-screen artwork dialog |
+| `inspection/` | Full-screen artwork dialog, its desktop zoom (`useInspectionZoom`, also used by Places) and the modal dialog hook |
 | `transition/` | Animated switch between Selected and All works |
 | `capture/` | Screenshot mode (development only) |
 
-Tunables: `config/art/` (carousel, backdrop timing, gallery transition, cursor).
+Tunables: `config/art/` (carousel, backdrop timing, gallery transition, cursor, inspection zoom).

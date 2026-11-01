@@ -1,11 +1,11 @@
 // A gallery full-page (/places/[location]?gallery=<id>&photo=<index>): a modal dialog holding its photos in one row
 // that slides (usePhotoTrack), the current photo large in the middle and its neighbours dim to either side, after Art's
 // selected works. Under it the photo's date, place and description, and a ruler with a tick per photo, grouped by day
-// (PhotoViewer.css).
+// (PhotoViewer.css). A click on the current photo, or Enter on it, inspects it (PhotoInspection).
 'use client';
 
 import Image from 'next/image';
-import type {CSSProperties} from 'react';
+import {useEffect, useRef, type CSSProperties} from 'react';
 import {useModalDialog} from '@/components/art/inspection/useModalDialog';
 import {PHOTO_VIEWER_CONFIG} from '@/config/places/photoViewer';
 import {formatDay, photoAlt, type Gallery, type GalleryPhoto} from '@/data/places';
@@ -17,6 +17,9 @@ type PhotoViewerProps = {
   index: number;
   locationHref: string;
   onClose: () => void;
+  onInspect: (index: number) => void;
+  /** An inspection is open over the viewer. */
+  inspecting: boolean;
 };
 
 const {measure, lines, slack} = PHOTO_VIEWER_CONFIG.description;
@@ -31,10 +34,17 @@ function descriptionMeasure(text: string) {
   return Math.max(measure, Math.ceil((width / lines) * slack));
 }
 
-export function PhotoViewer({gallery, photos, index, locationHref, onClose}: PhotoViewerProps) {
+export function PhotoViewer({gallery, photos, index, locationHref, onClose, onInspect, inspecting}: PhotoViewerProps) {
   const {dialogRef, closeRef, trapFocus} = useModalDialog();
   const {stageRef, shown, select, stageHandlers, handleKey} = usePhotoTrack(photos, index);
   const photo = photos[shown];
+  // Back from an inspection, focus returns to the photo it inspected.
+  const currentRef = useRef<HTMLDivElement>(null);
+  const wasInspecting = useRef(inspecting);
+  useEffect(() => {
+    if (wasInspecting.current && !inspecting) currentRef.current?.focus({preventScroll: true});
+    wasInspecting.current = inspecting;
+  }, [inspecting]);
   // Consecutive photos of a day: the ruler's groups.
   const days: number[][] = [];
   photos.forEach((item, at) => {
@@ -76,10 +86,19 @@ export function PhotoViewer({gallery, photos, index, locationHref, onClose}: Pho
           {photos.map((item, at) => (
             <div
               aria-hidden={at !== shown || undefined}
+              aria-label={at === shown ? `Inspect photo ${at + 1}` : undefined}
               className="places-viewer-slide"
               data-current={at === shown || undefined}
               key={item.src}
-              onClick={() => select(at)}
+              onClick={() => (at === shown ? onInspect(at) : select(at))}
+              onKeyDown={(event) => {
+                if (at !== shown || (event.key !== 'Enter' && event.key !== ' ')) return;
+                event.preventDefault();
+                onInspect(at);
+              }}
+              ref={at === shown ? currentRef : undefined}
+              role={at === shown ? 'button' : undefined}
+              tabIndex={at === shown ? 0 : undefined}
             >
               <Image
                 alt={photoAlt(gallery, item)}

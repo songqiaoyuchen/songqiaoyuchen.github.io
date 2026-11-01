@@ -1,6 +1,6 @@
 // Reads the places photo folders and writes data/placesPhotos.json (--check only reports). A gallery is a folder,
 // public/places/photos/<location>/<gallery>/, written by import-places-photos.mjs: WebP photos, their thumbnails in
-// thumbs/, and a photos.json giving each photo's date (YYYY-MM-DD), location and optional description:
+// thumbs/, large copies in large/ for photos whose originals were bigger, and a photos.json giving each photo's date (YYYY-MM-DD), location and optional description:
 // {"2026-05-14_164438.webp": {"date", "location", "description"?, "order"?}}. Photos are ordered by date, then by
 // name (the time taken), so a corrected date moves a photo to its day. "order" (a number, lowest first) moves a photo
 // ahead of the rest in the location panel's strip only; the gallery itself stays in date order. A photo missing its date or location is left out with
@@ -81,8 +81,13 @@ async function main() {
         const {width, height} = getDimensions(await readFile(path.join(dir, file)));
         const src = `/places/photos/${key}/${file}`;
         const thumb = `/places/photos/${key}/thumbs/${file}`;
+        const largeFile = path.join(dir, 'large', file);
+        const large = existsSync(largeFile)
+          ? {src: `/places/photos/${key}/large/${file}`, ...getDimensions(await readFile(largeFile))}
+          : undefined;
         photos.push({
-          src, thumb, width, height, date, location: location.trim(), description: description.trim(),
+          src, thumb, width, height, ...(large ? {large} : {}),
+          date, location: location.trim(), description: description.trim(),
           ...(order === undefined ? {} : {order}),
         });
       }

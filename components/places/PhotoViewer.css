@@ -1,7 +1,9 @@
 /* Photo viewer (PhotoViewer.tsx): a full-page dialog over the location. The toolbar, the row of photos sliding across the
    whole width with arrows at its sides, the caption and the day ruler. usePhotoTrack writes each slide's size,
-   transform and opacity; slides stay hidden until it has. */
-.places-viewer {
+   transform and opacity; slides stay hidden until it has. The inspected photo (PhotoInspection.tsx) is a second such
+   dialog over it, at the end. */
+.places-viewer,
+.places-inspection {
   --places-viewer-ground: rgb(8 9 9 / 97%);
   --places-viewer-gutter: 5vw;
   position: fixed;
@@ -18,15 +20,17 @@
   font-family: var(--font-krypton), ui-monospace, monospace;
   overflow: hidden;
 }
-.places-viewer::backdrop {
+.places-viewer::backdrop,
+.places-inspection::backdrop {
   background: rgb(0 0 0 / 85%);
 }
-.places-viewer[open] {
+.places-viewer[open],
+.places-inspection[open] {
   display: flex;
   flex-direction: column;
   animation: places-rise 240ms ease both;
 }
-.places-viewer :is(a, button):not(.places-link):focus-visible {
+.places-viewer :is(a, button, [role='button']):not(.places-link):focus-visible {
   outline: var(--focus-ring);
   outline-offset: 4px;
 }
@@ -77,6 +81,9 @@
 }
 .places-viewer-slide:not([data-current]) {
   cursor: pointer;
+}
+.places-viewer-slide[data-current] {
+  cursor: zoom-in;
 }
 .places-viewer-slide img {
   display: block;
@@ -139,11 +146,12 @@
   color: var(--color-text);
 }
 /* Its usual measure, or wider for a description too long for the caption's lines (PhotoViewer.tsx), never past the
-   gutters; wrapped lines are evened out. */
+   gutters. Wrapped lines fill the measure rather than being evened out, so a longer description is never narrower
+   than a shorter one. */
 .places-viewer-description {
-  max-width: min(var(--places-viewer-description-measure, 60ch), 100%);
+  width: min(var(--places-viewer-description-measure, 60ch), 100%);
   margin: 0;
-  text-wrap: balance;
+  text-wrap: pretty;
   color: var(--color-muted);
   font-size: 0.74rem;
   line-height: var(--places-viewer-description-line);
@@ -197,9 +205,45 @@
   background: var(--color-accent);
 }
 
+/* The inspected photo: as large as the page allows below the toolbar. On desktops it zooms
+   (useInspectionZoom): the box clips it, and the cursor says what a click or drag will do. */
+.places-inspection-image {
+  position: relative;
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  margin: 16px var(--places-viewer-gutter);
+}
+.places-inspection-image img {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+  -webkit-user-drag: none;
+}
+.places-inspection-image[data-zoom] {
+  overflow: hidden;
+  cursor: zoom-in;
+  user-select: none;
+}
+.places-inspection-image[data-zoom='zoomed'] {
+  cursor: grab;
+}
+.places-inspection-image[data-zoom='zoomed']:active {
+  cursor: grabbing;
+}
+.places-inspection-image[data-zoom] img {
+  transform-origin: center;
+  will-change: transform;
+}
+
 /* Phones and touch: swipe, no arrows; the photo takes more of the width (PHOTO_VIEWER_CONFIG.frame.narrow). */
 @media (max-width: 767px), (pointer: coarse) {
-  .places-viewer {
+  .places-viewer,
+  .places-inspection {
     --places-viewer-gutter: var(--spacing-page-gutter);
     padding-top: 16px;
   }
@@ -210,7 +254,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .places-viewer[open],
-  .places-viewer-caption > div {
+  .places-viewer-caption > div,
+  .places-inspection[open] {
     animation: none;
   }
 }

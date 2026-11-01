@@ -5,15 +5,25 @@
       "thumb": "/places/photos/g318/sichuan/thumbs/2026-05-14_164438.webp",
       "width": 2400,
       "height": 1767,
+      "large": {
+        "src": "/places/photos/g318/sichuan/large/2026-05-14_164438.webp",
+        "width": 4000,
+        "height": 2945
+      },
       "date": "2026-05-14",
       "location": "Ya'an",
-      "description": "Day 1 of the trip, reached Ya'an after a 130km ride from Chengdu."
+      "description": "Day 1 of the trip. Reached Ya'an after a 130km ride from Chengdu."
     },
     {
       "src": "/places/photos/g318/sichuan/2026-05-15_182949.webp",
       "thumb": "/places/photos/g318/sichuan/thumbs/2026-05-15_182949.webp",
       "width": 1800,
       "height": 2400,
+      "large": {
+        "src": "/places/photos/g318/sichuan/large/2026-05-15_182949.webp",
+        "width": 3000,
+        "height": 4000
+      },
       "date": "2026-05-15",
       "location": "Xingou",
       "description": "An obelisk in Xingou, a small village in the mountains where I stayed overnight. The owner of the hostel is known among cyclists as a good cook."
@@ -23,9 +33,14 @@
       "thumb": "/places/photos/g318/sichuan/thumbs/2026-05-16_121256.webp",
       "width": 1800,
       "height": 2400,
+      "large": {
+        "src": "/places/photos/g318/sichuan/large/2026-05-16_121256.webp",
+        "width": 3000,
+        "height": 4000
+      },
       "date": "2026-05-16",
       "location": "Erlang Mountain",
-      "description": "After the Erlangshan Tunnel, the snow peaks are now visible in the distance.",
+      "description": "After the Erlang Mountain Tunnel, the snow peaks are now visible in the distance.",
       "order": 3
     },
     {
@@ -33,6 +48,11 @@
       "thumb": "/places/photos/g318/sichuan/thumbs/2026-05-16_190204.webp",
       "width": 1800,
       "height": 2400,
+      "large": {
+        "src": "/places/photos/g318/sichuan/large/2026-05-16_190204.webp",
+        "width": 3000,
+        "height": 4000
+      },
       "date": "2026-05-16",
       "location": "Luding",
       "description": "Luding Bridge over the Dadu River, a significant historical site from the Long March of the Red Army. Behind it is the newly built expressway bridge."
@@ -42,6 +62,11 @@
       "thumb": "/places/photos/g318/sichuan/thumbs/2026-05-17_135649.webp",
       "width": 1800,
       "height": 2400,
+      "large": {
+        "src": "/places/photos/g318/sichuan/large/2026-05-17_135649.webp",
+        "width": 3000,
+        "height": 4000
+      },
       "date": "2026-05-17",
       "location": "Xiaotiandu Tunnel",
       "description": "Looking back before the tunnel. Road signs warning of slippery conditions, continuous downhill (which I just climbed up), and high traffic accident risk."
@@ -60,18 +85,28 @@
       "thumb": "/places/photos/g318/sichuan/thumbs/2026-05-19_112630.webp",
       "width": 1932,
       "height": 2400,
+      "large": {
+        "src": "/places/photos/g318/sichuan/large/2026-05-19_112630.webp",
+        "width": 2209,
+        "height": 2744
+      },
       "date": "2026-05-19",
       "location": "Zheduo Mountain",
-      "description": "Winding snowy roads going up to the Zheduo Mountain pass, the first high pass of G318 at 4298m. It's said that anyone who can cycle up this pass can finish the whole G318 (not true)."
+      "description": "Winding snowy roads going up to Zheduo Mountain Pass, the first high pass of the G318 at 4298m. It's said that anyone who can cycle up this pass can finish the whole G318 (not true)."
     },
     {
       "src": "/places/photos/g318/sichuan/2026-05-19_162900.webp",
       "thumb": "/places/photos/g318/sichuan/thumbs/2026-05-19_162900.webp",
       "width": 2400,
       "height": 1540,
+      "large": {
+        "src": "/places/photos/g318/sichuan/large/2026-05-19_162900.webp",
+        "width": 3366,
+        "height": 2160
+      },
       "date": "2026-05-19",
       "location": "Zheduo Mountain",
-      "description": "Descending from Zheduo Mountain. I got a bad muscle injury after this ride and could barely walk that night.",
+      "description": "Descending from Zheduo Mountain. The last few kilometres of climb to the top took me ages, and gave me a muscle injury so bad that I could barely walk that night. It was my first time cycling at such high altitude.",
       "order": 2
     },
     {
@@ -81,7 +116,7 @@
       "height": 850,
       "date": "2026-05-21",
       "location": "G248 National Highway",
-      "description": "Grassland from Xinduqiao to Tagong, an 80km recovery ride. I was assessing whether I could still continue the journey after my injury."
+      "description": "Grassland from Xinduqiao to Tagong, an 80km recovery ride. I ate dumplings halfway, which had to be cooked in a pressure cooker at this altitude."
     },
     {
       "src": "/places/photos/g318/sichuan/2026-05-21_142801.webp",
@@ -97,24 +132,39 @@
       "thumb": "/places/photos/g318/sichuan/thumbs/2026-05-21_155537.webp",
       "width": 1800,
       "height": 2400,
+      "large": {
+        "src": "/places/photos/g318/sichuan/large/2026-05-21_155537.webp",
+        "width": 3000,
+        "height": 4000
+      },
       "date": "2026-05-21",
-      "location": "Tagong Monastery",
-      "description": "Local legend says that when Princess Wencheng was travelling to Tibet, the life-sized statue of a 12-year-old Sakyamuni Buddha she was carrying miraculously became immovable here until a replica was left behind. Tibetans believe that if you cannot make the pilgrimage all the way to Lhasa, worshipping at Tagong Monastery yields the exact same spiritual merit."
+      "location": "Tagong",
+      "description": "Tagong Monastery. Local legend says that when Princess Wencheng was travelling to Tibet, the life-sized statue of a twelve-year-old Shakyamuni Buddha she was carrying became immovable here until a replica was left behind. Tibetans believe that if you cannot make the pilgrimage all the way to Lhasa, worshipping at Tagong Monastery yields the exact same spiritual merit."
     },
     {
       "src": "/places/photos/g318/sichuan/2026-05-21_155929.webp",
       "thumb": "/places/photos/g318/sichuan/thumbs/2026-05-21_155929.webp",
       "width": 2400,
       "height": 1800,
+      "large": {
+        "src": "/places/photos/g318/sichuan/large/2026-05-21_155929.webp",
+        "width": 4000,
+        "height": 3000
+      },
       "date": "2026-05-21",
-      "location": "Yala Snow Mountain",
-      "description": ""
+      "location": "Tagong",
+      "description": "Yala Snow Mountain."
     },
     {
       "src": "/places/photos/g318/sichuan/2026-05-21_194016.webp",
       "thumb": "/places/photos/g318/sichuan/thumbs/2026-05-21_194016.webp",
       "width": 2400,
       "height": 1800,
+      "large": {
+        "src": "/places/photos/g318/sichuan/large/2026-05-21_194016.webp",
+        "width": 4000,
+        "height": 3000
+      },
       "date": "2026-05-21",
       "location": "Xinduqiao",
       "description": "A monastery on a small hill near where I stayed in Xinduqiao."
@@ -124,24 +174,39 @@
       "thumb": "/places/photos/g318/sichuan/thumbs/2026-05-22_133501.webp",
       "width": 2400,
       "height": 1297,
+      "large": {
+        "src": "/places/photos/g318/sichuan/large/2026-05-22_133501.webp",
+        "width": 4000,
+        "height": 2161
+      },
       "date": "2026-05-22",
       "location": "Yajiang",
-      "description": "Yajiang's spiral overpass, 300m vertical drop in just 8km distance (almost got scraped by a lorry here)."
+      "description": "Yajiang's spiral overpass, a 300m vertical drop in just 8km (almost got scraped by a lorry here)."
     },
     {
       "src": "/places/photos/g318/sichuan/2026-05-23_112241.webp",
       "thumb": "/places/photos/g318/sichuan/thumbs/2026-05-23_112241.webp",
       "width": 1800,
       "height": 2400,
+      "large": {
+        "src": "/places/photos/g318/sichuan/large/2026-05-23_112241.webp",
+        "width": 3000,
+        "height": 4000
+      },
       "date": "2026-05-23",
       "location": "Yajiang",
-      "description": "3000km road sign of G318, filled with messages from cyclists. This stretch is the steepest 10km of the journey, averaging about 9-10% gradient."
+      "description": "The 3000km road sign of the G318, filled with messages from cyclists. This stretch is the steepest 10km of the journey, averaging about 9-10% gradient."
     },
     {
       "src": "/places/photos/g318/sichuan/2026-05-23_205337.webp",
       "thumb": "/places/photos/g318/sichuan/thumbs/2026-05-23_205337.webp",
       "width": 2400,
       "height": 1800,
+      "large": {
+        "src": "/places/photos/g318/sichuan/large/2026-05-23_205337.webp",
+        "width": 4000,
+        "height": 3000
+      },
       "date": "2026-05-23",
       "location": "Xiangkezong",
       "description": "Three Sisters Hostel at Xiangkezong, a well-known pit stop for cyclists, motorcyclists, and backpackers. Its walls are filled with messages left by travellers."
@@ -151,15 +216,25 @@
       "thumb": "/places/photos/g318/sichuan/thumbs/2026-05-24_114951.webp",
       "width": 2400,
       "height": 1800,
+      "large": {
+        "src": "/places/photos/g318/sichuan/large/2026-05-24_114951.webp",
+        "width": 4000,
+        "height": 3000
+      },
       "date": "2026-05-24",
       "location": "Jianziwan Mountain",
-      "description": "Me after climbing up The Eighteen Bends of the Sky Road."
+      "description": "Me after climbing up the Eighteen Bends of the Sky Road (天路十八弯). Now 4000m is the baseline altitude I'm cycling at."
     },
     {
       "src": "/places/photos/g318/sichuan/2026-05-25_130524.webp",
       "thumb": "/places/photos/g318/sichuan/thumbs/2026-05-25_130524.webp",
       "width": 1800,
       "height": 2400,
+      "large": {
+        "src": "/places/photos/g318/sichuan/large/2026-05-25_130524.webp",
+        "width": 3000,
+        "height": 4000
+      },
       "date": "2026-05-25",
       "location": "Honglong",
       "description": "Yak sign on the way to Litang."
@@ -179,6 +254,11 @@
       "thumb": "/places/photos/g318/sichuan/thumbs/2026-05-26_175609.webp",
       "width": 2400,
       "height": 1800,
+      "large": {
+        "src": "/places/photos/g318/sichuan/large/2026-05-26_175609.webp",
+        "width": 2900,
+        "height": 2175
+      },
       "date": "2026-05-26",
       "location": "Maoya Grassland",
       "description": "Yaks on Maoya Grassland.",
@@ -189,6 +269,11 @@
       "thumb": "/places/photos/g318/sichuan/thumbs/2026-05-27_080411.webp",
       "width": 1800,
       "height": 2400,
+      "large": {
+        "src": "/places/photos/g318/sichuan/large/2026-05-27_080411.webp",
+        "width": 3000,
+        "height": 4000
+      },
       "date": "2026-05-27",
       "location": "Heni",
       "description": "Messages left behind by travellers on the wall of a hostel in Heni."
@@ -200,7 +285,7 @@
       "height": 1575,
       "date": "2026-05-27",
       "location": "Haizi Mountain",
-      "description": ""
+      "description": "Newly paved roads."
     },
     {
       "src": "/places/photos/g318/sichuan/2026-05-27_122100.webp",
@@ -216,13 +301,504 @@
       "thumb": "/places/photos/g318/sichuan/thumbs/2026-05-27_131200.webp",
       "width": 1725,
       "height": 2400,
+      "large": {
+        "src": "/places/photos/g318/sichuan/large/2026-05-27_131200.webp",
+        "width": 2720,
+        "height": 3784
+      },
       "date": "2026-05-27",
       "location": "Sister Lakes",
-      "description": "",
+      "description": "One of the best views of the trip.",
       "order": 1
     }
   ],
-  "g318/tibet": [],
+  "g318/tibet": [
+    {
+      "src": "/places/photos/g318/tibet/2026-05-29_091935.webp",
+      "thumb": "/places/photos/g318/tibet/thumbs/2026-05-29_091935.webp",
+      "width": 1800,
+      "height": 2400,
+      "large": {
+        "src": "/places/photos/g318/tibet/large/2026-05-29_091935.webp",
+        "width": 3000,
+        "height": 4000
+      },
+      "date": "2026-05-29",
+      "location": "Batang",
+      "description": "Motorists and cyclists on the Jinsha River (upper Yangtze) Bridge, officially entering Tibet."
+    },
+    {
+      "src": "/places/photos/g318/tibet/2026-05-29_183106.webp",
+      "thumb": "/places/photos/g318/tibet/thumbs/2026-05-29_183106.webp",
+      "width": 1800,
+      "height": 2400,
+      "large": {
+        "src": "/places/photos/g318/tibet/large/2026-05-29_183106.webp",
+        "width": 3000,
+        "height": 4000
+      },
+      "date": "2026-05-29",
+      "location": "Markam",
+      "description": "On top of Zongla Mountain. This was one of the toughest days of the entire trip, with a 1700m climb over 105km."
+    },
+    {
+      "src": "/places/photos/g318/tibet/2026-05-30_065228.webp",
+      "thumb": "/places/photos/g318/tibet/thumbs/2026-05-30_065228.webp",
+      "width": 2400,
+      "height": 2194,
+      "large": {
+        "src": "/places/photos/g318/tibet/large/2026-05-30_065228.webp",
+        "width": 3302,
+        "height": 3019
+      },
+      "date": "2026-05-30",
+      "location": "Markam",
+      "description": "Weise Monastery, over 580 years old.",
+      "order": 4
+    },
+    {
+      "src": "/places/photos/g318/tibet/2026-05-30_170109.webp",
+      "thumb": "/places/photos/g318/tibet/thumbs/2026-05-30_170109.webp",
+      "width": 1696,
+      "height": 2400,
+      "large": {
+        "src": "/places/photos/g318/tibet/large/2026-05-30_170109.webp",
+        "width": 2610,
+        "height": 3693
+      },
+      "date": "2026-05-30",
+      "location": "Bangda",
+      "description": "The Nu River Bridge. Nu literally means 'angry', reflecting its turbulent nature."
+    },
+    {
+      "src": "/places/photos/g318/tibet/2026-05-31_133215.webp",
+      "thumb": "/places/photos/g318/tibet/thumbs/2026-05-31_133215.webp",
+      "width": 2400,
+      "height": 1800,
+      "large": {
+        "src": "/places/photos/g318/tibet/large/2026-05-31_133215.webp",
+        "width": 4000,
+        "height": 3000
+      },
+      "date": "2026-05-31",
+      "location": "Rawu",
+      "description": "Upper Rawu Lake."
+    },
+    {
+      "src": "/places/photos/g318/tibet/2026-06-01_090531.webp",
+      "thumb": "/places/photos/g318/tibet/thumbs/2026-06-01_090531.webp",
+      "width": 1800,
+      "height": 2400,
+      "large": {
+        "src": "/places/photos/g318/tibet/large/2026-06-01_090531.webp",
+        "width": 3000,
+        "height": 4000
+      },
+      "date": "2026-06-01",
+      "location": "Rawu",
+      "description": "Lower Rawu Lake. This is known as the most scenic ride of the G318 route."
+    },
+    {
+      "src": "/places/photos/g318/tibet/2026-06-01_090542.webp",
+      "thumb": "/places/photos/g318/tibet/thumbs/2026-06-01_090542.webp",
+      "width": 1894,
+      "height": 2400,
+      "large": {
+        "src": "/places/photos/g318/tibet/large/2026-06-01_090542.webp",
+        "width": 2880,
+        "height": 3649
+      },
+      "date": "2026-06-01",
+      "location": "Rawu",
+      "description": "",
+      "order": 3
+    },
+    {
+      "src": "/places/photos/g318/tibet/2026-06-01_094631.webp",
+      "thumb": "/places/photos/g318/tibet/thumbs/2026-06-01_094631.webp",
+      "width": 1800,
+      "height": 2400,
+      "large": {
+        "src": "/places/photos/g318/tibet/large/2026-06-01_094631.webp",
+        "width": 3000,
+        "height": 4000
+      },
+      "date": "2026-06-01",
+      "location": "Rawu",
+      "description": ""
+    },
+    {
+      "src": "/places/photos/g318/tibet/2026-06-01_094903.webp",
+      "thumb": "/places/photos/g318/tibet/thumbs/2026-06-01_094903.webp",
+      "width": 1800,
+      "height": 2400,
+      "large": {
+        "src": "/places/photos/g318/tibet/large/2026-06-01_094903.webp",
+        "width": 3000,
+        "height": 4000
+      },
+      "date": "2026-06-01",
+      "location": "Rawu",
+      "description": "The snow peaks look surprisingly low and close."
+    },
+    {
+      "src": "/places/photos/g318/tibet/2026-06-01_102039.webp",
+      "thumb": "/places/photos/g318/tibet/thumbs/2026-06-01_102039.webp",
+      "width": 1800,
+      "height": 2400,
+      "large": {
+        "src": "/places/photos/g318/tibet/large/2026-06-01_102039.webp",
+        "width": 3000,
+        "height": 4000
+      },
+      "date": "2026-06-01",
+      "location": "Rawu",
+      "description": "One of the best things about a bicycle is that you can stop anywhere without obstructing traffic."
+    },
+    {
+      "src": "/places/photos/g318/tibet/2026-06-01_113246.webp",
+      "thumb": "/places/photos/g318/tibet/thumbs/2026-06-01_113246.webp",
+      "width": 1669,
+      "height": 2400,
+      "large": {
+        "src": "/places/photos/g318/tibet/large/2026-06-01_113246.webp",
+        "width": 2782,
+        "height": 4000
+      },
+      "date": "2026-06-01",
+      "location": "Bomi",
+      "description": "Midui Glacier in the distance. The yellowish glacier-fed stream is merging with the turquoise Parlung Tsangpo River."
+    },
+    {
+      "src": "/places/photos/g318/tibet/2026-06-03_075617.webp",
+      "thumb": "/places/photos/g318/tibet/thumbs/2026-06-03_075617.webp",
+      "width": 2400,
+      "height": 1800,
+      "large": {
+        "src": "/places/photos/g318/tibet/large/2026-06-03_075617.webp",
+        "width": 4000,
+        "height": 3000
+      },
+      "date": "2026-06-03",
+      "location": "Tongmai",
+      "description": "Beginning the ride in yet more rain."
+    },
+    {
+      "src": "/places/photos/g318/tibet/2026-06-03_090556.webp",
+      "thumb": "/places/photos/g318/tibet/thumbs/2026-06-03_090556.webp",
+      "width": 1800,
+      "height": 2400,
+      "large": {
+        "src": "/places/photos/g318/tibet/large/2026-06-03_090556.webp",
+        "width": 3000,
+        "height": 4000
+      },
+      "date": "2026-06-03",
+      "location": "Tongmai",
+      "description": "Tongmai was once one of the most dangerous stretches of the G318, where rain made landslides frequent. Modern bridges and tunnels have since made it much safer."
+    },
+    {
+      "src": "/places/photos/g318/tibet/2026-06-04_100142.webp",
+      "thumb": "/places/photos/g318/tibet/thumbs/2026-06-04_100142.webp",
+      "width": 1800,
+      "height": 2400,
+      "large": {
+        "src": "/places/photos/g318/tibet/large/2026-06-04_100142.webp",
+        "width": 3000,
+        "height": 4000
+      },
+      "date": "2026-06-04",
+      "location": "Lulang",
+      "description": "Lulang's alpine meadows."
+    },
+    {
+      "src": "/places/photos/g318/tibet/2026-06-04_110000.webp",
+      "thumb": "/places/photos/g318/tibet/thumbs/2026-06-04_110000.webp",
+      "width": 2400,
+      "height": 1628,
+      "large": {
+        "src": "/places/photos/g318/tibet/large/2026-06-04_110000.webp",
+        "width": 3798,
+        "height": 2576
+      },
+      "date": "2026-06-04",
+      "location": "Lulang",
+      "description": "Coldest ride of the trip. Got soaked on the climb to Sejila Mountain Pass, 4728m above sea level."
+    },
+    {
+      "src": "/places/photos/g318/tibet/2026-06-05_105843.webp",
+      "thumb": "/places/photos/g318/tibet/thumbs/2026-06-05_105843.webp",
+      "width": 1706,
+      "height": 868,
+      "date": "2026-06-05",
+      "location": "Nyingchi",
+      "description": "Me at the Nyang River, known as the mother river of Nyingchi."
+    },
+    {
+      "src": "/places/photos/g318/tibet/2026-06-05_122700.webp",
+      "thumb": "/places/photos/g318/tibet/thumbs/2026-06-05_122700.webp",
+      "width": 2400,
+      "height": 1221,
+      "large": {
+        "src": "/places/photos/g318/tibet/large/2026-06-05_122700.webp",
+        "width": 3829,
+        "height": 1948
+      },
+      "date": "2026-06-05",
+      "location": "Nyingchi",
+      "description": "Lhasa-Nyingchi Expressway beside the G318.",
+      "order": 2
+    },
+    {
+      "src": "/places/photos/g318/tibet/2026-06-06_100236.webp",
+      "thumb": "/places/photos/g318/tibet/thumbs/2026-06-06_100236.webp",
+      "width": 1800,
+      "height": 2400,
+      "large": {
+        "src": "/places/photos/g318/tibet/large/2026-06-06_100236.webp",
+        "width": 3000,
+        "height": 4000
+      },
+      "date": "2026-06-06",
+      "location": "Gongbo'gyamda",
+      "description": ""
+    },
+    {
+      "src": "/places/photos/g318/tibet/2026-06-07_094939.webp",
+      "thumb": "/places/photos/g318/tibet/thumbs/2026-06-07_094939.webp",
+      "width": 1800,
+      "height": 2400,
+      "large": {
+        "src": "/places/photos/g318/tibet/large/2026-06-07_094939.webp",
+        "width": 3000,
+        "height": 4000
+      },
+      "date": "2026-06-07",
+      "location": "G318 National Highway",
+      "description": "Last climb to Mila Mountain Pass. At this exact point I had to stop due to a sharp chest pain. Looking back, my cardiopulmonary system had been severely overloaded over the past week, and I should have taken one or two rest days."
+    },
+    {
+      "src": "/places/photos/g318/tibet/2026-06-07_111658.webp",
+      "thumb": "/places/photos/g318/tibet/thumbs/2026-06-07_111658.webp",
+      "width": 1800,
+      "height": 2400,
+      "large": {
+        "src": "/places/photos/g318/tibet/large/2026-06-07_111658.webp",
+        "width": 3000,
+        "height": 4000
+      },
+      "date": "2026-06-07",
+      "location": "Mila Mountain Pass",
+      "description": "5013m above sea level - the highest point I have ever reached on a bicycle."
+    },
+    {
+      "src": "/places/photos/g318/tibet/2026-06-07_162344.webp",
+      "thumb": "/places/photos/g318/tibet/thumbs/2026-06-07_162344.webp",
+      "width": 1800,
+      "height": 2400,
+      "large": {
+        "src": "/places/photos/g318/tibet/large/2026-06-07_162344.webp",
+        "width": 3000,
+        "height": 4000
+      },
+      "date": "2026-06-07",
+      "location": "Maizhokunggar",
+      "description": "A statue of Songtsen Gampo, the seventh-century ruler who unified Tibet."
+    },
+    {
+      "src": "/places/photos/g318/tibet/2026-06-07_170709.webp",
+      "thumb": "/places/photos/g318/tibet/thumbs/2026-06-07_170709.webp",
+      "width": 2400,
+      "height": 1221,
+      "large": {
+        "src": "/places/photos/g318/tibet/large/2026-06-07_170709.webp",
+        "width": 4000,
+        "height": 2035
+      },
+      "date": "2026-06-07",
+      "location": "G318 National Highway",
+      "description": "The Lhasa River."
+    },
+    {
+      "src": "/places/photos/g318/tibet/2026-06-08_170227.webp",
+      "thumb": "/places/photos/g318/tibet/thumbs/2026-06-08_170227.webp",
+      "width": 2400,
+      "height": 1527,
+      "large": {
+        "src": "/places/photos/g318/tibet/large/2026-06-08_170227.webp",
+        "width": 3272,
+        "height": 2082
+      },
+      "date": "2026-06-08",
+      "location": "Lhasa",
+      "description": "The Jokhang Temple, the spiritual centre of Tibet for more than 1300 years and the finish point of the G318 pilgrimage. It was built in the seventh century under the reign of Songtsen Gampo. Its most sacred treasure is the Jowo Shakyamuni statue, said to have been made during the lifetime of Shakyamuni Buddha, depicting him at the age of twelve, and brought to Tibet by Princess Wencheng of the Tang Dynasty.",
+      "order": 5
+    },
+    {
+      "src": "/places/photos/g318/tibet/2026-06-09_123357.webp",
+      "thumb": "/places/photos/g318/tibet/thumbs/2026-06-09_123357.webp",
+      "width": 2400,
+      "height": 1396,
+      "large": {
+        "src": "/places/photos/g318/tibet/large/2026-06-09_123357.webp",
+        "width": 4000,
+        "height": 2327
+      },
+      "date": "2026-06-09",
+      "location": "Lhasa",
+      "description": "The Potala Palace, whose White Palace historically served as the Dalai Lama's residence and the administrative centre of the Tibetan government. Inside the Red Palace, the reliquary stupa of the Fifth Dalai Lama is adorned with approximately 3.7 tonnes of gold and thousands of precious stones.",
+      "order": 1
+    },
+    {
+      "src": "/places/photos/g318/tibet/2026-06-10_094249.webp",
+      "thumb": "/places/photos/g318/tibet/thumbs/2026-06-10_094249.webp",
+      "width": 2400,
+      "height": 1800,
+      "large": {
+        "src": "/places/photos/g318/tibet/large/2026-06-10_094249.webp",
+        "width": 4000,
+        "height": 3000
+      },
+      "date": "2026-06-10",
+      "location": "Namtso",
+      "description": "Nagenla Pass. My cycling was over, and I was fully enjoying the bus rides."
+    },
+    {
+      "src": "/places/photos/g318/tibet/2026-06-10_123753.webp",
+      "thumb": "/places/photos/g318/tibet/thumbs/2026-06-10_123753.webp",
+      "width": 2400,
+      "height": 1800,
+      "large": {
+        "src": "/places/photos/g318/tibet/large/2026-06-10_123753.webp",
+        "width": 4000,
+        "height": 3000
+      },
+      "date": "2026-06-10",
+      "location": "Namtso",
+      "description": "A white yak."
+    },
+    {
+      "src": "/places/photos/g318/tibet/2026-06-10_130902.webp",
+      "thumb": "/places/photos/g318/tibet/thumbs/2026-06-10_130902.webp",
+      "width": 1800,
+      "height": 2400,
+      "large": {
+        "src": "/places/photos/g318/tibet/large/2026-06-10_130902.webp",
+        "width": 3000,
+        "height": 4000
+      },
+      "date": "2026-06-10",
+      "location": "Namtso",
+      "description": "Namtso, meaning 'Heavenly Lake' in Tibetan, is one of Tibet's most sacred and spectacular alpine lakes."
+    },
+    {
+      "src": "/places/photos/g318/tibet/2026-06-10_140543.webp",
+      "thumb": "/places/photos/g318/tibet/thumbs/2026-06-10_140543.webp",
+      "width": 1800,
+      "height": 2400,
+      "large": {
+        "src": "/places/photos/g318/tibet/large/2026-06-10_140543.webp",
+        "width": 2934,
+        "height": 3912
+      },
+      "date": "2026-06-10",
+      "location": "Namtso",
+      "description": "Nyenchen Tanglha Mountains along the southern shores of Namtso."
+    },
+    {
+      "src": "/places/photos/g318/tibet/2026-06-10_141717.webp",
+      "thumb": "/places/photos/g318/tibet/thumbs/2026-06-10_141717.webp",
+      "width": 2400,
+      "height": 1917,
+      "large": {
+        "src": "/places/photos/g318/tibet/large/2026-06-10_141717.webp",
+        "width": 2749,
+        "height": 2196
+      },
+      "date": "2026-06-10",
+      "location": "Namtso",
+      "description": "Khata scarves on mani stone piles along the shores of Namtso."
+    },
+    {
+      "src": "/places/photos/g318/tibet/2026-06-11_160614.webp",
+      "thumb": "/places/photos/g318/tibet/thumbs/2026-06-11_160614.webp",
+      "width": 1800,
+      "height": 2400,
+      "large": {
+        "src": "/places/photos/g318/tibet/large/2026-06-11_160614.webp",
+        "width": 2886,
+        "height": 3848
+      },
+      "date": "2026-06-11",
+      "location": "Nagarzê",
+      "description": "Yamdrok Lake, meaning 'Turquoise Lake' in Tibetan, is another of Tibet's three great sacred lakes."
+    },
+    {
+      "src": "/places/photos/g318/tibet/2026-06-11_171144.webp",
+      "thumb": "/places/photos/g318/tibet/thumbs/2026-06-11_171144.webp",
+      "width": 2400,
+      "height": 1800,
+      "large": {
+        "src": "/places/photos/g318/tibet/large/2026-06-11_171144.webp",
+        "width": 3916,
+        "height": 2937
+      },
+      "date": "2026-06-11",
+      "location": "Nagarzê",
+      "description": "Yamdrok Lake. The railings are fully covered with khata scarves."
+    },
+    {
+      "src": "/places/photos/g318/tibet/2026-06-11_185419.webp",
+      "thumb": "/places/photos/g318/tibet/thumbs/2026-06-11_185419.webp",
+      "width": 1683,
+      "height": 976,
+      "date": "2026-06-11",
+      "location": "Nagarzê",
+      "description": "Rituo Monastery, a small Tibetan Buddhist monastery perched on a secluded peninsula stretching into the turquoise waters of Yamdrok Lake, often described as one of the loneliest monasteries in the world."
+    },
+    {
+      "src": "/places/photos/g318/tibet/2026-06-11_192646.webp",
+      "thumb": "/places/photos/g318/tibet/thumbs/2026-06-11_192646.webp",
+      "width": 2400,
+      "height": 1800,
+      "large": {
+        "src": "/places/photos/g318/tibet/large/2026-06-11_192646.webp",
+        "width": 4000,
+        "height": 3000
+      },
+      "date": "2026-06-11",
+      "location": "Nagarzê",
+      "description": "A wild fox near Rituo Monastery."
+    },
+    {
+      "src": "/places/photos/g318/tibet/2026-06-11_192914.webp",
+      "thumb": "/places/photos/g318/tibet/thumbs/2026-06-11_192914.webp",
+      "width": 2400,
+      "height": 1800,
+      "large": {
+        "src": "/places/photos/g318/tibet/large/2026-06-11_192914.webp",
+        "width": 3916,
+        "height": 2937
+      },
+      "date": "2026-06-11",
+      "location": "Nagarzê",
+      "description": "Another side of Yamdrok Lake."
+    },
+    {
+      "src": "/places/photos/g318/tibet/2026-06-11_195928.webp",
+      "thumb": "/places/photos/g318/tibet/thumbs/2026-06-11_195928.webp",
+      "width": 2400,
+      "height": 1740,
+      "large": {
+        "src": "/places/photos/g318/tibet/large/2026-06-11_195928.webp",
+        "width": 3807,
+        "height": 2760
+      },
+      "date": "2026-06-11",
+      "location": "Nagarzê",
+      "description": "Horses grazing near Yamdrok Lake."
+    }
+  ],
   "marseille/city": [],
   "triple-crown/hikes-city": [
     {
@@ -230,6 +806,11 @@
       "thumb": "/places/photos/triple-crown/hikes-city/thumbs/2026-08-21_185852.webp",
       "width": 1800,
       "height": 2400,
+      "large": {
+        "src": "/places/photos/triple-crown/hikes-city/large/2026-08-21_185852.webp",
+        "width": 3000,
+        "height": 4000
+      },
       "date": "2026-08-21",
       "location": "Trondheim",
       "description": "Rainbow on the way to the airport."
@@ -240,7 +821,7 @@
       "width": 1280,
       "height": 1707,
       "date": "2026-08-22",
-      "location": "Strand",
+      "location": "Preikestolen",
       "description": "Me at Preikestolen.",
       "order": 3
     },
@@ -249,9 +830,14 @@
       "thumb": "/places/photos/triple-crown/hikes-city/thumbs/2026-08-22_120152.webp",
       "width": 1830,
       "height": 2400,
+      "large": {
+        "src": "/places/photos/triple-crown/hikes-city/large/2026-08-22_120152.webp",
+        "width": 3050,
+        "height": 4000
+      },
       "date": "2026-08-22",
-      "location": "Strand",
-      "description": "Looking out over Lysefjord on Preikestolen.",
+      "location": "Preikestolen",
+      "description": "Looking out over Lysefjord from Preikestolen.",
       "order": 2
     },
     {
@@ -259,6 +845,11 @@
       "thumb": "/places/photos/triple-crown/hikes-city/thumbs/2026-08-22_170409.webp",
       "width": 2400,
       "height": 1800,
+      "large": {
+        "src": "/places/photos/triple-crown/hikes-city/large/2026-08-22_170409.webp",
+        "width": 4000,
+        "height": 3000
+      },
       "date": "2026-08-22",
       "location": "Stavanger",
       "description": ""
@@ -268,6 +859,11 @@
       "thumb": "/places/photos/triple-crown/hikes-city/thumbs/2026-08-22_173115.webp",
       "width": 1800,
       "height": 2400,
+      "large": {
+        "src": "/places/photos/triple-crown/hikes-city/large/2026-08-22_173115.webp",
+        "width": 3000,
+        "height": 4000
+      },
       "date": "2026-08-22",
       "location": "Stavanger",
       "description": "St. Petri Church."
@@ -277,6 +873,11 @@
       "thumb": "/places/photos/triple-crown/hikes-city/thumbs/2026-08-23_103644.webp",
       "width": 1800,
       "height": 2400,
+      "large": {
+        "src": "/places/photos/triple-crown/hikes-city/large/2026-08-23_103644.webp",
+        "width": 3000,
+        "height": 4000
+      },
       "date": "2026-08-23",
       "location": "Kjerag",
       "description": "Hiking to Kjeragbolten."
@@ -286,6 +887,11 @@
       "thumb": "/places/photos/triple-crown/hikes-city/thumbs/2026-08-23_123031.webp",
       "width": 1357,
       "height": 2400,
+      "large": {
+        "src": "/places/photos/triple-crown/hikes-city/large/2026-08-23_123031.webp",
+        "width": 2261,
+        "height": 4000
+      },
       "date": "2026-08-23",
       "location": "Kjerag",
       "description": "At Kjeragbolten. It is a drop of almost 1000m to the fjord below.",
@@ -296,6 +902,11 @@
       "thumb": "/places/photos/triple-crown/hikes-city/thumbs/2026-08-23_141836.webp",
       "width": 1769,
       "height": 2400,
+      "large": {
+        "src": "/places/photos/triple-crown/hikes-city/large/2026-08-23_141836.webp",
+        "width": 2949,
+        "height": 4000
+      },
       "date": "2026-08-23",
       "location": "Kjerag",
       "description": "Sheep on the way down from Kjerag.",
@@ -306,6 +917,11 @@
       "thumb": "/places/photos/triple-crown/hikes-city/thumbs/2026-08-24_113205.webp",
       "width": 2400,
       "height": 1800,
+      "large": {
+        "src": "/places/photos/triple-crown/hikes-city/large/2026-08-24_113205.webp",
+        "width": 4000,
+        "height": 3000
+      },
       "date": "2026-08-24",
       "location": "Bokn",
       "description": "Ferry transfer to Odda."
@@ -315,6 +931,11 @@
       "thumb": "/places/photos/triple-crown/hikes-city/thumbs/2026-08-25_053530.webp",
       "width": 1800,
       "height": 2400,
+      "large": {
+        "src": "/places/photos/triple-crown/hikes-city/large/2026-08-25_053530.webp",
+        "width": 3000,
+        "height": 4000
+      },
       "date": "2026-08-25",
       "location": "Odda",
       "description": "Early morning in Odda."
@@ -324,8 +945,13 @@
       "thumb": "/places/photos/triple-crown/hikes-city/thumbs/2026-08-25_121041.webp",
       "width": 2400,
       "height": 1800,
+      "large": {
+        "src": "/places/photos/triple-crown/hikes-city/large/2026-08-25_121041.webp",
+        "width": 4000,
+        "height": 3000
+      },
       "date": "2026-08-25",
-      "location": "Ullensvang",
+      "location": "Trolltunga",
       "description": "Me at Trolltunga.",
       "order": 4
     },
@@ -334,8 +960,13 @@
       "thumb": "/places/photos/triple-crown/hikes-city/thumbs/2026-08-25_150505.webp",
       "width": 1800,
       "height": 2400,
+      "large": {
+        "src": "/places/photos/triple-crown/hikes-city/large/2026-08-25_150505.webp",
+        "width": 3000,
+        "height": 4000
+      },
       "date": "2026-08-25",
-      "location": "Ullensvang",
+      "location": "Trolltunga",
       "description": "Cute dog on the way down from Trolltunga."
     },
     {
@@ -343,6 +974,11 @@
       "thumb": "/places/photos/triple-crown/hikes-city/thumbs/2026-08-26_143457.webp",
       "width": 2400,
       "height": 1800,
+      "large": {
+        "src": "/places/photos/triple-crown/hikes-city/large/2026-08-26_143457.webp",
+        "width": 4000,
+        "height": 3000
+      },
       "date": "2026-08-26",
       "location": "Bergen",
       "description": "The iconic row of wooden buildings at Bryggen."
@@ -352,6 +988,11 @@
       "thumb": "/places/photos/triple-crown/hikes-city/thumbs/2026-08-26_155224.webp",
       "width": 2400,
       "height": 1800,
+      "large": {
+        "src": "/places/photos/triple-crown/hikes-city/large/2026-08-26_155224.webp",
+        "width": 4000,
+        "height": 3000
+      },
       "date": "2026-08-26",
       "location": "Bergen",
       "description": "Souvenir shop at Bryggen."
@@ -363,6 +1004,11 @@
       "thumb": "/places/photos/xinjiang/duku/thumbs/2024-06-15_155659.webp",
       "width": 2400,
       "height": 1800,
+      "large": {
+        "src": "/places/photos/xinjiang/duku/large/2024-06-15_155659.webp",
+        "width": 4000,
+        "height": 3000
+      },
       "date": "2024-06-15",
       "location": "Tianjin",
       "description": "Packing my bicycle for the flight."
@@ -372,6 +1018,11 @@
       "thumb": "/places/photos/xinjiang/duku/thumbs/2024-06-23_225338.webp",
       "width": 2400,
       "height": 1778,
+      "large": {
+        "src": "/places/photos/xinjiang/duku/large/2024-06-23_225338.webp",
+        "width": 3260,
+        "height": 2415
+      },
       "date": "2024-06-23",
       "location": "Urumqi",
       "description": "My belongings (many discarded later) laid out on the hotel bed.",
@@ -391,9 +1042,14 @@
       "thumb": "/places/photos/xinjiang/duku/thumbs/2024-06-25_202553.webp",
       "width": 2400,
       "height": 1576,
+      "large": {
+        "src": "/places/photos/xinjiang/duku/large/2024-06-25_202553.webp",
+        "width": 3995,
+        "height": 2624
+      },
       "date": "2024-06-25",
       "location": "Duku Highway",
-      "description": "We were too excited and did not pace ourselves on the first day. Coupled with strong winds, we were so exhausted that we had to get off and push the bikes. You can see the Tianshan Mountains in the distance."
+      "description": "We were too excited and did not pace ourselves on the first day. With strong winds on top, we were so exhausted that we had to get off and push the bikes. You can see the Tianshan Mountains in the distance."
     },
     {
       "src": "/places/photos/xinjiang/duku/2024-06-26_094000.webp",
@@ -402,7 +1058,7 @@
       "height": 648,
       "date": "2024-06-26",
       "location": "Wusu",
-      "description": "Our tent pitched in the car park of a hotel under construction at Wusu tourism service area. None of us got up before 10am."
+      "description": "Our tent pitched in the car park of a hotel under construction at the Wusu tourism service area. None of us got up before 10am."
     },
     {
       "src": "/places/photos/xinjiang/duku/2024-06-26_222500.webp",
@@ -427,6 +1083,11 @@
       "thumb": "/places/photos/xinjiang/duku/thumbs/2024-06-29_114326.webp",
       "width": 1800,
       "height": 2400,
+      "large": {
+        "src": "/places/photos/xinjiang/duku/large/2024-06-29_114326.webp",
+        "width": 3000,
+        "height": 4000
+      },
       "date": "2024-06-29",
       "location": "Duku Highway",
       "description": "A braided river spreading across the valley."
@@ -436,6 +1097,11 @@
       "thumb": "/places/photos/xinjiang/duku/thumbs/2024-06-29_160047.webp",
       "width": 2007,
       "height": 2400,
+      "large": {
+        "src": "/places/photos/xinjiang/duku/large/2024-06-29_160047.webp",
+        "width": 3345,
+        "height": 4000
+      },
       "date": "2024-06-29",
       "location": "Duku Highway",
       "description": "The winding roads of Tianshan, and the steepest segment I have ever cycled to this day; the gradient never went below double digits (max gradient 39.6%).",
@@ -475,16 +1141,21 @@
       "height": 1267,
       "date": "2024-06-29",
       "location": "Qiao'erma",
-      "description": "A small stream near Qiao'erma. This scene reminds of the elven realms of Middle Earth."
+      "description": "A small stream near Qiao'erma. This scene reminds me of the elven realms of Middle-earth."
     },
     {
       "src": "/places/photos/xinjiang/duku/2024-07-01_132314.webp",
       "thumb": "/places/photos/xinjiang/duku/thumbs/2024-07-01_132314.webp",
       "width": 1800,
       "height": 2400,
+      "large": {
+        "src": "/places/photos/xinjiang/duku/large/2024-07-01_132314.webp",
+        "width": 3000,
+        "height": 4000
+      },
       "date": "2024-07-01",
       "location": "Tangbula Grassland",
-      "description": "Tangbula Grassland, where we did a chill recovery ride. None of us could take more climbs because of bruises (no one wore cycling paddings because I thought they were unnecessary...).",
+      "description": "Tangbula Grassland, where we did a chill recovery ride. None of us could take more climbs because of bruises (no one wore padded cycling shorts because I thought they were unnecessary...).",
       "order": 3
     },
     {
@@ -492,6 +1163,11 @@
       "thumb": "/places/photos/xinjiang/duku/thumbs/2024-07-01_165401.webp",
       "width": 1800,
       "height": 2400,
+      "large": {
+        "src": "/places/photos/xinjiang/duku/large/2024-07-01_165401.webp",
+        "width": 3000,
+        "height": 4000
+      },
       "date": "2024-07-01",
       "location": "Tangbula Grassland",
       "description": "Our bikes parked at the roadside of Tangbula Grassland."
@@ -501,6 +1177,11 @@
       "thumb": "/places/photos/xinjiang/duku/thumbs/2024-07-01_182513.webp",
       "width": 2400,
       "height": 1800,
+      "large": {
+        "src": "/places/photos/xinjiang/duku/large/2024-07-01_182513.webp",
+        "width": 4000,
+        "height": 3000
+      },
       "date": "2024-07-01",
       "location": "Qiao'erma",
       "description": "WJ (left) and AP (right) looking at the distant peaks.",
@@ -511,6 +1192,11 @@
       "thumb": "/places/photos/xinjiang/duku/thumbs/2024-07-02_155235.webp",
       "width": 1800,
       "height": 2400,
+      "large": {
+        "src": "/places/photos/xinjiang/duku/large/2024-07-02_155235.webp",
+        "width": 3000,
+        "height": 4000
+      },
       "date": "2024-07-02",
       "location": "Yuximolegai Pass",
       "description": "Right before the tunnel of Yuximolegai Pass. We were soaked by the rain and had to wrap ourselves in emergency blankets. This was the closest I got to hypothermia."
@@ -530,6 +1216,11 @@
       "thumb": "/places/photos/xinjiang/duku/thumbs/2024-07-02_221330.webp",
       "width": 2400,
       "height": 1336,
+      "large": {
+        "src": "/places/photos/xinjiang/duku/large/2024-07-02_221330.webp",
+        "width": 3843,
+        "height": 2140
+      },
       "date": "2024-07-02",
       "location": "Nalati",
       "description": "Sunset at Nalati Grassland after rain, fog, mud, and squeezing between heavy lorries in a big traffic jam.",
@@ -540,6 +1231,11 @@
       "thumb": "/places/photos/xinjiang/duku/thumbs/2024-07-03_145800.webp",
       "width": 2400,
       "height": 1827,
+      "large": {
+        "src": "/places/photos/xinjiang/duku/large/2024-07-03_145800.webp",
+        "width": 4000,
+        "height": 3046
+      },
       "date": "2024-07-03",
       "location": "Nalati",
       "description": "My bike covered in mud. A good 20km of the road to Nalati town was under construction and full of mud and potholes. We had to stay put that day to wash and dry essentially everything."
@@ -588,6 +1284,11 @@
       "thumb": "/places/photos/xinjiang/ili/thumbs/2024-07-05_145740.webp",
       "width": 1800,
       "height": 2400,
+      "large": {
+        "src": "/places/photos/xinjiang/ili/large/2024-07-05_145740.webp",
+        "width": 3000,
+        "height": 4000
+      },
       "date": "2024-07-05",
       "location": "Zhaosu",
       "description": "Crows along the highway to Zhaosu."
@@ -597,6 +1298,11 @@
       "thumb": "/places/photos/xinjiang/ili/thumbs/2024-07-06_135019.webp",
       "width": 1800,
       "height": 2400,
+      "large": {
+        "src": "/places/photos/xinjiang/ili/large/2024-07-06_135019.webp",
+        "width": 3000,
+        "height": 4000
+      },
       "date": "2024-07-06",
       "location": "Xiata",
       "description": "WJ (left) and AP (right) at the end of the Xiata Trail.",
@@ -607,9 +1313,14 @@
       "thumb": "/places/photos/xinjiang/ili/thumbs/2024-07-06_145324.webp",
       "width": 2400,
       "height": 1491,
+      "large": {
+        "src": "/places/photos/xinjiang/ili/large/2024-07-06_145324.webp",
+        "width": 3416,
+        "height": 2122
+      },
       "date": "2024-07-06",
       "location": "Xiata",
-      "description": "It was my first time seeing a proper snow peak. The silky deep greens with white snow in the distance, you can almost feel the clarity of the air.",
+      "description": "It was my first time seeing a proper snow peak. The silky deep greens, the white snow in the distance: you can almost feel the clarity of the air.",
       "order": 3
     },
     {
@@ -617,6 +1328,11 @@
       "thumb": "/places/photos/xinjiang/ili/thumbs/2024-07-07_115307.webp",
       "width": 2400,
       "height": 1592,
+      "large": {
+        "src": "/places/photos/xinjiang/ili/large/2024-07-07_115307.webp",
+        "width": 4000,
+        "height": 2653
+      },
       "date": "2024-07-07",
       "location": "Zhaosu",
       "description": "The last bit of lavender fields near Zhaosu, with snow-capped mountains in the distance."
@@ -626,6 +1342,11 @@
       "thumb": "/places/photos/xinjiang/ili/thumbs/2024-07-07_173050.webp",
       "width": 2400,
       "height": 1867,
+      "large": {
+        "src": "/places/photos/xinjiang/ili/large/2024-07-07_173050.webp",
+        "width": 3888,
+        "height": 3024
+      },
       "date": "2024-07-07",
       "location": "Yelang Valley",
       "description": "Along the Yizhao Highway. You can see horses and sheep in the background.",
@@ -636,6 +1357,11 @@
       "thumb": "/places/photos/xinjiang/ili/thumbs/2024-07-07_201502.webp",
       "width": 1800,
       "height": 2400,
+      "large": {
+        "src": "/places/photos/xinjiang/ili/large/2024-07-07_201502.webp",
+        "width": 3000,
+        "height": 4000
+      },
       "date": "2024-07-07",
       "location": "Yizhao Highway",
       "description": "Yizhao Highway's most exposed section, where the road is carved into the cliff."
@@ -645,9 +1371,14 @@
       "thumb": "/places/photos/xinjiang/ili/thumbs/2024-07-07_215951.webp",
       "width": 2400,
       "height": 1800,
+      "large": {
+        "src": "/places/photos/xinjiang/ili/large/2024-07-07_215951.webp",
+        "width": 4000,
+        "height": 3000
+      },
       "date": "2024-07-07",
       "location": "Yizhao Highway",
-      "description": "Sunset after the steep descent. At this point, we could either pitch out tent by the roadside and sleep hungry or cycle to the city til night."
+      "description": "Sunset after the steep descent. At this point, we could either pitch our tent by the roadside and sleep hungry, or cycle on to the city into the night."
     },
     {
       "src": "/places/photos/xinjiang/ili/2024-07-07_223700.webp",
@@ -656,13 +1387,18 @@
       "height": 622,
       "date": "2024-07-07",
       "location": "Yizhao Highway",
-      "description": "Of course we chose to cycle til 1am. It was 70km of straight downhill: still one of the best rides ever."
+      "description": "Of course we chose to cycle till 1am. It was 70km of straight downhill: still one of the best rides ever."
     },
     {
       "src": "/places/photos/xinjiang/ili/2024-07-10_113646.webp",
       "thumb": "/places/photos/xinjiang/ili/thumbs/2024-07-10_113646.webp",
       "width": 2400,
       "height": 1618,
+      "large": {
+        "src": "/places/photos/xinjiang/ili/large/2024-07-10_113646.webp",
+        "width": 3701,
+        "height": 2495
+      },
       "date": "2024-07-10",
       "location": "Sayram Lake",
       "description": "WJ (left) and AP (right) at Sayram Lake.",
@@ -673,24 +1409,39 @@
       "thumb": "/places/photos/xinjiang/ili/thumbs/2024-07-10_170220.webp",
       "width": 2400,
       "height": 1800,
+      "large": {
+        "src": "/places/photos/xinjiang/ili/large/2024-07-10_170220.webp",
+        "width": 4000,
+        "height": 3000
+      },
       "date": "2024-07-10",
       "location": "Sayram Lake",
-      "description": "It's said that Sayram Lake is the furthest point inland that moisture from the Atlantic reaches, hence its nickname, the last teardrop of the Atlantic."
+      "description": "It's said that Sayram Lake is the furthest point inland that moisture from the Atlantic reaches, hence its nickname, 'the last teardrop of the Atlantic'."
     },
     {
       "src": "/places/photos/xinjiang/ili/2024-07-10_182007.webp",
       "thumb": "/places/photos/xinjiang/ili/thumbs/2024-07-10_182007.webp",
       "width": 2400,
       "height": 1720,
+      "large": {
+        "src": "/places/photos/xinjiang/ili/large/2024-07-10_182007.webp",
+        "width": 2775,
+        "height": 1989
+      },
       "date": "2024-07-10",
       "location": "Sayram Lake",
-      "description": "Everytime I look back at this white rock, I somehow feel a sense of peace and calmness."
+      "description": "Every time I look back at this white rock, I somehow feel a sense of peace and calmness."
     },
     {
       "src": "/places/photos/xinjiang/ili/2024-07-10_182022.webp",
       "thumb": "/places/photos/xinjiang/ili/thumbs/2024-07-10_182022.webp",
       "width": 2400,
       "height": 1800,
+      "large": {
+        "src": "/places/photos/xinjiang/ili/large/2024-07-10_182022.webp",
+        "width": 4000,
+        "height": 3000
+      },
       "date": "2024-07-10",
       "location": "Sayram Lake",
       "description": "Mounted police at Sayram Lake."
@@ -700,15 +1451,25 @@
       "thumb": "/places/photos/xinjiang/ili/thumbs/2024-07-10_203819.webp",
       "width": 1800,
       "height": 2400,
+      "large": {
+        "src": "/places/photos/xinjiang/ili/large/2024-07-10_203819.webp",
+        "width": 3000,
+        "height": 4000
+      },
       "date": "2024-07-10",
       "location": "Sayram Lake",
-      "description": "Clouds, broadwalk, and a paraglider."
+      "description": "Clouds, boardwalk, and a paraglider."
     },
     {
       "src": "/places/photos/xinjiang/ili/2024-07-11_124311.webp",
       "thumb": "/places/photos/xinjiang/ili/thumbs/2024-07-11_124311.webp",
       "width": 2400,
       "height": 1800,
+      "large": {
+        "src": "/places/photos/xinjiang/ili/large/2024-07-11_124311.webp",
+        "width": 4000,
+        "height": 3000
+      },
       "date": "2024-07-11",
       "location": "Sayram Lake",
       "description": "Packing our stuff to leave. This was the last stop of our trip, but our story has only just begun."

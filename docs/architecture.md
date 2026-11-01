@@ -195,11 +195,12 @@ closing (×, Escape, SQYC) returns to `/`, and Back/Forward follow. The settled 
 ## Places
 
 Places routes are `/places` (globe overview) and `/places/[location]` (selected location), with `?gallery=&photo=`
-opening the photo viewer (a full-page sliding row after Art's carousel, `lib/places/photoTrack.ts`); both live in the `(scene)` layout like Art, and `PlacesSection` (mounted by the places
+opening the photo viewer (a full-page sliding row after Art's carousel, `lib/places/photoTrack.ts`) and `&inspect=1`
+inspecting its current photo, as Art inspects a work; both live in the `(scene)` layout like Art, and `PlacesSection` (mounted by the places
 layout) derives its view from the URL. Locations are `data/places.ts`: real places, oldest first, each with an
 introduction and optionally recorded tracks (`segments`), stops (named markers), titled galleries (originals in the
-git-ignored `photos-src/<location>/<gallery>/`, converted by `npm run import:places-photos` to metadata-free WebP and
-thumbnails under `public/places/photos/<location>/<gallery>/`, whose `photos.json` gives every photo a date, location
+git-ignored `photos-src/<location>/<gallery>/`, converted by `npm run import:places-photos` to metadata-free WebP,
+large copies for zooming in and thumbnails under `public/places/photos/<location>/<gallery>/`, whose `photos.json` gives every photo a date, location
 and optional description, read by `npm run sync:places-photos`) and stories; a city visit has no mode and shows no dates of its own. The globe
 (`components/scene/places/`) hangs above the terrain's centre (`PLACES_CONFIG`), drawn as a night globe in the
 terrain's language: `globe.frag` reads the baked elevation map (`public/places/elevation.png`, NASA topography
@@ -303,7 +304,9 @@ the same wipe as featured selection; an inspected artwork takes precedence. The
 `medium` query parameter scrolls to a section on collection entry. Carousel
 selection replaces the current history entry; collection/detail navigation adds
 entries. Inspection uses a native dialog, restoring focus and scroll on return;
-direct details return to All works. Query synchronization (`QuerySync`) has its own
+direct details return to All works. On desktops an inspected image zooms (`useInspectionZoom`, shared with
+inspected Places photos): wheel or pinch about the pointer, drag to pan, double-click to toggle, and it swaps to
+its original or large copy once loaded; touch screens keep the browser's pinch-zoom. Query synchronization (`QuerySync`) has its own
 small Suspense boundary so the collection and detail HTML remain visible without JavaScript.
 
 The desktop carousel is horizontal; narrow/touch layouts are vertical.

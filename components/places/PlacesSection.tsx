@@ -1,7 +1,8 @@
 // Places section (/places, /places/[location]): the location index beside the globe, the selected location's panel and
 // the photo viewer. The globe itself is the scene (components/scene/places); this layer shares its state through
 // PlacesSceneContext and only takes pointer events on its own text; on phones the text is a sheet under the whole
-// globe, peeking with the location in focus, its list pulled up over it (the camera steps back) or a location. The
+// globe, peeking with the location in focus, its list pulled up over it (the camera steps back) or a location; over
+// it all, a gallery's photo viewer and the photo it inspects. The
 // globe answers a change of view at once; the text follows it: the old content fades out first (VIEW_EXIT_MS), then the
 // new one rises as the camera lands on a location, or as the globe settles back to all locations (Places.css).
 'use client';
@@ -13,6 +14,7 @@ import {SectionClose} from '@/components/site/SectionClose';
 import {CAMERA_JOURNEY_CONFIG} from '@/config/scene/camera';
 import {LOCATIONS} from '@/data/places';
 import {useReducedMotion} from '@/hooks/useReducedMotion';
+import {PhotoInspection} from './PhotoInspection';
 import {PhotoViewer} from './PhotoViewer';
 import {usePlacesScene, usePlacesSceneActions} from './PlacesSceneContext';
 import {useLocationSheetPlacement} from './useLocationSheetPlacement';
@@ -27,7 +29,7 @@ const SECTION_STYLE = {'--places-sheet-move': `${CAMERA_JOURNEY_CONFIG.placesInd
 
 export function PlacesSection() {
   const [queryString, setQueryString] = useState('');
-  const {location, gallery, photos, photo, locationHref} = usePlacesRoute(queryString);
+  const {location, gallery, photos, photo, inspecting, locationHref, photoHref} = usePlacesRoute(queryString);
   const router = useRouter();
   const {hoveredId, capturedId, indexOpen} = usePlacesScene();
   const {setHoveredId, setIndexOpen, globeOutline, globeFront, turnRequest: turnRequestRef} = usePlacesSceneActions();
@@ -40,6 +42,14 @@ export function PlacesSection() {
     const timer = window.setTimeout(() => setShownLocation(location), reducedMotion ? 0 : VIEW_EXIT_MS);
     return () => window.clearTimeout(timer);
   }, [exiting, reducedMotion, location]);
+  // An inspection opened from the viewer closes back in history, as Art's does; one opened from a link replaces its
+  // entry with the viewer.
+  const inspectedHere = useRef(false);
+  function closeInspection() {
+    if (inspectedHere.current) router.back();
+    else router.replace(photoHref(photo), {scroll: false});
+    inspectedHere.current = false;
+  }
   // The location panel keeps clear of the globe as drawn: its text flows around a float shaped like the globe.
   const sheetRef = useRef<HTMLDivElement>(null);
   const shapeRef = useRef<HTMLDivElement>(null);
@@ -122,7 +132,21 @@ export function PlacesSection() {
           index={photo}
           photos={photos}
           onClose={() => router.replace(locationHref, {scroll: false})}
+          onInspect={(at) => {
+            inspectedHere.current = true;
+            router.push(photoHref(at, true), {scroll: false});
+          }}
+          inspecting={inspecting}
           locationHref={locationHref}
+        />
+      ) : null}
+      {gallery && inspecting ? (
+        <PhotoInspection
+          gallery={gallery}
+          galleryHref={photoHref(photo)}
+          index={photo}
+          photos={photos}
+          onClose={closeInspection}
         />
       ) : null}
     </>

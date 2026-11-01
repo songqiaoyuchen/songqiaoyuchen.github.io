@@ -26,6 +26,8 @@ export type GalleryPhoto = {
   thumb: string;
   width: number;
   height: number;
+  /** A bigger copy for zooming in on the inspected photo; absent when the original was no bigger than src. */
+  large?: {src: string; width: number; height: number};
   /** The day it was taken, as YYYY-MM-DD; a gallery's photos are in date order. */
   date: string;
   location: string;
@@ -86,10 +88,10 @@ const ALL_LOCATIONS: readonly Location[] = [
     place: {name: 'Ili, Xinjiang', lonLat: [84.9, 44.42]},
     summary: 'Bikepacking over the Tianshan Mountains and west through the Ili Valley to the last teardrop of the Atlantic Ocean - Sayram Lake.',
     description: 'Since then, I\'ve travelled farther and seen more of the world, yet Xinjiang has only grown more special to me.'
-      + ' It was our first long-distance cycling trip — the three of us, inexperienced and wide-eyed, stumbling through mishaps and making plenty of memories we\'d later laugh about.'
+      + ' It was our first long-distance bikepacking: three beginners, plenty of mishaps, a few stories we still laugh about.'
       + ' We hadn\'t yet figured out the road ahead, but we never doubted we would make it to the end.',
     descriptionZh: '后来我走过了更远的路，看到了更多的风景，新疆却在我心中占据着愈发特殊的位置。'
-      + '那是我们三人第一次长途骑行，带着新手的稚嫩和纯真，搞出了很多笑话和事故。'
+      + '那是我们第一次长途骑行：三个新手，看什么都是新鲜的，出了不少状况，也留下了很多现在还会笑着讲起的故事。'
       + '我们还没搞清楚前方的路，却从未怀疑过自己能否抵达终点。',
     // Traced along the roads from Kuitun over the Duku Highway, through Xinyuan and Gongliu, over the
     // Wusun Mountains and up Guozigou to Sayram Lake; the real GPX recordings replace it.
@@ -156,16 +158,14 @@ const ALL_LOCATIONS: readonly Location[] = [
     mode: 'bicycle',
     place: {name: 'Chengdu, Sichuan', lonLat: [104.07, 30.67]},
     summary: 'Solo bikepacking through the Hengduan Mountains and the Tibetan Plateau.',
-    description: 'China\'s National Highway 318 is the country\'s most iconic long-distance cycling route.'
-     + ' Crossing fourteen mountain passes by myself,'
-     + ' riding across a plateau averaging 4,000 metres above sea level, was more than a test of willpower.'
-     + ' it was a solitary spiritual pilgrimage inward.'
-     + ' I once naively believed that the wind rushing past me would carry the answers to life.'
-     + ' I am still searching for them today.'
+    description: 'China National Highway 318 (G318) is the country\'s most iconic long-distance cycling route,'
+     + ' and a pilgrimage for countless cyclists.'
+     + ' Crossing 14 mountain passes alone and riding across a plateau that averages 4,000 meters above sea level'
+     + ' is not just a test of willpower; it is more like a solitary spiritual journey.'
      + ' For mountains and rivers are easy to cross; harder to overcome is the weight we give our own hearts.',
-    descriptionZh: 'G318国道是中国最经典的长途骑行路线，更是诸多骑行者的朝圣之路'
-    + ' 单人翻越14座大山，在平均4000米的高原上骑行，不仅是对意志力的考验，更像是一场孤独的自我修行。'
-    + ' 不成熟的我曾以为，驰骋的风会告诉我生活的答案，如今我仍在追寻它的路上。山川易渡，唯心自负。',
+    descriptionZh: 'G318国道是中国最经典的长途骑行路线，更是诸多骑行者的朝圣之路。'
+    + '独自翻越14座大山，在平均4000米的高原上骑行，不仅是对意志力的考验，更像是一场孤独的修行 —— '
+    + '山川易渡，唯心自负。',
     // Placeholder tracks traced from town to town; the real GPX recordings replace them.
     segments: [
       [[104.07, 30.67], [102.99, 29.98], [101.96, 30.05], [101.49, 30.05], [100.27, 30.0]],

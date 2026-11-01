@@ -1,6 +1,6 @@
 // Imports places photos from their originals in photos-src/<location>/<gallery>/ (git-ignored: full size, with GPS) to
-// public/places/photos/<location>/<gallery>/: a WebP for the viewer and a small one in thumbs/ for the location panel. The
-// site is a static export that serves files as they are, so each is resized here. Outputs carry no metadata (no
+// public/places/photos/<location>/<gallery>/: a WebP for the viewer, a small one in thumbs/ for the location panel and,
+// when the original is bigger than the viewer's, a large one in large/ for zooming in on a desktop. The site is a static export that serves files as they are, so each is resized here. Outputs carry no metadata (no
 // GPS, camera or time), colours converted to sRGB. Each is named for when it was taken (2026-05-14_164438.webp), from
 // the camera or else a date leading the original's name, so the gallery runs in time order; an original with neither
 // is skipped. A new photo gets an entry in the gallery's photos.json with its day; an empty location is filled from
@@ -17,6 +17,7 @@ import {mkdir, readdir, readFile, writeFile} from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
 import {fileURLToPath} from 'node:url';
+import sharp from 'sharp';
 import {encode, ORIGINAL, readable} from './photoEncode.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -26,9 +27,17 @@ const FORCE = process.argv.includes('--force');
 // The lake letter's originals, imported by import-letter-photos.mjs.
 const LETTER = 'letter';
 
-// Long edge (px) and WebP quality: the viewer's photo, and the location panel's thumbnail (120px wide, at up to 3x).
+// Long edge (px) and WebP quality: the viewer's photo, the inspected photo zoomed in, and the location panel's
+// thumbnail (120px wide, at up to 3x).
 const FULL = {size: 2400, quality: 80};
+const LARGE = {size: 4000, quality: 78};
 const THUMB = {size: 480, quality: 72};
+
+/** The long edge (px) of an image sharp reads. */
+async function longEdge(input) {
+  const {width = 0, height = 0} = await sharp(input).metadata();
+  return Math.max(width, height);
+}
 
 async function folders(dir) {
   try {
@@ -189,6 +198,7 @@ async function main() {
       const source = path.join(SOURCE_DIR, location, gallery);
       const target = path.join(PHOTOS_DIR, location, gallery);
       await mkdir(path.join(target, 'thumbs'), {recursive: true});
+      await mkdir(path.join(target, 'large'), {recursive: true});
       const manifestFile = path.join(target, 'photos.json');
       await readManifest(manifestFile); // stop here, before converting anything, if it does not parse
       // Each photo is named for when it was taken, so name order is the gallery's order; a shared second gets -2, -3.
@@ -209,12 +219,21 @@ async function main() {
         const name = `${time}${count > 1 ? `-${count}` : ''}.webp`;
         const full = path.join(target, name);
         const thumb = path.join(target, 'thumbs', name);
+        const large = path.join(target, 'large', name);
         if (FORCE || !existsSync(full) || !existsSync(thumb)) {
           const input = await readable(file, buffer);
           await encode(input, FULL, full);
           await encode(input, THUMB, thumb);
+          if (await longEdge(input) > FULL.size) await encode(input, LARGE, large);
           imported++;
           console.log(`${location}/${gallery}/${name} ← ${file}`);
+        } else if (!existsSync(large) && await longEdge(full) >= FULL.size) {
+          // Imported before large copies: a viewer photo at full size came from a bigger original.
+          const input = await readable(file, buffer);
+          if (await longEdge(input) > FULL.size) {
+            await encode(input, LARGE, large);
+            console.log(`${location}/${gallery}/large/${name} ← ${file}`);
+          }
         }
         await addEntry(manifestFile, name, {date: time.slice(0, 10), location: '', description: ''}, lonLat);
       }

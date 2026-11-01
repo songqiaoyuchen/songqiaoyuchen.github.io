@@ -162,7 +162,7 @@ const ARTWORKS_BY_ID: Record<string, Artwork> = {
     src: '/images/artworks/oil/cat.webp',
     alt: 'Oil painting of a cat.',
     title: "Gwen's Cat",
-    description: '',
+    description: 'Gift for Gwen, and my first animal painting.',
     material: 'Oil on Panel',
     size: 'I forgot about the size',
     width: 3416,

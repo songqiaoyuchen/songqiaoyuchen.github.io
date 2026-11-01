@@ -55,6 +55,23 @@
   align-items: center;
   padding: 25px 0;
 }
+/* Zoom (useInspectionZoom, desktops only): the image box clips the zoomed image; the cursor says what a click or drag
+   will do. */
+.art-inspection-image[data-zoom] {
+  overflow: hidden;
+  cursor: zoom-in;
+  user-select: none;
+}
+.art-inspection-image[data-zoom='zoomed'] {
+  cursor: grab;
+}
+.art-inspection-image[data-zoom='zoomed']:active {
+  cursor: grabbing;
+}
+.art-inspection-image[data-zoom] img {
+  transform-origin: center;
+  will-change: transform;
+}
 .art-image-status {
   position: absolute;
   top: 50%;
