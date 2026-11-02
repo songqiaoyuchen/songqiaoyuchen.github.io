@@ -6,8 +6,10 @@
 // middle; a click fans it out into a ring of the locations' own markers, each tied to the middle by a fine line, all
 // alike (no focus among them), while every other marker fades back and the globe holds still; a click elsewhere,
 // Escape, or the cluster turning away folds it. With a location open its stops stand on it as small diamonds, each
-// named beside it. A location with stops and no tracks gives its own marker over to its stops. Markers stand on the
-// relief but, like the trails, hide only behind the globe's body, never behind its relief; near the edge they fade.
+// named beside it; a stop with photos lights on hover (its diamond or its name) and opens its first photo on a click,
+// one without is only named. A location with stops and no tracks gives its own marker over to its stops. Markers
+// stand on the relief but, like the trails, hide only behind the globe's body, never behind its relief; near the edge
+// they fade.
 // Sizes come from Leva (markerSize per view). The location near the globe's centre is in focus (PlacesGlobe, by where
 // the globe stands, not by its capture): its marker, or its cluster's, locks on. With a location open the others fade
 // out, and come back with the rings as the return to all locations settles. Hovering a marker highlights its row in the
@@ -21,7 +23,7 @@ import {
 } from 'react';
 import {Group, Vector3, type Camera} from 'three';
 import {SCENE_LAYOUT_CONFIG} from '@/config/scene/layout';
-import {isPath, type LonLat, type Location} from '@/data/places';
+import {isPath, stopPhoto, type LonLat, type Location, type StopPhoto} from '@/data/places';
 import {behindGlobe, clusterPlaces, densifyTrack, lonLatToUnit} from '@/lib/scene/places';
 import {LocationIcon} from './LocationIcon';
 
@@ -92,7 +94,8 @@ type PlacesCalloutsProps = {
   titledRef: MutableRefObject<number>;
   hoveredIndex: number;
   signalColor: string;
-  onSelect: (id: string) => void;
+  /** Opens a location, or, from one of its stops, its first photo. */
+  onSelect: (id: string, photo?: StopPhoto) => void;
   onHover: (id: string | null) => void;
 };
 
@@ -235,6 +238,9 @@ export function PlacesCallouts({
   const routes = useMemo(() => locations.map(routeOf), [locations]);
   const stopUnits = useMemo(
     () => locations.map((location) => (location.stops ?? []).map((stop) => lonLatToUnit(stop.lonLat))), [locations]);
+  // Each stop's first photo, or null: only a stop with one is a pointer target.
+  const stopPhotos = useMemo(
+    () => locations.map((location) => (location.stops ?? []).map((stop) => stopPhoto(location, stop))), [locations]);
   const clusters = useMemo<Cluster[]>(() => clusterPlaces(locations.map(({place}) => place.lonLat), clusterWithin)
     .filter((members) => members.length > 1)
     .map((members) => {
@@ -750,30 +756,40 @@ export function PlacesCallouts({
               >
                 <span className="places-callout-title" data-tag="">{location.title}</span>
               </div>
-              {(location.stops ?? []).map((stop, stopIndex) => (
-                <Fragment key={stop.id}>
-                  <div
-                    aria-hidden="true"
-                    className="places-stop"
-                    data-hovered={hoveredStop === stop.id || undefined}
-                    onPointerEnter={() => setHoveredStop(stop.id)}
-                    onPointerLeave={() => setHoveredStop(null)}
-                    ref={(node) => {
-                      (stopsRef.current[index] ??= [])[stopIndex] = node;
-                    }}
-                  />
-                  <div
-                    aria-hidden="true"
-                    className="places-callout places-stop-name"
-                    data-hovered={hoveredStop === stop.id || undefined}
-                    ref={(node) => {
-                      (stopLabelsRef.current[index] ??= [])[stopIndex] = node;
-                    }}
-                  >
-                    <span className="places-callout-title">{stop.name}</span>
-                  </div>
-                </Fragment>
-              ))}
+              {/* The location panel's strips are the accessible way to every photo; a stop with photos is a pointer
+                  target (its diamond and its name alike) to its first, one without is only named. */}
+              {(location.stops ?? []).map((stop, stopIndex) => {
+                const photo = stopPhotos[index][stopIndex];
+                const link = photo ? {
+                  'data-linked': true,
+                  'data-hovered': hoveredStop === stop.id || undefined,
+                  onClick: () => onSelect(location.id, photo),
+                  onPointerEnter: () => setHoveredStop(stop.id),
+                  onPointerLeave: () => setHoveredStop(null),
+                } : {};
+                return (
+                  <Fragment key={stop.id}>
+                    <div
+                      aria-hidden="true"
+                      className="places-stop"
+                      {...link}
+                      ref={(node) => {
+                        (stopsRef.current[index] ??= [])[stopIndex] = node;
+                      }}
+                    />
+                    <div
+                      aria-hidden="true"
+                      className="places-callout places-stop-name"
+                      {...link}
+                      ref={(node) => {
+                        (stopLabelsRef.current[index] ??= [])[stopIndex] = node;
+                      }}
+                    >
+                      <span className="places-callout-title">{stop.name}</span>
+                    </div>
+                  </Fragment>
+                );
+              })}
             </Fragment>
           );
         })}

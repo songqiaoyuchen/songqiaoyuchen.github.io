@@ -37,7 +37,7 @@ import {getPlacesLocationPose} from '@/config/scene/camera';
 import {
   PLACES_CONFIG, PLACES_OVERVIEW_CONFIG, PLACES_LOCATION_CONFIG, PLACES_LOCATION_TURNS, locationTurnKey,
 } from '@/config/scene/places';
-import {LOCATIONS, type LonLat} from '@/data/places';
+import {LOCATIONS, type LonLat, type StopPhoto} from '@/data/places';
 import {useReducedMotion} from '@/hooks/useReducedMotion';
 import {
   advanceGlobe, aimFromScreen, anglesToward, createGlobeState, createGlobeView, densifyTrack, EARTH_RADIUS_KM,
@@ -187,7 +187,8 @@ type PlacesGlobeProps = {
   onBloomObjects: (objects: Object3D[]) => void;
   /** The location the globe rests on or is about to land on, for the location index. */
   onCapture: (id: string | null) => void;
-  onSelect: (id: string) => void;
+  /** Opens a location, or, from one of its stops, its first photo. */
+  onSelect: (id: string, photo?: StopPhoto) => void;
   onHover: (id: string | null) => void;
 };
 

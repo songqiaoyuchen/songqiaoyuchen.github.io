@@ -3,8 +3,9 @@
 // public/places/ground/<id>.webp by `node scripts/assets/build-places-geo.mjs ground <id> <lon> <lat>` at the
 // middle of the box about its places (useLocationGround.ts); a location without one shows the global map. Every
 // location has an introduction; recorded tracks, stops, galleries and stories are each optional. A location's stops
-// are its places of note, each a named marker with the location open. Stories and each gallery photo carry their own
-// dates. Facts marked placeholder are invented until the real data arrives. A gallery's photos are a folder,
+// are its places of note, each a named marker with the location open; a stop with photos (those captioned with its
+// name, or any of its `captions`) opens its first on a click (stopPhoto). Stories and each gallery photo carry their
+// own dates. Facts marked placeholder are invented until the real data arrives. A gallery's photos are a folder,
 // public/places/photos/<location>/<gallery>/, made from photos-src/ by `npm run import:places-photos`, with a
 // photos.json giving each photo's date, location, optional description and optional order; the sync reads it into
 // placesPhotos.json.
@@ -43,8 +44,17 @@ export type Gallery = {id: string; title: string};
 /** A written account: a Blog article once `slug` names one, a placeholder until then. */
 export type Story = {title: string; date: string; slug?: string};
 
-/** A place of note on a location: a marker named on hover. */
-export type LocationStop = {id: string; name: string; lonLat: LonLat};
+/** A place of note on a location: a named marker, a link to its first photo when it has any. */
+export type LocationStop = {
+  id: string;
+  name: string;
+  lonLat: LonLat;
+  /** Other names its photos are captioned with (`GalleryPhoto.location`), where they differ from `name`. */
+  captions?: readonly string[];
+};
+
+/** A stop's first photo: its gallery and its index in it. */
+export type StopPhoto = {gallery: Gallery; index: number};
 
 export type Location = {
   id: string;
@@ -198,7 +208,7 @@ const ALL_LOCATIONS: readonly Location[] = [
     stops: [
       {id: 'stavanger', name: 'Stavanger', lonLat: [5.73, 58.97]},
       {id: 'preikestolen', name: 'Preikestolen', lonLat: [6.19, 58.99]},
-      {id: 'kjeragbolten', name: 'Kjeragbolten', lonLat: [6.58, 59.03]},
+      {id: 'kjeragbolten', name: 'Kjeragbolten', lonLat: [6.58, 59.03], captions: ['Kjerag']},
       {id: 'trolltunga', name: 'Trolltunga', lonLat: [6.74, 60.12]},
       {id: 'bergen', name: 'Bergen', lonLat: [5.32, 60.39]},
     ],
@@ -282,6 +292,16 @@ const PHOTOS: Readonly<Record<string, readonly GalleryPhoto[]>> = PLACES_PHOTOS;
 /** A gallery's photos, from public/places/photos/<location>/<gallery>/; none until the folder has some. */
 export function galleryPhotos(location: Location, gallery: Gallery) {
   return PHOTOS[`${location.id}/${gallery.id}`] ?? [];
+}
+
+/** A stop's first photo, captioned with its name or one of its captions, galleries in order; null when it has none. */
+export function stopPhoto(location: Location, stop: LocationStop): StopPhoto | null {
+  const names = [stop.name, ...(stop.captions ?? [])];
+  for (const gallery of location.galleries ?? []) {
+    const index = galleryPhotos(location, gallery).findIndex((photo) => names.includes(photo.location));
+    if (index >= 0) return {gallery, index};
+  }
+  return null;
 }
 
 /**

@@ -214,7 +214,7 @@ gaps between recordings, thinner with a location open, the other locations' leav
 within `clusterWithin` degrees (chained; `phoneClusterWithin` on phones, whose globe is smaller) share a stacked marker that fans out on a click and holds the globe
 still; a location may draw its own icon in place of the diamond (`LocationIcon`, more detail in focus and open); and an
 open location's stops are small diamonds, each named beside it where there is room (the hovered one always), fading in only as the camera settles on the location
-(`stopsFrom`) and out as it leaves, laid out like About's. A small location opens zoomed
+(`stopsFrom`) and out as it leaves, laid out like About's; a stop with photos (captioned with its name or its `captions`, `stopPhoto`) opens its first on a click, one without is only named. A small location opens zoomed
 (`lib/scene/placesLens.ts`, `shaders/terrain/placesLens.glsl`): the globe keeps its size while its surface (ground,
 lines, lights, trails and markers) flows away from the location by a conformal zoom of the sphere, so shapes stay true
 everywhere and the scale falls off smoothly with no edge; each location's zoom comes from the spread of its places

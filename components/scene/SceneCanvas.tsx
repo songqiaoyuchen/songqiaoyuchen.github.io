@@ -15,6 +15,7 @@ import {HERO_NAME_RENDERER} from '@/config/hero';
 import {CAMERA_CONFIG, FOG_CONFIG} from '@/config/scene';
 import {useArtCapture} from '@/components/art/ArtSceneContext';
 import type {ArtMedium} from '@/data/artworks';
+import type {StopPhoto} from '@/data/places';
 import type {SectionId} from '@/data/sections';
 import {
   retainTerrainPipeline,
@@ -114,7 +115,7 @@ type SceneCanvasProps = {
   onAboutSelect: (stop: number) => void;
   /** Places: opening a location, the location under the pointer and the one the globe rests on (selected and hovered
    * locations themselves reach the globe and the camera through PlacesSceneContext). */
-  onPlacesSelect: (id: string) => void;
+  onPlacesSelect: (id: string, photo?: StopPhoto) => void;
   onPlacesHover: (id: string | null) => void;
   onPlacesCapture: (id: string | null) => void;
   /** Receives the globe's circle on screen every frame (the location panel keeps clear of it). */

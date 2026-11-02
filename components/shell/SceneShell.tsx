@@ -29,6 +29,7 @@ import {HOME_OVERVIEW_EVENT, SECTION_NAVIGATE_EVENT} from '@/components/site/Nav
 import {usePlacesSceneActions} from '@/components/places/PlacesSceneContext';
 import {HERO_NAME_RENDERER} from '@/config/hero';
 import {ABOUT_STOP_IDS} from '@/data/about';
+import type {StopPhoto} from '@/data/places';
 import type {SectionId} from '@/data/sections';
 import type {ArticleSummary} from '@/lib/content/types';
 import {AboutEntrySync} from './AboutEntrySync';
@@ -238,7 +239,11 @@ export function SceneShell({articles, children}: SceneShellProps) {
     else setPreviewId(null);
   }, [router]);
 
-  const openLocation = useCallback((id: string) => router.push(`/places/${id}`), [router]);
+  // A location, or a stop's first photo in its viewer (the URL PlacesSection reads, as the location panel's links).
+  const openLocation = useCallback((id: string, photo?: StopPhoto) => {
+    if (photo) router.push(`/places/${id}?gallery=${photo.gallery.id}&photo=${photo.index}`, {scroll: false});
+    else router.push(`/places/${id}`);
+  }, [router]);
 
   const isBlocking = !isRouted && (sceneState === 'loading' || sceneState === 'exiting');
   // Art and Places content stays hidden until the camera has arrived at the section's pose (and, on the way

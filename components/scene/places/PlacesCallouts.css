@@ -2,7 +2,8 @@
    the globe's centre) or open gains the lock-on reticle; in focus, the reticle breathes and a ping leaves the
    marker: it can be opened. A path (a location with recorded tracks) is marked by its route alone (see Routes).
    Nearby locations share a stacked marker that fans out (see Clusters); an open location's stops are smaller diamonds,
-   a hovered stop's name in gold-lit text on a leader line, as About's checkpoints (see Stops). Label heights mirror
+   each named on a leader line as About's checkpoints are; a stop with photos is a pointer target to its first, lit
+   in gold while hovered (see Stops). Label heights mirror
    TITLE_ROW; offsets keep to a 4px grid. */
 .places-callouts {
   --callout-ink: #e8c77a; /* --color-accent */
@@ -302,7 +303,8 @@
   stroke-width: 1;
 }
 
-/* Stops: an open location's places of note, smaller diamonds than a location's, each named beside it or, crowded, out on a leader line. */
+/* Stops: an open location's places of note, smaller diamonds than a location's, each named beside it or, crowded, out on
+   a leader line. A stop with photos (data-linked, its name too) opens its first on a click. */
 .places-stop {
   position: absolute;
   top: 0;
@@ -323,6 +325,12 @@
   content: '';
   rotate: 45deg;
   transition: background-color 180ms ease-out;
+}
+
+.places-stop[data-linked],
+.places-stop-name[data-linked] {
+  cursor: pointer;
+  pointer-events: auto;
 }
 
 .places-stop[data-hovered]::before {
@@ -346,8 +354,8 @@
   filter: var(--callout-knockout);
 }
 
-/* A stop's name, always shown with its location open, on a heavier halo to stand off the city lights; gold while its
-   stop is hovered. */
+/* A stop's name, always shown with its location open, on a heavier halo to stand off the city lights; gold while a
+   stop with photos is hovered. */
 .places-stop-name .places-callout-title {
   font-size: 0.9rem;
   text-shadow:
