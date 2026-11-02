@@ -40,15 +40,20 @@ float lensRelief(vec3 drawn) {
   return pow(scale, uLensRelief);
 }
 
-// The elevation map's coordinate of a direction (longitude 0 toward +Z, east toward +X), and how far the zoom moves
-// the map under a drawn direction: added to the plain coordinate, so the map's seam never crosses a triangle.
+// A direction's place on the equirectangular map about its centre (longitude 0 toward +Z, east toward +X): the
+// map's own coordinate is this plus 0.5.
 vec2 lensMapUv(vec3 direction) {
   return vec2(atan(direction.x, direction.z) / 6.28318530718, asin(clamp(direction.y, -1.0, 1.0)) / 3.14159265359);
 }
 
-vec2 lensMapShift(vec3 drawn) {
-  if (uLensZoom <= 1.0001) return vec2(0.0);
-  vec2 shift = lensMapUv(lensSource(drawn)) - lensMapUv(drawn);
-  shift.x -= floor(shift.x + 0.5);
-  return shift;
+// The map coordinate of the place drawn at `drawn`, wrapped to within half a turn of `own`, the vertex's own map
+// coordinate from the geometry's uv. Wrapping to the vertex's own keeps a triangle on one side of the map's seam (the
+// geometry's seam columns carry u of 0 and 1), and reading the place itself rather than shifting the vertex's own
+// coordinate keeps the poles whole: a direction there has no longitude of its own, and the geometry's pole vertices
+// each carry a different u, so shifted they would read the map in as many columns and raise a ragged spike.
+vec2 lensMapUvNear(vec3 drawn, vec2 own) {
+  if (uLensZoom <= 1.0001) return own;
+  vec2 uv = lensMapUv(lensSource(drawn)) + 0.5;
+  uv.x += floor(own.x - uv.x + 0.5);
+  return uv;
 }

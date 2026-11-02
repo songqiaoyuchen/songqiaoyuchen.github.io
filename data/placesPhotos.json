@@ -411,7 +411,7 @@
       "date": "2026-06-01",
       "location": "Rawu",
       "description": "",
-      "order": 3
+      "order": 2
     },
     {
       "src": "/places/photos/g318/tibet/2026-06-01_094631.webp",
@@ -523,7 +523,8 @@
       },
       "date": "2026-06-04",
       "location": "Lulang",
-      "description": "Coldest ride of the trip. Got soaked on the climb to Sejila Mountain Pass, 4728m above sea level."
+      "description": "Coldest ride of the trip. Got soaked on the climb to Sejila Mountain Pass, 4728m above sea level.",
+      "order": 5
     },
     {
       "src": "/places/photos/g318/tibet/2026-06-05_105843.webp",
@@ -547,7 +548,7 @@
       "date": "2026-06-05",
       "location": "Nyingchi",
       "description": "Lhasa-Nyingchi Expressway beside the G318.",
-      "order": 2
+      "order": 3
     },
     {
       "src": "/places/photos/g318/tibet/2026-06-06_100236.webp",
@@ -631,8 +632,7 @@
       },
       "date": "2026-06-08",
       "location": "Lhasa",
-      "description": "The Jokhang Temple, the spiritual centre of Tibet for more than 1300 years and the finish point of the G318 pilgrimage. It was built in the seventh century under the reign of Songtsen Gampo. Its most sacred treasure is the Jowo Shakyamuni statue, said to have been made during the lifetime of Shakyamuni Buddha, depicting him at the age of twelve, and brought to Tibet by Princess Wencheng of the Tang Dynasty.",
-      "order": 5
+      "description": "The Jokhang Temple, the spiritual centre of Tibet for more than 1300 years and the finish point of the G318 pilgrimage. It was built in the seventh century under the reign of Songtsen Gampo. Its most sacred treasure is the Jowo Shakyamuni statue, said to have been made during the lifetime of Shakyamuni Buddha, depicting him at the age of twelve, and brought to Tibet by Princess Wencheng of the Tang Dynasty."
     },
     {
       "src": "/places/photos/g318/tibet/2026-06-09_123357.webp",

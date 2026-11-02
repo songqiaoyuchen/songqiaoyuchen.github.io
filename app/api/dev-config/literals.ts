@@ -31,18 +31,31 @@ export function toLiteral(value: unknown): string | null {
   return null;
 }
 
+/** `key: literal` added as the last entry of the object literal in `slice` (an `export const X = {...}` source),
+ * after a trailing comma where the last entry has none; null when there is no object to add to. */
+function appendKey(slice: string, key: string, literal: string): string | null {
+  const close = slice.lastIndexOf('}');
+  if (close < 0) return null;
+  const body = slice.slice(0, close).trimEnd();
+  const lastLine = body.slice(body.lastIndexOf('\n') + 1).trimStart();
+  const comma = body.endsWith('{') || body.endsWith(',') || lastLine.startsWith('//') ? '' : ',';
+  return `${body}${comma}\n  ${key}: ${literal},\n${slice.slice(close)}`;
+}
+
 // A flat or one-level nested array, a string, a number or a boolean.
 const LITERAL = "\\[(?:[^\\[\\]]|\\[[^\\[\\]]*\\])*\\]|'[^']*'|-?\\d[\\d.]*(?:e-?\\d+)?|true|false";
 
 /** Replaces the literal after the first `key:` in `source`, or within `export const <object>` up to the next
- * export when `object` is given; null when the key is not there. */
+ * export when `object` is given, where a key not there yet is added as the object's last entry; null when the key
+ * (or the object) is not there. */
 export function replaceKey(source: string, key: string, literal: string, object?: string): string | null {
   if (object) {
     const start = source.search(new RegExp(`\\bexport const ${object}\\b`));
     if (start < 0) return null;
     const next = source.indexOf('\nexport ', start + 1);
     const end = next < 0 ? source.length : next;
-    const replaced = replaceKey(source.slice(start, end), key, literal);
+    const slice = source.slice(start, end);
+    const replaced = replaceKey(slice, key, literal) ?? appendKey(slice, key, literal);
     return replaced === null ? null : source.slice(0, start) + replaced + source.slice(end);
   }
   const pattern = new RegExp(`(\\b${key}:\\s*)(${LITERAL})`);

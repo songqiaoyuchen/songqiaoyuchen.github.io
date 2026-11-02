@@ -177,7 +177,7 @@ export const SceneCanvas = memo(function SceneCanvas({
 }: SceneCanvasProps) {
   const orbitcontrolsRef = useRef<OrbitControlsInstance>(null);
   // Development: Save Camera reads the open location's marker offset through this (PlacesGlobe fills it).
-  const placesMeasureOffsetRef = useRef<(() => [number, number] | null) | null>(null);
+  const placesTurnRef = useRef<(() => [number, number] | null) | null>(null);
   const composerRef = useRef<EffectComposerImpl>(null);
   const aboutFramingRef = useRef<AboutFraming | null>(null);
   const {capture} = useArtCapture();
@@ -364,7 +364,7 @@ export const SceneCanvas = memo(function SceneCanvas({
               <SaveCameraButton
                 activeId={activeId}
                 controlsRef={orbitcontrolsRef}
-                measurePlacesOffset={placesMeasureOffsetRef}
+                readPlacesTurn={placesTurnRef}
               />
             ) : null}
             {isDevelopment && artActive && !capturing ? (
@@ -476,7 +476,8 @@ export const SceneCanvas = memo(function SceneCanvas({
                     <Globe
                       visible={!hideHomeScene && isPlaces}
                       editingCamera={settings.places.editCamera}
-                      measureOffsetRef={placesMeasureOffsetRef}
+                      turnByHand={settings.places.turnByHand}
+                      readTurnRef={placesTurnRef}
                       interactive={!settings.places.editCamera}
                       settings={settings.places}
                       overviewSettings={settings.placesOverview}

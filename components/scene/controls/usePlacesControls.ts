@@ -15,6 +15,9 @@ function usePlacesGlobeControls() {
   return useControls('Places', {
     // SceneCanvas.tsx: hands the pointer to the orbit camera (for Save Camera) instead of the globe. Not saved.
     editCamera: {value: false, label: 'Edit camera'},
+    // PlacesGlobe.tsx: with a location open, a drag turns the globe freely (the servo lets go) so the location can be
+    // placed by eye; Save Camera then stores where it sits as the location point. Not saved.
+    turnByHand: {value: false, label: 'Turn by hand'},
     Globe: folder({
       // PlacesGlobe.tsx -> globe.frag: the ground (also the landscape's colour as it recedes) and the rim.
       baseColor: {value: PLACES_CONFIG.baseColor, label: 'Ground'},
@@ -89,15 +92,15 @@ function usePlacesOverviewControls() {
 function usePlacesLocationControls() {
   return useControls(PLACES_LOCATION_FOLDER_NAME, {
     Framing: folder({
-      // PlacesGlobe.tsx: where the location sits on screen. Save Camera with a location open keeps the camera's
-      // location pose and sets this to where the marker then sits (Edit camera holds the globe still so the view can be
-      // composed freely). Phones have their own.
-      markerOffset: {
-        value: pair(PLACES_LOCATION_CONFIG.markerOffset), step: 0.01, joystick: false, label: 'Location offset',
+      // PlacesGlobe.tsx: where a location sits on screen (normalized device coordinates) unless it has a turn of its
+      // own (config/scene/places.ts PLACES_LOCATION_TURNS: Save Camera with the location open keeps the globe as it
+      // stands, turned by hand, for that location alone). Phones have their own.
+      markerPoint: {
+        value: pair(PLACES_LOCATION_CONFIG.markerPoint), step: 0.01, joystick: false, label: 'Location point',
       },
-      phoneMarkerOffset: {
-        value: pair(PLACES_LOCATION_CONFIG.phoneMarkerOffset), step: 0.01, joystick: false,
-        label: 'Phone location offset',
+      phoneMarkerPoint: {
+        value: pair(PLACES_LOCATION_CONFIG.phoneMarkerPoint), step: 0.01, joystick: false,
+        label: 'Phone location point',
       },
       holdRate: {value: PLACES_LOCATION_CONFIG.holdRate, min: 1, max: 12, step: 0.5, label: 'Hold rate'},
       // PlacesGlobe.tsx: the globe's turn along the journey to and from the location (Camera Journeys › Places focus).

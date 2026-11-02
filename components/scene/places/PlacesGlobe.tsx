@@ -34,15 +34,17 @@ import {
   FOG_CONFIG, getCameraPose, SCENE_LAYOUT_CONFIG, TERRAIN_MATERIAL_CONFIG, TERRAIN_MESH_CONFIG, type CameraPose,
 } from '@/config/scene';
 import {getPlacesLocationPose} from '@/config/scene/camera';
-import {PLACES_CONFIG, PLACES_OVERVIEW_CONFIG, PLACES_LOCATION_CONFIG} from '@/config/scene/places';
+import {
+  PLACES_CONFIG, PLACES_OVERVIEW_CONFIG, PLACES_LOCATION_CONFIG, PLACES_LOCATION_TURNS, locationTurnKey,
+} from '@/config/scene/places';
 import {LOCATIONS, type LonLat} from '@/data/places';
 import {useReducedMotion} from '@/hooks/useReducedMotion';
 import {
-  advanceGlobe, aimForOffset, anglesToward, createGlobeState, createGlobeView, densifyTrack, EARTH_RADIUS_KM,
-  facingAngles, focusedLocation, globeQuaternion, graticulePositions, lonLatToUnit, offsetForMarker, planetScale,
+  advanceGlobe, aimFromScreen, anglesToward, createGlobeState, createGlobeView, densifyTrack, EARTH_RADIUS_KM,
+  facingAngles, focusedLocation, globeQuaternion, graticulePositions, lonLatToUnit, planetScale,
   projectGlobe, regionSpread,
   releaseGlobe, rideDistance, toGlobeSettings, viewFromCamera, wrapAngle,
-  type GlobeAngles, type GlobeProjection, type PlanetScale,
+  type GlobeAngles, type GlobeProjection, type GlobeView, type PlanetScale,
 } from '@/lib/scene/places';
 import {createLensUniforms, lensRelief, lensWarp, locationLens, type Lens} from '@/lib/scene/placesLens';
 import '@/lib/scene/placesLensChunk';
@@ -160,8 +162,12 @@ type PlacesGlobeProps = {
   interactive?: boolean;
   /** The development orbit camera is editing the pose: it turns about the globe and the globe holds still. */
   editingCamera?: boolean;
-  /** Receives a reader of the open location's marker offset as the camera now draws it (Save Camera keeps it). */
-  measureOffsetRef?: MutableRefObject<(() => [number, number] | null) | null>;
+  /** Development: with a location open, a drag turns the globe freely and it rests where it is let go (no hold, no
+   * capture, no drift), so Save Camera can store where the location then sits as its screen point. */
+  turnByHand?: boolean;
+  /** Receives a reader of the globe's own turn with a location open, degrees of yaw and pitch (Save Camera keeps
+   * it as that location's turn, PLACES_LOCATION_TURNS). */
+  readTurnRef?: MutableRefObject<(() => [number, number] | null) | null>;
   /** Receives the globe's outline on screen (CSS pixels) every frame, for the location panel to keep clear of. */
   globeOutlineRef?: MutableRefObject<GlobeOutline | null>;
   /** Receives the place at the globe's centre as seen every frame, once arrived, for the location index. */
@@ -186,7 +192,8 @@ type PlacesGlobeProps = {
 };
 
 export function PlacesGlobe({
-  visible, interactive: pointerFree = true, editingCamera = false, measureOffsetRef, globeOutlineRef, globeFrontRef,
+  visible, interactive: pointerFree = true, editingCamera = false, turnByHand = false, readTurnRef,
+  globeOutlineRef, globeFrontRef,
   settings, overviewSettings, locationSettings, focusSeconds, terrainDepthTexture, terrainColorTexture, onBloomObjects,
   onCapture, onSelect, onHover,
 }: PlacesGlobeProps) {
@@ -194,7 +201,7 @@ export function PlacesGlobe({
   // or on its marker, read here through the canvas's context bridge so a change re-renders this layer alone.
   const {selectedId, hoveredId} = usePlacesScene();
   const {turnRequest: turnRequestRef} = usePlacesSceneActions();
-  const interactive = pointerFree && selectedId === null;
+  const interactive = pointerFree && (selectedId === null || turnByHand);
   const {width, height} = useThree((state) => state.size);
   const getState = useThree((state) => state.get);
   const isMobile = width < SCENE_LAYOUT_CONFIG.mobileMaxWidth;
@@ -228,11 +235,11 @@ export function PlacesGlobe({
     snapRate, idleDrift, idleAfter, focusWithin, titleWithin, innerRingTilt, outerRingTilt,
   } = overviewSettings;
   const {
-    markerOffset, phoneMarkerOffset, holdRate, turnFrom, turnSettle, revealAt,
+    markerPoint, phoneMarkerPoint, holdRate, turnFrom, turnSettle, revealAt,
     relief: locationRelief, shade: locationShade, landTint: locationTint, trailRadius: locationTrailRadius,
     markerSize: locationMarkerSize, lensFill, lensMaxZoom, lensMinZoom, lensMargin, lensRelief: lensGain,
   } = locationSettings;
-  // Each location's zoom at full, and the place the globe turns to the marker point: the middle of the box about its
+  // Each location's zoom at full, and the place the globe turns to the screen point: the middle of the box about its
   // places (the zoom's centre), so the whole location is framed, not just where it began.
   const lenses = useMemo(() => LOCATIONS.map((location) => locationLens(location, {
     fill: lensFill, maxZoom: lensMaxZoom, minZoom: lensMinZoom, margin: lensMargin,
@@ -247,8 +254,10 @@ export function PlacesGlobe({
   const {patchRelief, vanish, maxPitch} = PLACES_CONFIG;
   const {stopsFrom} = PLACES_LOCATION_CONFIG;
   const {shade} = PLACES_OVERVIEW_CONFIG;
-  // Phones frame a location at the top of the screen, above its sheet.
-  const [offsetX, offsetY] = isMobile ? phoneMarkerOffset : markerOffset;
+  // Where an open location sits on screen (normalized device coordinates): phones frame it above the sheet. A
+  // location with a turn of its own for this pose opens to that instead (its key per location, built once).
+  const locationPoint = isMobile ? phoneMarkerPoint : markerPoint;
+  const turnKeys = useMemo(() => LOCATIONS.map((location) => locationTurnKey(location.id, isMobile)), [isMobile]);
   const [linesFrom, linesTo] = linesIn;
   const [reliefFrom, reliefTo] = PLACES_CONFIG.reliefIn;
   // The planet's datum: the landing place's elevation in landscape units, and the terrain surface at the pivot.
@@ -282,6 +291,8 @@ export function PlacesGlobe({
     friction, snapBelow, capture, snapRate, idleDrift, idleAfter, maxPitch,
   }), [capture, friction, idleAfter, idleDrift, maxPitch, snapBelow, snapRate]);
   const locationGlobe = useMemo(() => ({...overviewGlobe, snapRate: holdRate}), [holdRate, overviewGlobe]);
+  // Turned by hand (development): coasts to rest wherever it is let go.
+  const freeGlobe = useMemo(() => ({...overviewGlobe, capture: 0, idleDrift: 0}), [overviewGlobe]);
 
   // Rotation state lives outside React: it changes every frame.
   const state = useRef(createGlobeState());
@@ -383,35 +394,30 @@ export function PlacesGlobe({
     turning: false, turnFrom: {yaw: 0, pitch: 0} as GlobeAngles, turnTo: {yaw: 0, pitch: 0} as GlobeAngles,
     destCamera: new PerspectiveCamera(), destView: createGlobeView(),
   });
-  // Per-frame scratch: the aim's marker offset, the globe as drawn, the turn's goal, the ride's planet and the
-  // patch metrics published, so the frame loop allocates nothing.
+  // Per-frame scratch: the globe as drawn, the turn's goal, the ride's planet and the patch metrics published, so the
+  // frame loop allocates nothing.
   const frameScratch = useRef({
-    offset: [0, 0] as [number, number],
     drawn: {x: 0, y: 0, radiusX: 0, radiusY: 0} as GlobeProjection,
     goal: {yaw: 0, pitch: 0} as GlobeAngles,
+    own: {yaw: 0, pitch: 0} as GlobeAngles,
     planet: {startRadius: 0, radius: 0, scale: 0, metresPerUnit: 0} as PlanetScale,
     metrics: {radius: 0, scale: 0, relief: 0, lift: 0, seaUnits: 0, datumY: 0, metresPerUnit: 0},
   });
   // Editing the camera (development): the orbit camera turns and zooms about the globe, not the pose's look-at,
-  // and the globe holds still rather than re-aiming the open location at the camera. Save Camera reads where the
-  // location's marker has ended up on screen and keeps that offset for every location.
+  // and the globe holds still rather than re-aiming the open location at the camera. Save Camera reads the globe's
+  // own turn as it stands and keeps it as the open location's.
   const controls = useThree((state) => state.controls) as {target?: Vector3} | null;
   useEffect(() => {
     if (editingCamera && visible && controls?.target) controls.target.copy(center);
   }, [center, controls, editingCamera, visible]);
   useEffect(() => {
-    if (!measureOffsetRef) return;
-    measureOffsetRef.current = () => {
-      const group = groupRef.current;
-      const camera = getState().camera;
-      if (!group || selectedIndex < 0 || !(camera instanceof PerspectiveCamera)) return null;
-      const marker = group.localToWorld(surfaceAt(lonLatToUnit(anchors[selectedIndex]), new Vector3()));
-      return offsetForMarker(camera, center, radius, marker);
-    };
+    if (!readTurnRef) return;
+    readTurnRef.current = () => selectedIndex < 0 ? null
+      : [wrapAngle(state.current.yaw) / DEG, state.current.pitch / DEG];
     return () => {
-      measureOffsetRef.current = null;
+      readTurnRef.current = null;
     };
-  }, [anchors, center, getState, measureOffsetRef, radius, selectedIndex, surfaceAt]);
+  }, [readTurnRef, selectedIndex]);
   // The pointer over the sphere, and a drag in progress, show as the cursor.
   const [hovering, setHovering] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -644,14 +650,15 @@ export function PlacesGlobe({
     if (!current || current.pointerId !== event.pointerId) return;
     drag.current = null;
     setDragging(false);
-    if (reducedMotion || !current.samples.length) {
+    // Turned by hand (development) the globe stops where it is let go, so what is saved is what was composed.
+    if (reducedMotion || turnByHand || !current.samples.length) {
       releaseGlobe(state.current, 0, 0);
       return;
     }
     const vYaw = current.samples.reduce((sum, sample) => sum + sample.vYaw, 0) / current.samples.length;
     const vPitch = current.samples.reduce((sum, sample) => sum + sample.vPitch, 0) / current.samples.length;
     releaseGlobe(state.current, vYaw, vPitch);
-  }, [reducedMotion]);
+  }, [reducedMotion, turnByHand]);
   // The drag ends wherever the pointer is let go or the browser cancels it, read from the window: R3F never passes
   // pointercancel on to the mesh, and a drag left open would hold the globe, and the turn to a location opened next.
   useEffect(() => {
@@ -672,6 +679,21 @@ export function PlacesGlobe({
     const morph = cameraFrameState.current.placesMorph;
     if (visible) heldSelected.current = selectedIndex;
     const selected = visible ? selectedIndex : heldSelected.current;
+    // Where a lens (the live camera, or one posed where a journey ends) wants the location it holds: a location open
+    // at its screen point; over all locations a captured location at the globe's centre, the point of the sphere
+    // nearest the camera.
+    const aimFor = (lens: PerspectiveCamera, out: Vector3) => selected >= 0
+      ? aimFromScreen(lens, center, radius, locationPoint, out)
+      : out.copy(lens.position).sub(center).normalize();
+    // The turn that frames `place` for a lens: the open location's own saved turn where it has one for this pose,
+    // else the middle of its places brought to the aim.
+    const ownTurn = selected >= 0 ? PLACES_LOCATION_TURNS[turnKeys[selected]] : undefined;
+    const goalFor = (place: number, aimAt: Vector3, inView: GlobeView, out: GlobeAngles = {yaw: 0, pitch: 0}) => {
+      if (place !== selected || !ownTurn) return anglesToward(anchors[place], aimAt, inView, maxPitch, out);
+      out.yaw = wrapAngle(ownTurn[0] * DEG);
+      out.pitch = MathUtils.clamp(ownTurn[1] * DEG, -maxPitch, maxPitch);
+      return out;
+    };
     // The globe is there whenever a journey has it as the ground or Places is open; never faded as a whole.
     group.visible = visible || morph > 0;
     shown.current = group.visible;
@@ -746,17 +768,13 @@ export function PlacesGlobe({
 
     viewFromCamera(center, camera.position, view.current);
     const frame = frameScratch.current;
-    // A location open turns to its marker offset; over all locations a captured location turns to the globe's centre.
-    const {offset} = frame;
-    offset[0] = selected >= 0 ? offsetX : 0;
-    offset[1] = selected >= 0 ? offsetY : 0;
-    aimForOffset(camera, center, radius, offset, aim.current);
+    aimFor(camera, aim.current);
     if (!initialized.current) {
       // Open resting on the route's location at its framing (a refresh on a location), or over all locations on the
       // newest.
       const place = selected >= 0 ? selected : PLACES.length - 1;
       const facing = selected >= 0
-        ? anglesToward(anchors[place], aim.current, view.current, maxPitch)
+        ? goalFor(place, aim.current, view.current)
         : facingAngles(anchors[place], view.current);
       state.current.yaw = facing.yaw;
       state.current.pitch = facing.pitch;
@@ -807,8 +825,8 @@ export function PlacesGlobe({
       const pose = selected >= 0 ? getPlacesLocationPose(isMobile) : getCameraPose('places', isMobile);
       poseCamera(turn.camera, pose, camera);
       const goalView = viewFromCamera(center, turn.camera.position, turn.view);
-      const goalAim = aimForOffset(turn.camera, center, radius, offset, turn.aim);
-      const goal = anglesToward(anchors[focusPlace], goalAim, goalView, maxPitch, frame.goal);
+      const goalAim = aimFor(turn.camera, turn.aim);
+      const goal = goalFor(focusPlace, goalAim, goalView, frame.goal);
       globeQuaternion(goal.yaw, goal.pitch, goalView, turn.to);
       // Cued at turnFrom of the zoom (or at once if the camera has already landed), the turn runs on its own clock
       // for the rest of the zoom and the settle; eased out, so most of it comes early and its end is slight and slow.
@@ -841,11 +859,13 @@ export function PlacesGlobe({
         }
       }
       if (!editingCamera && !riding) {
-        const feel = selected >= 0 ? locationGlobe : overviewGlobe;
+        const byHand = turnByHand && selected >= 0;
+        const feel = byHand ? freeGlobe : selected >= 0 ? locationGlobe : overviewGlobe;
         advanceGlobe(state.current, Math.min(delta, 1 / 30), feel, anchors, view.current, {
           dragging: drag.current !== null,
-          locked: selected,
+          locked: byHand ? -1 : selected,
           aim: aim.current,
+          goal: !byHand && ownTurn ? goalFor(selected, aim.current, view.current, frame.own) : null,
           reducedMotion,
         });
       } else if (riding && morphScratch.current.turning) {
@@ -942,14 +962,14 @@ export function PlacesGlobe({
         if (selected >= 0) {
           // Arriving at a location: the globe's own turn is the location as that camera will see it, from the first
           // frame of the ride (hidden under the flat planet until the globe forms), so no turn is needed on arrival.
-          const restAim = aimForOffset(scratch.restCamera, center, radius, offset, turn.aim);
-          const goal = anglesToward(anchors[selected], restAim, scratch.rideView, maxPitch);
+          const restAim = aimFor(scratch.restCamera, turn.aim);
+          const goal = goalFor(selected, restAim, scratch.rideView);
           Object.assign(state.current, {yaw: goal.yaw, pitch: goal.pitch, vYaw: 0, vPitch: 0, target: selected});
         }
       } else if (visible && selected !== scratch.restFor) {
         // The destination changed on the way in: the ride's end glides from the lens it was bound for, as far as it
         // has come, to the new destination's over the rest of the way, and the own turn to the new framing (a
-        // location at its marker point; over all locations, the location the globe holds at the centre, as the
+        // location at its screen point; over all locations, the location the globe holds at the centre, as the
         // return turn would leave it), so nothing jumps now or on arrival.
         const blend = rideBlend(morph, scratch.blendFrom);
         scratch.restFrom.position.lerp(scratch.restTo.position, blend);
@@ -964,8 +984,8 @@ export function PlacesGlobe({
         if (place >= 0) {
           poseCamera(scratch.destCamera, destination, camera);
           viewFromCamera(center, scratch.destCamera.position, scratch.destView);
-          const destAim = aimForOffset(scratch.destCamera, center, radius, offset, turn.aim);
-          anglesToward(anchors[place], destAim, scratch.destView, maxPitch, scratch.turnTo);
+          const destAim = aimFor(scratch.destCamera, turn.aim);
+          goalFor(place, destAim, scratch.destView, scratch.turnTo);
           scratch.turnFrom.yaw = state.current.yaw;
           scratch.turnFrom.pitch = state.current.pitch;
           scratch.turning = true;

@@ -109,10 +109,12 @@ export const PLACES_OVERVIEW_CONFIG = {
 } as const;
 
 export const PLACES_LOCATION_CONFIG = {
-  // Framing: the middle of the location's places turns to its marker point while the camera moves to the location pose
-  // (camera.ts placesLocation*).
-  markerOffset: [0.693, 0.774] as readonly [number, number], // right and up of centre, shares of the radius
-  phoneMarkerOffset: [0, -0.2] as readonly [number, number], // phones: mid-view above the location's sheet
+  // Framing: the middle of the location's places turns to a point on screen while the camera moves to the location
+  // pose (camera.ts placesLocation*). Normalized device coordinates (right and up of the screen's centre, 1 at its
+  // edges), so the location holds its place whatever the screen's shape and the fov that follows it. A location
+  // with a turn of its own (PLACES_LOCATION_TURNS) opens to that instead.
+  markerPoint: [-0.45, 0] as readonly [number, number], // mid-height, midway across the view left of the panel
+  phoneMarkerPoint: [0, 0.51] as readonly [number, number], // phones: mid-view above the location's sheet
   holdRate: 2, // share of the remaining error the servo closes per second holding the location
 
   // Along the journey between the overview and a location, either way (camera.ts CAMERA_JOURNEY_CONFIG.placesFocus);
@@ -141,3 +143,20 @@ export const PLACES_LOCATION_CONFIG = {
   groundShade: 0.16, // hillshade gain of a location's own ground (its finer slopes), to read like the map's
   groundFadeSeconds: 0.6, // a ground arriving after the location opened fades in over this
 } as const;
+
+/**
+ * A location's own turn at the location pose: degrees of yaw and pitch of the globe (lib/scene/places.ts GlobeState),
+ * keyed by locationTurnKey. Save Camera with the location open keeps the globe as it then stands (turned by hand,
+ * Leva Places > Turn by hand) here, for that location and pose alone; a location without one turns the middle of its
+ * places to PLACES_LOCATION_CONFIG.markerPoint. Delete an entry to let a location go back to the shared point.
+ */
+export const PLACES_LOCATION_TURNS: Partial<Record<string, readonly [number, number]>> = {
+  g318: [100.398, 21.902],
+  xinjiang: [117.823, 36.104],
+  tripleCrown: [-165.158, 50.939],
+};
+
+/** The key of a location's turn in PLACES_LOCATION_TURNS: its id camelCased, `Phone` added for the phone pose. */
+export function locationTurnKey(id: string, phone: boolean) {
+  return id.replace(/-+(\w)/g, (_, letter: string) => letter.toUpperCase()) + (phone ? 'Phone' : '');
+}

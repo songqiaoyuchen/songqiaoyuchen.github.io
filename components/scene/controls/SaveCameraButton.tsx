@@ -1,13 +1,13 @@
 // Leva "Config > Save Camera" button (dev only): stores the orbit camera as the current section's pose.
 import {useThree} from '@react-three/fiber';
-import {button, levaStore, useControls} from 'leva';
+import {button, useControls} from 'leva';
 import {useEffect, useRef, type MutableRefObject} from 'react';
 import type {OrbitControls as OrbitControlsInstance} from 'three-stdlib';
 import {usePlacesScene} from '@/components/places/PlacesSceneContext';
 import {SCENE_LAYOUT_CONFIG} from '@/config/scene';
+import {locationTurnKey} from '@/config/scene/places';
 import type {SectionId} from '@/data/sections';
 import {postConfigValues} from './saveConfig';
-import {PLACES_LOCATION_FOLDER_NAME} from './usePlacesControls';
 
 const round3 = (value: number) => Math.round(value * 1000) / 1000;
 
@@ -21,12 +21,13 @@ function toTuple(vector: {x: number; y: number; z: number}): [number, number, nu
  */
 export function SaveCameraButton({
   activeId,
-  measurePlacesOffset,
+  readPlacesTurn,
   controlsRef,
 }: {
   activeId: SectionId | null;
-  /** Reads the open location's marker offset as drawn (PlacesGlobe); saved with the location pose for all. */
-  measurePlacesOffset?: MutableRefObject<(() => [number, number] | null) | null>;
+  /** Reads the globe's own turn with a location open (PlacesGlobe), degrees of yaw and pitch; saved as that
+   * location's turn for the pose (PLACES_LOCATION_TURNS). */
+  readPlacesTurn?: MutableRefObject<(() => [number, number] | null) | null>;
   controlsRef: React.RefObject<OrbitControlsInstance | null>;
 }) {
   const {camera, size} = useThree();
@@ -34,9 +35,9 @@ export function SaveCameraButton({
   const {selectedId, indexOpen} = usePlacesScene();
   const placesSelected = selectedId !== null;
   // Leva registers the button once, so its click handler reads the section and viewport through a ref.
-  const latest = useRef({activeId, placesSelected, indexOpen, width: size.width});
+  const latest = useRef({activeId, placesSelected, selectedId, indexOpen, width: size.width});
   useEffect(() => {
-    latest.current = {activeId, placesSelected, indexOpen, width: size.width};
+    latest.current = {activeId, placesSelected, selectedId, indexOpen, width: size.width};
   });
 
   useControls('Config', {
@@ -44,7 +45,8 @@ export function SaveCameraButton({
     // The refs are read only when the user clicks the button.
     // eslint-disable-next-line react-hooks/refs
     'Save Camera': button(() => {
-      const {activeId: section, placesSelected: location, indexOpen: index, width} = latest.current;
+      const {activeId: section, placesSelected: location, selectedId: locationId, indexOpen: index, width}
+        = latest.current;
       // Phones have their own overview, About and Places poses (all locations, the list pulled up, a location); other
       // sections keep the overview camera there. On desktop an open location has its own pose.
       const placesPose = location ? 'PlacesLocation' : 'Places';
@@ -57,13 +59,12 @@ export function SaveCameraButton({
       };
       const target = controlsRef.current?.target;
       if (target) values[`camera.${pose}LookAt`] = toTuple(target);
-      // The location pose carries the marker offset the camera now shows, so the globe keeps turning locations to it.
-      const offsetKey = {placesLocation: 'markerOffset', mobilePlacesLocation: 'phoneMarkerOffset'}[pose] ?? null;
-      const offset = offsetKey ? measurePlacesOffset?.current?.() : null;
-      if (offsetKey && offset) {
-        const rounded: [number, number] = [round3(offset[0]), round3(offset[1])];
-        values[`placesLocation.${offsetKey}`] = rounded;
-        levaStore.set({[`${PLACES_LOCATION_FOLDER_NAME}.Framing.${offsetKey}`]: rounded}, false);
+      // With a location open, the globe's turn as it stands (by hand, or held at the shared point) is kept as that
+      // location's own for this pose, so it alone opens this way from now on.
+      const phone = pose === 'mobilePlacesLocation';
+      const turn = locationId && (pose === 'placesLocation' || phone) ? readPlacesTurn?.current?.() : null;
+      if (turn && locationId) {
+        values[`placesLocationTurns.${locationTurnKey(locationId, phone)}`] = [round3(turn[0]), round3(turn[1])];
       }
       void postConfigValues('Save Camera', values);
     }),

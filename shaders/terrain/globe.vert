@@ -34,7 +34,7 @@ void main() {
   vec3 outward = normalize(position);
   vLocal = outward;
   vMapUv = vec2(uv.x + 0.25, uv.y);
-  vec2 mapUv = vMapUv + lensMapShift(outward);
+  vec2 mapUv = lensMapUvNear(outward, vMapUv);
   float height = uHasElevation > 0.5
     ? mix(texture2D(uElevation, mapUv).r, texture2D(uSummary, mapUv).r, uFocus) : 0.0;
   // The regional tile: angular offsets from its centre along its east and north, as a share of its half-width.

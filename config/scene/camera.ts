@@ -30,12 +30,12 @@ export const CAMERA_CONFIG = {
   placesPosition: [-5.334, 16.786, -14.985] as Vector3Tuple,
   placesLookAt: [-3.107, 17.258, 0.441] as Vector3Tuple,
   // A selected location (desktop): the globe lower left, the location's text to its right; the globe itself turns the
-  // location to its marker point (PLACES_LOCATION_CONFIG.markerOffset).
+  // location to its screen point (PLACES_LOCATION_CONFIG.markerPoint).
   placesLocationPosition: [-0.821, 16.188, -4.573] as Vector3Tuple,
   placesLocationLookAt: [-3.736, 24.568, 5.012] as Vector3Tuple,
   // Phones (375 × 812 reference): the whole globe and its rings in the upper half, above the peek sheet; with the
   // location list pulled up, stepped back and higher, above the open sheet; a location, close in at the top of the
-  // screen, the location turned to just above the sheet (PLACES_LOCATION_CONFIG.phoneMarkerOffset).
+  // screen, the location turned to just above the sheet (PLACES_LOCATION_CONFIG.phoneMarkerPoint).
   mobilePlacesPosition: [0, 17, -29.5] as Vector3Tuple,
   mobilePlacesLookAt: [0, 15.17, 0] as Vector3Tuple,
   mobilePlacesIndexPosition: [0, 17, -44.4] as Vector3Tuple,

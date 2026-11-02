@@ -58,6 +58,9 @@ assert.ok(replaceKey(groups, 'relief', '0.05', 'B').includes('  relief: 0.012,\n
 assert.ok(replaceKey(groups, 'relief', '0.05', 'B').endsWith('  relief: 0.05,\n} as const;'));
 assert.ok(replaceKey(groups, 'relief', '0.02', 'A').startsWith('export const A = {\n  relief: 0.02,'));
 assert.equal(replaceKey(groups, 'relief', '1', 'C'), null);
-assert.equal(replaceKey(groups, 'missing', '1', 'A'), null);
+// Within an object, a key not there yet is added as its last entry (the location turns are saved one by one).
+assert.ok(replaceKey(groups, 'added', '1', 'A').startsWith('export const A = {\n  relief: 0.012,\n  added: 1,\n} as const;'));
+assert.equal(replaceKey('export const E = {\n};', 'added', '[1, 2]', 'E'), 'export const E = {\n  added: [1, 2],\n};');
+assert.equal(replaceKey('export const F = {\n  a: 1\n};', 'b', '2', 'F'), 'export const F = {\n  a: 1,\n  b: 2,\n};');
 
 console.log('dev config: ok');

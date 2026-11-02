@@ -1,6 +1,9 @@
 // Allowlist for the dev config writer: save scope -> config file (and optionally the exported object within it)
 // and the keys Leva may overwrite.
 // Scopes match the `scope.key` names posted by components/scene/controls.
+import {locationTurnKey} from '@/config/scene/places';
+import {LOCATIONS} from '@/data/places';
+
 export const EDITABLE_CONFIG = {
   camera: {
     file: 'scene/camera.ts',
@@ -41,9 +44,15 @@ export const EDITABLE_CONFIG = {
   placesLocation: {
     file: 'scene/places.ts',
     object: 'PLACES_LOCATION_CONFIG',
-    keys: ['markerOffset', 'phoneMarkerOffset', 'holdRate', 'turnFrom', 'turnSettle', 'revealAt',
+    keys: ['markerPoint', 'phoneMarkerPoint', 'holdRate', 'turnFrom', 'turnSettle', 'revealAt',
       'summaryBlur', 'relief', 'shade', 'landTint', 'trailRadius',
       'markerSize', 'lensFill', 'lensMaxZoom', 'lensMinZoom', 'lensMargin', 'lensRelief'],
+  },
+  placesLocationTurns: {
+    file: 'scene/places.ts',
+    object: 'PLACES_LOCATION_TURNS',
+    // One key per location and pose (Save Camera with the location open); a key not in the object yet is added.
+    keys: LOCATIONS.flatMap(({id}) => [locationTurnKey(id, false), locationTurnKey(id, true)]),
   },
   aboutPath: {
     file: 'scene/aboutPath.ts',

@@ -2,14 +2,14 @@
 // the snap servo against a real camera projection, coasting and capture, and track densifying.
 import assert from 'node:assert/strict';
 import {PerspectiveCamera, Vector3} from 'three';
-import {getCameraPose} from '../../config/scene/camera.ts';
+import {getCameraPose, getPlacesLocationPose} from '../../config/scene/camera.ts';
 import {PLACES_CONFIG, PLACES_OVERVIEW_CONFIG} from '../../config/scene/places.ts';
 import {
-  advanceGlobe, aimForOffset, aimFromScreen, anglesToward, angularDistance, clusterPlaces, createGlobeState, decodeLines,
+  advanceGlobe, aimFromScreen, anglesToward, angularDistance, clusterPlaces, createGlobeState, decodeLines,
   densifyTrack, encodeLines, facingAngles, focusedLocation, frontPlace, globeQuaternion, graticulePositions,
-  lonLatToUnit, markerScreenFor, nearestPlace, offsetForMarker, planetScale, polylineLength, regionSpread, rideDistance,
+  lonLatToUnit, nearestPlace, planetScale, polylineLength, regionSpread, rideDistance,
   rideDissolve, rideOntoPlanet, rideShare, releaseGlobe,
-  toGlobeSettings, trackGaps, viewFromCamera,
+  screenPointOf, toGlobeSettings, trackGaps, viewFromCamera,
 } from '../../lib/scene/places.ts';
 import {placeLocationSheet} from '../../components/places/useLocationSheetPlacement.ts';
 import {
@@ -71,19 +71,19 @@ assert.equal(nearestPlace(places, [60, 10], 360), 1);
 const placesCamera = cameraAt(getCameraPose('places'));
 const placesView = viewFromCamera(center, placesCamera.position);
 const settings = toGlobeSettings({...PLACES_OVERVIEW_CONFIG, maxPitch: PLACES_CONFIG.maxPitch});
-// A fixed offset well inside the globe's outline: the configured one is tuned by hand and may sit near its limb.
-const MARKER_OFFSET = [0.25, 0.15];
-const markerScreen = markerScreenFor(placesCamera, center, radius, MARKER_OFFSET);
-const aim = aimForOffset(placesCamera, center, radius, MARKER_OFFSET);
+// A screen point well inside the globe's outline, right and up of its centre (the configured one is the screen's
+// centre, wherever the globe stands under it).
+const globeSeen = center.clone().project(placesCamera);
+const MARKER_SCREEN = [globeSeen.x + 0.1, globeSeen.y + 0.1];
+const aim = aimFromScreen(placesCamera, center, radius, MARKER_SCREEN);
 assert.ok(Math.abs(aim.length() - 1) < 1e-9);
 // The aim is where that screen point meets the sphere, right and up of the globe's centre.
 {
-  const seen = aim.clone().multiplyScalar(radius).add(center).project(placesCamera);
-  assert.ok(Math.abs(seen.x - markerScreen[0]) < 1e-6 && Math.abs(seen.y - markerScreen[1]) < 1e-6);
-  const globe = center.clone().project(placesCamera);
-  assert.ok(seen.x > globe.x && seen.y > globe.y);
+  const seen = screenPointOf(placesCamera, aim.clone().multiplyScalar(radius).add(center));
+  assert.ok(Math.abs(seen[0] - MARKER_SCREEN[0]) < 1e-6 && Math.abs(seen[1] - MARKER_SCREEN[1]) < 1e-6);
+  assert.ok(seen[0] > globeSeen.x && seen[1] > globeSeen.y);
   // A point off the globe aims at its outline.
-  const edge = aimFromScreen(placesCamera, center, radius, [globe.x + 2, globe.y]);
+  const edge = aimFromScreen(placesCamera, center, radius, [globeSeen.x + 2, globeSeen.y]);
   assert.ok(Math.abs(edge.length() - 1) < 1e-9);
 }
 const seenAt = (state, index) => lonLatToUnit(places[index]).multiplyScalar(radius)
@@ -101,7 +101,7 @@ for (const [index, startYaw] of [[0, 0], [1, Math.PI], [2, 2.5], [3, -1]]) {
   while (frames++ < 600 && advanceGlobe(state, 1 / 60, settings, places, placesView, input) !== 'resting');
   assert.ok(frames < 600, `servo settles on place ${index}`);
   const seen = seenAt(state, index);
-  assert.ok(Math.abs(seen.x - markerScreen[0]) < 0.01 && Math.abs(seen.y - markerScreen[1]) < 0.01,
+  assert.ok(Math.abs(seen.x - MARKER_SCREEN[0]) < 0.01 && Math.abs(seen.y - MARKER_SCREEN[1]) < 0.01,
     `place ${index} at the marker point: ${seen.x}, ${seen.y}`);
   assert.equal(state.active, index);
   assert.ok(Math.abs(state.pitch) <= settings.maxPitch + 1e-9);
@@ -244,13 +244,14 @@ for (const [index, startYaw] of [[0, 0], [1, Math.PI], [2, 2.5], [3, -1]]) {
   assert.ok(flat.every((value) => value === 42));
 }
 
-// A marker offset measured back from the point the aim lands on is the offset asked for.
+// The screen point measured back from where the aim lands is the point asked for: the screen's centre, from the
+// location pose (Save Camera keeps the point a location is composed at).
 {
-  const camera = cameraAt(getCameraPose('places'));
-  const offset = [0.25, 0.15];
-  const marker = center.clone().addScaledVector(aimForOffset(camera, center, radius, offset), radius);
-  const measured = offsetForMarker(camera, center, radius, marker);
-  assert.ok(Math.abs(measured[0] - offset[0]) < 1e-6 && Math.abs(measured[1] - offset[1]) < 1e-6);
+  const camera = cameraAt(getPlacesLocationPose());
+  const point = [0, 0];
+  const marker = center.clone().addScaledVector(aimFromScreen(camera, center, radius, point), radius);
+  const measured = screenPointOf(camera, marker);
+  assert.ok(Math.abs(measured[0] - point[0]) < 1e-6 && Math.abs(measured[1] - point[1]) < 1e-6);
 }
 
 // The location panel spans from the globe's centre column to the gutter, never nearer it than the preferred column,

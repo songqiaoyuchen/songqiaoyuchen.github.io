@@ -15,8 +15,6 @@ const TO_ORIGIN = new Vector3();
 const SEEN = new Vector3();
 const UNIT = new Vector3();
 const TURNED = new Vector3();
-const PROJECTED: GlobeProjection = {x: 0, y: 0, radiusX: 0, radiusY: 0};
-const SCREEN: [number, number] = [0, 0];
 const GOAL: GlobeAngles = {yaw: 0, pitch: 0};
 const NEAREST: number[] = [];
 
@@ -186,41 +184,12 @@ export function projectGlobe(
   return out;
 }
 
-/** Screen point `offset` (shares of the globe's radius, right and up) from the globe's centre. */
-export function markerScreenFor(
-  camera: PerspectiveCamera,
-  center: Vector3,
-  radius: number,
-  offset: readonly [number, number],
-  out: [number, number] = [0, 0],
-) {
-  const globe = projectGlobe(camera, center, radius, PROJECTED);
-  out[0] = globe.x + offset[0] * globe.radiusX;
-  out[1] = globe.y + offset[1] * globe.radiusY;
+/** The screen point (normalized device coordinates) at which the camera draws a world point. */
+export function screenPointOf(camera: Camera, point: Vector3, out: [number, number] = [0, 0]) {
+  const seen = SEEN.copy(point).project(camera);
+  out[0] = seen.x;
+  out[1] = seen.y;
   return out;
-}
-
-/** The marker offset (shares of the globe's radius, right and up) at which the camera draws a world point. */
-export function offsetForMarker(
-  camera: PerspectiveCamera,
-  center: Vector3,
-  radius: number,
-  marker: Vector3,
-): [number, number] {
-  const globe = projectGlobe(camera, center, radius, PROJECTED);
-  const seen = SEEN.copy(marker).project(camera);
-  return [(seen.x - globe.x) / globe.radiusX, (seen.y - globe.y) / globe.radiusY];
-}
-
-/** The aim (aimFromScreen) for a marker offset from the globe's centre. */
-export function aimForOffset(
-  camera: PerspectiveCamera,
-  center: Vector3,
-  radius: number,
-  offset: readonly [number, number],
-  out = new Vector3(),
-) {
-  return aimFromScreen(camera, center, radius, markerScreenFor(camera, center, radius, offset, SCREEN), out);
 }
 
 /**
@@ -256,6 +225,8 @@ export type GlobeInput = {
   locked: number;
   /** Where a locked or captured location should sit: its screen point's direction on the sphere (aimFromScreen). */
   aim: Vector3;
+  /** The angles to hold the locked location at instead of solving for the aim (a location's own saved turn). */
+  goal?: GlobeAngles | null;
   reducedMotion: boolean;
 };
 
@@ -294,7 +265,8 @@ export function advanceGlobe(
   if (state.target >= 0) {
     const index = state.target;
     const gain = input.reducedMotion ? 1 : 1 - Math.exp(-settings.snapRate * dt);
-    const goal = anglesToward(places[index], input.aim, view, settings.maxPitch, GOAL);
+    const goal = input.goal && index === input.locked
+      ? input.goal : anglesToward(places[index], input.aim, view, settings.maxPitch, GOAL);
     // The aim moves with the camera, so the goal is solved afresh every frame and eased toward.
     state.yaw += wrapAngle(goal.yaw - state.yaw) * gain;
     state.pitch += (goal.pitch - state.pitch) * gain;

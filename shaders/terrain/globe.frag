@@ -78,7 +78,7 @@ void main() {
   float height = vHeight;
   vec2 slope = vec2(0.0);
   if (uHasElevation > 0.5) {
-    vec2 mapUv = vMapUv + lensMapShift(normalize(vLocal));
+    vec2 mapUv = lensMapUvNear(normalize(vLocal), vMapUv);
     height = texture2D(uElevation, mapUv).r;
     slope = landSlope(uElevation, mapUv, uTexel, LAND_SLOPE_GAIN, 1.0);
     // Inside the regional tile (share of its half-width from its centre), the tile alone over its inner half, then

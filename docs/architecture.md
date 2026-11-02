@@ -219,7 +219,9 @@ open location's stops are small diamonds, each named beside it where there is ro
 lines, lights, trails and markers) flows away from the location by a conformal zoom of the sphere, so shapes stay true
 everywhere and the scale falls off smoothly with no edge; each location's zoom comes from the spread of its places
 (`lens*` in `PLACES_LOCATION_CONFIG`), swells with the location's raised look, and the globe turns the zoom's centre rather
-than the location's place to the marker point. Every location has its own sharper, 16-bit ground
+than the location's place to the location's screen point (`markerPoint`, mid-height and midway across the view left of the
+panel; phones their own above the sheet), unless the location has a turn of its own saved for the pose
+(`PLACES_LOCATION_TURNS`, yaw and pitch), which every way into it then lands on. Every location has its own sharper, 16-bit ground
 (`public/places/ground/<id>.webp`, baked by `build-places-geo.mjs ground`, loaded by `useLocationGround` on first
 open), which `globe.frag` reads under the zoom at the detail a screen pixel covers, fading into the global map far
 out; the coastlines give way to it there. About the resting globe,
@@ -273,7 +275,7 @@ Phones have their own poses: the whole globe and its rings above a cardless peek
 last one, and a bar that pulls the list up; a sideways swipe on the peek steps west to east or back and asks the globe,
 through the context's `turnRequest`, to turn that location to its centre, holding the focus through the turn); the list pulled up (`indexOpen` in the context) steps the camera back
 to a third pose, `getPlacesIndexPose` (a quick `placesIndex` journey, no turn); a location frames the globe close at the
-top with the location centred in the view above its sheet (`phoneMarkerOffset`). The location nearest the globe's centre (within `titleWithin`, wider than
+top with the location centred in the view above its sheet (`phoneMarkerPoint`). The location nearest the globe's centre (within `titleWithin`, wider than
 the focus) shows its title beside its marker as a hover would; on phones it is the only location title. Phones hide the
 meridian strip and the index heading, keep the stops' names above the sheet with smaller stop markers, and draw the land lights smaller
 (`phoneLightScale`).
@@ -284,7 +286,9 @@ whose summary blur rebuilds live); the globe eases between the overview's and th
 journey. Leva shows the matching Places, Places Overview (overview only) and Places Location (location open only) folders,
 each saving to its group (the dev-config writer scopes keys to an exported object). The Places folder's
 Edit camera toggle hands the pointer to the dev orbit camera so Save Camera can store the Places poses (on phones
-all locations, the list pulled up or a location, with its marker offset).
+all locations, the list pulled up or a location, with its screen point); its Turn by hand toggle lets a drag turn the
+globe freely with a location open, stopping where it is let go, and Save Camera then keeps the globe's turn as that
+location's own (`PLACES_LOCATION_TURNS`, per pose; the writer adds the key), in place of the shared screen point.
 
 ## Art
 
@@ -388,7 +392,7 @@ Camera Journeys, Art's in Art Transition), and the effects riding a journey run 
   route change) finishes the zoom rather than freezing it until it snaps on arrival.
 - The globe keeps the location it was showing while it shrinks away (the route, and so the selection, changes
   mid-way), so leaving a location is one shrink from that framing rather than a swing back to the overview first.
-  On the ride the globe's own turn holds still: its servo would chase the marker offset against a camera that
+  On the ride the globe's own turn holds still: its servo would chase the location's screen point against a camera that
   moves every frame, and the turn is composed in the view of the lens the globe rests under (yaw about the axis,
   pitch about that camera's right), not the moving camera's, or it would turn with the camera. Arriving at a
   location from outside Places, the own turn is set once at the start of the ride to where the arriving camera will
@@ -397,7 +401,7 @@ Camera Journeys, Art's in Art Transition), and the effects riding a journey run 
   the overview rather than the location's framing the ride set off for; a location opened while the globe is
   still forming) would move that lens, the ride's end and the own turn in one frame, now or on arrival: instead
   the lens glides from the one the ride was bound for to the new one over the rest of the way, and the own turn
-  with it to the new framing (a location at its marker point; over all locations, the location held at the
+  with it to the new framing (a location at its screen point; over all locations, the location held at the
   centre). The globe publishes its outline for the location panel only once it has arrived, so the panel is not reflowed around
   an Earth-sized shape every frame of the ride.
 - The camera is never inside the planet, and nothing pushes it off its path. The planet is placed about the
