@@ -74,9 +74,13 @@ const completedListeners = new Set<() => void>();
 // Storage is read only once the page has mounted, so the first client render matches the server's (not found).
 let lakeHydrated = false;
 
-/** Whether this browser has reached the bottle before (false until the page has mounted). */
+/**
+ * Whether this browser has reached the bottle before (false until the page has mounted). In development the dive
+ * always counts as finished, so the overview's "Read the letter" link is there to work on without a dive first.
+ */
 export function readLakeCompleted() {
   if (!lakeHydrated) return false;
+  if (process.env.NODE_ENV === 'development') return true;
   try {
     return window.localStorage.getItem(STORAGE_KEY) === 'found';
   } catch {

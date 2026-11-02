@@ -39,11 +39,12 @@ const OCCLUDER_RISE = 2.5;
 // lake's level draws whole over it as the shore; the lines under the water are left out by the contours
 // themselves (Contours' lake prop), since their depth bias would beat a depth test against the water.
 
-// The controls' screen position, kept this far inside the viewport: the middle of the water as framed, wherever
-// the screen's shape crops it (phones and desktops frame it differently). A grid of rays from the camera meets
-// the water's level, and the controls sit midway between the highest and lowest cells that land on water, at
-// their mean across (the water widens toward the frame's foot, so its mean down would sink to the edge);
-// recomputed only when the view or the screen changes. With no water in the frame, the lake's centre.
+// The dive button's screen position, kept this far inside the viewport: the middle of the water as framed,
+// wherever the screen's shape crops it (phones and desktops frame it differently). A grid of rays from the camera
+// meets the water's level, and the button sits midway between the highest and lowest cells that land on water,
+// at their mean across (the water widens toward the frame's foot, so its mean down would sink to the edge);
+// recomputed only when the view or the screen changes. With no water in the frame, the lake's centre, which is
+// also where the letter's link is anchored (the hover's ripples spread from it).
 const SCREEN_MARGIN = {x: 84, y: 72};
 const WATER_GRID = {x: 32, y: 20};
 const PROJECTED = new Vector3();
@@ -146,7 +147,8 @@ export function LakeSurface({
   // at the links' own speeds, so a return from the dive shows them together (the links' reveal in SceneLinks).
   const cameraFrameState = useCameraFrameState();
   const reveal = useRef(0);
-  const controlsRef = useRef<HTMLDivElement>(null);
+  const hitRef = useRef<HTMLButtonElement>(null);
+  const letterRef = useRef<HTMLDivElement>(null);
   const {center: [cx, cz], level, disc: {center: [discX, discZ], radii: [rx, rz]}} = lakePlacement();
 
   // The ground under the disc, from the contour field the drawn lines are marched from, so the shore is the drawn
@@ -268,12 +270,11 @@ export function LakeSurface({
     const ready = !cameraFrameState.current.transitioning;
     reveal.current = advanceTextVisibility(reveal.current, interactive && ready, delta, reducedMotion,
       SCENE_LINK_EFFECT_CONFIG.dissolveInSpeed, SCENE_LINK_EFFECT_CONFIG.dissolveOutSpeed);
-    const controls = controlsRef.current;
-    if (controls) {
-      const opacity = reveal.current.toFixed(3);
-      if (controls.style.opacity !== opacity) {
-        controls.style.opacity = opacity;
-        controls.style.pointerEvents = reveal.current >= 1 ? '' : 'none';
+    const opacity = reveal.current.toFixed(3);
+    for (const control of [hitRef.current, letterRef.current]) {
+      if (control && control.style.opacity !== opacity) {
+        control.style.opacity = opacity;
+        control.style.pointerEvents = reveal.current >= 1 ? '' : 'none';
       }
     }
     const target = shown ? 1 : 0;
@@ -325,35 +326,40 @@ export function LakeSurface({
           zIndexRange={[30, 10]}
           calculatePosition={placeOnWater}
         >
-          {/* The letter's link lies over the middle of the dive's target, so the text itself marks the anchor. */}
-          <div ref={controlsRef} className="grid place-items-center *:[grid-area:1/1]" style={{opacity: 0}}>
+          <button
+            ref={hitRef}
+            type="button"
+            className={HIT_CLASS}
+            style={{opacity: 0}}
+            aria-label={completed ? 'Dive into the lake again' : 'Dive into the lake'}
+            onPointerEnter={() => setHovered(true)}
+            onPointerLeave={() => setHovered(false)}
+            onFocus={() => setHovered(true)}
+            onBlur={() => setHovered(false)}
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={(event) => {
+              event.stopPropagation();
+              onEnter();
+            }}
+          />
+        </Html>
+      ) : null}
+      {interactive && completed ? (
+        <Html zIndexRange={[30, 10]} calculatePosition={placeControls}>
+          {/* The letter's link reads from just right of the hover's ripples' centre (this group's origin, the
+              lake's heart), level with it. */}
+          <div ref={letterRef} className="-translate-y-1/2 pl-6" style={{opacity: 0}}>
             <button
               type="button"
-              className={HIT_CLASS}
-              aria-label={completed ? 'Dive into the lake again' : 'Dive into the lake'}
-              onPointerEnter={() => setHovered(true)}
-              onPointerLeave={() => setHovered(false)}
-              onFocus={() => setHovered(true)}
-              onBlur={() => setHovered(false)}
+              className={LETTER_CLASS}
               onPointerDown={(event) => event.stopPropagation()}
               onClick={(event) => {
                 event.stopPropagation();
-                onEnter();
+                onReadLetter();
               }}
-            />
-            {completed ? (
-              <button
-                type="button"
-                className={LETTER_CLASS}
-                onPointerDown={(event) => event.stopPropagation()}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onReadLetter();
-                }}
-              >
-                Read the letter
-              </button>
-            ) : null}
+            >
+              Read the letter
+            </button>
           </div>
         </Html>
       ) : null}
