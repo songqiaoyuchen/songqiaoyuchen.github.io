@@ -54,6 +54,10 @@ export function PlacesSection() {
   const sheetRef = useRef<HTMLDivElement>(null);
   const shapeRef = useRef<HTMLDivElement>(null);
   useLocationSheetPlacement(sheetRef, shapeRef, globeOutline, Boolean(shownLocation));
+  // Each location's panel starts at its top.
+  useEffect(() => {
+    sheetRef.current?.scrollTo({top: 0, left: 0, behavior: 'instant'});
+  }, [shownLocation?.id]);
   // Phones: a location opened from the list replaces it; back to all locations the sheet peeks again. Leaving Places
   // lets it down too, so the camera's next Places pose is all locations.
   useEffect(() => {

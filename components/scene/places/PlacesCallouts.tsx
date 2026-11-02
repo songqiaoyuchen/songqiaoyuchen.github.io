@@ -20,6 +20,7 @@ import {
   Fragment, useEffect, useMemo, useRef, useState, type CSSProperties, type MutableRefObject, type RefObject,
 } from 'react';
 import {Group, Vector3, type Camera} from 'three';
+import {SCENE_LAYOUT_CONFIG} from '@/config/scene/layout';
 import {isPath, type LonLat, type Location} from '@/data/places';
 import {behindGlobe, clusterPlaces, densifyTrack, lonLatToUnit} from '@/lib/scene/places';
 import {LocationIcon} from './LocationIcon';
@@ -47,8 +48,9 @@ const NAME_EDGE = 8;
 const NAME_DIRECTIONS = Array.from({length: 16}, (_, at) => ({
   x: Math.cos((at * Math.PI) / 8), y: Math.sin((at * Math.PI) / 8),
 }));
-// Phones (the CSS breakpoint, 48rem): the location's sheet covers the lower screen, so names stay above it.
-const PHONE_WIDTH = 768;
+// Phones and tablets (Places' own breakpoint, PlacesCallouts.css 72rem): the location's sheet covers the lower
+// screen, so names stay above it.
+const PHONE_WIDTH = SCENE_LAYOUT_CONFIG.placesMobileMaxWidth;
 const LABEL_RISE = 22;
 const ELBOW = 10;
 const LEADER_GAP = 6;

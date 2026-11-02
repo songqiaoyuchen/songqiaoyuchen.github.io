@@ -107,10 +107,11 @@ through baked regional ground; frame-checked in the browser, awaiting the user's
 - [ ] Populate representative real locations, including a photo-only location.
 - [ ] Verify selection, readable details, rotation and local return across input modes.
 - [ ] Verify direct entry and history with the shared navigation work.
-- [ ] Desktop location panel is clipped at the window's bottom with no scroll (`.places-sheet` in location view:
-  fixed height from `useLocationSheetPlacement.ts`, `overflow: hidden`), so a long location's later galleries and
-  stories cannot be reached. Scrolling the sheet would scroll the globe-shaped float with it; it needs the
-  shape to stay pinned to the globe while the text scrolls. Revisit when real locations fill in.
+- [x] Desktop location panel scrolls, the globe-shaped float re-placed in scrolled coordinates each scrolled frame
+  (`useLocationSheetPlacement.ts`, 2026-11-02). Tablets take the phone sheet (Places' own breakpoint, 72rem); the
+  phone poses were tuned at 375 × 812, so check them in landscape tablet sizes. On the desktop side the float is
+  cut at a 20rem column where the limb would take more, so the text can run over the globe's edge at the panel's
+  bottom on pages just above the breakpoint.
 
 ## Reference
 

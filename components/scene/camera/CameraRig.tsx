@@ -62,6 +62,9 @@ export function CameraRig({
   const viewportWidth = useThree((state) => state.size.width);
   const viewportHeight = useThree((state) => state.size.height);
   const isMobile = viewportWidth < SCENE_LAYOUT_CONFIG.mobileMaxWidth;
+  // Places' sheet layout reaches wider than the scene's phone layout (tablets take it): its poses follow their
+  // own width.
+  const placesMobile = viewportWidth < SCENE_LAYOUT_CONFIG.placesMobileMaxWidth;
   const coverFov = useMemo(
     () => getHomeFov(
       viewportWidth,
@@ -80,12 +83,14 @@ export function CameraRig({
     ? `about:${focusStop}`
     : poseId === 'places' && placesSelected
       ? 'places:location'
-      : poseId === 'places' && isMobile && placesIndexOpen
+      : poseId === 'places' && placesMobile && placesIndexOpen
         ? 'places:index'
         : poseId ?? (isMobile ? 'mobile-overview' : 'overview');
   const configuredPose = poseKey === 'places:location'
-    ? getPlacesLocationPose(isMobile)
-    : poseKey === 'places:index' ? getPlacesIndexPose() : getCameraPose(poseId, isMobile);
+    ? getPlacesLocationPose(placesMobile)
+    : poseKey === 'places:index'
+      ? getPlacesIndexPose()
+      : getCameraPose(poseId, poseId === 'places' ? placesMobile : isMobile);
   const configuredPosition = useMemo(
     () => new Vector3(...configuredPose.position),
     [configuredPose.position],
@@ -106,6 +111,9 @@ export function CameraRig({
     aboutBase.current = getCameraPose('about', isMobile);
   }, [configuredAboutKey, isMobile]);
   const previousPoseKey = useRef(poseKey);
+  // Places' layout as last framed: crossing its breakpoint (a tablet turned) keeps the pose key but changes the
+  // pose, so the camera journeys to the other framing as it would to a new key.
+  const previousPlacesMobile = useRef(placesMobile);
   // A new destination unsettles the camera from this render on, before the journey's first frame, so what waits for
   // it to settle (SceneShell's drawer and section content) never shows for the frame in between. Framing About's
   // checkpoints as the drawer scrolls stays within About, so the drawer it follows stays open.
@@ -183,16 +191,18 @@ export function CameraRig({
       } else if (key === 'about') {
         pose = aboutBase.current;
       } else if (key === 'places:location') {
-        pose = getPlacesLocationPose(isMobile);
+        pose = getPlacesLocationPose(placesMobile);
       } else if (key === 'places:index') {
         pose = getPlacesIndexPose();
       } else {
-        pose = getCameraPose(key as SectionId, isMobile);
+        pose = getCameraPose(key as SectionId, key === 'places' ? placesMobile : isMobile);
       }
       return {position: new Vector3(...pose.position), lookAt: new Vector3(...pose.lookAt)};
     };
 
-    if (key !== previousPoseKey.current) {
+    const placesReframed = isPlacesKey(key) && placesMobile !== previousPlacesMobile.current;
+    previousPlacesMobile.current = placesMobile;
+    if (key !== previousPoseKey.current || placesReframed) {
       if (poseId !== null) {
         // Leaving the overview: return to where the visitor left it (not to mid-air when a return is cut short).
         if (previousPoseKey.current === 'overview' && !isAnimating.current) {

@@ -27,8 +27,8 @@ export const CAMERA_CONFIG = {
   mobileAboutLookAt: [0.142, 4.762, -1.8] as Vector3Tuple,
   // Places looks level at the globe (PLACES_CONFIG.center) from the overview's side of the terrain; the
   // globe sits left of centre on desktop, above centre on phones.
-  placesPosition: [-5.334, 16.786, -14.985] as Vector3Tuple,
-  placesLookAt: [-3.107, 17.258, 0.441] as Vector3Tuple,
+  placesPosition: [-10.092, 16.913, -13.256] as Vector3Tuple,
+  placesLookAt: [-3.343, 17.127, 1.525] as Vector3Tuple,
   // A selected location (desktop): the globe lower left, the location's text to its right; the globe itself turns the
   // location to its screen point (PLACES_LOCATION_CONFIG.markerPoint).
   placesLocationPosition: [-0.821, 16.188, -4.573] as Vector3Tuple,

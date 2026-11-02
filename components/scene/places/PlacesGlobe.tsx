@@ -205,6 +205,9 @@ export function PlacesGlobe({
   const {width, height} = useThree((state) => state.size);
   const getState = useThree((state) => state.get);
   const isMobile = width < SCENE_LAYOUT_CONFIG.mobileMaxWidth;
+  // Places' own phone layout reaches wider than the scene's (tablets take the sheet): its poses, the location's
+  // point and the smaller globe's lights and clusters follow it; the overview the ride sets off from is the scene's.
+  const placesMobile = width < SCENE_LAYOUT_CONFIG.placesMobileMaxWidth;
   const reducedMotion = useReducedMotion();
   const cameraFrameState = useCameraFrameState();
   const groupRef = useRef<Group>(null);
@@ -256,8 +259,10 @@ export function PlacesGlobe({
   const {shade} = PLACES_OVERVIEW_CONFIG;
   // Where an open location sits on screen (normalized device coordinates): phones frame it above the sheet. A
   // location with a turn of its own for this pose opens to that instead (its key per location, built once).
-  const locationPoint = isMobile ? phoneMarkerPoint : markerPoint;
-  const turnKeys = useMemo(() => LOCATIONS.map((location) => locationTurnKey(location.id, isMobile)), [isMobile]);
+  const locationPoint = placesMobile ? phoneMarkerPoint : markerPoint;
+  const turnKeys = useMemo(
+    () => LOCATIONS.map((location) => locationTurnKey(location.id, placesMobile)), [placesMobile],
+  );
   const [linesFrom, linesTo] = linesIn;
   const [reliefFrom, reliefTo] = PLACES_CONFIG.reliefIn;
   // The planet's datum: the landing place's elevation in landscape units, and the terrain surface at the pivot.
@@ -822,7 +827,7 @@ export function PlacesGlobe({
     const turnSeconds = Math.max((1 - turnFrom) * focusSeconds + turnSettle, 1e-3);
     if (turn.active) {
       // The goal is the location as the arriving camera will see it.
-      const pose = selected >= 0 ? getPlacesLocationPose(isMobile) : getCameraPose('places', isMobile);
+      const pose = selected >= 0 ? getPlacesLocationPose(placesMobile) : getCameraPose('places', placesMobile);
       poseCamera(turn.camera, pose, camera);
       const goalView = viewFromCamera(center, turn.camera.position, turn.view);
       const goalAim = aimFor(turn.camera, turn.aim);
@@ -948,7 +953,7 @@ export function PlacesGlobe({
         .applyQuaternion(scratch.lens.copy(camera.quaternion).invert()).normalize();
       scratch.normal.copy(patchLocal.anchor).applyQuaternion(group.quaternion);
       if (!scratch.restKnown) {
-        const destination = selected >= 0 ? getPlacesLocationPose(isMobile) : getCameraPose('places', isMobile);
+        const destination = selected >= 0 ? getPlacesLocationPose(placesMobile) : getCameraPose('places', placesMobile);
         poseCamera(scratch.restCamera, destination, camera);
         viewFromCamera(center, scratch.restCamera.position, scratch.rideView);
         scratch.restKnown = true;
@@ -974,7 +979,7 @@ export function PlacesGlobe({
         const blend = rideBlend(morph, scratch.blendFrom);
         scratch.restFrom.position.lerp(scratch.restTo.position, blend);
         scratch.restFrom.lookAt.lerp(scratch.restTo.lookAt, blend);
-        const destination = selected >= 0 ? getPlacesLocationPose(isMobile) : getCameraPose('places', isMobile);
+        const destination = selected >= 0 ? getPlacesLocationPose(placesMobile) : getCameraPose('places', placesMobile);
         scratch.restTo.position.fromArray(destination.position);
         scratch.restTo.lookAt.fromArray(destination.lookAt);
         scratch.blendFrom = morph;
@@ -1149,7 +1154,7 @@ export function PlacesGlobe({
         lensUniforms={lensUniforms}
         reliefRef={reliefNow}
         shownRef={shown}
-        size={isMobile ? lightSize * PLACES_CONFIG.phoneLightScale : lightSize}
+        size={placesMobile ? lightSize * PLACES_CONFIG.phoneLightScale : lightSize}
         terrainDepthTexture={terrainDepthTexture}
         visibilityRef={lightLod}
       />
@@ -1170,7 +1175,7 @@ export function PlacesGlobe({
       />
       {visible ? (
         <PlacesCallouts
-          clusterWithin={isMobile ? phoneClusterWithin : clusterWithin}
+          clusterWithin={placesMobile ? phoneClusterWithin : clusterWithin}
           focusedIndex={focusedIndex}
           titledRef={titled}
           groupRef={groupRef}

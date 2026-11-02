@@ -51,7 +51,9 @@ export function SaveCameraButton({
       // sections keep the overview camera there. On desktop an open location has its own pose.
       const placesPose = location ? 'PlacesLocation' : 'Places';
       const phonePose = section === 'about' ? 'mobileAbout' : 'mobileOverview';
-      const pose = width < SCENE_LAYOUT_CONFIG.mobileMaxWidth
+      const phoneLayout = width < (section === 'places'
+        ? SCENE_LAYOUT_CONFIG.placesMobileMaxWidth : SCENE_LAYOUT_CONFIG.mobileMaxWidth);
+      const pose = phoneLayout
         ? section === 'places' ? `mobile${!location && index ? 'PlacesIndex' : placesPose}` : phonePose
         : section === 'places' && location ? 'placesLocation' : section ?? 'overview';
       const values: Record<string, unknown> = {

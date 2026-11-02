@@ -237,7 +237,14 @@ done by the time the camera lands and the last of it a slight settle over `turnS
 overview plays the same way toward the globe's centre. A location opening, the rings and the other markers
 leave at once; back to all locations they return only at `revealAt` of the return turn, as the globe settles. The HTML
 follows: the old view fades out, then the location panel rises as the camera lands and the index as the globe settles
-(`PlacesSection`, `Places.css`). Lines and trails join the isolated bloom.
+(`PlacesSection`, `Places.css`). Places has its own phone breakpoint, wider than the scene's (`placesMobileMaxWidth`,
+72rem): below it, tablets included, the globe sits above a sheet of text with the phone poses, because the desktop
+panel beside the close-framed globe needs a wide page. From there up the panel's text flows around a float carrying the
+globe's silhouette as a
+CSS shape (`useLocationSheetPlacement`), and scrolls when taller than the page: the float is re-placed in the panel's
+scrolled coordinates each scrolled frame, so the exclusion stays on the globe while the lines pass it, its box cut
+at the visible bottom, the panel's edge and a least column so no line ever drops below it; a wheel anywhere on the
+page scrolls the panel. Lines and trails join the isolated bloom.
 
 Entry is one zoom-out in which the globe is the planet the landscape lies on. `CameraRig` raises a Places morph
 (0 to 1) over the 2 s journey. The landscape stands for `landscapeKm` of real ground, which sizes an Earth-scale

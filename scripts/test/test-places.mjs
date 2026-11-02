@@ -255,20 +255,33 @@ for (const [index, startYaw] of [[0, 0], [1, Math.PI], [2, 2.5], [3, -1]]) {
 }
 
 // The location panel spans from the globe's centre column to the gutter, never nearer it than the preferred column,
-// with the float's box bounding the globe's outline (a little grown for the glow) and its polygon inside that box.
+// with the float's box starting at the globe's outline (a little grown for the glow), cut at the panel's visible
+// bottom, its right edge and the least column, following the panel's scroll; the polygon stays relative to the
+// outline's own box.
 {
   const page = {width: 1280, height: 704, padTop: 96, gutter: 40};
   const ring = (x, y, r) => ({x, y, points: Array.from({length: 24}, (_, i) =>
     [x + r * Math.cos(i / 24 * Math.PI * 2), y + r * Math.sin(i / 24 * Math.PI * 2)]).flat()});
+  const grown = 950 * 1.04;
   const placed = placeLocationSheet(ring(300, 900, 950), page, 512);
   assert.equal(placed.left, 300);
   assert.equal(placed.width, 1280 - 40 - 300);
   assert.equal(placed.top, 96);
-  assert.ok(Math.abs(placed.shape.left + placed.shape.width / 2 - (300 - 300)) < 1e-6, 'box centred on the globe');
-  assert.ok(Math.abs(placed.shape.top + placed.shape.height / 2 - (900 - 96)) < 1e-6);
-  assert.ok(placed.shape.width > 1900 && placed.shape.width < 2000, 'grown a little for the glow');
+  assert.equal(placed.height, 704 - 28 - 96);
+  assert.ok(Math.abs(placed.shape.left - (300 - grown - 300)) < 1e-6, 'box from the outline\'s left');
+  assert.ok(Math.abs(placed.shape.top - (900 - grown - 96)) < 1e-6, 'box from the outline\'s top');
+  assert.ok(Math.abs(placed.shape.width - (1280 - 40 - (300 - grown))) < 1e-6, 'cut at the panel\'s right edge');
+  assert.ok(Math.abs(placed.shape.height - (96 + placed.height - (900 - grown))) < 1e-6, 'cut at the visible bottom');
   assert.equal(placed.shape.polygon.length, 48);
-  assert.ok(placed.shape.polygon.every((value) => value >= -1e-6 && value <= placed.shape.width + 1e-6));
+  assert.ok(placed.shape.polygon.every((value) => value >= -1e-6 && value <= 2 * grown + 1e-6));
+  const scrolled = placeLocationSheet(ring(300, 900, 950), page, 512, 120);
+  assert.ok(Math.abs(scrolled.shape.top - (placed.shape.top + 120)) < 1e-6, 'the box follows the scroll');
+  assert.ok(Math.abs(scrolled.shape.height - placed.shape.height) < 1e-6, 'its bottom stays the visible bottom');
+  const floored = placeLocationSheet(ring(300, 900, 950), page, 512, 0, 400);
+  assert.ok(Math.abs(floored.shape.width - (1280 - 40 - 400 - (300 - grown))) < 1e-6, 'the least column is left free');
+  const small = placeLocationSheet(ring(300, 400, 100), page, 512);
+  assert.ok(Math.abs(small.shape.width - 2 * 104) < 1e-6, 'a small globe keeps its whole box');
+  assert.ok(Math.abs(small.shape.height - 2 * 104) < 1e-6);
   const far = placeLocationSheet(ring(1100, 352, 200), page, 512);
   assert.equal(far.left, 1280 - 40 - 512, 'no nearer the gutter than the column');
   const offLeft = placeLocationSheet(ring(-100, 352, 200), page, 512);

@@ -63,16 +63,15 @@
 
 /* A selected location: the panel spans from the globe's centre column to the right gutter, and its text flows
    around a float shaped like the globe as drawn (useLocationSheetPlacement.ts sets both, inline), so no line sits
-   over the globe; until then it takes the right-hand column. */
+   over the globe; until then it takes the right-hand column. Taller than the page, it scrolls: the float is placed in
+   the scrolled coordinates every scrolled frame, so the lines re-flow past the pinned globe. A wheel anywhere on the
+   page scrolls it (the hook forwards it; the panel takes no pointer events but its links, so the globe stays
+   draggable under it); on touch screens the text itself takes the pan. */
 .places-section[data-view='location'] {
   display: block;
 }
 /* Moved into place with margins (useLocationSheetPlacement.ts): a float's exclusion follows its margins, not relative
    offsets; the shape is the circle in its border box, whatever the margins. */
-/* The panel's column is the measure; a block of its own width would start under the float and drop below it. */
-.places-section[data-view='location'] :is(.places-location-summary, .places-location-description) {
-  max-width: none;
-}
 .places-globe-shape {
   float: left;
   border-radius: 50%;
@@ -86,10 +85,22 @@
   right: var(--spacing-page-gutter);
   display: block;
   width: var(--places-location-column);
-  overflow: hidden;
+  overflow: hidden auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+/* While more lies below, the bottom fades (set by useLocationSheetPlacement.ts). */
+.places-section[data-view='location'] .places-sheet[data-more] {
+  -webkit-mask-image: linear-gradient(#000 calc(100% - 3rem), transparent);
+  mask-image: linear-gradient(#000 calc(100% - 3rem), transparent);
 }
 .places-sheet :is(a, button) {
   pointer-events: auto;
+}
+@media (pointer: coarse) and (width >= 72rem) {
+  .places-section[data-view='location'] .places-location > * {
+    pointer-events: auto;
+  }
 }
 /* The × back to Home (SectionClose.tsx): where About's sits, at the index column's right edge. */
 .places-close {
@@ -124,11 +135,16 @@
 
 /* Location index (desktop): a right-hand drawer like About's. The sheet is its frame, the about-backdrop utility
    (Drawer.css) fades it in from over the globe, and the column scrolls with the drawer panels' padding. */
-@media (width >= 48rem) {
+@media (width >= 72rem) {
   .places-section[data-view='overview'] .places-sheet {
     position: fixed;
     inset: 0 0 0 auto;
     width: var(--places-index-drawer);
+  }
+  /* A location's text beside the globe: the panel's column is the measure; a block of its own width would start under
+     the float and drop below it. In the sheet the blocks keep their measure. */
+  .places-section[data-view='location'] :is(.places-location-summary, .places-location-description) {
+    max-width: none;
   }
   /* Its left edge is the utility's: the fade reaches out past the drawer. */
   .places-index-backdrop {
@@ -274,10 +290,13 @@
    float's shape: a flex box or scroll container would sit past the float's whole box instead. So the head is a
    line (its count a float at the row's end), and the strip is placed from a probe line in its row, an empty
    inline-block as tall as the strip, which the browser starts past the limb; useLocationSheetPlacement.ts reads
-   where it landed into --places-indent. */
+   where it landed into --places-indent. The count is positioned, not floated: a float needs room beside the globe
+   float's whole box, which spans the panel when the globe is wide, and would take the rest of the panel below it. */
 .places-gallery-head {
+  position: relative;
   min-height: var(--size-hit-target);
-  margin: 0 0 4px;
+  margin: 0 0 4px var(--places-indent, 0px); /* starts where its strip does, not where its own row's limb is */
+  padding-right: 7rem;
   color: var(--color-muted);
   font-size: var(--text-label);
   line-height: var(--size-hit-target);
@@ -285,8 +304,9 @@
   text-transform: uppercase;
 }
 .places-gallery-head .places-link {
-  float: right;
-  margin-left: 12px;
+  position: absolute;
+  top: 0;
+  right: 0;
 }
 .places-photos-row {
   position: relative;
@@ -410,7 +430,9 @@
   }
 }
 
-/* Phones: the whole globe above, the content in a sheet below with no card: the night fades into it. Over all locations
+/* Phones and tablets (below 72rem, config/breakpoints.ts belowPlacesSheet: Places' own breakpoint, wider than the scene's 48rem,
+   because the desktop panel beside the close-framed globe needs a wide page): the whole globe above, the content in a
+   sheet below with no card: the night fades into it. Over all locations
    it peeks with the location in the globe's focus and a bar that pulls the list up (the camera steps back, CameraRig
    'places:index', over --places-sheet-move); a location fills it with the panel under the globe framed close. A drag
    on the globe turns it; the list and the location scroll inside the sheet. */
@@ -418,7 +440,7 @@
 .places-peek-location {
   display: none;
 }
-@media (width < 48rem) {
+@media (width < 72rem) {
   /* Under the nav, clear of the globe's window. */
   .places-close {
     top: 4.5rem;
