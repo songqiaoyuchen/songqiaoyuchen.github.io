@@ -9,7 +9,11 @@
 // elevation summary's broad forms in place of the map's detail and the regional tile, hillshaded and tinted by
 // height; the coast stays the map's own. The open location's zoom moves the map under each fragment (placesLens.glsl),
 // and a zoomed location's own ground (uGround, many times finer, 16-bit) takes over from the map about the location: read at
-// the detail one screen pixel covers, its hillshade scaled to the map's units, fading into the map far out.
+// the detail one screen pixel covers, its hillshade scaled to the map's units, fading into the map far out. The
+// ground's kind layer (uKinds: water, snow and ice, the land's kinds, lake, river and glacier flags; lib/scene/places.ts
+// GROUND_KIND) makes it an atlas, still in the night's dark: water an ink blue, snow a cold grey, the land's kinds a
+// shade apart under the gold. It develops along the focus journey, water first (uAtlasWaterAmount) then the land
+// (uAtlasLandAmount), each from the ground's centre outward (uAtlasSpread), and leaves the same way.
 #include <land_shading>
 #include <places_lens>
 
@@ -48,6 +52,33 @@ uniform float uGroundHalfAngle; // radians, half its width
 uniform float uGroundSize; // texels across
 uniform float uGroundSpread; // its texels per elevation-map texel
 uniform float uGroundShade;
+uniform sampler2D uKinds; // the ground's kind, packed: kind in the high four bits, flags in the low three
+uniform float uHasKinds;
+uniform vec3 uAtlasWater;
+uniform vec3 uAtlasSnow;
+uniform float uAtlasKindTint;
+uniform float uAtlasRiver;
+uniform float uAtlasSpread; // half-widths the atlas's front lags its centre
+uniform float uAtlasWaterAmount;
+uniform float uAtlasLandAmount;
+
+// How far the atlas has reached a place `distance` half-widths from the ground's centre at `amount` of its way:
+// its front runs from the centre past the edge, softened over uAtlasSpread (none: everywhere at once).
+float atlasReveal(float amount, float distance) {
+  if (uAtlasSpread < 1e-4) return amount;
+  float front = amount * (1.0 + uAtlasSpread);
+  return smoothstep(0.0, 1.0, (front - distance) / uAtlasSpread);
+}
+
+// A land kind's colour against the one dark: trees cooler, grass and crops a shade greener, bare ground and moss
+// warmer, built-up ground a little lighter; anything else the ground as it is.
+vec3 kindFactor(int kind) {
+  if (kind == 1) return vec3(0.82, 1.0, 0.92);
+  if (kind == 2 || kind == 3 || kind == 4) return vec3(0.96, 1.04, 0.88);
+  if (kind == 6 || kind == 10) return vec3(1.12, 1.02, 0.9);
+  if (kind == 5) return vec3(1.08, 1.06, 1.02);
+  return vec3(1.0);
+}
 
 varying vec3 vNormal;
 varying vec3 vWorldPosition;
@@ -101,6 +132,11 @@ void main() {
     }
   }
 
+  // The atlas's parts where the ground's kind is known: how far each has come here, and what it paints.
+  float waterHere = 0.0;
+  float snowHere = 0.0;
+  float riverHere = 0.0;
+  vec3 kindTint = vec3(1.0);
   if (uGroundWeight > 0.0) {
     // The place drawn here, as offsets from the ground's centre over its half-width; it hands over to the map from
     // half way out, by its edge entirely.
@@ -123,12 +159,33 @@ void main() {
       vec2 groundSlope = vec2(east - west, north - south) * LAND_SLOPE_GAIN * uGroundShade * uGroundSpread / exp2(lod);
       height = mix(height, groundHeight, weight);
       slope = mix(slope, groundSlope, weight);
+      if (uHasKinds > 0.5) {
+        // The kind at the same level, read exactly: a texel is one kind, never a blend of two.
+        float packed = floor(textureLod(uKinds, groundUv, lod).r * 255.0 + 0.5);
+        int kind = int(floor(packed / 16.0));
+        float flags = packed - float(kind) * 16.0;
+        bool lake = mod(flags, 2.0) >= 1.0;
+        bool river = mod(floor(flags / 2.0), 2.0) >= 1.0;
+        bool glacier = flags >= 4.0;
+        float distance = length(offset);
+        float water = atlasReveal(uAtlasWaterAmount, distance) * weight;
+        float land = atlasReveal(uAtlasLandAmount, distance) * weight;
+        if (kind == 8 || lake) waterHere = water;
+        else if (kind == 7 || glacier) snowHere = land;
+        else if (kind == 9) waterHere = water * 0.5;
+        else if (river) riverHere = water * uAtlasRiver;
+        if (kind != 8 && kind != 7 && !lake && !glacier) kindTint = mix(vec3(1.0), kindFactor(kind), land * uAtlasKindTint);
+      }
     }
   }
   // Where the lens squeezes the ground, its hillshade flattens with its heights.
   slope *= min(lensRelief(normalize(vLocal)), 1.0);
   vec3 color = landColor(uBaseColor, facing, uLineColor, mix(uLandTint, uFocusTint, uFocus),
-    mix(uShade, uFocusShade, uFocus), height, slope);
+    mix(uShade, uFocusShade, uFocus), height, slope) * kindTint;
+  // The atlas over the land colour: snow keeps the hillshade, water lies flat with the ground's turn from the camera.
+  float shade = clamp(1.0 + mix(uShade, uFocusShade, uFocus) * (slope.y - slope.x) * 0.5, 0.35, 1.8);
+  color = mix(color, uAtlasSnow * shade, snowHere);
+  color = mix(color, uAtlasWater * (0.7 + 0.3 * facing), max(waterHere, riverHere));
   color += uRimColor * rim * uRimIntensity;
   // Fog by the fragment's own depth, as the terrain is fogged: interpolated from the planet's vertices it would be
   // the depth of ground kilometres away, fogging the ground beside the landscape to black and showing its rim.

@@ -47,3 +47,6 @@ next-env.d.ts
 
 # places photo originals (scripts/assets/import-places-photos.mjs); full size, with GPS
 /photos-src
+
+# Natural Earth downloads cached by scripts/assets/build-places-geo.mjs ground
+.cache/

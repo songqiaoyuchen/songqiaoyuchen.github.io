@@ -18,8 +18,11 @@
 //     A location's own sharper ground (components/scene/places/useLocationGround.ts): Terrarium elevation as for `region`, resampled onto the
 //     globe's own tangent grid about the place (the offsets globe.frag reads: east and north components of the
 //     direction, over the half-width's angle) in GROUND_STEP_M steps across two bytes (high in red, low in green),
-//     written as lossless WebP to public/places/ground/<location id>.webp with a .json describing it. Centre it on the
-//     middle of the box about the location's places, the centre of its zoom.
+//     and in blue the ground's kind (lib/scene/places.ts GROUND_KIND): ESA WorldCover 10 m classes (CC BY 4.0, read
+//     from the cloud-optimised GeoTIFFs on AWS at the overview nearest the grid's spacing; a tile missing from the
+//     set is open sea) with Natural Earth 1:10m lakes, rivers and glaciers as flags (GeoJSON fetched once into
+//     .cache/places-geo/), written as lossless WebP to public/places/ground/<location id>.webp with a .json describing
+//     it. Centre it on the middle of the box about the location's places, the centre of its zoom.
 //
 //   node scripts/assets/build-places-geo.mjs track <location id> <a.gpx> [<b.gpx> ...] [--tolerance-km 0.05]
 //     Each GPX recording becomes one segment of the location, simplified; written to public/places/tracks/<id>.json
@@ -27,7 +30,7 @@
 import {promises as fs} from 'node:fs';
 import path from 'node:path';
 import {pathToFileURL} from 'node:url';
-import {encodeLines} from '../../lib/scene/places.ts';
+import {GROUND_FLAG, GROUND_KIND, encodeLines, packGroundKind} from '../../lib/scene/places.ts';
 
 const EARTH_RADIUS_KM = 6371;
 const DEG = Math.PI / 180;
@@ -143,6 +146,204 @@ export function tangentGrid(lon, lat, halfAngle, size) {
     }
   }
   return places;
+}
+
+const WORLDCOVER_URL = 'https://esa-worldcover.s3.eu-central-1.amazonaws.com/v200/2021/map';
+const NATURAL_EARTH_URL = 'https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/';
+const USER_AGENT = 'sqyc build-places-geo (personal site bake)';
+
+/** The box about a grid's places, longitudes about `lon` so a box across the antimeridian stays one box. */
+export function gridBox(places, lon) {
+  let west = Infinity;
+  let east = -Infinity;
+  let north = -Infinity;
+  let south = Infinity;
+  for (let index = 0; index < places.length; index += 2) {
+    const relative = ((places[index] - lon + 540) % 360) - 180;
+    west = Math.min(west, lon + relative);
+    east = Math.max(east, lon + relative);
+    north = Math.max(north, places[index + 1]);
+    south = Math.min(south, places[index + 1]);
+  }
+  return {west, east, north, south};
+}
+
+/**
+ * ESA WorldCover classes (over ten: GROUND_KIND) for the grid's places: each 3 x 3 degree tile with places on it
+ * read at the overview whose pixels are at or just under `metresPerPixel`, over HTTP ranges; a tile the set lacks is
+ * open sea, so its places are water. Places the tiles mark as no data stay 0.
+ */
+async function worldCoverKinds(places, metresPerPixel) {
+  const {fromUrl} = await import('geotiff');
+  const kinds = new Uint8Array(places.length / 2);
+  // Each place's tile, so a tile touches only its own cells and the tiles can be read side by side.
+  const tiles = new Map();
+  const wrap = (lon) => ((lon + 540) % 360) - 180;
+  for (let cell = 0; cell < kinds.length; cell++) {
+    const tileLon = Math.floor(wrap(places[cell * 2]) / 3) * 3;
+    const tileLat = Math.floor(places[cell * 2 + 1] / 3) * 3;
+    const key = `${tileLat}/${tileLon}`;
+    let tile = tiles.get(key);
+    if (!tile) {
+      tile = {tileLon, tileLat, cells: []};
+      tiles.set(key, tile);
+    }
+    tile.cells.push(cell);
+  }
+  let read = 0;
+  let missing = 0;
+  const readTile = async ({tileLon, tileLat, cells}) => {
+    const name = `${tileLat < 0 ? 'S' : 'N'}${String(Math.abs(tileLat)).padStart(2, '0')}`
+      + `${tileLon < 0 ? 'W' : 'E'}${String(Math.abs(tileLon)).padStart(3, '0')}`;
+    const url = `${WORLDCOVER_URL}/ESA_WorldCover_10m_2021_v200_${name}_Map.tif`;
+    const head = await fetch(url, {method: 'HEAD', headers: {'User-Agent': USER_AGENT}});
+    if (head.status === 404) {
+      missing++;
+      for (const cell of cells) kinds[cell] = GROUND_KIND.water;
+      return;
+    }
+    if (!head.ok) throw new Error(`${url}: ${head.status}`);
+    const tiff = await fromUrl(url, {allowFullFile: false});
+    const count = await tiff.getImageCount();
+    const metresPerDegree = 111320 * Math.cos((tileLat + 1.5) * DEG);
+    let chosen = 0;
+    for (let index = 0; index < count; index++) {
+      const image = await tiff.getImage(index);
+      if (3 / image.getWidth() * metresPerDegree <= metresPerPixel) chosen = index;
+    }
+    const image = await tiff.getImage(chosen);
+    const width = image.getWidth();
+    const height = image.getHeight();
+    const [raster] = await image.readRasters();
+    read++;
+    for (const cell of cells) {
+      const x = Math.min(width - 1, Math.floor((wrap(places[cell * 2]) - tileLon) / 3 * width));
+      const y = Math.min(height - 1, Math.floor((tileLat + 3 - places[cell * 2 + 1]) / 3 * height));
+      kinds[cell] = raster[y * width + x] / 10;
+    }
+  };
+  const queue = [...tiles.values()];
+  await Promise.all(Array.from({length: 8}, async () => {
+    while (queue.length) await readTile(queue.shift());
+  }));
+  return {kinds, read, missing};
+}
+
+async function naturalEarthGeoJson(name, cacheDir) {
+  const file = path.join(cacheDir, name);
+  try {
+    return JSON.parse(await fs.readFile(file, 'utf8'));
+  } catch {
+    const response = await fetch(NATURAL_EARTH_URL + name, {headers: {'User-Agent': USER_AGENT}});
+    if (!response.ok) throw new Error(`${name}: ${response.status}`);
+    const text = await response.text();
+    await fs.mkdir(cacheDir, {recursive: true});
+    await fs.writeFile(file, text);
+    return JSON.parse(text);
+  }
+}
+
+/**
+ * Natural Earth lakes, rivers and glaciers as GROUND_FLAG bits for the grid's places, plus which places its land
+ * polygons leave at sea (the `sea` byte array): each layer drawn onto a lon/lat raster over the box at half the
+ * grid's spacing (polygons filled scanline by scanline, even-odd; rivers as one-cell lines), then read at each place.
+ */
+export async function naturalEarthFlags(places, box, metresPerPixel, cacheDir) {
+  const cell = metresPerPixel / 111320 / 2;
+  const columns = Math.ceil((box.east - box.west) / cell);
+  const rows = Math.ceil((box.north - box.south) / cell);
+  const CHANNELS = 4; // lake, river, glacier, land
+  const raster = new Uint8Array(columns * rows * CHANNELS);
+  const centre = (box.west + box.east) / 2;
+  const rowOf = (lat) => (box.north - lat) / cell;
+  // A line's columns, its first point placed within half a turn of the box's centre and the rest unwrapped from it,
+  // so a line stays in one piece however far it runs: a shore wrapped round to the box's west would flip the
+  // scanline parity of every row it crosses.
+  const columnsOf = (line) => {
+    const columnsOut = new Float64Array(line.length);
+    let previous = NaN;
+    for (let index = 0; index < line.length; index++) {
+      let lon = line[index][0];
+      if (Number.isNaN(previous)) lon = centre + ((((lon - centre) % 360) + 540) % 360) - 180;
+      else lon += Math.round((previous - lon) / 360) * 360;
+      previous = lon;
+      columnsOut[index] = (lon - box.west) / cell;
+    }
+    return columnsOut;
+  };
+  const fillRings = (rings, channel) => {
+    const edges = [];
+    for (const ring of rings) {
+      const ringColumns = columnsOf(ring);
+      for (let index = 0; index + 1 < ring.length; index++) {
+        const y0 = ring[index][1];
+        const y1 = ring[index + 1][1];
+        if (y0 !== y1) edges.push([ringColumns[index], rowOf(y0), ringColumns[index + 1], rowOf(y1)]);
+      }
+    }
+    let first = Infinity;
+    let last = -Infinity;
+    for (const edge of edges) {
+      first = Math.min(first, edge[1], edge[3]);
+      last = Math.max(last, edge[1], edge[3]);
+    }
+    for (let row = Math.max(0, Math.floor(first)); row <= Math.min(rows - 1, Math.ceil(last)); row++) {
+      const y = row + 0.5;
+      const crossings = [];
+      for (const [ax, ay, bx, by] of edges) {
+        if ((y >= ay && y < by) || (y >= by && y < ay)) crossings.push(ax + (y - ay) / (by - ay) * (bx - ax));
+      }
+      crossings.sort((a, b) => a - b);
+      for (let index = 0; index + 1 < crossings.length; index += 2) {
+        const from = Math.max(0, Math.round(crossings[index]));
+        const to = Math.min(columns, Math.round(crossings[index + 1]));
+        for (let column = from; column < to; column++) raster[(row * columns + column) * CHANNELS + channel] = 1;
+      }
+    }
+  };
+  const drawLine = (line, channel) => {
+    const lineColumns = columnsOf(line);
+    for (let index = 0; index + 1 < line.length; index++) {
+      const x0 = lineColumns[index];
+      const y0 = rowOf(line[index][1]);
+      const x1 = lineColumns[index + 1];
+      const y1 = rowOf(line[index + 1][1]);
+      const steps = Math.max(1, Math.ceil(Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0))));
+      for (let step = 0; step <= steps; step++) {
+        const column = Math.round(x0 + (x1 - x0) * step / steps);
+        const row = Math.round(y0 + (y1 - y0) * step / steps);
+        if (column >= 0 && column < columns && row >= 0 && row < rows) {
+          raster[(row * columns + column) * CHANNELS + channel] = 1;
+        }
+      }
+    }
+  };
+  const polygonsOf = (geometry) => geometry.type === 'Polygon' ? [geometry.coordinates]
+    : geometry.type === 'MultiPolygon' ? geometry.coordinates : [];
+  const linesOf = (geometry) => geometry.type === 'LineString' ? [geometry.coordinates]
+    : geometry.type === 'MultiLineString' ? geometry.coordinates : [];
+  const layers = [['ne_10m_lakes.geojson', 0], ['ne_10m_glaciated_areas.geojson', 2], ['ne_10m_land.geojson', 3]];
+  for (const [name, channel] of layers) {
+    const data = await naturalEarthGeoJson(name, cacheDir);
+    for (const feature of data.features) {
+      if (feature.geometry) for (const polygon of polygonsOf(feature.geometry)) fillRings(polygon, channel);
+    }
+  }
+  const rivers = await naturalEarthGeoJson('ne_10m_rivers_lake_centerlines.geojson', cacheDir);
+  for (const feature of rivers.features) {
+    if (feature.geometry) for (const line of linesOf(feature.geometry)) drawLine(line, 1);
+  }
+  const flags = new Uint8Array(places.length / 2);
+  const sea = new Uint8Array(places.length / 2);
+  for (let cell = 0; cell < flags.length; cell++) {
+    const column = Math.min(columns - 1, Math.max(0, Math.floor(columnsOf([[places[cell * 2], 0]])[0])));
+    const row = Math.min(rows - 1, Math.max(0, Math.floor(rowOf(places[cell * 2 + 1]))));
+    const at = (row * columns + column) * CHANNELS;
+    flags[cell] = (raster[at] ? GROUND_FLAG.lake : 0) | (raster[at + 1] ? GROUND_FLAG.river : 0)
+      | (raster[at + 2] ? GROUND_FLAG.glacier : 0);
+    sea[cell] = raster[at + 3] ? 0 : 1;
+  }
+  return {flags, sea};
 }
 
 /** Builds a local east/north elevation grid from a sampler of (lon, lat) -> metres. */
@@ -329,25 +530,19 @@ async function main() {
     const {default: sharp} = await import('sharp');
     const halfAngle = km / 2 / EARTH_RADIUS_KM;
     const places = tangentGrid(lon, lat, halfAngle, size);
-    let west = Infinity;
-    let east = -Infinity;
-    let north = -Infinity;
-    let south = Infinity;
-    for (let index = 0; index < places.length; index += 2) {
-      // Longitudes about the centre's, so a box across the antimeridian stays one box.
-      const relative = ((places[index] - lon + 540) % 360) - 180;
-      west = Math.min(west, lon + relative);
-      east = Math.max(east, lon + relative);
-      north = Math.max(north, places[index + 1]);
-      south = Math.min(south, places[index + 1]);
-    }
+    const {west, east, north, south} = gridBox(places, lon);
+    const metresPerPixel = km * 1000 / size;
     // The finest tiles the grid can use: its pixel at the box's widest latitude.
-    const zoom = zoomForResolution(km * 1000 / size, Math.min(Math.abs(north), Math.abs(south)));
+    const zoom = zoomForResolution(metresPerPixel, Math.min(Math.abs(north), Math.abs(south)));
     const {sampler, fetched} = await terrariumSampler(sharp, west, east, Math.min(north, 85), Math.max(south, -85),
       zoom);
+    const box = {west, east, north: Math.min(north, 90), south: Math.max(south, -90)};
+    const cover = await worldCoverKinds(places, metresPerPixel);
+    const earth = await naturalEarthFlags(places, box, metresPerPixel, path.join(root, '.cache', 'places-geo'));
     const pixels = Buffer.alloc(size * size * 3);
     let min = Infinity;
     let max = -Infinity;
+    const counts = new Map();
     for (let cell = 0; cell < size * size; cell++) {
       const metres = sampler(places[cell * 2], places[cell * 2 + 1]);
       min = Math.min(min, metres);
@@ -355,18 +550,26 @@ async function main() {
       const level = Math.min(65535, Math.round(Math.max(0, metres) / GROUND_STEP_M));
       pixels[cell * 3] = level >> 8;
       pixels[cell * 3 + 1] = level & 255;
+      // WorldCover's class; where it has none, Natural Earth's sea is water.
+      const kind = cover.kinds[cell] || (earth.sea[cell] ? GROUND_KIND.water : 0);
+      pixels[cell * 3 + 2] = packGroundKind(kind, earth.flags[cell]);
+      counts.set(kind, (counts.get(kind) ?? 0) + 1);
     }
     const folder = path.join(root, 'public', 'places', 'ground');
     await fs.mkdir(folder, {recursive: true});
     const target = path.join(folder, `${id}.webp`);
     await sharp(pixels, {raw: {width: size, height: size, channels: 3}}).webp({lossless: true, effort: 6})
       .toFile(target);
-    const meta = {lon, lat, km, size, zoom, stepMetres: GROUND_STEP_M,
-      source: 'Terrain Tiles on AWS (Mapzen/Tilezen Terrarium: SRTM, GMTED2010, ETOPO1)'};
+    const meta = {lon, lat, km, size, zoom, stepMetres: GROUND_STEP_M, kinds: true,
+      source: 'Terrain Tiles on AWS (Mapzen/Tilezen Terrarium: SRTM, GMTED2010, ETOPO1)',
+      kindsSource: 'ESA WorldCover 10 m 2021 v200 (CC BY 4.0); Natural Earth 1:10m lakes, rivers, glaciated areas, land'};
     await fs.writeFile(path.join(folder, `${id}.json`), `${JSON.stringify(meta, null, 2)}\n`);
     const bytes = (await fs.stat(target)).size;
+    const share = (kind) => `${Math.round((counts.get(kind) ?? 0) / (size * size) * 100)}%`;
     console.log(`ground ${id}: ${fetched} tiles at z${zoom}, ${size}x${size} over ${km} km, elevation `
-      + `${Math.round(min)}..${Math.round(max)} m, ${bytes} bytes -> ${target}`);
+      + `${Math.round(min)}..${Math.round(max)} m; kinds from ${cover.read} WorldCover tiles (${cover.missing} at `
+      + `sea): water ${share(GROUND_KIND.water)}, snow ${share(GROUND_KIND.snow)}, trees ${share(GROUND_KIND.trees)}, `
+      + `unknown ${share(0)}; ${bytes} bytes -> ${target}`);
     return;
   }
 

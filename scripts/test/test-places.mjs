@@ -10,6 +10,7 @@ import {
   lonLatToUnit, nearestPlace, planetScale, polylineLength, regionSpread, rideDistance,
   rideDissolve, rideOntoPlanet, rideShare, releaseGlobe,
   screenPointOf, toGlobeSettings, trackGaps, viewFromCamera,
+  GROUND_FLAG, GROUND_KIND, mergeGroundKinds, packGroundKind, unpackGroundKind,
 } from '../../lib/scene/places.ts';
 import {placeLocationSheet} from '../../components/places/useLocationSheetPlacement.ts';
 import {
@@ -242,6 +243,17 @@ for (const [index, startYaw] of [[0, 0], [1, Math.PI], [2, 2.5], [3, -1]]) {
   const flat = sampleRegion(() => 42, 102, 30, 600, 4);
   assert.equal(flat.length, 16);
   assert.ok(flat.every((value) => value === 42));
+  // The ground's kind byte: kind and flags apart, and four texels seen as one keep the commonest kind (unknown
+  // giving way) with every flag.
+  const lakeInTrees = packGroundKind(GROUND_KIND.trees, GROUND_FLAG.lake | GROUND_FLAG.river);
+  assert.deepEqual(unpackGroundKind(lakeInTrees), {kind: GROUND_KIND.trees, flags: 3});
+  assert.equal(packGroundKind(GROUND_KIND.moss, 0) >> 4, 10);
+  const water = packGroundKind(GROUND_KIND.water, 0);
+  const grass = packGroundKind(GROUND_KIND.grass, GROUND_FLAG.glacier);
+  assert.equal(mergeGroundKinds(water, water, grass, grass), packGroundKind(GROUND_KIND.water, GROUND_FLAG.glacier));
+  assert.equal(mergeGroundKinds(grass, water, water, grass), packGroundKind(GROUND_KIND.grass, GROUND_FLAG.glacier));
+  assert.equal(mergeGroundKinds(0, 0, 0, grass), grass);
+  assert.equal(mergeGroundKinds(0, 0, 0, 0), 0);
 }
 
 // The screen point measured back from where the aim lands is the point asked for: the screen's centre, from the

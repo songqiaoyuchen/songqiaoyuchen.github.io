@@ -142,6 +142,19 @@ export const PLACES_LOCATION_CONFIG = {
   lensRelief: 0.5, // heights follow the ground's scale to this power
   groundShade: 0.16, // hillshade gain of a location's own ground (its finer slopes), to read like the map's
   groundFadeSeconds: 0.6, // a ground arriving after the location opened fades in over this
+
+  // Atlas (globe.frag, from the ground's kind layer): with a location open the ground tells water, snow and the
+  // land's kinds apart, still in the night globe's dark: water an ink blue, snow and ice a cold grey, the land's kinds
+  // a shade apart under the gold. It develops over the focus journey (shares of its time): water fills in first, then
+  // the land, from the location's centre outward, while the night lights go out.
+  atlasWater: '#0a1830',
+  atlasSnow: '#3a404b',
+  atlasKindTint: 1, // how far the land's kinds colour it (0 leaves the land one dark)
+  atlasRiver: 0.55, // river lines' share of the water colour
+  atlasWaterIn: [0.3, 0.7] as readonly [number, number],
+  atlasLandIn: [0.5, 0.95] as readonly [number, number],
+  lightsOut: [0.25, 0.8] as readonly [number, number],
+  atlasSpread: 0.5, // the atlas's front lags its centre by this share of the ground's half-width; 0 arrives at once
 } as const;
 
 /**

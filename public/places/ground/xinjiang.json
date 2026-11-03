@@ -5,5 +5,7 @@
   "size": 1536,
   "zoom": 6,
   "stepMetres": 2,
-  "source": "Terrain Tiles on AWS (Mapzen/Tilezen Terrarium: SRTM, GMTED2010, ETOPO1)"
+  "kinds": true,
+  "source": "Terrain Tiles on AWS (Mapzen/Tilezen Terrarium: SRTM, GMTED2010, ETOPO1)",
+  "kindsSource": "ESA WorldCover 10 m 2021 v200 (CC BY 4.0); Natural Earth 1:10m lakes, rivers, glaciated areas, land"
 }

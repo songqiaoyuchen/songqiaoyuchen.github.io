@@ -224,7 +224,12 @@ panel; phones their own above the sheet), unless the location has a turn of its 
 (`PLACES_LOCATION_TURNS`, yaw and pitch), which every way into it then lands on. Every location has its own sharper, 16-bit ground
 (`public/places/ground/<id>.webp`, baked by `build-places-geo.mjs ground`, loaded by `useLocationGround` on first
 open), which `globe.frag` reads under the zoom at the detail a screen pixel covers, fading into the global map far
-out; the coastlines give way to it there. About the resting globe,
+out; the coastlines give way to it there. The ground's third byte is its kind (`GROUND_KIND` in `lib/scene/places.ts`: ESA
+WorldCover's water, snow and ice, trees, grass, crops, built-up and bare ground, with Natural Earth lake, river and glacier
+flags), which makes the open location an atlas still in the night's dark (`atlas*` in `PLACES_LOCATION_CONFIG`): water an ink
+blue, snow a cold grey, the land's kinds a shade apart under the gold hillshade. It develops along the focus journey, water
+first and then the land, each from the location's centre outward, while the night lights go out (`lightsOut`), and leaves
+the same way on the return. About the resting globe,
 outside its turn, two tilted orbit rings with tick marks turn slowly (`PlacesRings`) and a sparse sky of stars
 stands far behind (`PlacesStars`, the same point shader); lights, rings and stars join the isolated bloom. The camera parks at the Places
 pose and the globe turns (`lib/scene/places.ts`): a drag follows the pointer; a release coasts under friction

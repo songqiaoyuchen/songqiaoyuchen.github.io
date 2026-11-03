@@ -120,6 +120,25 @@ function usePlacesLocationControls() {
       },
       markerSize: {value: PLACES_LOCATION_CONFIG.markerSize, min: 6, max: 48, step: 1, label: 'Marker size (px)'},
     }, {collapsed: false}),
+    Atlas: folder({
+      // PlacesGlobe.tsx -> globe.frag: water, snow and the land's kinds from the ground's kind layer, and when they
+      // come in along the focus journey as the night lights go out.
+      atlasWater: {value: PLACES_LOCATION_CONFIG.atlasWater, label: 'Water'},
+      atlasSnow: {value: PLACES_LOCATION_CONFIG.atlasSnow, label: 'Snow'},
+      atlasKindTint: {value: PLACES_LOCATION_CONFIG.atlasKindTint, min: 0, max: 2, step: 0.05, label: 'Kind tint'},
+      atlasRiver: {value: PLACES_LOCATION_CONFIG.atlasRiver, min: 0, max: 1, step: 0.05, label: 'Rivers'},
+      atlasWaterIn: {
+        value: pair(PLACES_LOCATION_CONFIG.atlasWaterIn), min: 0, max: 1, step: 0.01, joystick: false,
+        label: 'Water in',
+      },
+      atlasLandIn: {
+        value: pair(PLACES_LOCATION_CONFIG.atlasLandIn), min: 0, max: 1, step: 0.01, joystick: false, label: 'Land in',
+      },
+      lightsOut: {
+        value: pair(PLACES_LOCATION_CONFIG.lightsOut), min: 0, max: 1, step: 0.01, joystick: false, label: 'Lights out',
+      },
+      atlasSpread: {value: PLACES_LOCATION_CONFIG.atlasSpread, min: 0, max: 2, step: 0.05, label: 'Spread'},
+    }, {collapsed: false}),
     Zoom: folder({
       // PlacesGlobe.tsx -> placesLens.glsl: a small location magnified by a conformal zoom of the surface as it opens.
       lensFill: {value: PLACES_LOCATION_CONFIG.lensFill, min: 2, max: 30, step: 0.5, label: 'Fill (°)'},

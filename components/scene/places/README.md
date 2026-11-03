@@ -13,7 +13,7 @@ The Places globe inside the canvas (`SceneCanvas` mounts it the first time Place
 | `LocationIcon.tsx` | A location's own marker drawing in place of the diamond (`icon` in `data/places.ts`), at three levels of detail picked by the marker's state |
 | `useCoastlines.ts` | Loads `public/places/coast.bin` once |
 | `useElevation.ts` | Asks the places worker (`lib/scene/placesElevation.ts`) for `public/places/elevation.png` decoded, its summary and the light points once: textures for the shaders and a CPU height sampler for markers |
-| `useLocationGround.ts` | Loads a location's own ground (`public/places/ground/<id>.webp` and `.json`) on its first open: 16-bit heights as a half-float texture with mip levels built on the CPU |
+| `useLocationGround.ts` | Loads a location's own ground (`public/places/ground/<id>.webp` and `.json`) on its first open: 16-bit heights as a half-float texture with mip levels built on the CPU, and the ground's kind (water, snow, trees…, with lake, river and glacier flags; `GROUND_KIND` in `lib/scene/places.ts`) as a byte texture whose levels keep the commonest kind of each four |
 | `useRegion.ts` | Loads `public/places/region.png` and its `region.json` once: the real ground around the landing place, whose heights the landscape's edge takes and the globe draws on the zoom-out (`TerrainMesh`, `PlacesGlobe`) |
 
 Shaders: `shaders/terrain/globe.*` (the shell, its land colour from `landShading.glsl`, shared with the terrain

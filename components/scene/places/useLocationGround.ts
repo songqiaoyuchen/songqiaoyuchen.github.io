@@ -1,14 +1,17 @@
 // Loads a location's own ground (scripts/assets/build-places-geo.mjs `ground`) when the location first opens, then
 // keeps it: the heights as a half-float texture in the elevation map's units, its mip levels built here (the GPU cannot
-// build them for every half-float format), plus its description. A location without one, or a missing file, leaves the
-// globe on its global map.
+// build them for every half-float format), the ground's kind (water, snow, trees… lib/scene/places.ts GROUND_KIND)
+// as a byte texture with its own levels (the commonest kind of each four), plus its description. A location without
+// one, or a missing file, leaves the globe on its global map; a tile baked without a kind layer has no kind texture.
 'use client';
 
 import {useEffect, useState} from 'react';
 import {
-  ClampToEdgeWrapping, DataTexture, DataUtils, HalfFloatType, LinearFilter, LinearMipmapLinearFilter, RedFormat,
+  ClampToEdgeWrapping, DataTexture, DataUtils, HalfFloatType, LinearFilter, LinearMipmapLinearFilter,
+  NearestFilter, NearestMipmapNearestFilter, RedFormat, UnsignedByteType,
 } from 'three';
 import {PLACES_CONFIG} from '@/config/scene/places';
+import {mergeGroundKinds} from '@/lib/scene/places';
 
 export type LocationGroundMeta = {
   lon: number;
@@ -18,9 +21,17 @@ export type LocationGroundMeta = {
   size: number;
   /** Metres per level of the two-byte height. */
   stepMetres: number;
+  /** Present when the blue byte carries the ground's kind (GROUND_KIND). */
+  kinds?: boolean;
 };
 
-export type LocationGround = {id: string; texture: DataTexture; meta: LocationGroundMeta};
+export type LocationGround = {
+  id: string;
+  texture: DataTexture;
+  /** The ground's kind, or null for a tile baked without one. */
+  kinds: DataTexture | null;
+  meta: LocationGroundMeta;
+};
 
 const cache = new Map<string, Promise<LocationGround | null>>();
 
@@ -47,6 +58,43 @@ function toHalf(data: Float32Array) {
   return out;
 }
 
+/** The kind level half the size: each texel the four it covers seen as one. */
+function halveKinds(data: Uint8Array, size: number) {
+  const next = Math.max(1, Math.floor(size / 2));
+  const out = new Uint8Array(next * next);
+  for (let y = 0; y < next; y++) {
+    const y0 = Math.min(size - 1, y * 2);
+    const y1 = Math.min(size - 1, y * 2 + 1);
+    for (let x = 0; x < next; x++) {
+      const x0 = Math.min(size - 1, x * 2);
+      const x1 = Math.min(size - 1, x * 2 + 1);
+      out[y * next + x] = mergeGroundKinds(
+        data[y0 * size + x0], data[y0 * size + x1], data[y1 * size + x0], data[y1 * size + x1]);
+    }
+  }
+  return {data: out, size: next};
+}
+
+/** The kind bytes as a texture read exactly (nearest, level by level), its levels built here. */
+function kindTexture(kinds: Uint8Array, size: number) {
+  const mipmaps = [{data: kinds, width: size, height: size}];
+  let level = {data: kinds, size};
+  while (level.size > 1) {
+    level = halveKinds(level.data, level.size);
+    mipmaps.push({data: level.data, width: level.size, height: level.size});
+  }
+  const texture = new DataTexture(kinds, size, size, RedFormat, UnsignedByteType);
+  texture.mipmaps = mipmaps as unknown as DataTexture['mipmaps'];
+  texture.generateMipmaps = false;
+  texture.minFilter = NearestMipmapNearestFilter;
+  texture.magFilter = NearestFilter;
+  texture.wrapS = ClampToEdgeWrapping;
+  texture.wrapT = ClampToEdgeWrapping;
+  texture.unpackAlignment = 1; // the small levels' rows are not multiples of four bytes
+  texture.needsUpdate = true;
+  return texture;
+}
+
 async function loadGround(id: string): Promise<LocationGround | null> {
   const metaResponse = await fetch(`${PLACES_CONFIG.groundSrc}${id}.json`);
   if (!metaResponse.ok) return null;
@@ -69,11 +117,13 @@ async function loadGround(id: string): Promise<LocationGround | null> {
   // Rows north to south in the file; the texture's v runs south to north. Heights in the elevation map's units.
   const scale = meta.stepMetres / PLACES_CONFIG.elevationTopMetres;
   let level = {data: new Float32Array(size * size), size};
+  const kinds = meta.kinds ? new Uint8Array(size * size) : null;
   for (let row = 0; row < size; row++) {
     const target = (size - 1 - row) * size;
     for (let column = 0; column < size; column++) {
       const offset = (row * size + column) * 4;
       level.data[target + column] = (pixels[offset] * 256 + pixels[offset + 1]) * scale;
+      if (kinds) kinds[target + column] = pixels[offset + 2];
     }
   }
   const mipmaps = [{data: toHalf(level.data), width: size, height: size}];
@@ -89,7 +139,7 @@ async function loadGround(id: string): Promise<LocationGround | null> {
   texture.wrapS = ClampToEdgeWrapping;
   texture.wrapT = ClampToEdgeWrapping;
   texture.needsUpdate = true;
-  return {id, texture, meta};
+  return {id, texture, kinds: kinds ? kindTexture(kinds, size) : null, meta};
 }
 
 /** The ground of the location with this id, once loaded; null while loading, for none, or on a failure. */

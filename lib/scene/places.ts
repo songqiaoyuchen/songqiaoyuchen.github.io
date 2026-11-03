@@ -476,6 +476,48 @@ export function graticulePositions(stepDegrees: number, sampleDegrees = 2) {
   return decodeLines(encodeLines(lines));
 }
 
+/**
+ * A location's ground tile (public/places/ground/<id>.webp, scripts/assets/build-places-geo.mjs `ground`): two bytes of
+ * height (red high, green low, in GROUND stepMetres) and, in blue, the ground's kind: an ESA WorldCover class over ten
+ * (0 unknown, 1 trees, 2 shrubs, 3 grass, 4 crops, 5 built-up, 6 bare, 7 snow and ice, 8 water, 9 wetland, 10 moss) in
+ * the high four bits, and Natural Earth flags in the low three: a lake, a river, a glacier.
+ */
+export const GROUND_KIND = {
+  water: 8, snow: 7, trees: 1, shrubs: 2, grass: 3, crops: 4, builtUp: 5, bare: 6, wetland: 9, moss: 10,
+} as const;
+export const GROUND_FLAG = {lake: 1, river: 2, glacier: 4} as const;
+
+export function packGroundKind(kind: number, flags: number) {
+  return ((kind & 15) << 4) | (flags & 7);
+}
+
+export function unpackGroundKind(packed: number) {
+  return {kind: packed >> 4, flags: packed & 7};
+}
+
+/**
+ * The kind of four texels seen as one (a mip level): the commonest kind among them (the first of a tie), unknown
+ * giving way to any known one; the flags of all four, so a river or a lake still shows from afar.
+ */
+export function mergeGroundKinds(a: number, b: number, c: number, d: number) {
+  const packed = [a, b, c, d];
+  let best = 0;
+  let bestCount = 0;
+  let flags = 0;
+  for (let index = 0; index < 4; index++) {
+    const {kind, flags: own} = unpackGroundKind(packed[index]);
+    flags |= own;
+    if (kind === 0) continue;
+    let count = 0;
+    for (let other = 0; other < 4; other++) if (packed[other] >> 4 === kind) count++;
+    if (count > bestCount) {
+      best = kind;
+      bestCount = count;
+    }
+  }
+  return packGroundKind(best, flags);
+}
+
 export const EARTH_RADIUS_KM = 6371;
 
 /** The regional tile's texels per texel of the global elevation map (`mapTexel` as a share of its width). */
