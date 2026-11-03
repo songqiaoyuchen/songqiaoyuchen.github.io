@@ -90,8 +90,19 @@ export function PlacesTrails({
       const points = densifyTrack(track, trailStep).map((point) => point.multiplyScalar(surface));
       if (points.length < 2) return;
       const curve = new CatmullRomCurve3(points);
-      const tubular = points.length * 2;
-      const geometry = new TubeGeometry(curve, tubular, radius * trailRadius, RADIAL_SEGMENTS);
+      // Rings are laid by arc length (getPointAt), through the curve's length table: its default 200 divisions are
+      // coarser than a long track's points, which bunched rings a hundredth of the tube's radius apart where
+      // recordings cluster. Seen end-on, those slivers rasterised with non-finite interpolants: one NaN texel that
+      // the bloom's blur spread over the whole frame (a black flash). A table finer than the points spaces them evenly.
+      curve.arcLengthDivisions = Math.max(200, points.length * 8);
+      const tubeRadius = radius * trailRadius;
+      // Rings a tenth of the tube's radius apart, by arc length. Each ring is lifted by the relief under its own centre
+      // while its section keeps the unlifted curve's orientation, so a chord between rings shears by their difference
+      // in lift: short chords keep that shear well inside the radius, where the tube still reads as a round line.
+      // Longer ones (half the radius was tried) shear a climb away from the camera past vertical, and the strip is
+      // culled or faded by its facing, as if the ridge hid the trail.
+      const tubular = Math.max(2, Math.ceil(curve.getLength() / (tubeRadius * 0.1)));
+      const geometry = new TubeGeometry(curve, tubular, tubeRadius, RADIAL_SEGMENTS);
       // TubeGeometry builds ring by ring at getPointAt(i / tubular), radial + 1 vertices each.
       const ring = RADIAL_SEGMENTS + 1;
       const centers = new Float32Array((tubular + 1) * ring * 3);
@@ -157,6 +168,9 @@ export function PlacesTrails({
       const {uVisibility, uRelief, uFocus, uEye} = material.uniforms;
       mesh.worldToLocal(uEye.value.copy(camera.position));
       uVisibility.value = visibilityRef.current * (tubes[index]?.location === own ? 1 : overviewRef.current);
+      // A faded-out tube is not drawn at all: it would still cost its draw calls, and a non-finite fragment stays
+      // non-finite at alpha 0.
+      mesh.visible = uVisibility.value > 0.001;
       uRelief.value = reliefRef.current;
       uFocus.value = focusRef.current;
     }

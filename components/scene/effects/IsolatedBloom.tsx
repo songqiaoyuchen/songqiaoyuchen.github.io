@@ -67,6 +67,18 @@ class IsolatedBloomEffect extends BloomEffect {
     });
     this.selectionTarget.texture.generateMipmaps = false;
     this.selectionTarget.texture.name = 'IsolatedBloom.Selection';
+    // The selection is read through the luminance threshold before the blur: a non-finite texel there (a sliver
+    // triangle can rasterise its interpolants as NaN) would spread through the blur's mip chain over the whole bloom
+    // and black out the frame, so it is zeroed first.
+    const luminance = this.luminanceMaterial;
+    const read = 'vec4 texel=texture2D(inputBuffer,vUv);';
+    if (luminance.fragmentShader.includes(read)) {
+      luminance.fragmentShader = luminance.fragmentShader.replace(
+        read, `${read}if(any(isnan(texel))||any(isinf(texel)))texel=vec4(0.0);`);
+      luminance.needsUpdate = true;
+    } else if (process.env.NODE_ENV === 'development') {
+      console.warn('IsolatedBloom: the luminance shader has changed; the non-finite guard was not applied.');
+    }
   }
 
   setSelection(selection: Object3D[]) {
