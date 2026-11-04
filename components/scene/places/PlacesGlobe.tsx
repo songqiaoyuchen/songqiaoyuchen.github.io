@@ -242,7 +242,7 @@ export function PlacesGlobe({
     markerPoint, phoneMarkerPoint, holdRate, turnFrom, turnSettle, revealAt,
     relief: locationRelief, shade: locationShade, landTint: locationTint, trailRadius: locationTrailRadius,
     markerSize: locationMarkerSize, lensFill, lensMaxZoom, lensMinZoom, lensMargin, lensRelief: lensGain,
-    atlasWater, atlasSnow, atlasKindTint, atlasRiver, atlasWaterIn, atlasLandIn, lightsOut, atlasSpread,
+    atlasWater, atlasSea, atlasSnow, atlasKindTint, atlasRiver, atlasWaterIn, atlasLandIn, atlasSpread, atlasSnowBlend,
   } = locationSettings;
   // Each location's zoom at full, and the place the globe turns to the screen point: the middle of the box about its
   // places (the zoom's centre), so the whole location is framed, not just where it began.
@@ -535,6 +535,9 @@ export function PlacesGlobe({
     uAtlasSpread: {value: PLACES_LOCATION_CONFIG.atlasSpread},
     uAtlasWaterAmount: {value: 0},
     uAtlasLandAmount: {value: 0},
+    uAtlasSea: {value: PLACES_LOCATION_CONFIG.atlasSea},
+    uAtlasSnowLine: {value: 0},
+    uAtlasSnowBlend: {value: PLACES_LOCATION_CONFIG.atlasSnowBlend / PLACES_CONFIG.elevationTopMetres},
   }), [lensUniforms, radius]);
   useEffect(() => {
     const shell = shellRef.current;
@@ -557,6 +560,7 @@ export function PlacesGlobe({
     shell.uniforms.uGround.value = ground.texture;
     shell.uniforms.uKinds.value = ground.kinds;
     shell.uniforms.uHasKinds.value = ground.kinds ? 1 : 0;
+    shell.uniforms.uAtlasSnowLine.value = (groundLocation?.snowLine ?? 0) / PLACES_CONFIG.elevationTopMetres;
     shell.uniforms.uGroundAnchor.value.copy(anchor);
     shell.uniforms.uGroundEast.value.copy(east);
     shell.uniforms.uGroundNorth.value.crossVectors(anchor, east);
@@ -569,7 +573,7 @@ export function PlacesGlobe({
     coast.uniforms.uGroundEast.value.copy(east);
     coast.uniforms.uGroundNorth.value.copy(shell.uniforms.uGroundNorth.value);
     coast.uniforms.uGroundHalfAngle.value = shell.uniforms.uGroundHalfAngle.value;
-  }, [coastGeometry, elevation, ground]);
+  }, [coastGeometry, elevation, ground, groundLocation]);
   useEffect(() => {
     const shell = shellRef.current;
     if (!shell || !region) return;
@@ -594,7 +598,9 @@ export function PlacesGlobe({
     shell.uniforms.uAtlasKindTint.value = atlasKindTint;
     shell.uniforms.uAtlasRiver.value = atlasRiver;
     shell.uniforms.uAtlasSpread.value = atlasSpread;
-  }, [atlasKindTint, atlasRiver, atlasSnow, atlasSpread, atlasWater]);
+    shell.uniforms.uAtlasSnowBlend.value = atlasSnowBlend / PLACES_CONFIG.elevationTopMetres;
+    shell.uniforms.uAtlasSea.value = atlasSea;
+  }, [atlasKindTint, atlasRiver, atlasSea, atlasSnow, atlasSnowBlend, atlasSpread, atlasWater]);
   useEffect(() => {
     const shell = shellRef.current;
     if (!shell) return;
@@ -731,9 +737,8 @@ export function PlacesGlobe({
     trailLod.current = MathUtils.smoothstep(morph, PLACES_CONFIG.trailsIn[0], PLACES_CONFIG.trailsIn[1]);
     // The lights come on at half strength as the landscape recedes and reach full as the globe forms, so their
     // glow does not wash the whole frame while they fill it.
-    // With a location open they go out along the focus journey as its atlas develops (below).
-    lightLod.current = (0.5 * MathUtils.smoothstep(morph, PLACES_CONFIG.lightsIn[0], PLACES_CONFIG.lightsIn[1])
-      + 0.5 * lod.current) * (1 - MathUtils.smoothstep(focusProgress.current, lightsOut[0], lightsOut[1]));
+    lightLod.current = 0.5 * MathUtils.smoothstep(morph, PLACES_CONFIG.lightsIn[0], PLACES_CONFIG.lightsIn[1])
+      + 0.5 * lod.current;
     starLod.current = MathUtils.smoothstep(morph, PLACES_CONFIG.starsIn[0], PLACES_CONFIG.starsIn[1]);
     shell.uniforms.uFogWeight.value = 1 - lod.current;
     // The gold rim is the resting globe's: on the way it would band the planet's horizon.

@@ -46,7 +46,9 @@ export const EDITABLE_CONFIG = {
     object: 'PLACES_LOCATION_CONFIG',
     keys: ['markerPoint', 'phoneMarkerPoint', 'holdRate', 'turnFrom', 'turnSettle', 'revealAt',
       'summaryBlur', 'relief', 'shade', 'landTint', 'trailRadius',
-      'markerSize', 'lensFill', 'lensMaxZoom', 'lensMinZoom', 'lensMargin', 'lensRelief'],
+      'markerSize', 'lensFill', 'lensMaxZoom', 'lensMinZoom', 'lensMargin', 'lensRelief',
+      'atlasWater', 'atlasSea', 'atlasSnow', 'atlasSnowBlend', 'atlasKindTint', 'atlasRiver', 'atlasWaterIn',
+      'atlasLandIn', 'atlasSpread'],
   },
   placesLocationTurns: {
     file: 'scene/places.ts',

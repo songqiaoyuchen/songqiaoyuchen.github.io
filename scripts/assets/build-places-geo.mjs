@@ -20,7 +20,8 @@
 //     direction, over the half-width's angle) in GROUND_STEP_M steps across two bytes (high in red, low in green),
 //     and in blue the ground's kind (lib/scene/places.ts GROUND_KIND): ESA WorldCover 10 m classes (CC BY 4.0, read
 //     from the cloud-optimised GeoTIFFs on AWS at the overview nearest the grid's spacing; a tile missing from the
-//     set is open sea) with Natural Earth 1:10m lakes, rivers and glaciers as flags (GeoJSON fetched once into
+//     set is open sea; water bodies under GROUND_MIN_WATER_TEXELS are left to the land about them, so small lakes do
+//     not speckle the map) with Natural Earth 1:10m lakes, rivers and glaciers as flags (GeoJSON fetched once into
 //     .cache/places-geo/), written as lossless WebP to public/places/ground/<location id>.webp with a .json describing
 //     it. Centre it on the middle of the box about the location's places, the centre of its zoom.
 //
@@ -52,6 +53,62 @@ const TERRARIUM_URL = 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium';
 const TILE = 256;
 export const REGION_MAX_M = 8000;
 const GROUND_STEP_M = 2;
+const GROUND_MIN_WATER_TEXELS = 5; // a smaller water body is left to the land about it (about 27 km² at 3600 km / 1536)
+
+/**
+ * Leaves bodies of `kind` smaller than `minTexels` (4-connected) to the land about them: each texel takes the commonest
+ * other kind among its eight neighbours (unknown where there is none). Returns how many bodies went.
+ */
+export function pruneSmallKinds(kinds, size, kind, minTexels) {
+  const seen = new Uint8Array(kinds.length);
+  const stack = [];
+  const body = [];
+  let pruned = 0;
+  for (let start = 0; start < kinds.length; start++) {
+    if (kinds[start] !== kind || seen[start]) continue;
+    body.length = 0;
+    stack.push(start);
+    seen[start] = 1;
+    while (stack.length) {
+      const cell = stack.pop();
+      body.push(cell);
+      const x = cell % size;
+      const y = (cell - x) / size;
+      const neighbours = [x > 0 ? cell - 1 : -1, x < size - 1 ? cell + 1 : -1, y > 0 ? cell - size : -1,
+        y < size - 1 ? cell + size : -1];
+      for (const next of neighbours) {
+        if (next >= 0 && !seen[next] && kinds[next] === kind) {
+          seen[next] = 1;
+          stack.push(next);
+        }
+      }
+    }
+    if (body.length >= minTexels) continue;
+    pruned++;
+    for (const cell of body) {
+      const x = cell % size;
+      const y = (cell - x) / size;
+      const votes = new Map();
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          if ((!dx && !dy) || x + dx < 0 || x + dx >= size || y + dy < 0 || y + dy >= size) continue;
+          const other = kinds[cell + dy * size + dx];
+          if (other !== kind) votes.set(other, (votes.get(other) ?? 0) + 1);
+        }
+      }
+      let best = 0;
+      let bestVotes = 0;
+      for (const [other, count] of votes) {
+        if (count > bestVotes || (count === bestVotes && other > best)) {
+          best = other;
+          bestVotes = count;
+        }
+      }
+      kinds[cell] = best;
+    }
+  }
+  return pruned;
+}
 
 /** Web Mercator tile coordinates (fractional) of a place at a zoom level. */
 export function mercatorTile(lon, lat, zoom) {
@@ -542,6 +599,13 @@ async function main() {
     const pixels = Buffer.alloc(size * size * 3);
     let min = Infinity;
     let max = -Infinity;
+    // WorldCover's class; where it has none, Natural Earth's sea is water. Water bodies of a few texels (small lakes,
+    // single texels at this spacing) are left to the land about them: they would speckle the map.
+    const kinds = new Uint8Array(size * size);
+    for (let cell = 0; cell < size * size; cell++) {
+      kinds[cell] = cover.kinds[cell] || (earth.sea[cell] ? GROUND_KIND.water : 0);
+    }
+    const pruned = pruneSmallKinds(kinds, size, GROUND_KIND.water, GROUND_MIN_WATER_TEXELS);
     const counts = new Map();
     for (let cell = 0; cell < size * size; cell++) {
       const metres = sampler(places[cell * 2], places[cell * 2 + 1]);
@@ -550,10 +614,8 @@ async function main() {
       const level = Math.min(65535, Math.round(Math.max(0, metres) / GROUND_STEP_M));
       pixels[cell * 3] = level >> 8;
       pixels[cell * 3 + 1] = level & 255;
-      // WorldCover's class; where it has none, Natural Earth's sea is water.
-      const kind = cover.kinds[cell] || (earth.sea[cell] ? GROUND_KIND.water : 0);
-      pixels[cell * 3 + 2] = packGroundKind(kind, earth.flags[cell]);
-      counts.set(kind, (counts.get(kind) ?? 0) + 1);
+      pixels[cell * 3 + 2] = packGroundKind(kinds[cell], earth.flags[cell]);
+      counts.set(kinds[cell], (counts.get(kinds[cell]) ?? 0) + 1);
     }
     const folder = path.join(root, 'public', 'places', 'ground');
     await fs.mkdir(folder, {recursive: true});
@@ -569,7 +631,7 @@ async function main() {
     console.log(`ground ${id}: ${fetched} tiles at z${zoom}, ${size}x${size} over ${km} km, elevation `
       + `${Math.round(min)}..${Math.round(max)} m; kinds from ${cover.read} WorldCover tiles (${cover.missing} at `
       + `sea): water ${share(GROUND_KIND.water)}, snow ${share(GROUND_KIND.snow)}, trees ${share(GROUND_KIND.trees)}, `
-      + `unknown ${share(0)}; ${bytes} bytes -> ${target}`);
+      + `unknown ${share(0)}, ${pruned} small water bodies left to the land; ${bytes} bytes -> ${target}`);
     return;
   }
 

@@ -61,6 +61,9 @@ uniform float uAtlasRiver;
 uniform float uAtlasSpread; // half-widths the atlas's front lags its centre
 uniform float uAtlasWaterAmount;
 uniform float uAtlasLandAmount;
+uniform float uAtlasSea; // the open sea's share of the water colour
+uniform float uAtlasSnowLine; // the location's snow line in the map's height units; 0 for none
+uniform float uAtlasSnowBlend; // the height over which snow comes in above it, map units
 
 // How far the atlas has reached a place `distance` half-widths from the ground's centre at `amount` of its way:
 // its front runs from the centre past the edge, softened over uAtlasSpread (none: everywhere at once).
@@ -157,8 +160,6 @@ void main() {
       float groundHeight = textureLod(uGround, groundUv, lod).r;
       // Height differences over a texel pair at this level, as the map's: times the level's texels per map texel.
       vec2 groundSlope = vec2(east - west, north - south) * LAND_SLOPE_GAIN * uGroundShade * uGroundSpread / exp2(lod);
-      height = mix(height, groundHeight, weight);
-      slope = mix(slope, groundSlope, weight);
       if (uHasKinds > 0.5) {
         // The kind at the same level, read exactly: a texel is one kind, never a blend of two.
         float packed = floor(textureLod(uKinds, groundUv, lod).r * 255.0 + 0.5);
@@ -167,15 +168,26 @@ void main() {
         bool lake = mod(flags, 2.0) >= 1.0;
         bool river = mod(floor(flags / 2.0), 2.0) >= 1.0;
         bool glacier = flags >= 4.0;
+        bool dry = kind != 0 && kind != 8 && !lake;
+        // Land below sea level (the Turpan Depression) is land all the same: the map's sea is by height alone.
+        if (dry) groundHeight = max(groundHeight, LAND_SEA * 1.5);
         float distance = length(offset);
         float water = atlasReveal(uAtlasWaterAmount, distance) * weight;
         float land = atlasReveal(uAtlasLandAmount, distance) * weight;
-        if (kind == 8 || lake) waterHere = water;
+        // Snow: WorldCover's permanent snow and ice, glaciers, and the ground above the location's snow line.
+        float capped = uAtlasSnowLine > 0.0
+          ? smoothstep(uAtlasSnowLine, uAtlasSnowLine + uAtlasSnowBlend, groundHeight) : 0.0;
+        // The open sea (water at sea level) takes only a share of the water colour: it is most of the tile, and the
+        // night globe's; lakes and rivers above it take the whole.
+        if (kind == 8 || lake) waterHere = water * (groundHeight <= LAND_SEA ? uAtlasSea : 1.0);
         else if (kind == 7 || glacier) snowHere = land;
         else if (kind == 9) waterHere = water * 0.5;
         else if (river) riverHere = water * uAtlasRiver;
+        if (dry) snowHere = max(snowHere, capped * land);
         if (kind != 8 && kind != 7 && !lake && !glacier) kindTint = mix(vec3(1.0), kindFactor(kind), land * uAtlasKindTint);
       }
+      height = mix(height, groundHeight, weight);
+      slope = mix(slope, groundSlope, weight);
     }
   }
   // Where the lens squeezes the ground, its hillshade flattens with its heights.

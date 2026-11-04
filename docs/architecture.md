@@ -227,9 +227,10 @@ open), which `globe.frag` reads under the zoom at the detail a screen pixel cove
 out; the coastlines give way to it there. The ground's third byte is its kind (`GROUND_KIND` in `lib/scene/places.ts`: ESA
 WorldCover's water, snow and ice, trees, grass, crops, built-up and bare ground, with Natural Earth lake, river and glacier
 flags), which makes the open location an atlas still in the night's dark (`atlas*` in `PLACES_LOCATION_CONFIG`): water an ink
-blue, snow a cold grey, the land's kinds a shade apart under the gold hillshade. It develops along the focus journey, water
-first and then the land, each from the location's centre outward, while the night lights go out (`lightsOut`), and leaves
-the same way on the return. About the resting globe,
+blue, snow a cold grey (lasting ice, and the ground above the location's `snowLine`), the land's kinds a shade apart under
+the gold hillshade, the night lights staying on over it. It
+develops along the focus journey, water first and then the land, each from the location's centre outward, and leaves the
+same way on the return. About the resting globe,
 outside its turn, two tilted orbit rings with tick marks turn slowly (`PlacesRings`) and a sparse sky of stars
 stands far behind (`PlacesStars`, the same point shader); lights, rings and stars join the isolated bloom. The camera parks at the Places
 pose and the globe turns (`lib/scene/places.ts`): a drag follows the pointer; a release coasts under friction

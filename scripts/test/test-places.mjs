@@ -14,7 +14,7 @@ import {
 } from '../../lib/scene/places.ts';
 import {placeLocationSheet} from '../../components/places/useLocationSheetPlacement.ts';
 import {
-  geoJsonLines, gpxTrack, mercatorTile, sampleRegion, simplifyLine, zoomForResolution,
+  geoJsonLines, gpxTrack, mercatorTile, pruneSmallKinds, sampleRegion, simplifyLine, zoomForResolution,
 } from '../assets/build-places-geo.mjs';
 
 const DEG = Math.PI / 180;
@@ -254,6 +254,25 @@ for (const [index, startYaw] of [[0, 0], [1, Math.PI], [2, 2.5], [3, -1]]) {
   assert.equal(mergeGroundKinds(grass, water, water, grass), packGroundKind(GROUND_KIND.grass, GROUND_FLAG.glacier));
   assert.equal(mergeGroundKinds(0, 0, 0, grass), grass);
   assert.equal(mergeGroundKinds(0, 0, 0, 0), 0);
+  // Small water bodies go to the land about them: a lone texel among trees becomes trees, a 2 x 3 lake stays, and
+  // water touching the edge is one body with what it joins (the sea along the left column).
+  const W = GROUND_KIND.water;
+  const T = GROUND_KIND.trees;
+  const G = GROUND_KIND.grass;
+  const grid = new Uint8Array([
+    W, T, T, T, T, T,
+    W, T, W, T, T, T,
+    W, T, T, T, W, W,
+    W, T, T, T, W, W,
+    W, G, G, G, W, W,
+    W, G, W, G, G, G,
+  ]);
+  const gone = pruneSmallKinds(grid, 6, W, 4);
+  assert.equal(gone, 2);
+  assert.equal(grid[7], T, 'the lone texel takes the trees about it');
+  assert.equal(grid[32], G, 'the lone texel among grass takes grass');
+  assert.equal(grid[16], W, 'the lake stays');
+  assert.ok([0, 6, 12, 18, 24, 30].every((cell) => grid[cell] === W), 'the sea stays');
 }
 
 // The screen point measured back from where the aim lands is the point asked for: the screen's centre, from the

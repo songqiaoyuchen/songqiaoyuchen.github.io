@@ -347,19 +347,27 @@
   stroke: var(--callout-signal);
 }
 
-/* A stop name's leader, fainter than a hovered location's so the names lead. */
+/* A stop name's leader: in the signal colour at the marks' weight, so it reads as the stop's own line over the
+   open location's lit ground, where a faint gold line would vanish. */
 .places-stop-leader {
-  stroke: var(--callout-line);
-  stroke-width: 1;
+  stroke: var(--callout-signal-soft);
+  stroke-width: var(--callout-stroke);
+  stroke-linecap: round;
   filter: var(--callout-knockout);
 }
 
-/* A stop's name, always shown with its location open, on a heavier halo to stand off the city lights; gold while a
-   stop with photos is hovered. */
+/* A stop's diamond carries a little glow, as the open location's own does. */
+.places-stop::before {
+  box-shadow: 0 0 6px var(--callout-signal-glow);
+}
+
+/* A stop's name, always shown with its location open, on a heavier halo to stand off the ground's relief and the
+   city lights; gold while a stop with photos is hovered. */
 .places-stop-name .places-callout-title {
   font-size: 0.9rem;
   text-shadow:
-    0 0 2px var(--callout-halo), 0 0 4px var(--callout-halo), 0 0 14px var(--callout-halo-wide);
+    0 0 2px var(--callout-halo), 0 0 3px var(--callout-halo), 0 0 6px var(--callout-halo),
+    0 0 16px var(--callout-halo-wide);
   transition: color 180ms ease-out;
 }
 

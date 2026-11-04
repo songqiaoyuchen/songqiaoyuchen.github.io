@@ -67,6 +67,8 @@ export type Location = {
   mode?: TravelMode;
   /** The place the marker stands on and the globe turns to; the start of a long route. */
   place: {name: string; lonLat: LonLat};
+  /** Metres above which the open location's atlas shows snow (globe.frag); without it only lasting ice is white. */
+  snowLine?: number;
   /** Its own marker in place of the diamond. */
   icon?: LocationIcon;
   summary: string;
@@ -96,6 +98,7 @@ const ALL_LOCATIONS: readonly Location[] = [
     distanceKm: 777, // routed by road between the stops, not recorded
     mode: 'bicycle',
     place: {name: 'Ili, Xinjiang', lonLat: [84.9, 44.42]},
+    snowLine: 3600,
     summary: 'Bikepacking over the Tianshan Mountains and west through the Ili Valley to the last teardrop of the Atlantic Ocean - Sayram Lake.',
     description: 'Since then, I\'ve travelled farther and seen more of the world, yet Xinjiang has only grown more special to me.'
       + ' It was our first long-distance bikepacking: three beginners, plenty of mishaps, a few stories we still laugh about.'
@@ -167,6 +170,7 @@ const ALL_LOCATIONS: readonly Location[] = [
     distanceKm: 1800, // placeholder
     mode: 'bicycle',
     place: {name: 'Chengdu, Sichuan', lonLat: [104.07, 30.67]},
+    snowLine: 5000,
     summary: 'Solo bikepacking through the Hengduan Mountains and the Tibetan Plateau.',
     description: 'China National Highway 318 (G318) is the country\'s most iconic long-distance cycling route,'
      + ' and a pilgrimage for countless cyclists.'
@@ -201,6 +205,7 @@ const ALL_LOCATIONS: readonly Location[] = [
     days: 6,
     mode: 'hike',
     place: {name: 'Rogaland and Vestland, Norway', lonLat: [6.19, 58.99]},
+    snowLine: 1500,
     summary: 'Three of Norway\'s most iconic and dramatic rock formations and summits.',
     description: 'Impromptu hikes to Preikestolen, Kjeragbolten and Trolltunga packed into four days.'
       + ' A challenging but rewarding experience with two friends. It has some of the most breathtaking'

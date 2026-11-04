@@ -145,15 +145,19 @@ export const PLACES_LOCATION_CONFIG = {
 
   // Atlas (globe.frag, from the ground's kind layer): with a location open the ground tells water, snow and the
   // land's kinds apart, still in the night globe's dark: water an ink blue, snow and ice a cold grey, the land's kinds
-  // a shade apart under the gold. It develops over the focus journey (shares of its time): water fills in first, then
-  // the land, from the location's centre outward, while the night lights go out.
-  atlasWater: '#0a1830',
-  atlasSnow: '#3a404b',
-  atlasKindTint: 1, // how far the land's kinds colour it (0 leaves the land one dark)
+  // a shade apart under the gold; the night lights stay on over it. Snow is WorldCover's permanent snow and ice and
+  // Natural Earth's glaciers, plus the ground above the location's own snow line (`snowLine` in data/places.ts, metres;
+  // the classes know only lasting ice, so a plateau's seasonal cap needs the line), blending in over atlasSnowBlend.
+  // It develops over the focus journey (shares of its time): water fills in first, then the land, from the location's
+  // centre outward.
+  atlasWater: '#010327',
+  atlasSea: 0.3, // the open sea's share of the water colour; lakes, fjords above sea level and rivers take it whole
+  atlasSnow: '#747880',
+  atlasSnowBlend: 400, // metres above the snow line over which the snow comes in
+  atlasKindTint: 2, // how far the land's kinds colour it (0 leaves the land one dark)
   atlasRiver: 0.55, // river lines' share of the water colour
   atlasWaterIn: [0.3, 0.7] as readonly [number, number],
   atlasLandIn: [0.5, 0.95] as readonly [number, number],
-  lightsOut: [0.25, 0.8] as readonly [number, number],
   atlasSpread: 0.5, // the atlas's front lags its centre by this share of the ground's half-width; 0 arrives at once
 } as const;
 

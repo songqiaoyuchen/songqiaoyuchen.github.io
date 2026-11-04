@@ -122,9 +122,13 @@ function usePlacesLocationControls() {
     }, {collapsed: false}),
     Atlas: folder({
       // PlacesGlobe.tsx -> globe.frag: water, snow and the land's kinds from the ground's kind layer, and when they
-      // come in along the focus journey as the night lights go out.
+      // come in along the focus journey (the night lights stay, over it).
       atlasWater: {value: PLACES_LOCATION_CONFIG.atlasWater, label: 'Water'},
+      atlasSea: {value: PLACES_LOCATION_CONFIG.atlasSea, min: 0, max: 1, step: 0.05, label: 'Open sea'},
       atlasSnow: {value: PLACES_LOCATION_CONFIG.atlasSnow, label: 'Snow'},
+      atlasSnowBlend: {
+        value: PLACES_LOCATION_CONFIG.atlasSnowBlend, min: 0, max: 1500, step: 50, label: 'Snow blend (m)',
+      },
       atlasKindTint: {value: PLACES_LOCATION_CONFIG.atlasKindTint, min: 0, max: 2, step: 0.05, label: 'Kind tint'},
       atlasRiver: {value: PLACES_LOCATION_CONFIG.atlasRiver, min: 0, max: 1, step: 0.05, label: 'Rivers'},
       atlasWaterIn: {
@@ -133,9 +137,6 @@ function usePlacesLocationControls() {
       },
       atlasLandIn: {
         value: pair(PLACES_LOCATION_CONFIG.atlasLandIn), min: 0, max: 1, step: 0.01, joystick: false, label: 'Land in',
-      },
-      lightsOut: {
-        value: pair(PLACES_LOCATION_CONFIG.lightsOut), min: 0, max: 1, step: 0.01, joystick: false, label: 'Lights out',
       },
       atlasSpread: {value: PLACES_LOCATION_CONFIG.atlasSpread, min: 0, max: 2, step: 0.05, label: 'Spread'},
     }, {collapsed: false}),
